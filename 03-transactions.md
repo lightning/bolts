@@ -145,7 +145,7 @@ and MUST NOT reveal the seed.  Up to 2^48-1 per-commitment secrets can be
 generated; the first secret used MUST be index 281474976710655, and
 then the index decremented.
 
-The psecret P for index N MUST match the output of this algorithm:
+The secret P for index N MUST match the output of this algorithm:
 
     generate_from_seed(seed, N):
         P = seed
