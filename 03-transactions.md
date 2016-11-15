@@ -45,15 +45,15 @@ This output sends funds to the other peer, thus is a simple P2PKH to `<remotekey
 
 This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or to the remote peer on successful payment preimage.  The output is a P2WSH, with a witness script:
 
-    emotekey> OP_SWAP
-       OP_SIZE 32 OP_EQUAL
+    <remotekey> OP_SWAP
+        OP_SIZE 32 OP_EQUAL
     OP_NOTIF
-             # To me via HTLC-timeout tx (timelocked).
-             OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIGVERIFY
+        # To me via HTLC-timeout tx (timelocked).
+        OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIGVERIFY
     OP_ELSE
-             # To you with preimage.
-                   OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
-             OP_CHECKSIGVERIFY
+        # To you with preimage.
+        OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
+        OP_CHECKSIGVERIFY
     OP_ENDIF
 
 The remote node can redeem the HTLC with the scriptsig:
@@ -98,7 +98,9 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
    * txin[0] witness stack: `<localsig> <remotesig> 0` (HTLC-Timeout) or `<localsig> <remotesig> <payment-preimage>` (HTLC-success).
 * txout count: 1
    * txout[0] amount: the HTLC amount minus fees (see below)
-   * txout[0] script: version 0 P2WSH with witness script:
+   * txout[0] script: version 0 P2WSH with witness script as below.
+
+The witness script for the output is:
 
     OP_IF
         # Penalty transaction
@@ -110,7 +112,6 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
         <localkey>
     OP_ENDIF
     OP_CHECKSIG
-
 
 To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to-self-delay` and a witness stack `<localsig> 0`
 
