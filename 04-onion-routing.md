@@ -1,4 +1,4 @@
-# Onion Routing Protocol for Lightning
+# BOLT #4: Onion Routing Protocol
 
 ## Overview
 
