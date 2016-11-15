@@ -8,7 +8,7 @@ Lexicographic ordering as per BIP 69.
 
 ## Funding Transaction Output
 
-* The funding output script is a pay-to-witness-script-hash [FIXME: reference BIP] to:
+* The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
    * 0 2 <key1> <key2> 2 OP_CHECKMULTISIG
 * Where <key1> is the numerically lesser of the two DER-encoded `funding-pubkey` and <key2> is the greater.
 
@@ -119,7 +119,7 @@ To spend this via penalty, the remote node uses a witness stack `<revocationsig>
 
 Each commitment transaction uses a unique set of keys; <localkey>, <remotekey> and <revocationkey>.  Changing the <localkey> and <remotekey> every time ensures that commitment txids cannot be determined by a third party even it knows another commitment transaction, which helps preserve privacy in the case of outsourced penalties.  The <revocationkey> is generated such that the remote node is the only one in possession of the secret key once the commitment transaction has been revoked.
 
-For efficiency, keys are generated from a series of per-commitment secrets which are generated from a single seed, allowing the receiver to compactly store them (see [FIXME]).
+For efficiency, keys are generated from a series of per-commitment secrets which are generated from a single seed, allowing the receiver to compactly store them (see [below](#efficient-per-commitment-secret-storage)).
 
 ### localkey and remotekey Derivation
 
@@ -145,20 +145,93 @@ and MUST NOT reveal the seed.  Up to 2^48-1 per-commitment secrets can be
 generated; the first secret used MUST be index 281474976710655, and
 then the index decremented.
 
-The secret P for index N MUST match the output of this algorithm:
+The I'th secret P MUST match the output of this algorithm:
 
-    generate_from_seed(seed, N):
+    generate_from_seed(seed, I):
         P = seed
         for B in 0 to 47:
-            if B set in N:
+            if B set in I:
                 flip(B) in P
                 P = SHA256(P)
         return P
 
 Where "flip(B)" alternates the B'th least significant bit in the value P.
 
-The receiving node MAY store all previous R values, or MAY calculate
-it from a compact representation as described in [FIXME].
+The receiving node MAY store all previous per-commitment secrets, or
+MAY calculate it from a compact representation as described below.
+
+### Efficient Per-commitment Secret Storage
+
+The receiver of a series of secrets can store them compactly in an
+array of 49 (value,index) pairs.  This is because given a secret on a
+2^X boundary, we can derive all secrets up to the next 2^X boundary,
+and we always receive secrets in descending order starting at
+0xFFFFFFFFFFFF.
+
+In binary, it's helpful to think of any index in terms of a *prefix*,
+followed by some trailing zeroes.  You can derive the secret for any
+index which matches this *prefix*.
+
+For example, secret 0xFFFFFFFFFFF0 allows us to derive secrets for
+0xFFFFFFFFFFF1 through 0xFFFFFFFFFFFF inclusive. Secret 0xFFFFFFFFFF08
+allows us to derive secrets 0xFFFFFFFFFF09 through 0xFFFFFFFFFF0F
+inclusive.
+
+We do this using a slight generalization of `generate_from_seed` above:
+
+    # Return I'th secret given base secret whose index has bits..47 the same.
+    derive_secret(base, bits, I):
+        P = base
+        for B in 0 to bits:
+            if B set in I:
+                flip(B) in P
+                P = SHA256(P)
+        return P
+
+We need only save one secret for each unique prefix; in effect we can
+count the number of trailing zeros, and that determines where in our
+storage array we store the secret:
+
+    # aka. count trailing zeroes
+    where_to_put_secret(I):
+		for B in 0 to 47:
+			if testbit(I) in B == 1:
+				return B
+        # I = 0, this is the seed.
+		return 48
+
+We also need to double-check that all previous secrets derive correctly,
+otherwise the secrets were not generated from the same seed:
+
+    insert_secret(secret, I):
+		B = where_to_put_secret(secret, I)
+
+        # This tracks the index of the secret in each bucket as we traverse.
+		for b in 0 to B:
+			if derive_secret(secret, B, known[b].index) != known[b].secret:
+				error The secret for I is incorrect
+				return
+
+        # Assuming this automatically extends known[] as required.
+		known[B].index = I
+		known[B].secret = secret
+
+Finally, if we are asked to derive secret at index `I`, we need to
+figure out which known secret we can derive it from.  The simplest
+method is iterating over all the known secrets, and testing if we
+can derive from it:
+
+	derive_old_secret(I):
+		for b in 0 to len(secrets):
+		    # Mask off the non-zero prefix of the index.
+		    MASK = ~((1 << b)-1)
+			if (I & MASK) == secrets[b].index:
+				return derive_secret(known, i, I)
+	    error We haven't received index I yet.
+
+This looks complicated, but remember that the index in entry `b` has
+`b` trailing zeros; the mask and compare is just seeing if the index
+at each bucket is a prefix of the index we want.
 
 # References
 
