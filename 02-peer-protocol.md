@@ -106,8 +106,9 @@ immediately included in a block.
 
 The sender SHOULD set `dust-limit-satoshis` to sufficient value to
 allow commitment transactions to propagate through the bitcoin
-network.  It MUST set `max-num-htlcs` to less than or equal to 300
-[FIXME:LAOLU recalc?].  It SHOULD set `htlc-minimum-msat` to the minimum
+network.  It MUST set `max-num-htlcs` to less than or equal to 600
+<sup>[BOLT #5](05-onchain.md#penalty-transaction-weight-calculation)</sup>.
+It SHOULD set `htlc-minimum-msat` to the minimum
 amount HTLC it is willing to accept from this peer.
 
 
@@ -116,7 +117,7 @@ unreasonably large.  The receiver MAY fail the channel if
 `funding-satoshis` is too small, and MUST fail the channel if
 `push-msat` is greater than `funding-amount` * 1000.
 The receiving node MAY fail the channel if it considers
-`htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-num-htlcs` too small.  It MUST fail the channel if `max-num-htlcs` is greater than 300 [FIXME:LAOLU recalc?]
+`htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-num-htlcs` too small.  It MUST fail the channel if `max-num-htlcs` is greater than 600.
 
 
 The receiver MUST fail the channel if
