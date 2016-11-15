@@ -596,7 +596,7 @@ For a timed out or route-failed HTLC:
 2. data:
    * [8:channel-id]
    * [8:id]
-   * [FIXME:CDECKER/LAOLU:reason]
+   * [154:reason]
 
 ### Requirements
 
