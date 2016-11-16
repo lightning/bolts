@@ -14,9 +14,22 @@ The messages described in this document are grouped logically into 4 groups by t
   * [Channel](#channel)
     * [Channel Establishment](#channel-establishment)
     * [The `open_channel` message](#the-open_channel-message)
-    
-  
+    * [The `accept_channel` message](#the-accept_channel-message)
+    * [The `funding_created` message](#the-funding_created-message)
+    * [The `funding_signed` message](#the-funding_signed-message)
+    * [The `funding_locked` message](#the-funding_locked-message)
+    * [Updating Fees: `update_fee`](#updating-fees-update_fee)
+    * [Channel Close](#channel-close)
+    * [Closing initiation: `shutdown`](#closing-initiation-shutdown)
+    * [Closing negotiation: `closing_signed`](#closing-negotiation-closing_signed)
+    * [Normal Operation](#normal-operation)
+    * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
+    * [Adding an HTLC](#adding-an-htlc)
+    * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
+    * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
+    * [Completing the transition to the updated state: `revocation`](#completing-the-transition-to-the-updated-state-revocation)
 
+  
 # Channel
 
 ## Channel Establishment
@@ -641,7 +654,7 @@ sign the resulting transaction as defined in [BOLT #3] and send a
    * [4:num-htlcs]
    * [num-htlcs*64:htlc-signature]
 
-## Requirements
+### Requirements
 
 
 A node MUST NOT send a `commitsig` message which does not include any
@@ -659,7 +672,7 @@ its local commitment transaction once all pending updates are applied.  A receiv
 A receiving node MUST respond with a `revocation` message.
 
 
-## Rationale
+### Rationale
 
 
 There's little point offering spam updates; it implies a bug.
