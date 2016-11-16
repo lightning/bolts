@@ -11,8 +11,12 @@ The messages described in this document are grouped logically into 4 groups by t
  - Routing (types `256`-`511`): node and channel announcements, as well as any active route exploration.
 
 # Table of Contents
+=================
 
-FIXME
+  * [Channel](#channel)
+    * [Channel Establishment](#channel-establishment)
+    
+  
 
 # Channel
 
@@ -262,7 +266,7 @@ given in [BOLT #3].
 1. type: 37 (`MSG_UPDATE_FEE`)
 2. data:
    * [8:channel-id]
-   * [4:fee-per-kilobyte]
+   * [4:feerate-per-kilobyte]
 
 ### Requirements
 
@@ -376,7 +380,7 @@ propagate to miners.
 
 The `shutdown` response requirement implies that the node sends `update_commit` to commit any outstanding changes before replying, but it could theoretically reconnect instead, which simply erases all outstanding uncommitted changes.
 
-## Closing negotiation: `close_signature`
+## Closing negotiation: `closing_signed`
 
 Once shutdown is complete and the channel is empty of HTLCs, the final
 current commitment transactions will have no HTLCs, and closing fee
@@ -386,7 +390,7 @@ signs the close transaction with the `script_pubkey` fields from the
 process terminates when both agree on the same fee, or one side fails
 the channel.
 
-1. type: 39 (`MSG_CLOSE_SIGNATURE`)
+1. type: 39 (`MSG_CLOSING_SIGNED`)
 2. data:
    * [8:channel-id]
    * [8:fee-satoshis]
@@ -394,7 +398,7 @@ the channel.
 
 ### Requirements
 
-Nodes SHOULD send a `close_signature` message after `shutdown` has
+Nodes SHOULD send a `closing_signed` message after `shutdown` has
 been received and no HTLCs remain in either commitment transaction.
 
 A sending node MUST set `fee-satoshis` lower than or equal to the
@@ -413,11 +417,11 @@ with the given `fee-satoshis` as detailed above, and MUST fail the
 connection if it is not.
 
 If the receiver agrees with the fee, it SHOULD reply with a
-`close_signature` with the same `fee-satoshis` value, otherwise it
+`closing_signed` with the same `fee-satoshis` value, otherwise it
 SHOULD propose a value strictly between the received `fee-satoshis`
 and its previously-sent `fee-satoshis`.
 
-Once a node has sent or received a `close_signature` with matching
+Once a node has sent or received a `closing_signed` with matching
 `fee-satoshis` it SHOULD close the connection and SHOULD sign and
 broadcast the final closing transaction.
 
