@@ -11,10 +11,9 @@ The messages described in this document are grouped logically into 4 groups by t
  - Routing (types `256`-`511`): node and channel announcements, as well as any active route exploration.
 
 # Table of Contents
-=================
-
   * [Channel](#channel)
     * [Channel Establishment](#channel-establishment)
+    * [The `open_channel` message](#the-open_channel-message)
     
   
 
