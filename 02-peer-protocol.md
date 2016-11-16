@@ -13,22 +13,22 @@ The messages described in this document are grouped logically into 4 groups by t
 # Table of Contents
   * [Channel](#channel)
     * [Channel Establishment](#channel-establishment)
-    * [The `open_channel` message](#the-open_channel-message)
-    * [The `accept_channel` message](#the-accept_channel-message)
-    * [The `funding_created` message](#the-funding_created-message)
-    * [The `funding_signed` message](#the-funding_signed-message)
-    * [The `funding_locked` message](#the-funding_locked-message)
-    * [Updating Fees: `update_fee`](#updating-fees-update_fee)
+      * [The `open_channel` message](#the-open_channel-message)
+      * [The `accept_channel` message](#the-accept_channel-message)
+      * [The `funding_created` message](#the-funding_created-message)
+      * [The `funding_signed` message](#the-funding_signed-message)
+      * [The `funding_locked` message](#the-funding_locked-message)
+      * [Updating Fees: `update_fee`](#updating-fees-update_fee)
     * [Channel Close](#channel-close)
-    * [Closing initiation: `shutdown`](#closing-initiation-shutdown)
-    * [Closing negotiation: `closing_signed`](#closing-negotiation-closing_signed)
+      * [Closing initiation: `shutdown`](#closing-initiation-shutdown)
+      * [Closing negotiation: `closing_signed`](#closing-negotiation-closing_signed)
     * [Normal Operation](#normal-operation)
-    * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
-    * [Adding an HTLC](#adding-an-htlc)
-    * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
-    * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
-    * [Completing the transition to the updated state: `revocation`](#completing-the-transition-to-the-updated-state-revocation)
-
+      * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
+      * [Adding an HTLC](#adding-an-htlc)
+      * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
+      * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
+      * [Completing the transition to the updated state: `revocation`](#completing-the-transition-to-the-updated-state-revocation)
+    * [Authors](#authors)
   
 # Channel
 
@@ -63,7 +63,7 @@ offered by the other node are not suitable, the channel establishment
 fails.
 
 
-## The `open_channel` message
+### The `open_channel` message
 
 
 This message contains information about a node, and indicates its
@@ -102,7 +102,7 @@ The `funding-pubkey` is the public key in the 2-of-2 multisig script of the fund
 FIXME: Describe Dangerous feature bit for larger channel amounts.
 
 
-### Requirements
+#### Requirements
 
 
 A sending node MUST set the most significant bit in
@@ -145,7 +145,7 @@ are not be valid DER-encoded compressed secp256k1 pubkeys.
 The receiver MUST NOT consider funds received using `push-msat` to be received until the funding transaction has reached sufficient depth.
 
 
-### Rationale
+#### Rationale
 
 
 The *channel reserve* is specified by the peer's `channel-reserve-satoshis`; 1% of the channel total is suggested.  Each side of a channel maintains this reserve so it always has something to lose if it were to try to broadcast an old, revoked commitment transaction.  Initially this reserve may not be met, as only one side has funds, but the protocol ensures that progress is always toward it being met, and once met it is maintained.
@@ -154,7 +154,7 @@ The *channel reserve* is specified by the peer's `channel-reserve-satoshis`; 1% 
 The sender can unconditionally give initial funds to the receiver using a non-zero `push-msat`, and this is one case where the normal reserve mechanism doesn't apply.  However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (may be double-spent) and may require a separate method to prove payment via on-chain confirmation.
 
 
-### Future
+#### Future
 
 
 It would be easy to have a local feature bit which indicated that a
@@ -162,7 +162,7 @@ receiving was prepared to fund a channel, which would reverse this
 protocol.
 
 
-## The `accept_channel` message
+### The `accept_channel` message
 
 
 This message contains information about a node, and indicates its
@@ -185,7 +185,7 @@ acceptance of the new channel.
    * [33:Refund base point]
 
 
-### Requirements
+#### Requirements
 
 
 The `temporary-channel-id` MUST be the same as the `temporary-channel-id` in the `open_channel` message.  The sender SHOULD set `minimum-depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
@@ -194,7 +194,7 @@ The receiver MAY reject the `minimum-depth` if it considers it unreasonably larg
 Other fields have the same requirements as their counterparts in `open_channel`.
 
 
-## The `funding_created` message
+### The `funding_created` message
 
 This message describes the outpoint which the funder has created for
 the initial commitment transactions.  After receiving the peer's
@@ -209,11 +209,11 @@ signature, it will broadcast the funding transaction.
 
 FIXME: describe
 
-### Requirements
+#### Requirements
 
 The recipient MUST fail the channel if the signature is invalid.
 
-## The `funding_signed` message
+### The `funding_signed` message
 
 This message gives the funder the signature they need for the first
 commitment transaction, so they can broadcast it knowing they can
@@ -224,11 +224,11 @@ redeem their funds if they need to.
 	* [8:temporary-channel-id]
     * [64:signature]
 
-### Requirements
+#### Requirements
 
 FIXME: Describe
 
-## The `funding_locked` message
+### The `funding_locked` message
 
 This message indicates that the funding transaction has reached the `minimum-depth` asked for in `accept_channel`.  Once both nodes have sent this, the channel enters normal operating mode.
 
@@ -248,16 +248,16 @@ index which pays to the channel.
 This `channel-id` is used in all messages referring to the channel
 from this point onwards.
 
-### Requirements
+#### Requirements
 
 FIXME: Describe
 
-### Future
+#### Future
 
 We could add an SPV proof, and route block hashes in separate
 messages.
 
-## Updating Fees: `update_fee`
+### Updating Fees: `update_fee`
 
 An `update_fee` message is sent by the node which is paying the
 bitcoin fee.  Like any update, it is first committed to the receiver's
@@ -280,7 +280,7 @@ given in [BOLT #3].
    * [8:channel-id]
    * [4:feerate-per-kilobyte]
 
-### Requirements
+#### Requirements
 
 The node which is responsible for paying the bitcoin fee SHOULD send
 `update_fee` when to ensure the current fee rate is sufficient for
@@ -301,7 +301,7 @@ the new fee rate on the receiving node's current commitment
 transaction, but it MAY delay this check until the `update_fee` is
 committed.
 
-### Rationale
+#### Rationale
 
 Bitcoin fees are required for unilateral closes to be effective,
 particularly since there is no general method for the node which
@@ -343,7 +343,7 @@ negotiation begins.
         +-------+                              +-------+
 
 
-## Closing initiation: `shutdown`
+### Closing initiation: `shutdown`
 
 Either node (or both) can send a `shutdown` message to initiate closing,
 and indicating the scriptpubkey it wants to be paid to.
@@ -355,7 +355,7 @@ and indicating the scriptpubkey it wants to be paid to.
    * [4:len]
    * [len:scriptpubkey]
 
-### Requirements
+#### Requirements
 
 A node MUST NOT send a `shutdown` if there are updates pending
 on the receiving node's commitment transaction which are not yet added to the sender’s commitment.
@@ -377,7 +377,7 @@ of those forms.
 
 A receiving node MUST reply to a `shutdown` message with a `shutdown` once there are no outstanding updates on the peer, unless it has already sent a `shutdown`.
 
-### Rationale
+#### Rationale
 
 If channel state is always "clean" (no pending changes) when a
 shutdown starts, we avoid the question of how to behave if it wasn't;
@@ -392,7 +392,7 @@ propagate to miners.
 
 The `shutdown` response requirement implies that the node sends `update_commit` to commit any outstanding changes before replying, but it could theoretically reconnect instead, which simply erases all outstanding uncommitted changes.
 
-## Closing negotiation: `closing_signed`
+### Closing negotiation: `closing_signed`
 
 Once shutdown is complete and the channel is empty of HTLCs, the final
 current commitment transactions will have no HTLCs, and closing fee
@@ -408,7 +408,7 @@ the channel.
    * [8:fee-satoshis]
    * [64:signature]
 
-### Requirements
+#### Requirements
 
 Nodes SHOULD send a `closing_signed` message after `shutdown` has
 been received and no HTLCs remain in either commitment transaction.
@@ -437,7 +437,7 @@ Once a node has sent or received a `closing_signed` with matching
 `fee-satoshis` it SHOULD close the connection and SHOULD sign and
 broadcast the final closing transaction.
 
-### Rationale
+#### Rationale
 
 Note that there is limited risk if the closing transaction is
 delayed, and it will be broadcast very soon, so there is usually no
@@ -486,7 +486,7 @@ what matters is whether both sides have irrevocably committed to a
 particular HTLC or not (the final state, above).
 
 
-## Risks With HTLC Timeouts
+### Risks With HTLC Timeouts
 
 
 HTLCs tend to be chained across the network.  For example, a node A
@@ -519,7 +519,7 @@ deadline, and MUST fail the channel if an HTLC which it offered is in
 either node's current commitment transaction past this deadline.
 
 
-## Adding an HTLC
+### Adding an HTLC
 
 
 Either node can send `update_add_htlc` to offer a HTLC to the other,
@@ -543,7 +543,7 @@ is destined, is described in [BOLT #4].
    * [1254:onion-routing-packet]
 
 
-### Requirements
+#### Requirements
 
 A sending node MUST NOT offer `amount-msat` it cannot pay for in the
 remote commitment transaction at the current `fee-rate` (see "Updating
@@ -573,7 +573,7 @@ commitment of that HTLC.  A receiving node MAY fail the channel if
 other `id` violations occur.
 
 
-### Rationale
+#### Rationale
 
 
 Invalid amounts are a clear protocol violation and indicate a
@@ -591,7 +591,7 @@ reconnection purposes; allowing them at other times simplifies the
 recipient code, though strict checking may help debugging.
 
 
-## Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`
+### Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`
 
 For simplicity, a node can only remove HTLCs added by the other node.
 There are three reasons for removing an HTLC: it has timed out, it has
@@ -614,7 +614,7 @@ For a timed out or route-failed HTLC:
    * [8:id]
    * [154:reason]
 
-### Requirements
+#### Requirements
 
 A node SHOULD remove an HTLC as soon as it can; in particular, a node
 SHOULD fail an HTLC which has timed out.
@@ -632,14 +632,14 @@ A receiving node which closes an incoming HTLC in response to an
 field to the outgoing `update-fail-htlc`.
 
 
-### Rationale
+#### Rationale
 
 
 A node which doesn't time out HTLCs it risks channel failure (see
 "Risks With HTLC Timeouts").
 
 
-## Committing Updates So Far: `commitsig`
+### Committing Updates So Far: `commitsig`
 
 
 When a node has changes for the remote commitment, it can apply them,
@@ -654,7 +654,7 @@ sign the resulting transaction as defined in [BOLT #3] and send a
    * [4:num-htlcs]
    * [num-htlcs*64:htlc-signature]
 
-### Requirements
+#### Requirements
 
 
 A node MUST NOT send a `commitsig` message which does not include any
@@ -672,7 +672,7 @@ its local commitment transaction once all pending updates are applied.  A receiv
 A receiving node MUST respond with a `revocation` message.
 
 
-### Rationale
+#### Rationale
 
 
 There's little point offering spam updates; it implies a bug.
@@ -681,7 +681,7 @@ There's little point offering spam updates; it implies a bug.
 The `num-htlcs` field is redundant, but makes the packet length check fully self-contained.
 
 
-## Completing the transition to the updated state: `revocation`
+### Completing the transition to the updated state: `revocation`
 
 
 Once the recipient of `commitsig` checks the signature, it knows that
@@ -711,7 +711,7 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
    * [4:num-htlc-timeouts]
    * [num-htlc-timeouts*64:htlc-timeout-signature]
 
-### Requirements
+#### Requirements
 
 
 A sending node MUST set `per-commitment-secret` to the secret used to generate keys for the
