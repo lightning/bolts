@@ -87,7 +87,7 @@ Upon receiving an announcement the nodes verifies the validity of the announceme
 In order to be valid the following conditions MUST be satisfied:
 
  - The timestamp MUST be larger than the last valid announcement from the announcing node.
- - The anchor transactions for each channel, identified by the (`blockheight`, `blockindex`)-tuple must have reached at least the configurable minimum number of confirmations.
+ - The anchor transactions for each channel, identified by the (`blockheight`, `blockindex`)-tuple must have reached at least a minimum number of 6 confirmations. The node MAY require more confirmations before processing and/or forwarding the announcement.
  - The signature in the announcement MUST be a valid signature from the public key in the `node_id` field for the message up to the signature itself.
  - The announcement MUST have at least on valid channel. The validity of the channel can be verified by inspecting the anchor transaction specified in the announcement.
  - If the `expiry` field of any channel is set to `0xFF` then it MUST be the only channel in the announcement.
