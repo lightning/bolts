@@ -28,7 +28,7 @@ The messages described in this document are grouped logically into 4 groups by t
       * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
       * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
       * [Completing the transition to the updated state: `revocation`](#completing-the-transition-to-the-updated-state-revocation)
-    * [Authors](#authors)
+  * [Authors](#authors)
   
 # Channel
 
