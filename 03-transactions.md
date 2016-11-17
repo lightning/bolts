@@ -9,8 +9,8 @@ Lexicographic ordering as per BIP 69.
 ## Funding Transaction Output
 
 * The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
-   * 0 2 <key1> <key2> 2 OP_CHECKMULTISIG
-* Where <key1> is the numerically lesser of the two DER-encoded `funding-pubkey` and <key2> is the greater.
+   * `0 2 <key1> <key2> 2 OP_CHECKMULTISIG`
+* Where `<key1>` is the numerically lesser of the two DER-encoded `funding-pubkey` and `<key2>` is the greater.
 
 ## Commitment Transaction
 * version: 2
