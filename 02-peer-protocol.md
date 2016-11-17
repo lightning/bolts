@@ -29,17 +29,16 @@ point they send `open_complete`.  After both sides have sent
 operation.
 
 
-        +-------+                            +-------+
-        |       |--(1)--  open_channel  ---->|       |
-        |       |<-(2)--  open_channel  -----|       |
-        |       |                            |       |
-        |       |--(3)--  open_funding  ---->|       |
-        |   A   |                            |   B   |
-        |       |<-(4)-- open_commit_sig ----|       |
-        |       |                            |       |
-        |       |--(5)-- open_complete  ---->|       |
-        |       |<-(6)-- open_complete  -----|       |
-        +-------+                            +-------+
+        +-------+                              +-------+
+        |       |--(1)---  open_channel  ----->|       |
+        |       |<-(2)--  accept_channel  -----|       |
+        |       |                              |       |
+        |   A   |--(3)--  funding_created  --->|   B   |
+        |       |<-(4)--  funding_signed  -----|       |
+        |       |                              |       |
+        |       |--(5)--- funding_locked  ---->|       |
+        |       |<-(6)--- funding_locked  -----|       |
+        +-------+                              +-------+
 
 
 If this fails at any stage, or a node decides that the channel terms
