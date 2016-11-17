@@ -64,23 +64,17 @@ desire to set up a new channel.
    * [4:max-num-htlcs]
    * [4:feerate-per-kb]
    * [2:to-self-delay]
-   * [33:Funding pubkey]
-   * [33:HAKD base point]
-   * [33:Refund base point]
+   * [33:funding-pubkey]
+   * [33:revocation-basepoint]
+   * [33:payment-basepoint]
+   * [33:delayed-payment-basepoint]
 
 
 The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which no HTLC output should be generated for this node’s commitment transaction; ie. HTLCs below this amount are not enforceable onchain. This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the bitcoin network.
 `max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-num-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node wil accept. `feerate-per-kb` indicates the initial fee rate which this side will pay for commitment and HTLC transactions (this can be adjusted later with a `update_fee` message).  `to-self-delay` is the number of block that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
 
 
-The `funding-pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `hakd-base-point` is combined with the revocation hash for this commitment transaction to generate a unique revocation key for this commitment transaction (HAKD = homomorphic adversarial key derivation). The `refund-base-point` is similarly used to generate a series of keys for non-HTLC outputs, ensuring that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
-
-
-
-
-
-
-
+The `funding-pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation-basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment-basepoint` and `delayed-payment-basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed-payment-basepoint` is used to for payments encumbered by a delau.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
 
 FIXME: Describe Dangerous feature bit for larger channel amounts.
 
@@ -97,7 +91,7 @@ The sender SHOULD set `to-self-delay` sufficient to ensure the sender
 can irreversibly spend a commitment transaction output in case of
 misbehavior by the receiver.  The sender SHOULD set `minimum-depth` to
 an amount where the sender considers reorganizations to be low risk.
-`funding-pubkey` and `commit-point` MUST be valid DER-encoded
+`funding-pubkey`, `revocation-basepoint`, `payment-basepoint` and `delayed-payment-basepoint` MUST be valid DER-encoded
 compressed secp256k1 pubkeys. The sender SHOULD set `feerate-per-kb`
 to at least the rate it estimates would cause the transaction to be
 immediately included in a block.
@@ -121,7 +115,7 @@ The receiving node MAY fail the channel if it considers
 
 The receiver MUST fail the channel if
 considers `feerate-per-kb` too small for timely processing.  The
-receiver MUST fail the channel if `funding-pubkey` or `commit-point`
+receiver MUST fail the channel if `funding-pubkey`, `revocation-basepoint`, `payment-basepoint` or `delayed-payment-basepoint`
 are not be valid DER-encoded compressed secp256k1 pubkeys.
 
 
@@ -161,12 +155,12 @@ acceptance of the new channel.
    * [4:minimum-depth]
    * [4:htlc-minimum-msat]
    * [4:max-num-htlcs]
-   * [32:first-commitment-key-offset]
    * [2:to-self-delay]
    * [33:funding-pubkey]
-   * [33:HAKD base point]
-   * [33:Refund base point]
-
+   * [33:revocation-basepoint]
+   * [33:payment-basepoint]
+   * [33:delayed-payment-basepoint]
+   * [33:first-per-commitment-point]
 
 ### Requirements
 
@@ -219,8 +213,7 @@ This message indicates that the funding transaction has reached the `minimum-dep
 2. data:
 	* [8:temporary-channel-id]
     * [8:channel-id]
-    * [32:next-key-offset]
-    * [33:next-revocation-halfkey]
+    * [33:next-per-commitment-point]
 
 The `channel-id` is the unique description of the funding transaction.
 It is constructed with the most significant 3 bytes as the block
@@ -689,8 +682,8 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
 2. data:
    * [8:channel-id]
    * [32:per-commitment-secret]
-   * [32:next-key-offset]
-   * [33:next-revocation-halfkey]
+   * [33:next-per-commitment-point]
+   * [3:padding]
    * [4:num-htlc-timeouts]
    * [num-htlc-timeouts*64:htlc-timeout-signature]
 
@@ -698,10 +691,10 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
 
 
 A sending node MUST set `per-commitment-secret` to the secret used to generate keys for the
-previous commitment transaction, and must set `next-key-offset` and `next-revocation-halfkey` to the values for its next commitment transaction.
+previous commitment transaction, MUST set `next-per-commitment-point` to the values for its next commitment transaction, and MUST set `padding` to all zeroes.
 
 
-A receiving node MUST check that `per-commitment-secret` generates the previous `key-offset` and `revocation-halfkey`, and MUST fail if it does not. A receiving node MAY fail if the `per-commitment-secret` was not generated by the protocol in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+A receiving node MUST check that `per-commitment-secret` generates the previous `per-commitment-point`, and MUST fail if it does not. A receiving node MUST ignore the value of `padding`.  A receiving node MAY fail if the `per-commitment-secret` was not generated by the protocol in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
 
 A receiving node MUST fail the channel if any htlc-timeout-signature is not valid, or if num-htlc-timeout is not equal to the number of outputs in the sending node's commitment transaction corresponding to HTLCs offered be the sending node.

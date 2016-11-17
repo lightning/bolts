@@ -31,11 +31,11 @@ The reason for the separate transaction stage for HTLC outputs is so that HTLCs 
 
 #### To-Local Output
 
-This output sends funds back to the owner of this commitment transaction (ie. `<localkey>`), thus must be timelocked using OP_CSV.  The output is a version 0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction, thus must be timelocked using OP_CSV.  The output is a version 0 P2WSH, with a witness script:
 
-	to-self-delay OP_CHECKSEQUENCEVERIFY OP_DROP <localkey> OP_CHECKSIG
+	to-self-delay OP_CHECKSEQUENCEVERIFY OP_DROP <local-delayedkey> OP_CHECKSIG
 
-It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<localsig>`.
+It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig>`.
 
 #### To-Remote Output
 
@@ -62,7 +62,6 @@ The remote node can redeem the HTLC with the scriptsig:
 
 Either node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as show below.
 
-
 #### Received HTLC Outputs
 
 This output sends funds to the remote peer after the HTLC timeout, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
@@ -79,11 +78,11 @@ This output sends funds to the remote peer after the HTLC timeout, or to an HTLC
         OP_CHECKSIGVERIFY
     OP_ENDIF
 
-To timeout the htlc, the local node spends it with the scriptsig:
+To timeout the htlc, the remote node spends it with the scriptsig:
 
     <remotesig> 0
 
-To redeem the HTLC, the HTLC-success  transaction is used as detailed below.
+To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
 ## HTLC-Timeout and HTLC-Success Transaction
 These HTLC transactions are almost identical, except the HTLC-Timeout transaction is timelocked.  This is also the transaction which can be spent by a valid penalty transaction.
@@ -104,39 +103,79 @@ The witness script for the output is:
 
     OP_IF
         # Penalty transaction
-        <revocation pubkey>
+        <revocation-pubkey>
     OP_ELSE
         `to-self-delay`
         OP_CSV
         OP_DROP
-        <localkey>
+        <local-delayedkey>
     OP_ENDIF
     OP_CHECKSIG
 
-To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to-self-delay` and a witness stack `<localsig> 0`
+To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to-self-delay` and a witness stack `<local-delayedsig> 0`
 
 # Key Derivation
 
-Each commitment transaction uses a unique set of keys; <localkey>, <remotekey> and <revocationkey>.  Changing the <localkey> and <remotekey> every time ensures that commitment txids cannot be determined by a third party even it knows another commitment transaction, which helps preserve privacy in the case of outsourced penalties.  The <revocationkey> is generated such that the remote node is the only one in possession of the secret key once the commitment transaction has been revoked.
+Each commitment transaction uses a unique set of keys; `<localkey>` and `<remotekey>`.  The HTLC-success and HTLC-timeout transactions use `<local-delayedkey>` and `<revocationkey>`.  These are changed every time depending on the
+`per-commitment-point`.
+
+Keys change because of the desire for trustless outsourcing of
+watching for revoked transactions; a "watcher" should not be able to
+determine what the contents of commitment transaction is, even if
+given the transaction ID to watch for and can make a resonable guess
+as to what HTLCs and balances might be included.  Nonetheless, to
+avoid storage for every commitment transaction, it can be given the
+`per-commit-secret` values (which can be stored compactly) and the
+`revocation-basepoint` and `delayed-payment-basepoint` to regnerate
+the scripts required for the penalty transaction: it need only be
+given (and store) the signatures for each penalty input.
+
+Changing the `<localkey>` and `<remotekey>` every time ensures that commitment transaction id cannot be guessed: Every commitment transaction uses one of these in its output script.  Splitting the `<local-delayedkey>` which is required for the penalty transaction allows that to be shared with the watcher without revealing `<localkey>`; even if both peers use the same watcher, nothing is revealed.
+
+Finally, even in the case of normal unilateral close, the HTLC-success
+and/or HTLC-timeout transactions do not reveal anything to the
+watcher, as it does not know the corresponding `per-commit-secret` and
+cannot relate the `<local-delayedkey>` or `<revocationkey>` with
+their bases.
 
 For efficiency, keys are generated from a series of per-commitment secrets which are generated from a single seed, allowing the receiver to compactly store them (see [below](#efficient-per-commitment-secret-storage)).
 
-### localkey and remotekey Derivation
+## `localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation
 
-The localkey for a commitment transaction is generated by EC addition of the local `refund base point` and the current local `key-offset` multiplied by G (eg. secp256k1_ec_pubkey_tweak_add() from libsecp256k1).  The local node knows the secret key corresponding to `refund base point` so can similarly derive the secret key for `localkey`.
+These keys are simply generated by addition from their base points:
 
-The `key-offset` is generated using HMAC(`per-commit-secret`, “R”) [FIXME: more detail!].
+	pubkey = basepoint + SHA256(per-commit-point || basepoint)*G
 
-The remotekey is generated the same way, using the remote `refund base point` and the current `key-offset` from the remote node: this is given by `first-key-offset` (for the initial commitment transaction) and `next-key-offset` for successive transactions.
+The `localkey` uses the local node's `payment-basepoint`, `remotekey`
+uses the remote node's `payment-basepoint`, the `local-delayedkey`
+uses the local node's `delayed-payment-basepoint`, and the
+`remote-delayedkey` uses the remote node's
+`delayed-payment-basepoint`.
 
-### revocationkey Derivation
+The correspoding private keys can be derived similarly if the basepoint
+secrets are known (ie. `localkey` and `local-delayedkey` only):
 
-The local revocation key is derived from both the remote `HAKD basepoint` and a key derived from the local per-commit secret, called the “revocation-halfkey”.
+    secretkey = basepoint-secret + SHA256(basepoint || commit-number)
 
-The secret key for the `revocation-halfkey` is HMAC(`per-commit-secret`, “T”) [FIXME: more detail!].  The public key corresponding to this secret key is `revocation-halfkey`.  Elliptic curve point addition of `revocation-halfkey` and `HAKD basepoint` gives the `revocationkey`.
+## `revocationkey` Derivation
 
-Upon revocation, the per-commit secret is revealed to the remote node: this allows it to derive the secret key for `revocation-halfkey`, and it already knows the secret key corresponding to the `HAKD basepoint` so it can derive the secret key corresponding to `revocationkey`.
+The revocationkey is a blinded key: the remote node provides the base,
+and the local node provides the blinding factor which it later
+reveals, so the remote node can use the secret revocationkey for a
+penalty transaction.
 
+The `per-commit-point` is generated using EC multiplication:
+
+	per-commit-point = per-commit-secret * G
+
+And this is used to derive the revocation key from the remote node's
+`revocation-basepoint`:
+
+	revocationkey = revocation-basepoint * SHA256(revocation-basepoint || per-commit-point) + per-commit-point*SHA256(per-commit-point || revocation-basepoint)
+
+This construction ensures that neither the node providing the
+basepoint nor the node providing the per-commit-point can know the
+private key without the other node's secret.
 
 ### Per-commitment Secret Requirements
 
