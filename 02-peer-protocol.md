@@ -11,9 +11,25 @@ The messages described in this document are grouped logically into 4 groups by t
  - Routing (types `256`-`511`): node and channel announcements, as well as any active route exploration.
 
 # Table of Contents
-
-FIXME
-
+  * [Channel](#channel)
+    * [Channel Establishment](#channel-establishment)
+      * [The `open_channel` message](#the-open_channel-message)
+      * [The `accept_channel` message](#the-accept_channel-message)
+      * [The `funding_created` message](#the-funding_created-message)
+      * [The `funding_signed` message](#the-funding_signed-message)
+      * [The `funding_locked` message](#the-funding_locked-message)
+      * [Updating Fees: `update_fee`](#updating-fees-update_fee)
+    * [Channel Close](#channel-close)
+      * [Closing initiation: `shutdown`](#closing-initiation-shutdown)
+      * [Closing negotiation: `close_signature`](#closing-negotiation-close_signature)
+    * [Normal Operation](#normal-operation)
+      * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
+      * [Adding an HTLC](#adding-an-htlc)
+      * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
+      * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
+      * [Completing the transition to the updated state: `revocation`](#completing-the-transition-to-the-updated-state-revocation)
+  * [Authors](#authors)
+  
 # Channel
 
 ## Channel Establishment
