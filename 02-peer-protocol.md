@@ -261,7 +261,7 @@ given in [BOLT #3].
 1. type: 37 (`MSG_UPDATE_FEE`)
 2. data:
    * [8:channel-id]
-   * [4:fee-per-kilobyte]
+   * [4:feerate-per-kilobyte]
 
 #### Requirements
 
