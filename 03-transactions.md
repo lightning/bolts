@@ -14,12 +14,21 @@ Lexicographic ordering as per BIP 69.
 
 ## Commitment Transaction
 * version: 2
-* locktime: lower 24 bits are the commitment transaction number.
+* locktime: lower 24 bits are the obscured commitment transaction number.
 * txin count: 1
    * txin[0] outpoint: `txid` and `output_index` from `funding_created` message
-   * txin[0] sequence: lower 24 bits are upper 24 bits of commitment transaction number.
+   * txin[0] sequence: lower 24 bits are upper 24 bits of the obscured commitment transaction number.
    * txin[0] script bytes: 0
    * txin[0] witness: `<signature-for-key1>` `<signature-for-key-2>`
+
+The 48-bit commitment transaction number is obscured by XOR with the lower 48 bits of:
+
+    SHA256(payment-basepoint from open_channel || payment-basepoint from accept_channel)
+
+This obscures the number of commitments made on the channel in the
+case of unilateral close, yet still provides a useful index for both
+nodes (who know the payment-basepoints) to quickly find a revoked
+commitment transaction.
 
 ### Commitment Transaction Outputs
 
