@@ -229,6 +229,7 @@ This message indicates that the funding transaction has reached the `minimum-dep
 	* [8:temporary-channel-id]
     * [8:channel-id]
     * [33:next-per-commitment-point]
+    * [33:announcement-signature]
 
 The `channel-id` is the unique description of the funding transaction.
 It is constructed with the most significant 3 bytes as the block
@@ -239,9 +240,18 @@ index which pays to the channel.
 This `channel-id` is used in all messages referring to the channel
 from this point onwards.
 
+`announcement-signature` is the optional signature for `channel_announcement` as described in [BOLT #7](07-routing-gossip.md#the-channel_announcement-message).
+
 #### Requirements
 
 FIXME: Describe
+
+The sender MUST set `announcement-signature` to the signature for the
+channel_announcement message, or all zeroes if it does not want the
+channel announced.
+
+The recipient SHOULD queue the `channel_announcement` message for its
+peers if it has sent and received a non-zero `announcement-signature`.
 
 #### Future
 
