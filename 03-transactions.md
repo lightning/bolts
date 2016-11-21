@@ -32,11 +32,11 @@ commitment transaction.
 
 ### Commitment Transaction Outputs
 
-The amounts for each output are rounded down to whole satoshis.  If this amount is less than the `dust-limit-satoshis` set by the owner of the commitment transaction, the output is not produced (thus the funds add to fees).
-
-To allow an opportunity for penalty transactions in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to-self-delay` blocks.  This delay is done in a second stage HTLC transaction.
+To allow an opportunity for penalty transactions in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to-self-delay` blocks.  This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can time out or be fulfilled even though they are within the `to-self-delay` `OP_CHECKSEQUENCEVERIFY` delay.  Otherwise the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
+
+The amounts for each output are rounded down to whole satoshis.  If this amount, minus the fees for the HTLC transaction is less than the `dust-limit-satoshis` set by the owner of the commitment transaction, the output is not produced (thus the funds add to fees).
 
 #### To-Local Output
 
@@ -105,7 +105,7 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
    * txin[0] script bytes: 0
    * txin[0] witness stack: `<localsig> <remotesig> 0` (HTLC-Timeout) or `<localsig> <remotesig> <payment-preimage>` (HTLC-success).
 * txout count: 1
-   * txout[0] amount: the HTLC amount minus fees (see below)
+   * txout[0] amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
    * txout[0] script: version 0 P2WSH with witness script as below.
 
 The witness script for the output is:
@@ -122,6 +122,83 @@ The witness script for the output is:
     OP_CHECKSIG
 
 To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to-self-delay` and a witness stack `<local-delayedsig> 0`
+
+## Fee Calculation
+
+The fee calculation for both commitment transactions and HTLC
+transactions is based on the current `feerate-per-kw` and the
+*expected weight* of the transaction.
+
+The actual and expected weight vary for several reasons:
+* Bitcoin uses DER-encoded signatures which vary in size.
+* Bitcoin also uses variable-length integers, so a large number of outputs will take 3 bytes to encode rather than 1.
+* The `to-local` output may be below the dust limit once fees are extracted.
+
+Thus we use a simplified formula for *expected weight*, which assumes:
+* Signatures are 73 bytes long (the maximum length)
+* There is a small number of outputs (thus 1 byte to count them)
+* There is always a to-local output.
+
+The *expected weight* of a commitment transaction is calculated as follows:
+
+	transaction core: 4 + 1 + 1 + 4
+	transaction input: 32 + 4 + 1 + 4
+	transaction input witness: 1 + 74 + 74 + 1 + 1 + 34 + 34 + 1 + 1
+	transaction output: 8 + 1
+	transaction htlc output: 34
+	transaction to-local output: 34
+	transaction to-remote output: 25
+
+Multiplying non-witness data by 4, this gives a weight of:
+
+	597 + 136*num-htlc-outputs + 100*to-remote
+
+Where `to-remote` is 0 if the amount is below the local node's
+`dust-limit-satoshis`, or 1 otherwise.  `num-htlc-outputs` is the
+number of HTLCs whose amount (minus HTLC transaction fee) is greater or
+equal to the local `dust-limit-satoshis`.
+
+The *expected weight* of an HTLC transaction is calculated as follows:
+
+	transaction core: 4 + 1 + 1 + 4
+	transaction input: 32 + 4 + 1 + 4
+	transaction input witness: 1 + 74 + 74 + (1 for HTLC-timeout or 33 for HTLC-success)
+	transaction output: 8 + 1 + 34
+
+Multiplying non-witness data by 4, this gives a weight of:
+
+	526 (HTLC-timeout)
+	558 (HTLC-success)
+
+### Requirements
+
+The fee for an HTLC-timeout transaction MUST BE calculated to match:
+
+1. Multiply `feerate-per-kw` by 526 and divide by 1024 (rounding down).
+
+The fee for an HTLC-success transaction MUST BE calculated to match:
+
+1. Multiply `feerate-per-kw` by 558 and divide by 1024 (rounding down).
+
+The fee for a commitment transaction MUST BE calculated to match:
+
+1. Start with `weight` = 597, and `fee` = 0.
+
+2. If the amount to the remote node is greater or equal to the local
+   node's `dust-limit-satoshis`, add 136 to `weight`.
+   
+3. For every offered HTLC, if the HTLC amount plus the HTLC-timeout
+   transaction fee is greater or equal to the local node's
+   `dust-limit-satoshis`, then add 136 to `weight`, otherwise add
+   the HTLC amount to `fee`.
+
+4. For every accepted HTLC, if the HTLC amount plus the HTLC-success
+   transaction fee is greater or equal to the local node's
+   `dust-limit-satoshis`, then add 136 to `weight`, otherwise add
+   the HTLC amount to `fee`.
+
+5. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
+   and add to `fee`.
 
 # Key Derivation
 

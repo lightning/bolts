@@ -78,7 +78,7 @@ desire to set up a new channel.
    * [8:channel-reserve-satoshis]
    * [4:htlc-minimum-msat]
    * [4:max-num-htlcs]
-   * [4:feerate-per-kb]
+   * [4:feerate-per-kw]
    * [2:to-self-delay]
    * [33:funding-pubkey]
    * [33:revocation-basepoint]
@@ -86,8 +86,8 @@ desire to set up a new channel.
    * [33:delayed-payment-basepoint]
 
 
-The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which no HTLC output should be generated for this node’s commitment transaction; ie. HTLCs below this amount are not enforceable onchain. This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the bitcoin network.
-`max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-num-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node wil accept. `feerate-per-kb` indicates the initial fee rate which this side will pay for commitment and HTLC transactions (this can be adjusted later with a `update_fee` message).  `to-self-delay` is the number of block that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
+The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fess are not enforceable onchain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the bitcoin network.
+`max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-num-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node wil accept. `feerate-per-kw` indicates the initial fee rate which this side will pay for commitment and HTLC transactions as described in [BOLT #3](03-transactions.md#fee-calculation)(this can be adjusted later with a `update_fee` message).  `to-self-delay` is the number of block that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
 
 
 The `funding-pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation-basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment-basepoint` and `delayed-payment-basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed-payment-basepoint` is used to for payments encumbered by a delau.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
@@ -107,7 +107,7 @@ can irreversibly spend a commitment transaction output in case of
 misbehavior by the receiver.  The sender SHOULD set `minimum-depth` to
 an amount where the sender considers reorganizations to be low risk.
 `funding-pubkey`, `revocation-basepoint`, `payment-basepoint` and `delayed-payment-basepoint` MUST be valid DER-encoded
-compressed secp256k1 pubkeys. The sender SHOULD set `feerate-per-kb`
+compressed secp256k1 pubkeys. The sender SHOULD set `feerate-per-kw`
 to at least the rate it estimates would cause the transaction to be
 immediately included in a block.
 
@@ -129,7 +129,7 @@ The receiving node MAY fail the channel if it considers
 
 
 The receiver MUST fail the channel if
-considers `feerate-per-kb` too small for timely processing.  The
+considers `feerate-per-kw` too small for timely processing, or unreasonably large.  The
 receiver MUST fail the channel if `funding-pubkey`, `revocation-basepoint`, `payment-basepoint` or `delayed-payment-basepoint`
 are not be valid DER-encoded compressed secp256k1 pubkeys.
 
@@ -145,6 +145,7 @@ The *channel reserve* is specified by the peer's `channel-reserve-satoshis`; 1% 
 
 The sender can unconditionally give initial funds to the receiver using a non-zero `push-msat`, and this is one case where the normal reserve mechanism doesn't apply.  However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (may be double-spent) and may require a separate method to prove payment via on-chain confirmation.
 
+The `feerate-per-kw` is generally only a concern to the sender (who pays the fees), but that is also the feerate paid by HTLC transactions; thus unresonably large fee rates can also penalize the reciepient.
 
 #### Future
 
@@ -260,7 +261,7 @@ There is a possibility of a race: the recipient can add new HTLCs
 before it receives the `update_fee`, and the sender may not be able to
 afford the fee on its own commitment transaction once the `update_fee`
 is acknowledged by the recipient.  In this case, the fee will be less
-than the fee rate.
+than the fee rate, as described in [BOLT #3](03-transactions.md#fee-calculation).
 
 The exact calculation used for deriving the fee from the fee rate is
 given in [BOLT #3].
@@ -269,7 +270,7 @@ given in [BOLT #3].
 1. type: 37 (`MSG_UPDATE_FEE`)
 2. data:
    * [8:channel-id]
-   * [4:feerate-per-kilobyte]
+   * [4:feerate-per-kw]
 
 #### Requirements
 
@@ -282,7 +283,7 @@ The node which is not responsible for paying the bitcoin fee MUST NOT
 send `update_fee`.
 
 A receiving node SHOULD fail the channel if the `update_fee` is too
-low for timely processing.
+low for timely processing, or unreasonably large.
 
 A receiving node MUST fail the channel if the sender is not
 responsible for paying the bitcoin fee.
@@ -305,8 +306,10 @@ margin, say 5x the expected fee requirement, but differing methods of
 fee estimation mean we don't specify an exact value.
 
 Since the fees are currently one-sided (the party which requested the
-channel creation always pays the fees), it is simplest to only allow
-them to set fee levels.
+channel creation always pays the fees for the commitment transaction),
+it is simplest to only allow them to set fee levels, but as the same
+fee rate applies to HTLC transactions, the receiving node must also
+care about the reasonableness of the fee.
 
 ## Channel Close
 
