@@ -21,7 +21,7 @@ The messages described in this document are grouped logically into 4 groups by t
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
     * [Channel Close](#channel-close)
       * [Closing initiation: `shutdown`](#closing-initiation-shutdown)
-      * [Closing negotiation: `close_signature`](#closing-negotiation-close_signature)
+      * [Closing negotiation: `closing_signed`](#closing-negotiation-closing_signed)
     * [Normal Operation](#normal-operation)
       * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
       * [Adding an HTLC](#adding-an-htlc)
@@ -326,11 +326,11 @@ negotiation begins.
         |       | <complete all pending htlcs> |       |
         |   A   |                 ...          |   B   |
         |       |                              |       |
-        |       |<-(3)-- close_signature F1----|       |
-        |       |--(4)-- close_signature F2--->|       |
-        |       |                 ...          |       |
-        |       |--(?)-- close_signature Fn--->|       |
-        |       |<-(?)-- close_signature Fn----|       |
+        |       |<-(3)-- closing_signed  F1----|       |
+        |       |--(4)-- closing_signed  F2--->|       |
+        |       |              ...             |       |
+        |       |--(?)-- closing_signed  Fn--->|       |
+        |       |<-(?)-- closing_signed  Fn----|       |
         +-------+                              +-------+
 
 
@@ -383,7 +383,7 @@ propagate to miners.
 
 The `shutdown` response requirement implies that the node sends `update_commit` to commit any outstanding changes before replying, but it could theoretically reconnect instead, which simply erases all outstanding uncommitted changes.
 
-### Closing negotiation: `close_signature`
+### Closing negotiation: `closing_signed`
 
 Once shutdown is complete and the channel is empty of HTLCs, the final
 current commitment transactions will have no HTLCs, and closing fee
@@ -393,7 +393,7 @@ signs the close transaction with the `script_pubkey` fields from the
 process terminates when both agree on the same fee, or one side fails
 the channel.
 
-1. type: 39 (`MSG_CLOSE_SIGNATURE`)
+1. type: 39 (`MSG_CLOSING_SIGNED`)
 2. data:
    * [8:channel-id]
    * [8:fee-satoshis]
@@ -401,7 +401,7 @@ the channel.
 
 #### Requirements
 
-Nodes SHOULD send a `close_signature` message after `shutdown` has
+Nodes SHOULD send a `closing_signed` message after `shutdown` has
 been received and no HTLCs remain in either commitment transaction.
 
 A sending node MUST set `fee-satoshis` lower than or equal to the
@@ -420,11 +420,11 @@ with the given `fee-satoshis` as detailed above, and MUST fail the
 connection if it is not.
 
 If the receiver agrees with the fee, it SHOULD reply with a
-`close_signature` with the same `fee-satoshis` value, otherwise it
+`closing_signed` with the same `fee-satoshis` value, otherwise it
 SHOULD propose a value strictly between the received `fee-satoshis`
 and its previously-sent `fee-satoshis`.
 
-Once a node has sent or received a `close_signature` with matching
+Once a node has sent or received a `closing_signed` with matching
 `fee-satoshis` it SHOULD close the connection and SHOULD sign and
 broadcast the final closing transaction.
 
