@@ -102,8 +102,7 @@ A sending node MUST set the most significant bit in
 `temporary-channel-id`, and MUST ensure it is unique from any other
 channel id with the same peer.  The sender MUST set `funding-satoshis`
 to less than 2^24 satoshi.  The sender MUST set `push-msat` to
-equal or less than to 1000 * `funding-satoshis`.   The sender SHOULD set `dust-limit-satoshis` large enough to ensure it can propagate the resulting transaction to miners.
-The sender SHOULD set `to-self-delay` sufficient to ensure the sender
+equal or less than to 1000 * `funding-satoshis`.   The sender SHOULD set `to-self-delay` sufficient to ensure the sender
 can irreversibly spend a commitment transaction output in case of
 misbehavior by the receiver.  The sender SHOULD set `minimum-depth` to
 an amount where the sender considers reorganizations to be low risk.
