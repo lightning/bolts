@@ -727,30 +727,28 @@ something is incorrect.
 
 
 1. type: 17 (`MSG_ERROR`)
-2. data: [8:channel-id] [4:len] [len:data]
+2. data:
+   * [8:channel-id]
+   * [128:message]
 
-
-The 4-byte len field indicates the number of bytes in the immediately
-following field.
-
+The `message` is a nul-terminated UTF-8 error message.
 
 ### Requirements
 
 
 A node SHOULD send `MSG_ERROR` for protocol violations or internal
 errors which make channels unusable or further communication unusable.
-A node MAY send an empty [data] field.  A node sending `MSG_ERROR` MUST
+The sending node MAY send an all-zeroes `message` field, a node MUST make `message` a nul-terminated UTF-8 string.  A node sending `MSG_ERROR` MUST
 fail the channel referred to by the `channel-id`, or if `channel-id`
 is 0xFFFFFFFFFFFFFFFF it MUST fail all channels and MUST close the
-connection. A node MUST NOT set `len` to greater than the data length.
+connection.
 
 
 A node receiving `MSG_ERROR` MUST fail the channel referred to by
 `channel-id`, or if `channel-id` is 0xFFFFFFFFFFFFFFFF it MUST fail
-all channels and MUST close the connection.  A receiving node MUST truncate `len` to the remainder of the packet if it is larger.
+all channels and MUST close the connection.
 
-
-A receiving node SHOULD only print out `data` verbatim if it is a
+A receiving node SHOULD only print out `message` verbatim if it is a
 valid string.
 
 
@@ -764,7 +762,7 @@ diagnosis, as it indicates that one peer has a bug.
 
 
 It may be wise not to distinguish errors in production settings, lest
-it leak information, thus the optional data field.
+it leak information, thus the optional `message` contents.
 
 
 # Security Considerations #
