@@ -196,14 +196,19 @@ signature, it will broadcast the funding transaction.
 2. data:
 	* [8:temporary-channel-id]
 	* [32:txid]
-    * [2:output_index]
+    * [1:output-index]
+	* [1:pad]
     * [64:signature]
 
 #### Requirements
 
-The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `txid` to the transaction ID to a non-malleably transaction, which it MUST NOT broadcast, and MUST set `output_index` to output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `txid` to the transaction ID to a non-malleably transaction, which it MUST NOT broadcast, and MUST set `output-index` to output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), MUST set `pad` to zero, and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
-The recipient MUST fail the channel if `signature` is incorrect.
+The recipient MUST fail the channel if `signature` is incorrect, and MUST ignore `pad`.
+
+#### Rationale
+
+The `output-index` can only be 1 byte, since that's how we'll pack it into the channel-id used throughout the protocol.  The limit of 255 outputs should not be overly burdensome.
 
 ### The `funding_signed` message
 
