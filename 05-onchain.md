@@ -358,3 +358,7 @@ transactions, or MAY watch for (valid) broadcast transactions a.k.a
 mempool.  Considering mempool transactions should cause lower latency
 for HTLC redemption, but on-chain HTLCs should be such an unusual case
 that speed cannot be considered critical.
+
+![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+<br>
+This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).

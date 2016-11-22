@@ -90,3 +90,7 @@ Example of a channel announcement:
 ~~~
 3045022100a9caa1fd52bfa9343a2d9d10bae2b825d30bae3895ddeb74cf1161e6c8fedf2702205bc824f8ad0937c6b3a2d6aa9907777be73fb278c8b572911a8561b6da5868f4 CHAN 02915506c736ffec49ad58fc021779600dcd2b7a52ac97690571aea5b4d9be2706 0210c15e84c69bd89fc27cb6d7620a65d2f76a6911f879a2adf13ee479ddcd873c 04c67e8d2d1ac11b17ccf68514de14f62ea16aaaf1fdc47a25b732eae4e28084 1012032 0 1 10 6
 ~~~
+
+![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+<br>
+This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).

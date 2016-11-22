@@ -9,4 +9,7 @@ Discussion available on the [lighting-dev mailing list](https://lists.linuxfound
 
 ### [Start here for Table of Contents](https://github.com/lightningnetwork/lightning-rfc/blob/master/00-introduction.md)
 
-Open source licence TBD
+![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+<br>
+This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+
