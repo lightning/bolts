@@ -32,7 +32,7 @@ commitment transaction.
 
 ### Commitment Transaction Outputs
 
-The amounts for each output are rounded down to whole satoshis.  If this amount is less than the `dust-limit-satoshis` set by the owner of the commitment transaction, the output is not produced (thus the funds add to fees).
+The amounts for each output are rounded down to whole satoshis.  If this amount is less than the `dust-limit-satoshis` set by the owner of the commitment transaction, the `HTLC` SHOULD be rejected.
 
 To allow an opportunity for penalty transactions in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to-self-delay` blocks.  This delay is done in a second stage HTLC transaction.
 

@@ -435,8 +435,7 @@ estimate of cost of inclusion in a block.
 
 The sender MUST set `signature` to the bitcoin signature of the close
 transaction with the node responsible for paying the bitcoin fee
-paying `fee-satoshis`, without populating any output which is below
-the receiver's `dust-limit-satoshis`.
+paying `fee-satoshis`.
 
 The receiver MUST check `signature` is valid for the close transaction
 with the given `fee-satoshis` as detailed above, and MUST fail the
