@@ -40,11 +40,24 @@ The reason for the separate transaction stage for HTLC outputs is so that HTLCs 
 
 #### To-Local Output
 
-This output sends funds back to the owner of this commitment transaction, thus must be timelocked using OP_CSV.  The output is a version 0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction, thus must be timelocked using OP_CSV. If can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
 
-	to-self-delay OP_CHECKSEQUENCEVERIFY OP_DROP <local-delayedkey> OP_CHECKSIG
+    OP_IF
+        # Penalty transaction
+        <revocation-pubkey>
+    OP_ELSE
+        `to-self-delay`
+        OP_CSV
+        OP_DROP
+        <local-delayedkey>
+    OP_ENDIF
+    OP_CHECKSIG
 
 It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig>`.
+
+If a revoked commit tx is published, the other party can spend this output immediately with the following witness script:
+
+    <revocation-sig> 1
 
 #### To-Remote Output
 
