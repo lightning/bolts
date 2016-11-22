@@ -23,17 +23,17 @@ its fee levels and expiry using `channel_update`.
 
 1. type: 256 (`MSG_CHANNEL_ANNOUNCEMENT`)
 2. data:
-	* [4:blockheight]
-	* [3:blockindex]
-	* [1:outputindex]
-	* [33:node-id-1]
-	* [33:node-id-2]
-	* [33:bitcoin-key-1]
-	* [33:bitcoin-key-2]
-	* [64:bitcoin-signature-1]
-	* [64:bitcoin-signature-2]
-	* [64:node-signature-1]
-	* [64:node-signature-2]
+    * [4:blockheight]
+    * [3:blockindex]
+    * [1:outputindex]
+    * [33:node-id-1]
+    * [33:node-id-2]
+    * [33:bitcoin-key-1]
+    * [33:bitcoin-key-2]
+    * [64:bitcoin-signature-1]
+    * [64:bitcoin-signature-2]
+    * [64:node-signature-1]
+    * [64:node-signature-2]
 
 ### Requirements
 
@@ -51,14 +51,14 @@ ascending numerical order, and MUST set `bitcoin-key-1` and
 respectively.
 
 The creating node MUST set `bitcoin-signature-1` to the signature of
-the double-SHA of `node-id-1` using `bitcoin-key-1`, and set
-`bitcoin-signature-2` to the signature of the double-SHA of
+the double-SHA256 of `node-id-1` using `bitcoin-key-1`, and set
+`bitcoin-signature-2` to the signature of the double-SHA256 of
 `node-id-2` using `bitcoin-key-2`
 
 The creating node MUST set `node-signature-1` to the signature of the
-double-SHA of every data field up to and including
+double-SHA256 of every data field up to and including
 `bitcoin-signature-2` using `node-id-1`, and `node-signature-2` to the
-signature of the double-SHA of every data field up to and including
+signature of the double-SHA256 of every data field up to and including
 `bitcoin-signature-2` using `node-id-2`.
 
 The receiving node MUST ignore the message if the output `outputindex`
@@ -78,9 +78,9 @@ Otherwise, if the transaction referred to was not previously announced
 as a channel, the receiving node SHOULD queue the message for
 rebroadcasting.  If it has previously received a valid
 `channel_announcement` for the same transaction in the same block, but
-different `node-id-1` or `node-id-2`, it SHOULD blacklist the the
+different `node-id-1` or `node-id-2`, it SHOULD blacklist the
 previous message's `node-id-1` and `node-id-2` as well as this
-`node-id-1` and `node-id-2` and forget channels conntected to them,
+`node-id-1` and `node-id-2` and forget channels connected to them,
 otherwise it SHOULD store this `channel_announcement`.
 
 The receiving node SHOULD forget a channel once its funding output has
@@ -115,8 +115,7 @@ nodes for which a channel is not already known are ignored.
    * [33:node-id]
    * [3:rgb-color]
    * [2:pad]
-   * [4:len]
-   * [len:alias]
+   * [32:alias]
 
 The `timestamp` allows ordering in the case of multiple announcements;
 the `ipv6` and `port` allow the node to announce its willingness to
@@ -130,21 +129,19 @@ The creating node MUST set `timestamp` to be greater than any previous
 `node_announcement` it has created.  It MAY base it on a UNIX
 timestamp.  It MUST set the `ipv6` and `port` fields to all zeroes, or
 a non-zero `port` and `ipv6` set to a valid IPv6 address or an IPv4-Mapped IPv6 Address format as defined in [RFC 4291 section 2.5.5.2](https://tools.ietf.org/html/rfc4291#section-2.5.5.2).  It MUST set `signature` to the signature of
-the double-SHA of the entire remaining packet after `signature` using the
-key given by `node-id`.  It MUST set `pad` to zero.  It MAY set `alias` and `rgb-color` to customize their node's appearance in maps and graphs, where the first byte of `rgb` is the red value, the second byte is the green value and the last byte is the blue value.  It MUST set `alias` to a valid UTF-8 string.
-
-The receiving node SHOULD fail the connection if the message is of
-insufficent length to contain `alias`.
+the double-SHA256 of the entire remaining packet after `signature` using the
+key given by `node-id`.  It MUST set `pad` to zero.  It MAY set `alias` and `rgb-color` to customize their node's appearance in maps and graphs, where the first byte of `rgb` is the red value, the second byte is the green value and the last byte is the blue value.  It MUST set `alias` to a valid UTF-8 string of up to 21 bytes in length, with all `alias` bytes following equal to zero.
 
 The receiving node SHOULD fail the connection if `signature` is
 invalid or incorrect for the entire message including unknown fields
 following `alias`, and MUST NOT further process the message.  The
-receiving node SHOULD ignore `ipv6` if `port` is zero.  It MUST ignore
+receiving node SHOULD ignore `ipv6` if `port` is zero.  It SHOULD fail
+the connection if the final byte of `alias` is not zero.  It MUST ignore
 the contents of `pad`.
 
 The receiving node SHOULD ignore the message if `node-id` is not
 previously known from a `channel_announcement` message, or if
-`timestamp` is not greater than than the last-received
+`timestamp` is not greater than the last-received
 `node_announcement` from this `node-id`.  Otherwise, if the
 `timestamp` is greater than the last-received `node_announcement` from
 this `node-id` the receiving node SHOULD queue the message for
@@ -173,22 +170,22 @@ it wants to change fees.
 
 1. type: 258 (`MSG_CHANNEL_UPDATE`)
 2. data:
-	* [64:signature]
-	* [4:blockheight]
-	* [3:blockindex]
-	* [1:outputindex]
-	* [4:timestamp]
-	* [1:side]
-	* [1:pad]
+    * [64:signature]
+    * [4:blockheight]
+    * [3:blockindex]
+    * [1:outputindex]
+    * [4:timestamp]
+    * [1:side]
+    * [1:pad]
     * [2:expiry]
-	* [4:htlc-minimum-msat]
-	* [4:fee-base-msat]
-	* [4:fee-proportional-millionths]
+    * [4:htlc-minimum-msat]
+    * [4:fee-base-msat]
+    * [4:fee-proportional-millionths]
 
 ### Requirements
 
 The creating node MUST set `signature` to the signature of the
-double-SHA of the entire remaining packet after `signature` using its own `node-id`.
+double-SHA256 of the entire remaining packet after `signature` using its own `node-id`.
 
 The creating node MUST set `blockheight`, `blockindex` and `outputindex` to
 match those in the already-sent `channel_announcement` message, and MUST set `side` to 0 if the creating node is `node-id-1` in that message, otherwise 1.
@@ -196,10 +193,6 @@ match those in the already-sent `channel_announcement` message, and MUST set `si
 The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this channel, and MUST set `pad` to zero.
 
 It MUST set `expiry` to the number of blocks it will subtract from an incoming HTLC's `expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
-
-The node SHOULD accept HTLCs which pay a fee equal or greater than:
-
-	fee-base-msat + htlc-amount-msat * fee-proportional-millionths / 1000000
 
 The receiving node SHOULD fail the connection if `side` is not 0 or 1.
 It MUST ignore the contents of `pad`.  The receiving node SHOULD fail
@@ -218,9 +211,10 @@ queue the message for rebroadcasting.
 
 ## Rebroadcasting
 
-Nodes receiving an announcement verify that this is the latest update from the announcing node by comparing the included timestamp and update their local view of the network's topology accordingly.
+Nodes receiving a new `channel_announcement` or a `channel_update` or
+`node_update` with an updated timestamp update their local view of the network's topology accordingly.
 
-Once the announcement has been processed it is added to a list of outgoing announcements to the processing node's peers, which will be flushed at regular intervals.
+Once the announcement has been processed it is added to a list of outgoing announcements (perhaps replacing older updates) to the processing node's peers, which will be flushed at regular intervals.
 This store and delayed forward broadcast is called a _staggered broadcast_
 
 If, after applying the changes from the announcement, there are no channels associated with the announcing node, then the receiving node MAY purge the announcing node from the set of known nodes.
@@ -246,6 +240,31 @@ Batching announcements form a natural ratelimit with low overhead.
 The sending of all announcements on reconnection is naive, but simple,
 and allows bootstrap for new nodes as well as updating for nodes which
 have been offline for some time.
+
+## HTLC Fees
+
+The node creating `channel_update` SHOULD accept HTLCs which pay a fee equal or greater than:
+
+    fee-base-msat + htlc-amount-msat * fee-proportional-millionths / 1000000
+
+The node creating `channel_update` SHOULD accept HTLCs which pay an
+older fee for some time after sending `channel_update` to allow for
+propagation delay.
+
+## Recommendations for Routing
+
+As the fee is proportional, it must be calculated backwards from the
+destination to the source: only the amount required at the final
+destination is known initially.
+
+When calculating a route for an HTLC, the `expiry` and the fee both
+need to be considered: the `expiry` contributes to the time that funds
+will be unavailable on worst-case failure.  The tradeoff between these
+two is unclear, as it depends on the reliability of nodes.
+
+Other more advanced considerations involve diversity of routes to
+avoid single points of failure and detection, and channel balance
+of local channels.
 
 ## References
 
