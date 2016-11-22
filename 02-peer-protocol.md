@@ -199,11 +199,11 @@ signature, it will broadcast the funding transaction.
     * [2:output_index]
     * [64:signature]
 
-FIXME: describe
-
 #### Requirements
 
-The recipient MUST fail the channel if the signature is invalid.
+The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `txid` to the transaction ID to a non-malleably transaction, which it MUST NOT broadcast, and MUST set `output_index` to output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+
+The recipient MUST fail the channel if `signature` is incorrect.
 
 ### The `funding_signed` message
 
@@ -218,7 +218,9 @@ redeem their funds if they need to.
 
 #### Requirements
 
-FIXME: Describe
+The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message, and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+
+The recipient MUST fail the channel if `signature` is incorrect.
 
 ### The `funding_locked` message
 
@@ -241,7 +243,18 @@ from this point onwards.
 
 #### Requirements
 
-FIXME: Describe
+The sender MUST wait until the funding transaction has reached
+`minimum-depth` before sending this message.  The sender MUST encode
+the block position of the funding transaction into `channel-id`.  If
+the sender has already received `funding_locked` from the other node,
+it MUST fail the channel if its own `channel-id` does not match that
+received.  The sender MUST set `next-per-commitment-point` to the
+per-commitment point to be used for the following commitment
+transaction, derived as specified in
+[BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+
+If the recipient has already sent `funding_locked` it MUST fail the
+channel if `channel-id` does not match the `channel-id` it sent.
 
 #### Future
 
