@@ -148,7 +148,7 @@ chunked into several messages before being sent.
 
 ### Noise Protocol Instantiation
 
-Concrete instantiations of the Noise Protocol are require the definition of
+Concrete instantiations of the Noise Protocol require the definition of
 three abstract cryptographic objects: the hash function, the elliptic curve,
 and finally the `AEAD` cipher scheme. Within our instantiation `SHA-256` is
 chosen as the hash function, `secp256k1` as the elliptic curve, and finally
@@ -315,7 +315,7 @@ and `16 bytes` for the `poly1305` tag.
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
 
 
-  * If `v` is an unrecognized handshake version, then the the responder MUST
+  * If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 
 
@@ -403,7 +403,7 @@ for the `poly1305` tag.
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
 
 
-  * If `v` is an unrecognized handshake version, then the the responder MUST
+  * If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 
 
@@ -501,7 +501,7 @@ construction, and `16 bytes` for a final authenticating tag.
   * Parse out the read message (`m`) into `v = m[0]`, `c = m[1:50]` and `t = m[50:]`
 
 
-  * If `v` is an unrecognized handshake version, then the the responder MUST
+  * If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 
 
@@ -544,9 +544,9 @@ which will be used to encrypt/decrypt messages for the remainder of the
 session.
 
 The *maximum* size of _any_ transport message MUST NOT exceed 65535 bytes. A
-maximum payload size of 65535 simplifies testing and also makes memory
-management and avoid exhaustion attacks easy. Note that the protocol messages
-encapsulated in within the encrypted transport messages can be larger that the
+maximum payload size of 65535 simplifies testing, makes memory management 
+easier and helps mitigate memory exhaustion attacks. Note that the protocol messages
+encapsulated within the encrypted transport messages can be larger than the
 maximum transport messages. If a party wishes to send a message larger then
 65535 bytes, then they can simply partition the message into chunks less than
 the maximum size, sending each of them sequentially. Messages which exceed the
@@ -554,8 +554,8 @@ max message size MUST be partitioned into chunks of size `65519 bytes`, in
 order to leave room for the `16-byte` `MAC`.
 
 
-In order to make make traffic analysis more difficult, then length prefix for
-all encrypted transport messages is also encrypted. We additionally add a
+In order to make make traffic analysis more difficult, the length prefix for
+all encrypted transport messages is also encrypted. Additionally we add a
 `16-byte` `Poly-1305` tag to the encrypted length prefix in order to ensure
 that the packet length hasn't been modified with in-flight, and also to avoid
 creating a decryption oracle.
@@ -694,7 +694,7 @@ following field.
 
 The sending node SHOULD use the minimum lengths required to represent
 the feature fields.  The sending node MUST set feature bits
-corresponding to features is requires the peer to support, and SHOULD
+corresponding to features it requires the peer to support, and SHOULD
 set feature bits corresponding to features it optionally supports.
 
 
@@ -757,8 +757,8 @@ valid string.
 ### Rationale
 
 
-There are unrecoverable errors which require abort of conversations;
-if the connection is simply dropped then the peer may retry
+There are unrecoverable errors which require an abort of conversations;
+if the connection is simply dropped then the peer may retry the
 connection.  It's also useful to describe protocol violations for
 diagnosis, as it indicates that one peer has a bug.
 
