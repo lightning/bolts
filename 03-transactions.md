@@ -75,16 +75,16 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
         OP_SIZE 32 OP_EQUAL
     OP_NOTIF
         # To me via HTLC-timeout tx (timelocked).
-        OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIGVERIFY
+        OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIGV
     OP_ELSE
         # To you with preimage.
         OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
-        OP_CHECKSIGVERIFY
+        OP_CHECKSIG
     OP_ENDIF
 
 The remote node can redeem the HTLC with the scriptsig:
 
-    1 <remotesig> <payment-preimage>
+    <remotesig> <payment-preimage>
 
 Either node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as show below.
 
@@ -97,16 +97,16 @@ This output sends funds to the remote peer after the HTLC timeout, or to an HTLC
     OP_IF
         # To me via HTLC-success tx.
         OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
-        2 OP_SWAP <localkey> 2 OP_CHECKMULTISIGVERIFY
+        2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
     OP_ELSE
         # To you after timeout.
         OP_DROP <locktime> OP_CHECKLOCKTIMEVERIFY OP_DROP
-        OP_CHECKSIGVERIFY
+        OP_CHECKSIG
     OP_ENDIF
 
 To timeout the htlc, the remote node spends it with the scriptsig:
 
-    1 <remotesig> 0
+    <remotesig> 0
 
 To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
@@ -120,7 +120,7 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
    * txin[0] outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
    * txin[0] sequence: 0
    * txin[0] script bytes: 0
-   * txin[0] witness stack: `1 0 <remotesig> <localsig> 0` (HTLC-Timeout) or `1 0 <remotesig> <localsig>  <payment-preimage>` (HTLC-success).
+   * txin[0] witness stack: `0 <remotesig> <localsig> 0` (HTLC-Timeout) or `0 <remotesig> <localsig>  <payment-preimage>` (HTLC-success).
 * txout count: 1
    * txout[0] amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
    * txout[0] script: version 0 P2WSH with witness script as below.
