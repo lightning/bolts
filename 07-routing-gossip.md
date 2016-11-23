@@ -23,17 +23,17 @@ its fee levels and expiry using `channel_update`.
 
 1. type: 256 (`MSG_CHANNEL_ANNOUNCEMENT`)
 2. data:
+    * [64:node-signature-1]
+    * [64:node-signature-2]
     * [4:blockheight]
     * [3:blockindex]
     * [1:outputindex]
+    * [64:bitcoin-signature-1]
+    * [64:bitcoin-signature-2]
     * [33:node-id-1]
     * [33:node-id-2]
     * [33:bitcoin-key-1]
     * [33:bitcoin-key-2]
-    * [64:bitcoin-signature-1]
-    * [64:bitcoin-signature-2]
-    * [64:node-signature-1]
-    * [64:node-signature-2]
 
 ### Requirements
 
@@ -55,11 +55,9 @@ the double-SHA256 of `node-id-1` using `bitcoin-key-1`, and set
 `bitcoin-signature-2` to the signature of the double-SHA256 of
 `node-id-2` using `bitcoin-key-2`
 
-The creating node MUST set `node-signature-1` to the signature of the
-double-SHA256 of every data field up to and including
-`bitcoin-signature-2` using `node-id-1`, and `node-signature-2` to the
-signature of the double-SHA256 of every data field up to and including
-`bitcoin-signature-2` using `node-id-2`.
+The creating node MUST set `node-signature-1` and `node-signature-2`
+to the signaturea of the double-SHA256 of message after the end of
+`node-signature-2`, using `node-id-1` and `node-id-2` as keys respectively.
 
 The receiving node MUST ignore the message if the output `outputindex`
 in block `blockheight` transaction number `blockindex` does not
