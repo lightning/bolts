@@ -682,8 +682,12 @@ features supported or required by this node.  Odd features are
 optional, even features are compulsory ("it's OK to be odd!").  The
 meaning of these bits will be defined in future.
 
-1. type: 16 (MSG_INIT)
-2. data: [4:len] [len:globalfeatures] [4:len] [len:localfeatures]
+1. type: 16 (`MSG_INIT`)
+2. data:
+   * [4:gflen]
+   * [gflen:globalfeatures]
+   * [4:lflen]
+   * [lflen:localfeatures]
 
 The 4-byte len fields indicate the number of bytes in the immediately
 following field.
@@ -727,8 +731,10 @@ something is incorrect.
 
 
 1. type: 17 (`MSG_ERROR`)
-2. data: [8:channel-id] [4:len] [len:data]
-
+2. data:
+   * [8:channel-id]
+   * [4:len]
+   * [len:data]
 
 The 4-byte len field indicates the number of bytes in the immediately
 following field.
