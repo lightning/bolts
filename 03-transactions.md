@@ -44,7 +44,7 @@ The amounts for each output are rounded down to whole satoshis.  If this amount,
 
 #### To-Local Output
 
-This output sends funds back to the owner of this commitment transaction, thus must be timelocked using OP_CSV. If can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction, thus must be timelocked using OP_CSV. It can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
 
     OP_IF
         # Penalty transaction
@@ -75,7 +75,7 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
         OP_SIZE 32 OP_EQUAL
     OP_NOTIF
         # To me via HTLC-timeout tx (timelocked).
-        OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIGV
+        OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
     OP_ELSE
         # To you with preimage.
         OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
