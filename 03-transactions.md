@@ -6,6 +6,10 @@ This details the exact format of on-chain transactions, which both sides need to
 
 Lexicographic ordering as per BIP 69.
 
+## Use of segwit
+
+Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2SWH output that is being spent. This last item has been omitted for brevity in the rest of this document.
+
 ## Funding Transaction Output
 
 * The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
@@ -40,7 +44,7 @@ The amounts for each output are rounded down to whole satoshis.  If this amount,
 
 #### To-Local Output
 
-This output sends funds back to the owner of this commitment transaction, thus must be timelocked using OP_CSV. If can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction, thus must be timelocked using OP_CSV. It can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
 
     OP_IF
         # Penalty transaction
@@ -53,7 +57,7 @@ This output sends funds back to the owner of this commitment transaction, thus m
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig>`.
+It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig> 0`.
 
 If a revoked commit tx is published, the other party can spend this output immediately with the following witness script:
 
@@ -71,11 +75,11 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
         OP_SIZE 32 OP_EQUAL
     OP_NOTIF
         # To me via HTLC-timeout tx (timelocked).
-        OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIGVERIFY
+        OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
     OP_ELSE
         # To you with preimage.
         OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
-        OP_CHECKSIGVERIFY
+        OP_CHECKSIG
     OP_ENDIF
 
 The remote node can redeem the HTLC with the scriptsig:
@@ -93,11 +97,11 @@ This output sends funds to the remote peer after the HTLC timeout, or to an HTLC
     OP_IF
         # To me via HTLC-success tx.
         OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
-        2 OP_SWAP <localkey> 2 OP_CHECKMULTISIGVERIFY
+        2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
     OP_ELSE
         # To you after timeout.
         OP_DROP <locktime> OP_CHECKLOCKTIMEVERIFY OP_DROP
-        OP_CHECKSIGVERIFY
+        OP_CHECKSIG
     OP_ENDIF
 
 To timeout the htlc, the remote node spends it with the scriptsig:
@@ -116,7 +120,7 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
    * txin[0] outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
    * txin[0] sequence: 0
    * txin[0] script bytes: 0
-   * txin[0] witness stack: `<localsig> <remotesig> 0` (HTLC-Timeout) or `<localsig> <remotesig> <payment-preimage>` (HTLC-success).
+   * txin[0] witness stack: `0 <remotesig> <localsig> 0` (HTLC-Timeout) or `0 <remotesig> <localsig>  <payment-preimage>` (HTLC-success).
 * txout count: 1
    * txout[0] amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
    * txout[0] script: version 0 P2WSH with witness script as below.
