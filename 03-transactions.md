@@ -6,6 +6,10 @@ This details the exact format of on-chain transactions, which both sides need to
 
 Lexicographic ordering as per BIP 69.
 
+## Use of segwit
+
+Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2SWH output that is being spent. This last item has been omitted for brevity in the rest of this document.
+
 ## Funding Transaction Output
 
 * The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
@@ -53,7 +57,7 @@ This output sends funds back to the owner of this commitment transaction, thus m
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig>`.
+It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig> 0`.
 
 If a revoked commit tx is published, the other party can spend this output immediately with the following witness script:
 
@@ -80,7 +84,7 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
 
 The remote node can redeem the HTLC with the scriptsig:
 
-    <remotesig> <payment-preimage>
+    1 <remotesig> <payment-preimage>
 
 Either node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as show below.
 
@@ -102,7 +106,7 @@ This output sends funds to the remote peer after the HTLC timeout, or to an HTLC
 
 To timeout the htlc, the remote node spends it with the scriptsig:
 
-    <remotesig> 0
+    1 <remotesig> 0
 
 To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
@@ -116,7 +120,7 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
    * txin[0] outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
    * txin[0] sequence: 0
    * txin[0] script bytes: 0
-   * txin[0] witness stack: `<localsig> <remotesig> 0` (HTLC-Timeout) or `<localsig> <remotesig> <payment-preimage>` (HTLC-success).
+   * txin[0] witness stack: `1 0 <remotesig> <localsig> 0` (HTLC-Timeout) or `1 0 <remotesig> <localsig>  <payment-preimage>` (HTLC-success).
 * txout count: 1
    * txout[0] amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
    * txout[0] script: version 0 P2WSH with witness script as below.
