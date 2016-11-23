@@ -403,3 +403,7 @@ The origin node detects that it is the final hop of the return message since it 
 Having the shared secrets of all intermediate nodes it can unwrap the packet until the HMAC is a valid HMAC for the packet, which also identifies the sender of the return message.
 
 The association between forward and return packet is handled outside of the protocol, e.g., by association to an HTLC in a payment channel.
+
+![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+<br>
+This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
