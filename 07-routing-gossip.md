@@ -25,9 +25,7 @@ its fee levels and expiry using `channel_update`.
 2. data:
     * [64:node-signature-1]
     * [64:node-signature-2]
-    * [4:blockheight]
-    * [3:blockindex]
-    * [1:outputindex]
+    * [8:channel-id]
     * [64:bitcoin-signature-1]
     * [64:bitcoin-signature-2]
     * [33:node-id-1]
@@ -37,10 +35,8 @@ its fee levels and expiry using `channel_update`.
 
 ### Requirements
 
-The creating node MUST set `blockheight` to the block number
-containing the confirmed funding transaction, `blockindex` to the
-transaction number within the block, and `outputindex` to the output
-number which funds the channel.  The corresponding output MUST be a
+The creating node MUST set `channel-id` to refer to the confirmed
+funding transaction as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).  The corresponding output MUST be a
 P2WSH as described in [BOLT #3](03-transactions.md#funding-transaction-output).
 
 The creating node MUST set `node-id-1` and `node-id-2` to the public
@@ -59,8 +55,8 @@ The creating node MUST set `node-signature-1` and `node-signature-2`
 to the signaturea of the double-SHA256 of message after the end of
 `node-signature-2`, using `node-id-1` and `node-id-2` as keys respectively.
 
-The receiving node MUST ignore the message if the output `outputindex`
-in block `blockheight` transaction number `blockindex` does not
+The receiving node MUST ignore the message if the output specified
+by `channel-id` does not
 correspond to a P2WSH using `bitcoin-key-1` and `bitcoin-key-2` as
 specified in [BOLT #3](03-transactions.md#funding-transaction-output).
 The receiving node MUST ignore the message if this output is spent.
@@ -169,9 +165,7 @@ it wants to change fees.
 1. type: 258 (`MSG_CHANNEL_UPDATE`)
 2. data:
     * [64:signature]
-    * [4:blockheight]
-    * [3:blockindex]
-    * [1:outputindex]
+    * [8:channel-id]
     * [4:timestamp]
     * [1:side]
     * [1:pad]
@@ -185,7 +179,7 @@ it wants to change fees.
 The creating node MUST set `signature` to the signature of the
 double-SHA256 of the entire remaining packet after `signature` using its own `node-id`.
 
-The creating node MUST set `blockheight`, `blockindex` and `outputindex` to
+The creating node MUST set `channel-id` to
 match those in the already-sent `channel_announcement` message, and MUST set `side` to 0 if the creating node is `node-id-1` in that message, otherwise 1.
 
 The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this channel, and MUST set `pad` to zero.
@@ -197,8 +191,8 @@ It MUST ignore the contents of `pad`.  The receiving node SHOULD fail
 the connection if `signature` is invalid or incorrect for the entire
 message including unknown fields following `signature`, and MUST NOT
 further process the message.  The receiving node SHOULD ignore `ipv6`
-if `port` is zero.  It SHOULD ignore the message if `blockheight`,
-`blockindex` and `outputindex` do not correspond to a previously
+if `port` is zero.  It SHOULD ignore the message if `channel-id`does
+not correspond to a previously
 known, unspent channel from `channel_announcement` or if `timestamp`
 is not greater than than the last-received `channel_announcement` for
 this channel and `side`.  Otherwise, if the `timestamp` is equal to
