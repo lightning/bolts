@@ -77,9 +77,9 @@ desire to set up a new channel.
    * [8:max-htlc-value-in-flight-msat]
    * [8:channel-reserve-satoshis]
    * [4:htlc-minimum-msat]
-   * [4:max-accepted-htlcs]
    * [4:feerate-per-kw]
    * [2:to-self-delay]
+   * [2:max-accepted-htlcs]
    * [33:funding-pubkey]
    * [33:revocation-basepoint]
    * [33:payment-basepoint]
@@ -117,9 +117,7 @@ immediately included in a block.
 
 The sender SHOULD set `dust-limit-satoshis` to sufficient value to
 allow commitment transactions to propagate through the bitcoin
-network.  It MUST set `max-accepted-htlcs` to less than or equal to 600
-<sup>[BOLT #5](05-onchain.md#penalty-transaction-weight-calculation)</sup>.
-It SHOULD set `htlc-minimum-msat` to the minimum
+network.  It SHOULD set `htlc-minimum-msat` to the minimum
 amount HTLC it is willing to accept from this peer.
 
 
@@ -128,8 +126,7 @@ unreasonably large.  The receiver MAY fail the channel if
 `funding-satoshis` is too small, and MUST fail the channel if
 `push-msat` is greater than `funding-amount` * 1000.
 The receiving node MAY fail the channel if it considers
-`htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-accepted-htlcs` too small.  It MUST fail the channel if `max-accepted-htlcs` is greater than 600.
-
+`htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-accepted-htlcs` too small.  It MUST fail the channel if `max-accepted-htlcs` is greater than 511.
 
 The receiver MUST fail the channel if
 considers `feerate-per-kw` too small for timely processing, or unreasonably large.  The
@@ -173,8 +170,8 @@ acceptance of the new channel.
    * [8:channel-reserve-satoshis]
    * [4:minimum-depth]
    * [4:htlc-minimum-msat]
-   * [4:max-accpted-htlcs]
    * [2:to-self-delay]
+   * [2:max-accepted-htlcs]
    * [33:funding-pubkey]
    * [33:revocation-basepoint]
    * [33:payment-basepoint]
@@ -379,7 +376,7 @@ and indicating the scriptpubkey it wants to be paid to.
 1. type: 38 (`shutdown`)
 2. data:
    * [8:channel-id]
-   * [4:len]
+   * [2:len]
    * [len:scriptpubkey]
 
 #### Requirements
@@ -616,6 +613,11 @@ Retransmissions of unacknowledged updates are explicitly allowed for
 reconnection purposes; allowing them at other times simplifies the
 recipient code, though strict checking may help debugging.
 
+`max-accepted-htlcs` is limited to 511, to ensure that even if both
+sides send the maximum number of HTLCs, the `commit_sig` message will
+still be under the maximum message size.  It also ensures that
+a single penalty transaction can spend the entire commitment transaction,
+as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
 
 ### Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`
 
@@ -677,7 +679,7 @@ sign the resulting transaction as defined in [BOLT #3] and send a
 2. data:
    * [8:channel-id]
    * [64:signature]
-   * [4:num-htlcs]
+   * [2:num-htlcs]
    * [num-htlcs*64:htlc-signature]
 
 #### Requirements
@@ -734,7 +736,7 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
    * [32:per-commitment-secret]
    * [33:next-per-commitment-point]
    * [3:padding]
-   * [4:num-htlc-timeouts]
+   * [2:num-htlc-timeouts]
    * [num-htlc-timeouts*64:htlc-timeout-signature]
 
 #### Requirements
