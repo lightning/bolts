@@ -195,10 +195,10 @@ signature, it will broadcast the funding transaction.
 
 1. type: 34 (`MSG_FUNDING_CREATED`)
 2. data:
-	* [8:temporary-channel-id]
-	* [32:txid]
+    * [8:temporary-channel-id]
+    * [32:txid]
     * [1:output-index]
-	* [1:pad]
+    * [1:pad]
     * [64:signature]
 
 #### Requirements
@@ -219,7 +219,7 @@ redeem their funds if they need to.
 
 1. type: 35 (`MSG_FUNDING_SIGNED`)
 2. data:
-	* [8:temporary-channel-id]
+    * [8:temporary-channel-id]
     * [64:signature]
 
 #### Requirements
@@ -234,7 +234,7 @@ This message indicates that the funding transaction has reached the `minimum-dep
 
 1. type: 36 (`MSG_FUNDING_LOCKED`)
 2. data:
-	* [8:temporary-channel-id]
+    * [8:temporary-channel-id]
     * [8:channel-id]
     * [64:announcement-node-signature]
     * [64:announcement-bitcoin-signature]
