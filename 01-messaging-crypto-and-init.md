@@ -79,21 +79,21 @@ The handshake chosen for the authenticated key exchange is `Noise_XK`. As a
 "pre-message", we assume that the initiator knows the identity public key of
 the responder. This handshake provides a degree of identity hiding for the
 responder, its public key is _never_ transmitted during the handshake. Instead,
-authentication is achieved implicitly via a series of `ECDH` operations followed
-by a `MAC` check.
+authentication is achieved implicitly via a series of `ECDH` (Elliptic-Curve
+Diffie-Hellman) operations followed by a `MAC` check.
 
 The authenticated key agreement (`Noise_XK`) is performed in three distinct
 steps. During each "act" of the handshake, some (possibly encrypted) keying
 material is sent to the other party, an `ECDH` is performed based on exactly
 which act is being executed with the result mixed into the current sent of
-encryption keys (`ck` and `k`), and finally an `AEAD` payload with a zero
-length cipher text is sent.  As this payload is of length zero, only a `MAC` is
-sent across.  The mixing of `ECDH` outputs into a hash digest forms an
-incremental TripleDH handshake.
+encryption keys (`ck` the chainin gkey and `k` the encryption key), and finally
+an `AEAD` payload with a zero length cipher text is sent.  As this payload is
+of length zero, only a `MAC` is sent across.  The mixing of `ECDH` outputs into
+a hash digest forms an incremental TripleDH handshake.
 
-Using the language of the Noise Protocol, `e` and `s` indicate possibly
-encrypted keying material, and `es, ee, se` indicates `ECDH` operations.  The
-handshake is laid out as follows:
+Using the language of the Noise Protocol, `e` and `s` (both public keys)
+indicate possibly encrypted keying material, and `es, ee, se` each indicate an
+`ECDH` operation between two keys. The handshake is laid out as follows:
 
     Noise_XK(s, rs):
        <- s
@@ -152,7 +152,7 @@ Concrete instantiations of the Noise Protocol require the definition of
 three abstract cryptographic objects: the hash function, the elliptic curve,
 and finally the `AEAD` cipher scheme. Within our instantiation `SHA-256` is
 chosen as the hash function, `secp256k1` as the elliptic curve, and finally
-`ChaChaPoly-1305` as the `AEAD` construction. The composition of `ChaChaPoly`
+`ChaChaPoly-1305` as the `AEAD` construction. The composition of `ChaCha20`
 and `Poly1305` used MUST conform to `RFC 7539`<sup>[3](#reference-3)</sup>. With this laid out, the
 official Noise protocol name for our variant is:
 `Noise_XK_secp256k1_ChaChaPoly_SHA256`.  The ascii string representation of
@@ -196,19 +196,34 @@ Throughout the handshake process, each side maintains these three variables:
 
 The following functions will also be referenced:
 
-  * `HKDF`: a function is defined in [3](#reference-3), evaluated with a zero-length `info`
-    field.
+  * `ECDH(rk, k)`: Performs an Elliptic-Curve Diffie-Hellman operation using
+    `rk` which is a `secp256k1` public key and `k` which is a valid private key
+    within the finite field as defined by the curve paramters.
+      * The returned value is the raw big-endian byte serialization of
+        `x-coordinate` (using affine coordinates) of the generated point.
 
-  * `encryptWithAD(ad, plaintext)`: outputs `encrypt(k, n++, ad, plaintext)`
-     * where `encrypt` is an evaluation of `ChaChaPoly-Poly1305` with the
-       passed arguments.
+  * `HKDF`: a function is defined in [3](#reference-3), evaluated with a
+    zero-length `info` field.
+     * All invocations of the `HKDF` implicitly return `64-bytes` of
+       cryptographic randomness using the extract-and-expand component of the
+       `HKDF.
 
-  * `decryptWithAD(ad, ciphertext)`: outputs `decrypt(k, n++, ad, ciphertext)`
-     * where `decrypt` is an evaluation of `ChaChaPoly-Poly1305` with the
-       passed arguments.
+  * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n++, ad, plaintext)`
+     * where `encrypt` is an evaluation of `ChaCha20-Poly1305` with the passed
+       arguments.
 
-  * `e = generateKey()`
-     * where generateKey generates a fresh secp256k1 keypair
+  * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n++, ad, ciphertext)`
+     * where `decrypt` is an evaluation of `ChaCha20-Poly1305` with the passed
+       arguments.
+
+  * `generateKey()`
+     * where generateKey generates and returns a fresh `secp256k1` keypair
+     * the object returned by `generateKey` has two attributes: 
+         * `.pub`: which returns an abstract object representing the public key
+         * `.priv`: which represents the private key used to generate the
+           public key
+     * the object also has a single method: 
+         * `.serializeCompressed()`
 
   * `a || b` denotes the concatenation of two byte strings `a` and `b`
 
@@ -218,21 +233,21 @@ The following functions will also be referenced:
 Before the start of the first act, both sides initialize their per-sessions
 state as follows:
 
- * `h = SHA-256(protocolName)`
+ 1. `h = SHA-256(protocolName)`
     * where `protocolName = "Noise_XK_secp256k1_ChaChaPoly_SHA256"` encoded as
       an ascii string.
 
- * `ck = h`
+ 2. `ck = h`
 
 
- * `temp_k = empty`
+ 3. `temp_k = empty`
     * where `empty` is a byte string of length 32 fully zeroed out.
 
 
- * `n = 0`
+ 4. `n = 0`
 
 
- * `h = SHA-256(h || prologue)`
+ 5. `h = SHA-256(h || prologue)`
     * where `prologue` is the ascii string: `lightning`.
 
 
@@ -242,12 +257,12 @@ handshake digest:
 
  * The initiating node mixes in the responding node's static public key
    serialized in Bitcoin's DER compressed format:
-   * `h = SHA-256(h || rs.serializeCompressed())`
+   * `h = SHA-256(h || rs.pub.serializeCompressed())`
 
 
  * The responding node mixes in their local static public key serialized in
    Bitcoin's DER compressed format:
-   * `h = SHA-256(h || ls.serializeCompressed())`
+   * `h = SHA-256(h || ls.pub.serializeCompressed())`
 
 
 ### Handshake Exchange
@@ -277,22 +292,23 @@ and `16 bytes` for the `poly1305` tag.
   * `e = generateKey()`
 
 
-  * `h = SHA-256(h || e.serializeCompressed())`
+  * `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into our running
        handshake digest.
 
 
-  * `s = ECDH(e, rs)`
-     * The initiator performs a ECDH between its newly generated ephemeral key
-       with the remote node's static public key.
+  * `s = ECDH(rs, e.priv)`
+     * The initiator performs a `ECDH` between its newly generated ephemeral
+       key with the remote node's static public key.
 
 
   * `ck, temp_k = HKDF(ck, s)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
+     * The nonce `n` should be reset to zero: `n = 0`.
 
 
-  * `c = encryptWithAD(h, zero)`
+  * `c = encryptWithAD(temp_k, n, h, zero)`
      * where `zero` is a zero-length plaintext
 
 
@@ -313,27 +329,30 @@ and `16 bytes` for the `poly1305` tag.
   * Parse out the read message (`m`) into `v = m[0]`, `e = m[1:34]` and `c = m[43:]`
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` are the next `33`
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
+    * The raw bytes of the remote party's ephemeral public key (`e`) are to be
+      deserialized into a point on the curve using affine coordinates as encoded
+      by the key's serialized composed format.
 
 
   * If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 
 
-  * `h = SHA-256(h || e.serializeCompressed())`
+  * `h = SHA-256(h || e.pub.serializeCompressed())`
     * Accumulate the initiator's ephemeral key into the authenticating
       handshake digest.
 
-  * `s = ECDH(s, e)`
-    * The responder performs an ECDH between its static public key and the
+  * `s = ECDH(e, s.priv)`
+    * The responder performs an `ECDH` between its static public key and the
       initiator's ephemeral public key.
 
 
   * `ck, temp_k = HKDF(ck, s)`
     * This phase generates a new temporary encryption key (`temp_k`) which will
       be used to shortly check the authenticating MAC.
+    * The nonce `n` should be reset to zero: `n = 0`.
 
-
-  * `p = decryptWithAD(h, c)`
+  * `p = decryptWithAD(temp_k, n, h, c)`
     * If the MAC check in this operation fails, then the initiator does _not_
       know our static public key. If so, then the responder MUST terminate the
       connection without any further messages.
@@ -366,12 +385,12 @@ for the `poly1305` tag.
   * `e = generateKey()`
 
 
-  * `h = SHA-256(h || e.serializeCompressed())`
+  * `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into our running
        handshake digest.
 
 
-  * `s = ECDH(e, re)`
+  * `s = ECDH(re, e.priv)`
      * where `re` is the ephemeral key of the initiator which was received
        during `ActOne`.
 
@@ -379,9 +398,10 @@ for the `poly1305` tag.
   * `ck, temp_k = HKDF(ck, s)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
+     * The nonce `n` should be reset to zero: `n = 0`.
 
 
-  * `c = encryptWithAD(h, zero)`
+  * `c = encryptWithAD(temp_k, n, h, zero)`
      * where `zero` is a zero-length plaintext
 
 
@@ -407,21 +427,26 @@ for the `poly1305` tag.
     abort the connection attempt.
 
 
-  * `h = SHA-256(h || e.serializeCompressed())`
+  * `h = SHA-256(h || e.pub.serializeCompressed())`
 
 
-  * `s = ECDH(re, e)`
+  * `s = ECDH(re, e.priv)`
      * where `re` is the responder's ephemeral public key.
+    * The raw bytes of the remote party's ephemeral public key (`e`) are to be
+      deserialized into a point on the curve using affine coordinates as encoded
+      by the key's serialized composed format.
 
 
   * `ck, temp_k = HKDF(ck, s)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
+     * The nonce `n` should be reset to zero: `n = 0`.
 
 
-  * `p = decryptWithAD(h, c)`
+  * `p = decryptWithAD(temp_k, n, h, c)`
     * If the MAC check in this operation fails, then the initiator MUST
       terminate the connection without any further messages.
+    * The nonce `n` should be reset to zero: `n = 0`.
 
 
   * `h = SHA-256(h || c)`
@@ -452,26 +477,24 @@ construction, and `16 bytes` for a final authenticating tag.
 **Sender Actions:**
 
 
-  * `c = encryptWithAD(h, s.serializeCompressed())`
+  * `c = encryptWithAD(temp_k, n, h, s.pub.serializeCompressed())`
     * where `s` is the static public key of the initiator.
 
 
   * `h = SHA-256(h || c)`
 
 
-  * `s = ECDH(s, re)`
+  * `s = ECDH(re, s.priv)`
     * where `re` is the ephemeral public key of the responder.
 
 
   * `ck, temp_k = HKDF(ck, s)`
-    * Mix the finaly intermediate shared secret into the running chaining key.
+    * Mix the final intermediate shared secret into the running chaining key.
+    * The nonce `n` should be reset to zero: `n = 0`.
 
 
-  * `t = encryptWithAD(h, zero)`
+  * `t = encryptWithAD(temp_k, n, h, zero)`
      * where `zero` is a zero-length plaintext
-
-
-  * `h = SHA-256(h || t)`
 
 
   * `sk, rk = HKDF(ck, zero)`
@@ -505,19 +528,23 @@ construction, and `16 bytes` for a final authenticating tag.
     abort the connection attempt.
 
 
-  * `rs = decryptWithAD(h, c)
+  * `rs = decryptWithAD(temp_k, n, h, c)`
      * At this point, the responder has recovered the static public key of the
        initiator.
 
 
-  * `h = SHA-256(h || rs.serializeCompressed())`
+  * `h = SHA-256(h || rs.pub.serializeCompressed())`
 
 
-  * `s = ECDH(e, rs)`
+  * `s = ECDH(rs, e.priv)`
      * where `e` is the responder's original ephemeral key
 
+  * `ck, temp_k = HKDF(ck, s)`
+     * The underscore denots that the final `32-bytes` generated by the `HKDF`
+       invocation are discarded.
+     * The nonce `n` should be reset to zero: `n = 0`.
 
-  * `p = decryptWithAD(h, t)`
+  * `p = decryptWithAD(temp_k, n, h, t)`
      * If the MAC check in this operation fails, then the responder MUST
        terminate the connection without any further messages.
 
@@ -545,12 +572,12 @@ session.
 
 The *maximum* size of _any_ transport message MUST NOT exceed 65535 bytes. A
 maximum payload size of 65535 simplifies testing, makes memory management 
-easier and helps mitigate memory exhaustion attacks. Note that the protocol messages
-encapsulated within the encrypted transport messages can be larger than the
-maximum transport messages. If a party wishes to send a message larger then
-65535 bytes, then they can simply partition the message into chunks less than
-the maximum size, sending each of them sequentially. Messages which exceed the
-max message size MUST be partitioned into chunks of size `65519 bytes`, in
+easier and helps mitigate memory exhaustion attacks. Note that the protocol
+messages encapsulated within the encrypted transport messages can be larger
+than the maximum transport messages. If a party wishes to send a message larger
+then 65535 bytes, then they can simply partition the message into chunks less
+than the maximum size, sending each of them sequentially. Messages which exceed
+the max message size MUST be partitioned into chunks of size `65519 bytes`, in
 order to leave room for the `16-byte` `MAC`.
 
 
@@ -577,7 +604,7 @@ The structure of transport messages resembles the following:
 +------------------------------
 ```
 
-The prefixed packet lengths are encoded as a `16-byte` big-endian integer.
+The prefixed packet lengths are encoded as a `2-byte` big-endian integer.
 
 
 ### Encrypting Messages
@@ -596,7 +623,8 @@ In order to encrypt a message (`m`), given a sending key (`sk`), and a nonce
 
   * Encrypt `l` using `ChaChaPoly-1305`, `n`, and `sk` to obtain `lc`
     (`18-bytes`)
-    * The nonce for `sk MUST be incremented after this step.
+    * The nonce for `sk` MUST be incremented after this step.
+    * A zero-length byte slice is to be passed as the AD (associated data).
 
 
   * Finally encrypt the message itself (`m`) using the same procedure used to
@@ -619,8 +647,9 @@ done:
   * Let the encrypted length prefix be known as `lc`
 
 
-  * Decrypt `lc` using `ChaChaPoly-1305`, `n`, and `rk` to obtain size of the
-    encrypted packet `l`.
+  * Decrypt `lc` using `ChaCha20-Poy1305`, `n`, and `rk` to obtain size of
+    the encrypted packet `l`.
+    * A zero-length byte slice is to be passed as the AD (associated data).
     * The nonce for `rk` MUST be incremented after this step.
 
 
@@ -628,7 +657,7 @@ done:
     `c`.
 
 
-  * Decrypt `c` using `ChaChaPoly-1305`, `n`, and `rk` to obtain decrypted
+  * Decrypt `c` using `ChaCha20-Poly1305`, `n`, and `rk` to obtain decrypted
     plaintext packet `p`.
 
 
@@ -653,11 +682,10 @@ Key rotation for a key `k` is performed according to the following:
 
 
   * Let `ck` be the chaining key obtained at the end of `Act Three`.
-  * `ck, k' = HKDF(ck, k)`
-     * The underscore indicates that only `32-bytes` are extracted from the
-       `HKDF`.
+  * `ck', k' = HKDF(ck, k)`
   * Reset the nonce for the key to `n = 0`.
   * `k = k'`
+  * 'ck = ck''
 
 
 
@@ -741,13 +769,14 @@ A node SHOULD send `MSG_ERROR` for protocol violations or internal
 errors which make channels unusable or further communication unusable.
 A node MAY send an empty [data] field.  A node sending `MSG_ERROR` MUST
 fail the channel referred to by the `channel-id`, or if `channel-id`
-is 0xFFFFFFFFFFFFFFFF it MUST fail all channels and MUST close the
-connection. A node MUST NOT set `len` to greater than the data length.
+is 0xFFFFFFFFFFFFFFFF it MUST fail all channels and MUST close the connection.
+A node MUST NOT set `len` to greater than the data length.
 
 
 A node receiving `MSG_ERROR` MUST fail the channel referred to by
 `channel-id`, or if `channel-id` is 0xFFFFFFFFFFFFFFFF it MUST fail
-all channels and MUST close the connection.  A receiving node MUST truncate `len` to the remainder of the packet if it is larger.
+all channels and MUST close the connection.  A receiving node MUST truncate
+`len` to the remainder of the packet if it is larger.
 
 
 A receiving node SHOULD only print out `data` verbatim if it is a
