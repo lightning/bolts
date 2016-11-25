@@ -84,6 +84,7 @@ desire to set up a new channel.
    * [33:revocation-basepoint]
    * [33:payment-basepoint]
    * [33:delayed-payment-basepoint]
+   * [33:first-per-commitment-point]
 
 
 The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fess are not enforceable onchain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the bitcoin network.
