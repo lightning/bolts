@@ -77,7 +77,7 @@ desire to set up a new channel.
    * [8:max-htlc-value-in-flight-msat]
    * [8:channel-reserve-satoshis]
    * [4:htlc-minimum-msat]
-   * [4:max-num-htlcs]
+   * [4:max-accepted-htlcs]
    * [4:feerate-per-kw]
    * [2:to-self-delay]
    * [33:funding-pubkey]
@@ -87,7 +87,7 @@ desire to set up a new channel.
 
 
 The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fess are not enforceable onchain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the bitcoin network.
-`max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-num-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node wil accept. `feerate-per-kw` indicates the initial fee rate which this side will pay for commitment and HTLC transactions as described in [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted later with a `update_fee` message).  `to-self-delay` is the number of block that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
+`max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node wil accept. `feerate-per-kw` indicates the initial fee rate which this side will pay for commitment and HTLC transactions as described in [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted later with a `update_fee` message).  `to-self-delay` is the number of block that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
 
 
 The `funding-pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation-basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment-basepoint` and `delayed-payment-basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed-payment-basepoint` is used to for payments encumbered by a delau.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
@@ -114,7 +114,7 @@ immediately included in a block.
 
 The sender SHOULD set `dust-limit-satoshis` to sufficient value to
 allow commitment transactions to propagate through the bitcoin
-network.  It MUST set `max-num-htlcs` to less than or equal to 600
+network.  It MUST set `max-accepted-htlcs` to less than or equal to 600
 <sup>[BOLT #5](05-onchain.md#penalty-transaction-weight-calculation)</sup>.
 It SHOULD set `htlc-minimum-msat` to the minimum
 amount HTLC it is willing to accept from this peer.
@@ -125,7 +125,7 @@ unreasonably large.  The receiver MAY fail the channel if
 `funding-satoshis` is too small, and MUST fail the channel if
 `push-msat` is greater than `funding-amount` * 1000.
 The receiving node MAY fail the channel if it considers
-`htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-num-htlcs` too small.  It MUST fail the channel if `max-num-htlcs` is greater than 600.
+`htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-accepted-htlcs` too small.  It MUST fail the channel if `max-accepted-htlcs` is greater than 600.
 
 
 The receiver MUST fail the channel if
@@ -170,7 +170,7 @@ acceptance of the new channel.
    * [8:channel-reserve-satoshis]
    * [4:minimum-depth]
    * [4:htlc-minimum-msat]
-   * [4:max-num-htlcs]
+   * [4:max-accpted-htlcs]
    * [2:to-self-delay]
    * [33:funding-pubkey]
    * [33:revocation-basepoint]
@@ -575,7 +575,7 @@ Fees") while maintaining its channel reserve, and MUST offer
 the receiving node's `htlc-minimum-msat`.
 
 A sending node MUST NOT add an HTLC if it would result in it offering
-more than the remote's `max-num-htlcs` HTLCs in the remote commitment
+more than the remote's `max-accepted-htlcs` HTLCs in the remote commitment
 transaction.
 
 A sending node MUST set `id` to 0 for the first HTLC it offers, and
@@ -585,7 +585,7 @@ A receiving node SHOULD fail the channel if it receives an
 `amount-sat` equal to zero, below its own `htlc-minimum-msat`, or
 which the sending node cannot afford at the current `fee-rate` while
 maintaining its channel reserve.  A receiving node SHOULD fail the
-channel if a sending node adds more than its `max-num-htlcs` HTLCs to
+channel if a sending node adds more than its `max-accepted-htlcs` HTLCs to
 its local commitment transaction.
 
 A receiving node MUST allow multiple HTLCs with the same payment hash.
