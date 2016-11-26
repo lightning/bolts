@@ -158,22 +158,89 @@ Thus we use a simplified formula for *expected weight*, which assumes:
 
 The *expected weight* of a commitment transaction is calculated as follows:
 
-	transaction core: 4 + 1 + 1 + 4
-	transaction input: 32 + 4 + 1 + 4
-	transaction input witness: 1 + 74 + 74 + 1 + 1 + 34 + 34 + 1 + 1
-	transaction output: 8 + 1
-	transaction htlc output script: 34
-	transaction to-local output script: 34
-	transaction to-remote output script: 25
+	p2wsh: 34 bytes
+		- OP_0: 1 byte
+		- OP_DATA: 1 byte (witness_script_SHA256 length)
+		- witness_script_SHA256: 32 bytes
 
+	p2wpkh: 22 bytes
+		- OP_0: 1 byte
+		- OP_DATA: 1 byte (public_key_HASH160 length)
+		- public_key_HASH160: 20 bytes
+
+	multi_sig: 71 bytes
+		- OP_2: 1 byte
+		- OP_DATA: 1 byte (pub_key_alice length)
+		- pub_key_alice: 33 bytes
+		- OP_DATA: 1 byte (pub_key_bob length)
+		- pub_key_bob: 33 bytes
+		- OP_2: 1 byte
+		- OP_CHECKMULTISIG: 1 byte
+
+	witness: 222 bytes
+		- number_of_witness_elements: 1 byte
+		- nil_length: 1 byte
+		- sig_alice_length: 1 byte
+		- sig_alice: 73 bytes
+		- sig_bob_length: 1 byte
+		- sig_bob: 73 bytes
+		- witness_script_length: 1 byte
+		- witness_script (multi_sig)
+		
+	funding_input: 41 bytes
+		- previous_out_point: 36 bytes
+			- hash: 32 bytes
+			- index: 4 bytes
+		- OP_DATA: 1 byte (ScriptSigLength)
+		- script_sig: 0 bytes
+		- witness <----	we use "Witness" instead of "ScriptSig" for
+	 			transaction validation, but "Witness" is stored
+	 			separately and cost for it size is smaller. So
+	 			we separate the calculation of ordinary data
+	 			from witness data.
+		- sequence: 4 bytes
+
+	output_paying_to_us: 43 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wsh): 34 bytes
+
+	output_paying_to_them: 31 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wpkh): 22 bytes
+
+	 htlc_output: 43 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wsh): 34 bytes
+
+	 witness_header: 2 bytes
+		- flag: 1 byte
+		- marker: 1 byte
+
+	 commitment_transaction: 125 + 43 * num-htlc-outputs bytes
+		- version: 4 bytes
+		- witness_header <---- part of the witness data
+		- count_tx_in: 1 byte
+		- tx_in: 41 bytes
+			funding_input
+		- count_tx_out: 1 byte
+		- tx_out: 74 + 43 * num-htlc-outputs bytes
+			output_paying_to_them,
+			output_paying_to_us,
+			....htlc_output's...
+		- lock_time: 4 bytes
+	
 Multiplying non-witness data by 4, this gives a weight of:
+	
+	// 500 + 172 * num-htlc-outputs weight
+	commitment_transaction_weight = 4 * commitment_transaction
 
-	597 + 172*num-htlc-outputs + 136*to-remote
+	// 224 weight
+	witness_weight = witness_header + witness
 
-Where `to-remote` is 0 if the amount is below the local node's
-`dust-limit-satoshis`, or 1 otherwise.  `num-htlc-outputs` is the
-number of HTLCs whose amount (minus HTLC transaction fee) is greater or
-equal to the local `dust-limit-satoshis`.
+	overall_weight = 500 + 172 * num-htlc-outputs + 224 weight 
 
 The *expected weight* of an HTLC transaction is calculated as follows:
 
