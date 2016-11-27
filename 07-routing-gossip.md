@@ -51,9 +51,54 @@ the double-SHA256 of `node-id-1` using `bitcoin-key-1`, and set
 `bitcoin-signature-2` to the signature of the double-SHA256 of
 `node-id-2` using `bitcoin-key-2`
 
-The creating node MUST set `node-signature-1` and `node-signature-2`
-to the signaturea of the double-SHA256 of message after the end of
-`node-signature-2`, using `node-id-1` and `node-id-2` as keys respectively.
+The creating node MUST set `node-signature-1` to the signature of
+the double-SHA256 of `bitcoin-key-1` using `node-id-1`, and set
+`node-signature-2` to the signature of the double-SHA256 of
+`bitcoin-key-2` using `node-id-2`
+
+```
+In order to prove the existence of channel between 'node-id-1'<->'node-id-2' we should:
+1. Prove ownership of 'bitcoin-key-1'
+2. Prove ownership of 'bitcoin-key-2'
+3. Prove ownership of 'node-id-1'
+4. Create cross reference 'node-id-1'<->'bitcoin-key-1'
+5. Prove ownership of 'node-id-2'
+6. Create cross reference 'node-id-2'<->'bitcoin-key-2'
+7. Check cross reference 'bitcoin-key-1'<->'bitcoin-key-2'
+
+    (3)       (4)         (1)         (7)         (2)         (6)       (5)
+[node-id-1] <- ? -> [bitcoin-key-1] <- ? -> [bitcoin-key-2] <- ? -> [node-id-2]
+
+
+D(e,k) - decryption function, which takes:
+- encrypted data 'e'
+- public key 'k' 
+as inputs and returns decrypted data.
+
+1. By decrypting 'bitcoin-signature-1' we proving the 'bitcoin-key-1' 
+ownership and creating the reference on 'node-id-1':
+double_sha256(node-id-1) == D(bitcoin-signature-1, bitcoin-key-1)
+
+2. By decrypting 'bitcoin-signature-2' we proving the 'bitcoin-key-2' 
+ownership and creating the reference on 'node-id-2':
+double_sha256(node-id-2) == D(bitcoin-signature-2, bitcoin-key-2)
+
+3/4. By decrypting 'node-signature-1' we proving the 'node-id-1' 
+ownership and creating the reference on 'bitcoin-key-1',thereby finishing 
+the proof of 'node-id-1'<->'bitcoin-key-1' linkage.
+double_sha256(bitcoin-key-1) == D(node-signature-1, node-id-1)
+
+5/6. By decrypting 'node-signature-2' we proving the 'node-id-2' 
+ownership and creating the reference on 'bitcoin-key-2',thereby finishing 
+the proof of 'node-id-2'<->'bitcoin-key-2' linkage.
+double_sha256(bitcoin-key-2) == D(node-signature-2, node-id-2)
+
+7. By checking that funding transaction P2WSH multisig output meets all 
+needed criteria and contains the 'bitcoin-key-1', 'bitcoin-key-2' keys 
+we prove the cross reference between 'bitcoin-key-1'<->'bitcoin-key-2', 
+thereby finishing the prove.
+```
+
 
 The receiving node MUST ignore the message if the output specified
 by `channel-id` does not
