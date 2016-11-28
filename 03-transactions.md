@@ -266,7 +266,7 @@ The fee for an HTLC-success transaction MUST BE calculated to match:
 
 The fee for a commitment transaction MUST BE calculated to match:
 
-1. Start with `weight` = 597, and `fee` = 0.
+1. Start with `weight` = 724, and `fee` = 0.
 
 2. If the amount to the remote node is greater or equal to the local
    node's `dust-limit-satoshis`, add 136 to `weight`.
