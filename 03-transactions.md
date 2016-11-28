@@ -191,10 +191,10 @@ The *expected weight* of a commitment transaction is calculated as follows:
 		- previous_out_point: 36 bytes
 			- hash: 32 bytes
 			- index: 4 bytes
-		- OP_DATA: 1 byte (ScriptSigLength)
+		- var_int: 1 byte (script_sig length)
 		- script_sig: 0 bytes
-		- witness <----	we use "Witness" instead of "ScriptSig" for
-	 			transaction validation, but "Witness" is stored
+		- witness <----	we use "witness" instead of "script_sig" for
+	 			transaction validation, but "witness" is stored
 	 			separately and cost for it size is smaller. So
 	 			we separate the calculation of ordinary data
 	 			from witness data.
