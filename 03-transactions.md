@@ -162,13 +162,13 @@ The *expected weight* of a commitment transaction is calculated as follows:
 	transaction input: 32 + 4 + 1 + 4
 	transaction input witness: 1 + 74 + 74 + 1 + 1 + 34 + 34 + 1 + 1
 	transaction output: 8 + 1
-	transaction htlc output: 34
-	transaction to-local output: 34
-	transaction to-remote output: 25
+	transaction htlc output script: 34
+	transaction to-local output script: 34
+	transaction to-remote output script: 25
 
 Multiplying non-witness data by 4, this gives a weight of:
 
-	597 + 136*num-htlc-outputs + 100*to-remote
+	597 + 172*num-htlc-outputs + 136*to-remote
 
 Where `to-remote` is 0 if the amount is below the local node's
 `dust-limit-satoshis`, or 1 otherwise.  `num-htlc-outputs` is the
@@ -206,12 +206,12 @@ The fee for a commitment transaction MUST BE calculated to match:
    
 3. For every offered HTLC, if the HTLC amount plus the HTLC-timeout
    transaction fee is greater or equal to the local node's
-   `dust-limit-satoshis`, then add 136 to `weight`, otherwise add
+   `dust-limit-satoshis`, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
 4. For every accepted HTLC, if the HTLC amount plus the HTLC-success
    transaction fee is greater or equal to the local node's
-   `dust-limit-satoshis`, then add 136 to `weight`, otherwise add
+   `dust-limit-satoshis`, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
 5. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
