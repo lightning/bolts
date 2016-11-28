@@ -68,7 +68,7 @@ fails.
 This message contains information about a node, and indicates its
 desire to set up a new channel.
 
-1. type: 32 (`MSG_OPEN_CHANNEL`)
+1. type: 32 (`open_channel`)
 2. data:
    * [8:temporary-channel-id]
    * [8:funding-satoshis]
@@ -163,7 +163,7 @@ This message contains information about a node, and indicates its
 acceptance of the new channel.
 
 
-1. type: 33 (`MSG_ACCEPT_CHANNEL`)
+1. type: 33 (`accept_channel`)
 2. data:
    * [8:temporary-channel-id]
    * [8:dust-limit-satoshis]
@@ -194,7 +194,7 @@ This message describes the outpoint which the funder has created for
 the initial commitment transactions.  After receiving the peer's
 signature, it will broadcast the funding transaction.
 
-1. type: 34 (`MSG_FUNDING_CREATED`)
+1. type: 34 (`funding_created`)
 2. data:
     * [8:temporary-channel-id]
     * [32:txid]
@@ -218,7 +218,7 @@ This message gives the funder the signature they need for the first
 commitment transaction, so they can broadcast it knowing they can
 redeem their funds if they need to.
 
-1. type: 35 (`MSG_FUNDING_SIGNED`)
+1. type: 35 (`funding_signed`)
 2. data:
     * [8:temporary-channel-id]
     * [64:signature]
@@ -233,7 +233,7 @@ The recipient MUST fail the channel if `signature` is incorrect.
 
 This message indicates that the funding transaction has reached the `minimum-depth` asked for in `accept_channel`.  Once both nodes have sent this, the channel enters normal operating mode.
 
-1. type: 36 (`MSG_FUNDING_LOCKED`)
+1. type: 36 (`funding_locked`)
 2. data:
     * [8:temporary-channel-id]
     * [8:channel-id]
@@ -298,7 +298,7 @@ The exact calculation used for deriving the fee from the fee rate is
 given in [BOLT #3].
 
 
-1. type: 37 (`MSG_UPDATE_FEE`)
+1. type: 37 (`update_fee`)
 2. data:
    * [8:channel-id]
    * [4:feerate-per-kw]
@@ -374,7 +374,7 @@ Either node (or both) can send a `shutdown` message to initiate closing,
 and indicating the scriptpubkey it wants to be paid to.
 
 
-1. type: 38 (`MSG_SHUTDOWN`)
+1. type: 38 (`shutdown`)
 2. data:
    * [8:channel-id]
    * [4:len]
@@ -427,7 +427,7 @@ signs the close transaction with the `script_pubkey` fields from the
 process terminates when both agree on the same fee, or one side fails
 the channel.
 
-1. type: 39 (`MSG_CLOSING_SIGNED`)
+1. type: 39 (`closing_signed`)
 2. data:
    * [8:channel-id]
    * [8:fee-satoshis]
@@ -557,7 +557,7 @@ The format of the `route` portion, which indicates where the payment
 is destined, is described in [BOLT #4].
 
 
-1. type: 128 (`MSG_UPDATE_ADD_HTLC`)
+1. type: 128 (`update_add_htlc`)
 2. data:
    * [8:channel-id]
    * [8:id]
@@ -624,7 +624,7 @@ failed to route, or the payment preimage is supplied.
 The `reason` field is an opaque encrypted blob for the benefit of the
 original HTLC initiator as defined in [BOLT #4].
 
-1. type: 130 (`MSG_UPDATE_FULFILL_HTLC`)
+1. type: 130 (`update_fulfill_htlc`)
 2. data:
    * [8:channel-id]
    * [8:id]
@@ -632,7 +632,7 @@ original HTLC initiator as defined in [BOLT #4].
 
 For a timed out or route-failed HTLC:
 
-1. type: 131 (`MSG_UPDATE_FAIL_HTLC`)
+1. type: 131 (`update_fail_htlc`)
 2. data:
    * [8:channel-id]
    * [8:id]
@@ -671,7 +671,7 @@ sign the resulting transaction as defined in [BOLT #3] and send a
 `commitsig` message.
 
 
-1. type: 132 (`MSG_COMMIT_SIG`)
+1. type: 132 (`commit_sig`)
 2. data:
    * [8:channel-id]
    * [64:signature]
@@ -726,7 +726,7 @@ This message also supplies the signatures for the sender's HTLC-timeout transact
 The description of key derivation is in [BOLT #3](03-transactions.md#key-derivation).
 
 
-1. type: 133 (`MSG_REVOKE_AND_ACK`)
+1. type: 133 (`revoke_and_ack`)
 2. data:
    * [8:channel-id]
    * [32:per-commitment-secret]

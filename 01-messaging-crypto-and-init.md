@@ -710,8 +710,12 @@ features supported or required by this node.  Odd features are
 optional, even features are compulsory ("it's OK to be odd!").  The
 meaning of these bits will be defined in future.
 
-1. type: 16 (MSG_INIT)
-2. data: [4:len] [len:globalfeatures] [4:len] [len:localfeatures]
+1. type: 16 (`init`)
+2. data:
+   * [4:gflen]
+   * [gflen:globalfeatures]
+   * [4:lflen]
+   * [lflen:localfeatures]
 
 The 4-byte len fields indicate the number of bytes in the immediately
 following field.
@@ -731,7 +735,7 @@ The receiving node MUST fail the channels if it receives a
 not understand.
 
 
-Each node MUST wait to receive MSG_INIT before sending any other
+Each node MUST wait to receive `init` before sending any other
 messages.
 
 
@@ -754,9 +758,11 @@ For simplicity of diagnosis, it is often useful to tell the peer that
 something is incorrect.
 
 
-1. type: 17 (`MSG_ERROR`)
-2. data: [8:channel-id] [4:len] [len:data]
-
+1. type: 17 (`error`)
+2. data:
+   * [8:channel-id]
+   * [4:len]
+   * [len:data]
 
 The 4-byte len field indicates the number of bytes in the immediately
 following field.
@@ -765,15 +771,15 @@ following field.
 ### Requirements
 
 
-A node SHOULD send `MSG_ERROR` for protocol violations or internal
+A node SHOULD send `error` for protocol violations or internal
 errors which make channels unusable or further communication unusable.
-A node MAY send an empty [data] field.  A node sending `MSG_ERROR` MUST
+A node MAY send an empty [data] field.  A node sending `error` MUST
 fail the channel referred to by the `channel-id`, or if `channel-id`
 is 0xFFFFFFFFFFFFFFFF it MUST fail all channels and MUST close the connection.
 A node MUST NOT set `len` to greater than the data length.
 
 
-A node receiving `MSG_ERROR` MUST fail the channel referred to by
+A node receiving `error` MUST fail the channel referred to by
 `channel-id`, or if `channel-id` is 0xFFFFFFFFFFFFFFFF it MUST fail
 all channels and MUST close the connection.  A receiving node MUST truncate
 `len` to the remainder of the packet if it is larger.

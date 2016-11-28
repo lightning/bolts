@@ -21,7 +21,7 @@ on-chain bitcoin key to the lightning node key, and vice-versa.
 The channel is not really usable until at least one side has announced
 its fee levels and expiry using `channel_update`.
 
-1. type: 256 (`MSG_CHANNEL_ANNOUNCEMENT`)
+1. type: 256 (`channel_announcement`)
 2. data:
     * [64:node-signature-1]
     * [64:node-signature-2]
@@ -100,7 +100,7 @@ This allows a node to indicate extra data associated with it, in
 addition to its public key.  To avoid trivial denial of service attacks,
 nodes for which a channel is not already known are ignored.
 
-1. type: 257 (`MSG_NODE_ANNOUNCEMENT`)
+1. type: 257 (`node_announcement`)
 2. data:
    * [64:signature]
    * [4:timestamp]
@@ -162,7 +162,7 @@ channel shortid which matches the `channel_announcement` and one byte
 to indicate which end this is.  It can do this multiple times, if
 it wants to change fees.
 
-1. type: 258 (`MSG_CHANNEL_UPDATE`)
+1. type: 258 (`channel_update`)
 2. data:
     * [64:signature]
     * [8:channel-id]
