@@ -245,25 +245,120 @@ Multiplying non-witness data by 4, this gives a weight of:
 
 The *expected weight* of an HTLC transaction is calculated as follows:
 
-	transaction core: 4 + 1 + 1 + 4
-	transaction input: 32 + 4 + 1 + 4
-	transaction input witness: 1 + 74 + 74 + (1 for HTLC-timeout or 33 for HTLC-success)
-	transaction output: 8 + 1 + 34
+    accepted_htlc_script: 109 bytes
+	    - OP_DATA: 1 byte (remotekey length)
+		- remotekey: 33 bytes
+		- OP_SWAP: 1 byte
+		- OP_SIZE: 1 byte
+		- 32: 1 byte
+		- OP_EQUAL: 1 byte
+		- OP_IF: 1 byte
+		- OP_HASH160: 1 byte
+		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
+		- ripemd-of-payment-hash: 20 bytes
+		- OP_EQUALVERIFY: 1 byte
+		- 2: 1 byte
+		- OP_SWAP: 1 byte
+		- OP_DATA: 1 byte (localkey length)
+		- localkey: 33 bytes
+		- 2: 1 byte
+		- OP_CHECKMULTISIG: 1 byte
+		- OP_ELSE: 1 byte
+		- OP_DROP: 1 byte
+		- OP_PUSHDATA2: 1 byte (locktime length)
+		- locktime: 2 bytes
+		- OP_CHECKLOCKTIMEVERIFY: 1 byte
+		- OP_DROP: 1 byte
+        - OP_CHECKSIG: 1 byte
+		- OP_ENDIF: 1 byte
 
-Multiplying non-witness data by 4, this gives a weight of:
+    offered_htlc_script: 104 bytes
+		- OP_DATA: 1 byte (remotekey length)
+		- remotekey: 33 bytes
+		- OP_SWAP: 1 byte
+		- OP_SIZE: 1 byte
+		- 32: 1 byte
+		- OP_EQUAL: 1 byte
+		- OP_NOTIF: 1 byte
+		- OP_DROP: 1 byte
+		- 2: 1 byte
+		- OP_SWAP: 1 byte
+		- OP_DATA: 1 byte (localkey length)
+		- localkey: 33 bytes
+		- 2: 1 byte
+		- OP_CHECKMULTISIG: 1 byte
+		- OP_ELSE: 1 byte
+		- OP_HASH160: 1 byte
+		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
+		- ripemd-of-payment-hash: 20 bytes
+		- OP_EQUALVERIFY: 1 byte
+		- OP_CHECKSIG: 1 byte
+		- OP_ENDIF: 1 byte
 
-	526 (HTLC-timeout)
-	558 (HTLC-success)
+    timeout_witness: 256 bytes
+		- number_of_witness_elements: 1 byte
+		- nil_length: 1 byte
+		- sig_alice_length: 1 byte
+		- sig_alice: 73 bytes
+		- sig_bob_length: 1 byte
+		- sig_bob: 73 bytes
+		- nil_length: 1 byte
+		- witness_script_length: 1 byte
+		- witness_script (offered_htlc_script)
+
+    success_witness: 293 bytes
+		- number_of_witness_elements: 1 byte
+		- nil_length: 1 byte
+		- sig_alice_length: 1 byte
+		- sig_alice: 73 bytes
+		- sig_bob_length: 1 byte
+		- sig_bob: 73 bytes
+		- preimage_length: 1 byte
+		- preimage: 32 bytes
+		- witness_script_length: 1 byte
+		- witness_script (accepted_htlc_script)
+
+    commitment_input: 41 bytes
+		- previous_out_point: 36 bytes
+			- hash: 32 bytes
+			- index: 4 bytes
+		- var_int: 1 byte (script_sig length)
+		- script_sig: 0 bytes
+		- witness (success_witness or timeout_witness)
+		- sequence: 4 bytes
+
+    htlc_tx_output: 43 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wsh): 34 bytes
+
+	htlc_transaction: 
+		- version: 4 bytes
+		- witness_header <---- part of the witness data
+		- count_tx_in: 1 byte
+		- tx_in: 41 bytes
+			commitment_input
+		- count_tx_out: 1 byte
+		- tx_out: 43
+			htlc_tx_output
+		- lock_time: 4 bytes
+
+Multiplying non-witness data by 4, this gives a weight of 376.  Adding
+the witness data for each case (256 + 2 for HTLC-timeout, 293 + 2 for
+HTLC-success) gives a weight of:
+
+	634 (HTLC-timeout)
+	671 (HTLC-success)
 
 ### Requirements
 
 The fee for an HTLC-timeout transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 526 and divide by 1024 (rounding down).
+1. Multiply `feerate-per-kw` by 634 and divide by 1024 (rounding down).
 
 The fee for an HTLC-success transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 558 and divide by 1024 (rounding down).
+1. Multiply `feerate-per-kw` by 671 and divide by 1024 (rounding down).
 
 The fee for a commitment transaction MUST BE calculated to match:
 
