@@ -149,12 +149,13 @@ transactions is based on the current `feerate-per-kw` and the
 The actual and expected weight vary for several reasons:
 * Bitcoin uses DER-encoded signatures which vary in size.
 * Bitcoin also uses variable-length integers, so a large number of outputs will take 3 bytes to encode rather than 1.
+* The `to-remote` output may be below the dust limit.
 * The `to-local` output may be below the dust limit once fees are extracted.
 
 Thus we use a simplified formula for *expected weight*, which assumes:
 * Signatures are 73 bytes long (the maximum length)
 * There is a small number of outputs (thus 1 byte to count them)
-* There is always a to-local output.
+* There is always both a to-local output and a to-remote output.
 
 The *expected weight* of a commitment transaction is calculated as follows:
 
@@ -268,9 +269,6 @@ The fee for a commitment transaction MUST BE calculated to match:
 
 1. Start with `weight` = 724, and `fee` = 0.
 
-2. If the amount to the remote node is greater or equal to the local
-   node's `dust-limit-satoshis`, add 136 to `weight`.
-   
 3. For every offered HTLC, if the HTLC amount plus the HTLC-timeout
    transaction fee is greater or equal to the local node's
    `dust-limit-satoshis`, then add 172 to `weight`, otherwise add
