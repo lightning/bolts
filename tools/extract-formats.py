@@ -15,7 +15,7 @@ def guess_alignment(message,name,sizestr):
     # - channel-id is size 8, but has alignment 4.
     # - node_announcement.ipv6 has size 16, but alignment 4 (to align IPv4 addr).
     # - node_announcement.alias is a string, so alignment 1
-    # - signatures have alignment 4, because why not.
+    # - signatures have no alignment requirement.
     if match.group('name').startswith('pad'):
         return 1
 
@@ -29,7 +29,7 @@ def guess_alignment(message,name,sizestr):
         return 1
 
     if 'signature' in match.group('name'):
-       return 4
+       return 1
     
     # Size can be variable.
     try:

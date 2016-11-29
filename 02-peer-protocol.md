@@ -198,7 +198,6 @@ signature, it will broadcast the funding transaction.
     * [8:temporary-channel-id]
     * [32:txid]
     * [1:output-index]
-    * [1:pad]
     * [64:signature]
 
 #### Requirements
@@ -735,7 +734,7 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
    * [8:channel-id]
    * [32:per-commitment-secret]
    * [33:next-per-commitment-point]
-   * [3:padding]
+   * [1:padding]
    * [2:num-htlc-timeouts]
    * [num-htlc-timeouts*64:htlc-timeout-signature]
 
