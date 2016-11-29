@@ -18,26 +18,22 @@ the unicode code point for LIGHTNING.<sup>[2](#reference-2)</sup>
 
 ## Message Format and Handling
 
-All messages are of form:
+All protocol messages are of the form:
 
-1. `4-byte` big-endian data length.
-2. `4-byte` big-endian type.
-3. Data bytes as specified by the length.
+1. `2-byte` big-endian type.
+3. Data bytes as specified by the total packet length.
 
 All data fields are big-endian unless otherwise specified.
 
 ### Requirements
 
-A node MUST NOT send a message with data length greater than `8388608`
+A node MUST NOT send a message with more than `65529` data
 bytes.  A node MUST NOT send an evenly-typed message not listed here
-without prior negotiation.
-
-A node MUST disconnect if it receives a message with data length
-greater than `8388608` bytes; it MUST NOT fail the channels in that case.
+without prior negotiation.  A node MUST set the padding to zeroes.
 
 A node MUST ignore a received message of unknown type, if that type is
 odd.  A node MUST fail the channels if it receives a message of unknown
-type, if that type is even.
+type, if that type is even.  A node MUST ignore the padding.
 
 A node MUST ignore any additional data within a message, beyond the
 length it expects for that type.
@@ -48,13 +44,19 @@ The standard endian of `SHA2` and the encoding of bitcoin public keys
 are big endian, thus it would be unusual to use a different endian for
 other fields.
 
-Length is limited to avoid memory exhaustion attacks, yet still allow
-(for example) an entire bitcoin block to be comfortable forwarded as a
-reasonable upper limit.
+Length is limited by the cryptographic wrapping, and messages are never
+more than 65535 bytes anyway.  That message has a 2 byte length, so
+the data bytes here are aligned if decrypted in-place.
 
 The "it's OK to be odd" rule allows for future optional extensions
 without negotiation or special coding in clients.  The "ignore
 additional data" rule similarly allows for future expansion.
+
+Implementations may prefer have message data aligned on an 8-byte
+boundary (the largest natural alignment requirement of any type here),
+but adding a 6-byte padding after the type field was considered
+wasteful: alignment may be achieved by decrypting the message into
+a buffer with 6 bytes of pre-padding.
 
 ## Cryptographic Messaging Overview
 
@@ -138,13 +140,11 @@ prefix thereby causing a node to erroneously read an incorrect number of bytes.
 ## Protocol Message Encapsulation
 
 Once both sides have entered the transport message exchange phase (after a
-successful completion of the handshake), Lightning Network protocol messages
-will be encapsulated within the exchanged `AEAD` ciphertexts. The maximum size
-of transport messages is `65535-bytes`. Node MUST NOT send a transport message
-which exceeds this size. Note that this is only a cryptographic messaging limit
-within the protocol, and not a limit on the message size of Lightning Network
-protocol messages. A Lightning Network message which exceeds this size can be
-chunked into several messages before being sent.
+successful completion of the handshake), each Lightning Network protocol message
+will be encapsulated within a single `AEAD` ciphertext. The maximum size
+of these transport messages is `65535-bytes`, so the largest message data
+possible is 65529 bytes.  If larger messages are needed in future, a
+fragmentation method will be defined.
 
 ### Noise Protocol Instantiation
 
@@ -570,16 +570,9 @@ At the conclusion of `Act Three` both sides have derived the encryption keys
 which will be used to encrypt/decrypt messages for the remainder of the
 session.
 
-The *maximum* size of _any_ transport message MUST NOT exceed 65535 bytes. A
-maximum payload size of 65535 simplifies testing, makes memory management 
-easier and helps mitigate memory exhaustion attacks. Note that the protocol
-messages encapsulated within the encrypted transport messages can be larger
-than the maximum transport messages. If a party wishes to send a message larger
-then 65535 bytes, then they can simply partition the message into chunks less
-than the maximum size, sending each of them sequentially. Messages which exceed
-the max message size MUST be partitioned into chunks of size `65519 bytes`, in
-order to leave room for the `16-byte` `MAC`.
-
+The *maximum* size of _any_ ciphertext MUST NOT exceed `65535` bytes. A
+maximum size of `65535` simplifies testing, makes memory management 
+easier and helps mitigate memory exhaustion attacks.
 
 In order to make make traffic analysis more difficult, the length prefix for
 all encrypted transport messages is also encrypted. Additionally we add a
@@ -590,21 +583,25 @@ creating a decryption oracle.
 
 The structure of transport messages resembles the following:
 ```
-+------------------------------
-|2-byte encrypted packet length|
-+------------------------------
-| 16-byte MAC of the encrypted |
-|        packet length         |
-+------------------------------
-|                              |
-|                              |
-|          ciphertext          |
-|                              |
-|                              |
-+------------------------------
++----------------------------------
+|2-byte encrypted ciphertext length|
++----------------------------------
+|   16-byte MAC of the encrypted   |
+|        ciphertext length         |
++----------------------------------
+|                                  |
+|                                  |
+|             ciphertext           |
+|                                  |
+|                                  |
++----------------------------------
+|         16-byte MAC of the       |
+|            ciphertext            |
++----------------------------------
 ```
 
-The prefixed packet lengths are encoded as a `2-byte` big-endian integer.
+The prefixed packet lengths are encoded as a `2-byte` big-endian integer,
+for a total transport message length of `2 + 16 + 65535 + 16` = `65569` bytes.
 
 
 ### Encrypting Messages
@@ -653,7 +650,7 @@ done:
     * The nonce for `rk` MUST be incremented after this step.
 
 
-  * Read _exactly_ `l` bytes from the network buffer, let the bytes be known as
+  * Read _exactly_ `l+16` bytes from the network buffer, let the bytes be known as
     `c`.
 
 
@@ -692,12 +689,8 @@ Key rotation for a key `k` is performed according to the following:
 
 ## Future Directions
 
-
-Protocol messages may be padded out to the full maximum message length in order
+"Ping" or "noop" messages could be appended to the same output
 to max traffic analysis even more difficult.
-
-The initial handshake message may also be padded out to a fixed size in order
-to obscure exactly which of the Noise handshakes is being executed.
 
 In order to allow zero-RTT encrypted+authenticated communication, a Noise Pipes
 protocol can be adopted which composes two handshakes, potentially falling back
@@ -712,12 +705,12 @@ meaning of these bits will be defined in future.
 
 1. type: 16 (`init`)
 2. data:
-   * [4:gflen]
+   * [2:gflen]
    * [gflen:globalfeatures]
-   * [4:lflen]
+   * [2:lflen]
    * [lflen:localfeatures]
 
-The 4-byte len fields indicate the number of bytes in the immediately
+The 2-byte len fields indicate the number of bytes in the immediately
 following field.
 
 
@@ -761,10 +754,10 @@ something is incorrect.
 1. type: 17 (`error`)
 2. data:
    * [8:channel-id]
-   * [4:len]
+   * [2:len]
    * [len:data]
 
-The 4-byte len field indicates the number of bytes in the immediately
+The 2-byte `len` field indicates the number of bytes in the immediately
 following field.
 
 
