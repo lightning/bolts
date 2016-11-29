@@ -1,6 +1,6 @@
 # BOLT #1: Message Format, Encryption, Authentication and Initialization
 
-All communications between Lightning nodes should be encrypted in order to
+All communications between Lightning nodes is encrypted in order to
 provide confidentiality for all transcripts between nodes, and authenticated to
 avoid malicious interference. Each node has a known long-term identifier which
 is a public key on Bitcoin's `secp256k1` curve. This long-term public key is
@@ -16,51 +16,11 @@ reliable transport.
 The default TCP port is `9735`.  This corresponds to hexadecimal `2607`,
 the unicode code point for LIGHTNING.<sup>[2](#reference-2)</sup>
 
-## Message Format and Handling
-
-All protocol messages are of the form:
-
-1. `2-byte` big-endian type.
-3. Data bytes as specified by the total packet length.
-
 All data fields are big-endian unless otherwise specified.
-
-### Requirements
-
-A node MUST NOT send a message with more than `65529` data
-bytes.  A node MUST NOT send an evenly-typed message not listed here
-without prior negotiation.  A node MUST set the padding to zeroes.
-
-A node MUST ignore a received message of unknown type, if that type is
-odd.  A node MUST fail the channels if it receives a message of unknown
-type, if that type is even.  A node MUST ignore the padding.
-
-A node MUST ignore any additional data within a message, beyond the
-length it expects for that type.
-
-### Rationale
-
-The standard endian of `SHA2` and the encoding of bitcoin public keys
-are big endian, thus it would be unusual to use a different endian for
-other fields.
-
-Length is limited by the cryptographic wrapping, and messages are never
-more than 65535 bytes anyway.  That message has a 2 byte length, so
-the data bytes here are aligned if decrypted in-place.
-
-The "it's OK to be odd" rule allows for future optional extensions
-without negotiation or special coding in clients.  The "ignore
-additional data" rule similarly allows for future expansion.
-
-Implementations may prefer have message data aligned on an 8-byte
-boundary (the largest natural alignment requirement of any type here),
-but adding a 6-byte padding after the type field was considered
-wasteful: alignment may be achieved by decrypting the message into
-a buffer with 6 bytes of pre-padding.
 
 ## Cryptographic Messaging Overview
 
-Prior to sending any protocol related messages, nodes must first initiate the
+Prior to sending any lightning messages, nodes must first initiate the
 cryptographic session state which is used to encrypt and authenticate all
 messages sent between nodes. The initialization of this cryptographic session
 state is completely distinct from any inner protocol message header or
@@ -71,8 +31,8 @@ The transcript between two nodes is separated into two distinct segments:
 1. First, before any actual data transfer, both nodes participate in an
    authenticated key agreement protocol which is based off of the Noise
    Protocol Framework<sup>[4](#reference-4)</sup>.
-2. If the initial handshake is successful, then nodes enter the transport
-   message exchange phase. In the transport message exchange phase, all
+2. If the initial handshake is successful, then nodes enter the lightning
+   message exchange phase. In the lightning message exchange phase, all
    messages are `AEAD` ciphertexts.
 
 ### Authenticated Key Agreement Handshake
@@ -127,25 +87,6 @@ client has deviated from the protocol originally specified within this
 document. Clients MUST reject handshake attempts initiated with an unknown
 version.
 
-### Transport Message Exchange
-
-The actual protocol messages sent during the transport message exchange phase
-are encapsulated within `AEAD` ciphertexts. Each message is prefixed with
-another `AEAD` ciphertext which encodes the total length of the next transport
-message.  The length prefix itself is protected with a MAC in order to avoid
-the creation of an oracle and to also prevent a MiTM from modifying the length
-prefix thereby causing a node to erroneously read an incorrect number of bytes.
-
-
-## Protocol Message Encapsulation
-
-Once both sides have entered the transport message exchange phase (after a
-successful completion of the handshake), each Lightning Network protocol message
-will be encapsulated within a single `AEAD` ciphertext. The maximum size
-of these transport messages is `65535-bytes`, so the largest message data
-possible is 65529 bytes.  If larger messages are needed in future, a
-fragmentation method will be defined.
-
 ### Noise Protocol Instantiation
 
 Concrete instantiations of the Noise Protocol require the definition of
@@ -177,7 +118,7 @@ Throughout the handshake process, each side maintains these three variables:
 
  * `ck`: The **chaining key**. This value is the accumulated hash of all
    previous ECDH outputs. At the end of the handshake, `ck` is used to derive
-   the encryption keys for transport messages.
+   the encryption keys for lightning messages.
 
  * `h`: The **handshake hash**. This value is the accumulated hash of _all_
    handshake data that has been sent and received so far during the handshake
@@ -563,56 +504,56 @@ construction, and `16 bytes` for a final authenticating tag.
      * This step generates the final encryption keys to be used for sending and
        receiving messages for the duration of the session.
 
-
-## Transport Message Specification
+## Lightning Message Specification
 
 At the conclusion of `Act Three` both sides have derived the encryption keys
 which will be used to encrypt/decrypt messages for the remainder of the
 session.
 
-The *maximum* size of _any_ ciphertext MUST NOT exceed `65535` bytes. A
+The actual lightning protocol messages are encapsulated within `AEAD` ciphertexts. Each message is prefixed with
+another `AEAD` ciphertext which encodes the total length of the following lightning
+message (not counting its MAC).
+
+The *maximum* size of _any_ lightning message MUST NOT exceed `65535` bytes. A
 maximum size of `65535` simplifies testing, makes memory management 
 easier and helps mitigate memory exhaustion attacks.
 
 In order to make make traffic analysis more difficult, the length prefix for
-all encrypted transport messages is also encrypted. Additionally we add a
+all encrypted lightning messages is also encrypted. Additionally we add a
 `16-byte` `Poly-1305` tag to the encrypted length prefix in order to ensure
 that the packet length hasn't been modified with in-flight, and also to avoid
 creating a decryption oracle.
 
-
-The structure of transport messages resembles the following:
+The structure of packets on the wire resembles the following:
 ```
-+----------------------------------
-|2-byte encrypted ciphertext length|
-+----------------------------------
-|   16-byte MAC of the encrypted   |
-|        ciphertext length         |
-+----------------------------------
-|                                  |
-|                                  |
-|             ciphertext           |
-|                                  |
-|                                  |
-+----------------------------------
-|         16-byte MAC of the       |
-|            ciphertext            |
-+----------------------------------
++-------------------------------
+|2-byte encrypted message length|
++-------------------------------
+|  16-byte MAC of the encrypted |
+|        message length         |
++-------------------------------
+|                               |
+|                               |
+|     encrypted lightning       |
+|            message            |
+|                               |
++-------------------------------
+|     16-byte MAC of the        |
+|      lightning message        |
++-------------------------------
 ```
-
-The prefixed packet lengths are encoded as a `2-byte` big-endian integer,
-for a total transport message length of `2 + 16 + 65535 + 16` = `65569` bytes.
-
+The prefixed message length is encoded as a `2-byte` big-endian integer,
+for a total maximum packet length of `2 + 16 + 65535 + 16` = `65569` bytes.
 
 ### Encrypting Messages
 
 
-In order to encrypt a message (`m`), given a sending key (`sk`), and a nonce
+In order to encrypt a lightning message (`m`), given a sending key (`sk`), and a nonce
 (`n`), the following is done:
 
 
   * let `l = len(m)`,
-     where `len` obtains the length in bytes of the message.
+     where `len` obtains the length in bytes of the lightning message.
 
 
   * Serialize `l` into `2-bytes` encoded as a big-endian integer.
@@ -661,7 +602,7 @@ done:
     * The nonce for `rk` MUST be incremented after this step.
 
 
-## Transport Message Key Rotation
+## Lightning Message Key Rotation
 
 
 Changing keys regularly and forgetting the previous key is useful for
@@ -695,6 +636,52 @@ to max traffic analysis even more difficult.
 In order to allow zero-RTT encrypted+authenticated communication, a Noise Pipes
 protocol can be adopted which composes two handshakes, potentially falling back
 to a full handshake if static public keys have changed.
+
+## Lightning Message Format
+
+After decryption, all lightning messages are of the form:
+
+1. `2-byte` big-endian type.
+3. Data bytes as specified by the total packet length.
+
+The maximum size of these messages is `65535-bytes`, so the largest
+message data possible is 65533 bytes.  If larger messages are needed
+in future, a fragmentation method will be defined.
+
+### Requirements
+
+A node MUST NOT send a message with more than `65533` data
+bytes.  A node MUST NOT send an evenly-typed message not listed here
+without prior negotiation.
+
+A node MUST ignore a received message of unknown type, if that type is
+odd.  A node MUST fail the channels if it receives a message of unknown
+type, if that type is even.
+
+A node MUST ignore any additional data within a message, beyond the
+length it expects for that type.
+
+A node MUST fail the channels if it receives a known message with
+insufficient length for the contents.
+
+### Rationale
+
+The standard endian of `SHA2` and the encoding of bitcoin public keys
+are big endian, thus it would be unusual to use a different endian for
+other fields.
+
+Length is limited to 65535 bytes by the cryptographic wrapping, and
+messages in the protocol are never more than that length anyway.
+
+The "it's OK to be odd" rule allows for future optional extensions
+without negotiation or special coding in clients.  The "ignore
+additional data" rule similarly allows for future expansion.
+
+Implementations may prefer have message data aligned on an 8-byte
+boundary (the largest natural alignment requirement of any type here),
+but adding a 6-byte padding after the type field was considered
+wasteful: alignment may be achieved by decrypting the message into
+a buffer with 6 bytes of pre-padding.
 
 ## Initialization Message
 
@@ -739,10 +726,12 @@ The even/odd semantic allows future incompatible changes, or backward
 compatible changes.  Bits should generally be assigned in pairs, so
 that optional features can later become compulsory.
 
-
 Nodes wait for receipt of the other's features to simplify error
 diagnosis where features are incompatible.
 
+The feature masks are split into local features which only affect the
+protocol between these two nodes, and global features which can affect
+HTLCs and thus are also advertised to other nodes.
 
 ## Error Message
 
