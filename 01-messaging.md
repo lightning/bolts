@@ -1,50 +1,31 @@
-# BOLT #1: Message Format, Encryption, Authentication and Initialization
+# BOLT #1: Base Protocol
 
-## Communication Protocols
+## Overview
+This protocol assumes an underlying authenticated and ordered transport mechanism that takes care of framing individual messages.
+[BOLT 08](08-transport.md) specifies the canonical transport layer used in Lightning, though it can be replaced by any transport that fulfills the above guarantees.
 
-This protocol is written with TCP in mind, but could use any ordered,
-reliable transport.
-
-The default TCP port is `9735`.  This corresponds to hexadecimal `2607`,
-the unicode code point for LIGHTNING.<sup>[2](#reference-2)</sup>
+The default TCP port is 9735. This corresponds to hexadecimal `0x2607`, the unicode code point for LIGHTNING.<sup>[2](#reference-2)</sup>
 
 All data fields are big-endian unless otherwise specified.
-
-## Future Directions
-
-"Ping" or "noop" messages could be appended to the same output
-to max traffic analysis even more difficult.
-
-In order to allow zero-RTT encrypted+authenticated communication, a Noise Pipes
-protocol can be adopted which composes two handshakes, potentially falling back
-to a full handshake if static public keys have changed.
 
 ## Lightning Message Format
 
 After decryption, all lightning messages are of the form:
 
-1. `2-byte` big-endian type.
-3. Data bytes as specified by the total packet length.
+1. `type`: 2 byte big-endian field indicating the type of the message.
+2. `payload`: variable length payload. It comprises the remainder of
+   the message and conforms to the format matching the `type`.
 
-The maximum size of these messages is `65535-bytes`, so the largest
-message data possible is 65533 bytes.  If larger messages are needed
-in future, a fragmentation method will be defined.
+The `type` field indicates how to interpret the `payload` field.
+The format for each individual type is specified in a specification in this repository.
+The type follows the _it's ok to be odd_ rule, so nodes MAY send odd-numbered types without ascertaining that the recipient understands it. 
+A node MUST NOT send an evenly-typed message not listed here without prior negotiation.
+A node MUST ignore a received message of unknown type, if that type is odd.
+A node MUST fail the channels if it receives a message of unknown type, if that type is even.
 
-### Requirements
-
-A node MUST NOT send a message with more than `65533` data
-bytes.  A node MUST NOT send an evenly-typed message not listed here
-without prior negotiation.
-
-A node MUST ignore a received message of unknown type, if that type is
-odd.  A node MUST fail the channels if it receives a message of unknown
-type, if that type is even.
-
-A node MUST ignore any additional data within a message, beyond the
-length it expects for that type.
-
-A node MUST fail the channels if it receives a known message with
-insufficient length for the contents.
+The size of the message is required to fit into a 2 byte unsigned int by the transport layer, therefore the maximum possible size is 65535 bytes.
+A node MUST ignore any additional data within a message, beyond the length it expects for that type.
+A node MUST fail the channels if it receives a known message with insufficient length for the contents.
 
 ### Rationale
 
@@ -59,18 +40,17 @@ The "it's OK to be odd" rule allows for future optional extensions
 without negotiation or special coding in clients.  The "ignore
 additional data" rule similarly allows for future expansion.
 
-Implementations may prefer have message data aligned on an 8-byte
+Implementations may prefer have message data aligned on an 8 byte
 boundary (the largest natural alignment requirement of any type here),
-but adding a 6-byte padding after the type field was considered
+but adding a 6 byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6 bytes of pre-padding.
 
 ## Initialization Message
 
-Once authentication is complete, the first message reveals the
-features supported or required by this node.  Odd features are
-optional, even features are compulsory ("it's OK to be odd!").  The
-meaning of these bits will be defined in future.
+Once authentication is complete, the first message reveals the features supported or required by this node.
+Odd features are optional, even features are compulsory (_it's OK to be odd_).
+The meaning of these bits will be defined in future.
 
 1. type: 16 (`init`)
 2. data:
@@ -79,30 +59,22 @@ meaning of these bits will be defined in future.
    * [2:lflen]
    * [lflen:localfeatures]
 
-The 2-byte len fields indicate the number of bytes in the immediately
-following field.
-
+The 2 byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
 
 ### Requirements
-
 
 The sending node SHOULD use the minimum lengths required to represent
 the feature fields.  The sending node MUST set feature bits
 corresponding to features it requires the peer to support, and SHOULD
 set feature bits corresponding to features it optionally supports.
 
-
 The receiving node MUST fail the channels if it receives a
 `globalfeatures` or `localfeatures` with an even bit set which it does
 not understand.
 
-
-Each node MUST wait to receive `init` before sending any other
-messages.
-
+Each node MUST wait to receive `init` before sending any other messages.
 
 ### Rationale
-
 
 The even/odd semantic allows future incompatible changes, or backward
 compatible changes.  Bits should generally be assigned in pairs, so
@@ -117,10 +89,7 @@ HTLCs and thus are also advertised to other nodes.
 
 ## Error Message
 
-
-For simplicity of diagnosis, it is often useful to tell the peer that
-something is incorrect.
-
+For simplicity of diagnosis, it is often useful to tell the peer that something is incorrect.
 
 1. type: 17 (`error`)
 2. data:
@@ -128,39 +97,31 @@ something is incorrect.
    * [2:len]
    * [len:data]
 
-The 2-byte `len` field indicates the number of bytes in the immediately
-following field.
-
+The 2-byte `len` field indicates the number of bytes in the immediately following field.
 
 ### Requirements
-
 
 A node SHOULD send `error` for protocol violations or internal
 errors which make channels unusable or further communication unusable.
 A node MAY send an empty [data] field.  A node sending `error` MUST
 fail the channel referred to by the `channel-id`, or if `channel-id`
-is 0xFFFFFFFFFFFFFFFF it MUST fail all channels and MUST close the connection.
+is `0xFFFFFFFFFFFFFFFF` it MUST fail all channels and MUST close the connection.
 A node MUST NOT set `len` to greater than the data length.
 
-
 A node receiving `error` MUST fail the channel referred to by
-`channel-id`, or if `channel-id` is 0xFFFFFFFFFFFFFFFF it MUST fail
+`channel-id`, or if `channel-id` is `0xFFFFFFFFFFFFFFFF` it MUST fail
 all channels and MUST close the connection.  A receiving node MUST truncate
 `len` to the remainder of the packet if it is larger.
-
 
 A receiving node SHOULD only print out `data` verbatim if it is a
 valid string.
 
-
 ### Rationale
-
 
 There are unrecoverable errors which require an abort of conversations;
 if the connection is simply dropped then the peer may retry the
 connection.  It's also useful to describe protocol violations for
 diagnosis, as it indicates that one peer has a bug.
-
 
 It may be wise not to distinguish errors in production settings, lest
 it leak information, thus the optional data field.
