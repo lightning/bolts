@@ -1,3 +1,5 @@
+# BOLT #8: Encrypted and Authenticated Transport
+
 All communications between Lightning nodes is encrypted in order to
 provide confidentiality for all transcripts between nodes, and authenticated to
 avoid malicious interference. Each node has a known long-term identifier which
@@ -611,7 +613,7 @@ Key rotation for a key `k` is performed according to the following:
   * `ck', k' = HKDF(ck, k)`
   * Reset the nonce for the key to `n = 0`.
   * `k = k'`
-  * 'ck = ck''
+  * `ck = ck'`
   
 # Security Considerations #
 
