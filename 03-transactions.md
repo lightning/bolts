@@ -418,7 +418,7 @@ uses the local node's `delayed-payment-basepoint`, and the
 The correspoding private keys can be derived similarly if the basepoint
 secrets are known (ie. `localkey` and `local-delayedkey` only):
 
-    secretkey = basepoint-secret + SHA256(basepoint || commit-number)
+    secretkey = basepoint-secret + SHA256(per-commitment-point || basepoint)
 
 ## `revocationkey` Derivation
 
