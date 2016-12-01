@@ -104,6 +104,11 @@ This is version 0.
    * An 8 byte globally unique identifier for the *funding transaction*
          (and thus for the channel).
 
+* *It's ok to be odd*:
+   * A rule applied to some numeric fields that indicates optional and
+     compulsory support for features. Even numbers indicate that both endpoints
+     MUST support the feature in question, while odd numbers indicate
+     that the feature MAY be disregarded by the other endpoint.
 
 ## Theme Song
 
