@@ -535,6 +535,232 @@ This looks complicated, but remember that the index in entry `b` has
 `b` trailing zeros; the mask and compare is just seeing if the index
 at each bucket is a prefix of the index we want.
 
+# Appendix A: Per-commitment Secret Generation Test Vectors
+
+These test the generation algorithm which all nodes use.
+
+## Generation tests
+
+    name: generate_from_seed 0 final node
+	seed: 0x0000000000000000000000000000000000000000000000000000000000000000
+	I: 281474976710655
+	output: 0x02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148
+
+	name: generate_from_seed FF final node
+	seed: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+	I: 281474976710655
+	output: 0x7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc
+
+	name: generate_from_seed FF alternate bits 1
+	seed: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+	I: 0xaaaaaaaaaaa
+	output: 0x56f4008fb007ca9acf0e15b054d5c9fd12ee06cea347914ddbaed70d1c13a528
+
+	name: generate_from_seed FF alternate bits 2
+	seed: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+	I: 0x555555555555
+	output: 0x9015daaeb06dba4ccc05b91b2f73bd54405f2be9f217fbacd3c5ac2e62327d31
+
+	name: generate_from_seed 01 last nontrivial node
+	seed: 0x0101010101010101010101010101010101010101010101010101010101010101
+	I: 1
+	output: 0x915c75942a26bb3a433a8ce2cb0427c29ec6c1775cfc78328b57f6ba7bfeaa9c
+
+## Storage tests
+
+These test the optional compact storage system.  In many cases, an
+incorrect entry cannot be determined until its parent is revealed; we
+specifically corrupt an entry and all its children (except for the
+last test, which would require another 8 samples to be detected).  For
+these tests we use a seed of 0xFFF...FF and incorrect entries are
+seeded with 0x000...00.
+
+    name: insert_secret correct sequence
+	I: 281474976710655
+	secret: 0x7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc
+	output: OK
+	I: 281474976710654
+	secret: 0xc7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964
+	output: OK
+	I: 281474976710653
+	secret: 0x2273e227a5b7449b6e70f1fb4652864038b1cbf9cd7c043a7d6456b7fc275ad8
+	output: OK
+	I: 281474976710652
+	secret: 0x27cddaa5624534cb6cb9d7da077cf2b22ab21e9b506fd4998a51d54502e99116
+	output: OK
+	I: 281474976710651
+	secret: 0xc65716add7aa98ba7acb236352d665cab17345fe45b55fb879ff80e6bd0c41dd
+	output: OK
+	I: 281474976710650
+	secret: 0x969660042a28f32d9be17344e09374b379962d03db1574df5a8a5a47e19ce3f2
+	output: OK
+	I: 281474976710649
+	secret: 0xa5a64476122ca0925fb344bdc1854c1c0a59fc614298e50a33e331980a220f32
+	output: OK
+	I: 281474976710648
+	secret: 0x05cde6323d949933f7f7b78776bcc1ea6d9b31447732e3802e1f7ac44b650e17
+	output: OK
+
+    name: insert_secret #1 incorrect
+	I: 281474976710655
+	secret: 0x02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148
+	output: OK
+	I: 281474976710654
+	secret: 0xc7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964
+	output: ERROR
+
+    name: insert_secret #2 incorrect (#1 derived from incorrect)
+	I: 281474976710655
+	secret: 0x02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148
+	output: OK
+	I: 281474976710654
+	secret: 0xdddc3a8d14fddf2b68fa8c7fbad2748274937479dd0f8930d5ebb4ab6bd866a3
+	output: OK
+	I: 281474976710653
+	secret: 0x2273e227a5b7449b6e70f1fb4652864038b1cbf9cd7c043a7d6456b7fc275ad8
+	output: OK
+	I: 281474976710652
+	secret: 0x27cddaa5624534cb6cb9d7da077cf2b22ab21e9b506fd4998a51d54502e99116
+	output: ERROR
+
+    name: insert_secret #3 incorrect
+	I: 281474976710655
+	secret: 0x7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc
+	output: OK
+	I: 281474976710654
+	secret: 0xc7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964
+	output: OK
+	I: 281474976710653
+	secret: 0xc51a18b13e8527e579ec56365482c62f180b7d5760b46e9477dae59e87ed423a
+	output: OK
+	I: 281474976710652
+	secret: 0x27cddaa5624534cb6cb9d7da077cf2b22ab21e9b506fd4998a51d54502e99116
+	output: ERROR
+
+    name: insert_secret #4 incorrect (1,2,3 derived from incorrect)
+	I: 281474976710655
+	secret: 0x02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148
+	output: OK
+	I: 281474976710654
+	secret: 0xdddc3a8d14fddf2b68fa8c7fbad2748274937479dd0f8930d5ebb4ab6bd866a3
+	output: OK
+	I: 281474976710653
+	secret: 0xc51a18b13e8527e579ec56365482c62f180b7d5760b46e9477dae59e87ed423a
+	output: OK
+	I: 281474976710652
+	secret: 0xba65d7b0ef55a3ba300d4e87af29868f394f8f138d78a7011669c79b37b936f4
+	output: OK
+	I: 281474976710651
+	secret: 0xc65716add7aa98ba7acb236352d665cab17345fe45b55fb879ff80e6bd0c41dd
+	output: OK
+	I: 281474976710650
+	secret: 0x969660042a28f32d9be17344e09374b379962d03db1574df5a8a5a47e19ce3f2
+	output: OK
+	I: 281474976710649
+	secret: 0xa5a64476122ca0925fb344bdc1854c1c0a59fc614298e50a33e331980a220f32
+	output: OK
+	I: 281474976710648
+	secret: 0x05cde6323d949933f7f7b78776bcc1ea6d9b31447732e3802e1f7ac44b650e17
+	output: ERROR
+	
+    name: insert_secret #5 incorrect
+	I: 281474976710655
+	secret: 0x7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc
+	output: OK
+	I: 281474976710654
+	secret: 0xc7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964
+	output: OK
+	I: 281474976710653
+	secret: 0x2273e227a5b7449b6e70f1fb4652864038b1cbf9cd7c043a7d6456b7fc275ad8
+	output: OK
+	I: 281474976710652
+	secret: 0x27cddaa5624534cb6cb9d7da077cf2b22ab21e9b506fd4998a51d54502e99116
+	output: OK
+	I: 281474976710651
+	secret: 0x631373ad5f9ef654bb3dade742d09504c567edd24320d2fcd68e3cc47e2ff6a6
+	output: OK
+	I: 281474976710650
+	secret: 0x969660042a28f32d9be17344e09374b379962d03db1574df5a8a5a47e19ce3f2
+	output: ERROR
+
+    name: insert_secret #6 incorrect (5 derived from incorrect)
+	I: 281474976710655
+	secret: 0x7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc
+	output: OK
+	I: 281474976710654
+	secret: 0xc7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964
+	output: OK
+	I: 281474976710653
+	secret: 0x2273e227a5b7449b6e70f1fb4652864038b1cbf9cd7c043a7d6456b7fc275ad8
+	output: OK
+	I: 281474976710652
+	secret: 0x27cddaa5624534cb6cb9d7da077cf2b22ab21e9b506fd4998a51d54502e99116
+	output: OK
+	I: 281474976710651
+	secret: 0x631373ad5f9ef654bb3dade742d09504c567edd24320d2fcd68e3cc47e2ff6a6
+	output: OK
+	I: 281474976710650
+	secret: 0xb7e76a83668bde38b373970155c868a653304308f9896692f904a23731224bb1
+	output: OK
+	I: 281474976710649
+	secret: 0xa5a64476122ca0925fb344bdc1854c1c0a59fc614298e50a33e331980a220f32
+	output: OK
+	I: 281474976710648
+	secret: 0x05cde6323d949933f7f7b78776bcc1ea6d9b31447732e3802e1f7ac44b650e17
+	output: ERROR
+
+    name: insert_secret #7 incorrect
+	I: 281474976710655
+	secret: 0x7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc
+	output: OK
+	I: 281474976710654
+	secret: 0xc7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964
+	output: OK
+	I: 281474976710653
+	secret: 0x2273e227a5b7449b6e70f1fb4652864038b1cbf9cd7c043a7d6456b7fc275ad8
+	output: OK
+	I: 281474976710652
+	secret: 0x27cddaa5624534cb6cb9d7da077cf2b22ab21e9b506fd4998a51d54502e99116
+	output: OK
+	I: 281474976710651
+	secret: 0xc65716add7aa98ba7acb236352d665cab17345fe45b55fb879ff80e6bd0c41dd
+	output: OK
+	I: 281474976710650
+	secret: 0x969660042a28f32d9be17344e09374b379962d03db1574df5a8a5a47e19ce3f2
+	output: OK
+	I: 281474976710649
+	secret: 0xe7971de736e01da8ed58b94c2fc216cb1dca9e326f3a96e7194fe8ea8af6c0a3
+	output: OK
+	I: 281474976710648
+	secret: 0x05cde6323d949933f7f7b78776bcc1ea6d9b31447732e3802e1f7ac44b650e17
+	output: ERROR
+
+    name: insert_secret #8 incorrect
+	I: 281474976710655
+	secret: 0x7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc
+	output: OK
+	I: 281474976710654
+	secret: 0xc7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964
+	output: OK
+	I: 281474976710653
+	secret: 0x2273e227a5b7449b6e70f1fb4652864038b1cbf9cd7c043a7d6456b7fc275ad8
+	output: OK
+	I: 281474976710652
+	secret: 0x27cddaa5624534cb6cb9d7da077cf2b22ab21e9b506fd4998a51d54502e99116
+	output: OK
+	I: 281474976710651
+	secret: 0xc65716add7aa98ba7acb236352d665cab17345fe45b55fb879ff80e6bd0c41dd
+	output: OK
+	I: 281474976710650
+	secret: 0x969660042a28f32d9be17344e09374b379962d03db1574df5a8a5a47e19ce3f2
+	output: OK
+	I: 281474976710649
+	secret: 0xa5a64476122ca0925fb344bdc1854c1c0a59fc614298e50a33e331980a220f32
+	output: OK
+	I: 281474976710648
+	secret: 0xa7efbc61aac46d34f77778bac22c8a20c6a46ca460addc49009bda875ec88fa4
+	output: ERROR
+	
 # References
 
 # Authors
