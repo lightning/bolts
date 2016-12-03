@@ -18,6 +18,8 @@ This is version 0.
 4. [BOLT #4](04-onion-routing.md): Onion Routing Protocol
 5. [BOLT #5](05-onchain.md): Recommendations for On-chain Transaction Handling
 6. [BOLT #6](06-irc-announcements.md): Interim Node and Channel Discovery
+7. [BOLT #7](07-routing-gossip.md): P2P Node and Channel Discovery
+8. [BOLT #8](08-transport.md): Encrypted and Authenticated Transport
 
 ## Glossary and Terminology Guide
 
