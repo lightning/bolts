@@ -50,7 +50,7 @@ a buffer with 6 bytes of pre-padding.
 
 Once authentication is complete, the first message reveals the features supported or required by this node.
 Odd features are optional, even features are compulsory (_it's OK to be odd_).
-The meaning of these bits will be defined in future.
+The meaning of these bits will be defined in the future.
 
 1. type: 16 (`init`)
 2. data:
