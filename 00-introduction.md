@@ -12,7 +12,7 @@ help us improve.
 
 This is version 0.
 
-1. [BOLT #1](01-messaging-crypto-and-init.md): Message Format, Encryption, Authentication and Initialization
+1. [BOLT #1](01-messaging.md): Base Protocol
 2. [BOLT #2](02-peer-protocol.md): Peer Protocol for Channel Management
 3. [BOLT #3](03-transactions.md): Bitcoin Transaction and Script Formats
 4. [BOLT #4](04-onion-routing.md): Onion Routing Protocol
