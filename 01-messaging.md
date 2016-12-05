@@ -13,7 +13,7 @@ All data fields are big-endian unless otherwise specified.
   * [Setup Messages](#setup-messages)
     * [The `init` message](#the-init-message)
     * [The `error` message](#the-error-message)
-  * [Acknowledgments](#acknowledgements)
+  * [Acknowledgements](#acknowledgements)
   * [References](#references)
   * [Authors](#authors)
 
