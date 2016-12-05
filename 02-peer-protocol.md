@@ -3,13 +3,6 @@
 The peer channel protocol has three phases: establishment, normal
 operation, and closing.
 
-The messages described in this document are grouped logically into 4 groups by their most significant set bit:
-
- - Setup & signalling (types `0`-`31`): comprises setup of the cryptographic transport, communication of supported features and error reporting. These are described in BOLT #1.
- - Channel (types `32`-`127`): comprises messages used to setup, update and tear down micropayment channels
- - HTLC (types `128`-`255`: comprises messages related to adding, revoking and settling HTLCs on a micropayment channel
- - Routing (types `256`-`511`): node and channel announcements, as well as any active route exploration.
-
 # Table of Contents
   * [Channel](#channel)
     * [Channel Establishment](#channel-establishment)
