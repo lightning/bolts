@@ -8,6 +8,15 @@ The default TCP port is 9735. This corresponds to hexadecimal `0x2607`, the unic
 
 All data fields are big-endian unless otherwise specified.
 
+## Table of Contents
+  * [Lightning Message Format](#lightning-message-format)
+  * [Setup Messages](#initialization-message)
+    * [The `init` message](#the-init-message)
+    * [The `error` message](#the-error-message)
+  * [Acknowledgments](#acknowledgments)
+  * [References](#references)
+  * [Authors](#authors)
+
 ## Lightning Message Format
 
 After decryption, all lightning messages are of the form:
@@ -46,7 +55,9 @@ but adding a 6 byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6 bytes of pre-padding.
 
-## Initialization Message
+## Setup Messages
+
+### The `init` message
 
 Once authentication is complete, the first message reveals the features supported or required by this node.
 Odd features are optional, even features are compulsory (_it's OK to be odd_).
@@ -61,7 +72,7 @@ The meaning of these bits will be defined in the future.
 
 The 2 byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
 
-### Requirements
+#### Requirements
 
 The sending node SHOULD use the minimum lengths required to represent
 the feature fields.  The sending node MUST set feature bits
@@ -74,7 +85,7 @@ not understand.
 
 Each node MUST wait to receive `init` before sending any other messages.
 
-### Rationale
+#### Rationale
 
 The even/odd semantic allows future incompatible changes, or backward
 compatible changes.  Bits should generally be assigned in pairs, so
@@ -87,7 +98,7 @@ The feature masks are split into local features which only affect the
 protocol between these two nodes, and global features which can affect
 HTLCs and thus are also advertised to other nodes.
 
-## Error Message
+### The `error` message
 
 For simplicity of diagnosis, it is often useful to tell the peer that something is incorrect.
 
@@ -99,7 +110,7 @@ For simplicity of diagnosis, it is often useful to tell the peer that something 
 
 The 2-byte `len` field indicates the number of bytes in the immediately following field.
 
-### Requirements
+#### Requirements
 
 A node SHOULD send `error` for protocol violations or internal
 errors which make channels unusable or further communication unusable.
@@ -116,7 +127,7 @@ all channels and MUST close the connection.  A receiving node MUST truncate
 A receiving node SHOULD only print out `data` verbatim if it is a
 valid string.
 
-### Rationale
+#### Rationale
 
 There are unrecoverable errors which require an abort of conversations;
 if the connection is simply dropped then the peer may retry the
@@ -131,11 +142,11 @@ it leak information, thus the optional data field.
 TODO(roasbeef); fin
 
 
-# References
+## References
 1. <a id="reference-1">https://en.bitcoin.it/wiki/Secp256k1</a>
 2. <a id="reference-2">http://www.unicode.org/charts/PDF/U2600.pdf</a>
 
-# Authors
+## Authors
 
 FIXME
 
