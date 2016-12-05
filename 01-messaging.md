@@ -10,10 +10,10 @@ All data fields are big-endian unless otherwise specified.
 
 ## Table of Contents
   * [Lightning Message Format](#lightning-message-format)
-  * [Setup Messages](#initialization-message)
+  * [Setup Messages](#setup-messages)
     * [The `init` message](#the-init-message)
     * [The `error` message](#the-error-message)
-  * [Acknowledgments](#acknowledgments)
+  * [Acknowledgments](#acknowledgements)
   * [References](#references)
   * [Authors](#authors)
 
