@@ -483,11 +483,11 @@ construction, and `16 bytes` for a final authenticating tag.
 
 
        `rk` is the key to be used by the responder to decrypt the messages sent
-       by the responder,
+       by the initiator,
 
 
-       and `sk` is the key to be used by the initiator to encrypt messages to
-       the responder,
+       and `sk` is the key to be used by the responder to encrypt messages to
+       the initiator,
 
      * This step generates the final encryption keys to be used for sending and
        receiving messages for the duration of the session.
