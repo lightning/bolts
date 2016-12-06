@@ -51,7 +51,7 @@ for the commitment transaction, and send it over using the
 
 Once the channel funder receives the `funding_signed` message, they
 must broadcast the funding transaction to the Bitcoin network. After
-the `funding_signed` message is sent/received, both side should wait
+the `funding_signed` message is sent/received, both sides should wait
 for the funding transaction to ensure the blockchain and reach their
 specified depth (number of confirmations). After both sides have sent
 the `funding_locked` message, the channel is estimated and can begin
@@ -101,13 +101,13 @@ desire to set up a new channel.
    * [33:first-per-commitment-point]
 
 
-The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fess are not enforceable onchain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the bitcoin network.
+The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable onchain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the bitcoin network.
 
-`max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node wil accept.
+`max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node will accept.
 
-`feerate-per-kw` indicates the initial fee rate by kiloweight (ie. 4 times by the more normally-used 'feerate per kilobyte') which this side will pay for commitment and HTLC transactions as described in [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted later with a `update_fee` message).  `to-self-delay` is the number of block that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
+`feerate-per-kw` indicates the initial fee rate by kiloweight (ie. 4 times by the more normally-used 'feerate per kilobyte') which this side will pay for commitment and HTLC transactions as described in [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted later with an `update_fee` message).  `to-self-delay` is the number of blocks that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
 
-The `funding-pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation-basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment-basepoint` and `delayed-payment-basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed-payment-basepoint` is used to for payments encumbered by a delau.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
+The `funding-pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation-basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment-basepoint` and `delayed-payment-basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed-payment-basepoint` is used to for payments encumbered by a delay.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
 
 FIXME: Describe Dangerous feature bit for larger channel amounts.
 
@@ -129,7 +129,7 @@ to at least the rate it estimates would cause the transaction to be
 immediately included in a block.
 
 
-The sender SHOULD set `dust-limit-satoshis` to sufficient value to
+The sender SHOULD set `dust-limit-satoshis` to a sufficient value to
 allow commitment transactions to propagate through the bitcoin
 network.  It SHOULD set `htlc-minimum-msat` to the minimum
 amount HTLC it is willing to accept from this peer.
@@ -142,10 +142,10 @@ unreasonably large.  The receiver MAY fail the channel if
 The receiving node MAY fail the channel if it considers
 `htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-accepted-htlcs` too small.  It MUST fail the channel if `max-accepted-htlcs` is greater than 511.
 
-The receiver MUST fail the channel if
+The receiver MUST fail the channel if it
 considers `feerate-per-kw` too small for timely processing, or unreasonably large.  The
 receiver MUST fail the channel if `funding-pubkey`, `revocation-basepoint`, `payment-basepoint` or `delayed-payment-basepoint`
-are not be valid DER-encoded compressed secp256k1 pubkeys.
+are not valid DER-encoded compressed secp256k1 pubkeys.
 
 
 The receiver MUST NOT consider funds received using `push-msat` to be received until the funding transaction has reached sufficient depth.
@@ -165,7 +165,7 @@ The `feerate-per-kw` is generally only a concern to the sender (who pays the fee
 
 
 It would be easy to have a local feature bit which indicated that a
-receiving was prepared to fund a channel, which would reverse this
+receiving node was prepared to fund a channel, which would reverse this
 protocol.
 
 
@@ -216,7 +216,7 @@ signature, it will broadcast the funding transaction.
 
 #### Requirements
 
-The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `txid` to the transaction ID to a non-malleably transaction, which it MUST NOT broadcast, and MUST set `output-index` to output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), MUST set `pad` to zero, and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `txid` to the transaction ID of a non-malleable transaction, which it MUST NOT broadcast, and MUST set `output-index` to the output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), MUST set `pad` to zero, and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
 The recipient MUST fail the channel if `signature` is incorrect, and MUST ignore `pad`.
 
@@ -270,7 +270,7 @@ The sender MUST wait until the funding transaction has reached
 `minimum-depth` before sending this message.  The sender MUST encode
 the block position of the funding transaction into `channel-id`.  If
 the sender has already received `funding_locked` from the other node,
-it MUST fail the channel if its own `channel-id` does not match that
+it MUST fail the channel if its own `channel-id` does not match the
 received.  The sender MUST set `next-per-commitment-point` to the
 per-commitment point to be used for the following commitment
 transaction, derived as specified in
@@ -318,7 +318,7 @@ given in [BOLT #3].
 #### Requirements
 
 The node which is responsible for paying the bitcoin fee SHOULD send
-`update_fee` when to ensure the current fee rate is sufficient for
+`update_fee` to ensure the current fee rate is sufficient for
 timely processing of the commitment transaction by a significant
 margin.
 
@@ -418,7 +418,7 @@ A receiving node MUST reply to a `shutdown` message with a `shutdown` once there
 
 If channel state is always "clean" (no pending changes) when a
 shutdown starts, we avoid the question of how to behave if it wasn't;
-the sender an always send an `update_commit` first.
+the sender always send an `update_commit` first.
 
 As shutdown implies a desire to terminate, it implies that no new
 HTLCs will be added or accepted.
@@ -525,7 +525,7 @@ particular HTLC or not (the final state, above).
 ### Risks With HTLC Timeouts
 
 
-HTLCs tend to be chained across the network.  For example, a node A
+HTLCs tend to be chained across the network.  For example, node A
 might offer node B an HTLC with a timeout of 3 days, and node B might
 offer node C the same HTLC with a timeout of 2 days.
 
@@ -676,7 +676,7 @@ field to the outgoing `update-fail-htlc`.
 #### Rationale
 
 
-A node which doesn't time out HTLCs it risks channel failure (see
+A node which doesn't time out HTLCs risks channel failure (see
 "Risks With HTLC Timeouts").
 
 
@@ -756,13 +756,13 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
 
 
 A sending node MUST set `per-commitment-secret` to the secret used to generate keys for the
-previous commitment transaction, MUST set `next-per-commitment-point` to the values for its next commitment transsaction, and MUST set `padding` to all zeroes.
+previous commitment transaction, MUST set `next-per-commitment-point` to the values for its next commitment transaction, and MUST set `padding` to all zeroes.
 
 
 A receiving node MUST check that `per-commitment-secret` generates the previous `per-commitment-point`, and MUST fail if it does not. A receiving node MUST ignore the value of `padding`.  A receiving node MAY fail if the `per-commitment-secret` was not generated by the protocol in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
 
-A receiving node MUST fail the channel if any htlc-timeout-signature is not valid, or if num-htlc-timeout is not equal to the number of outputs in the sending node's commitment transaction corresponding to HTLCs offered be the sending node.
+A receiving node MUST fail the channel if any htlc-timeout-signature is not valid, or if num-htlc-timeout is not equal to the number of outputs in the sending node's commitment transaction corresponding to HTLCs offered by the sending node.
 
 
 Nodes MUST NOT broadcast old (revoked) commitment transactions; doing
