@@ -20,7 +20,7 @@ operation, and closing.
       * [Adding an HTLC](#adding-an-htlc)
       * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
       * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
-      * [Completing the transition to the updated state: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revocation)
+      * [Completing the transition to the updated state: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
   * [Authors](#authors)
   
 # Channel
