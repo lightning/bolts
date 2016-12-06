@@ -118,7 +118,7 @@ Throughout the handshake process, each side maintains these variables:
    zero-length AEAD payloads at the end of each handshake message.
 
  * `n`: A **counter-based nonce** which is to be used with `temp_k` to encrypt
-   each message with a new nonce.  It is encoded as a big-endian number.
+   each message with a new nonce.  It is encoded as a 96-bit big-endian number.
 
  * `e`: A party's **ephemeral keypair**. For each session a node MUST generate a
    new ephemeral key with strong cryptographic randomness.
@@ -140,11 +140,11 @@ The following functions will also be referenced:
        `HKDF`.
 
   * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n++, ad, plaintext)`
-     * where `encrypt` is an evaluation of `ChaCha20-Poly1305` with the passed
+     * where `encrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant) with the passed
        arguments.
 
   * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n++, ad, ciphertext)`
-     * where `decrypt` is an evaluation of `ChaCha20-Poly1305` with the passed
+     * where `decrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant) with the passed
        arguments.
 
   * `generateKey()`
@@ -248,7 +248,7 @@ and `16 bytes` for the `poly1305` tag.
        handshake digest.
 
 
-  * Send `m = 0 || e || c` to the responder over the network buffer.
+  * Send `m = 0 || e.pub.serializeCompressed() || c` to the responder over the network buffer.
 
 
 **Receiver Actions:**
@@ -340,7 +340,7 @@ for the `poly1305` tag.
      * Finally, the generated ciphertext is accumulated into the authenticating
        handshake digest.
 
-  * Send `m = 0 || e || c` to the initiator over the network buffer.
+  * Send `m = 0 || e.pub.serializeCompressed() || c` to the initiator over the network buffer.
 
 
 **Receiver Actions:**
