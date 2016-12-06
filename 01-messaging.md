@@ -2,7 +2,7 @@
 
 ## Overview
 This protocol assumes an underlying authenticated and ordered transport mechanism that takes care of framing individual messages.
-[BOLT 08](08-transport.md) specifies the canonical transport layer used in Lightning, though it can be replaced by any transport that fulfills the above guarantees.
+[BOLT #8](08-transport.md) specifies the canonical transport layer used in Lightning, though it can be replaced by any transport that fulfills the above guarantees.
 
 The default TCP port is 9735. This corresponds to hexadecimal `0x2607`, the unicode code point for LIGHTNING.<sup>[2](#reference-2)</sup>
 
@@ -31,6 +31,13 @@ The type follows the _it's ok to be odd_ rule, so nodes MAY send odd-numbered ty
 A node MUST NOT send an evenly-typed message not listed here without prior negotiation.
 A node MUST ignore a received message of unknown type, if that type is odd.
 A node MUST fail the channels if it receives a message of unknown type, if that type is even.
+
+The messages are grouped logically into 4 groups by their most significant set bit:
+
+ - Setup & signalling (types `0`-`31`): messages related to supported features and error reporting. These are described below.
+ - Channel (types `32`-`127`): comprises messages used to setup, update and tear down micropayment channels. These are described in [BOLT #2](02-peer-protocol.md).
+ - HTLC (types `128`-`255`: comprises messages related to adding, revoking and settling HTLCs on a micropayment channel. These are described in [BOLT #2](02-peer-protocol.md).
+ - Routing (types `256`-`511`): node and channel announcements, as well as any active route exploration. These are described in [BOLT #7](07-routing-gossip.md).
 
 The size of the message is required to fit into a 2 byte unsigned int by the transport layer, therefore the maximum possible size is 65535 bytes.
 A node MUST ignore any additional data within a message, beyond the length it expects for that type.
