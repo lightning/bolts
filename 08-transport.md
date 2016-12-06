@@ -464,7 +464,7 @@ construction, and `16 bytes` for a final authenticating tag.
        initiator.
 
 
-  * `h = SHA-256(h || rs.pub.serializeCompressed())`
+  * `h = SHA-256(h || c)`
 
 
   * `ss = ECDH(rs, e.priv)`
