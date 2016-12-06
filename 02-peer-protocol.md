@@ -11,7 +11,6 @@ operation, and closing.
       * [The `funding_created` message](#the-funding_created-message)
       * [The `funding_signed` message](#the-funding_signed-message)
       * [The `funding_locked` message](#the-funding_locked-message)
-      * [Updating Fees: `update_fee`](#updating-fees-update_fee)
     * [Channel Close](#channel-close)
       * [Closing initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing negotiation: `closing_signed`](#closing-negotiation-closing_signed)
@@ -21,6 +20,7 @@ operation, and closing.
       * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
       * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
       * [Completing the transition to the updated state: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
+      * [Updating Fees: `update_fee`](#updating-fees-update_fee)
   * [Authors](#authors)
   
 # Channel
@@ -284,68 +284,6 @@ peers if it has sent and received a non-zero `announcement-node-signature` and `
 
 We could add an SPV proof, and route block hashes in separate
 messages.
-
-### Updating Fees: `update_fee`
-
-An `update_fee` message is sent by the node which is paying the
-bitcoin fee.  Like any update, it is first committed to the receiver's
-commitment transaction, then (once acknowledged) committed to the
-sender's.  Unlike an HTLC, `update_fee` is never closed, simply
-replaced.
-
-There is a possibility of a race: the recipient can add new HTLCs
-before it receives the `update_fee`, and the sender may not be able to
-afford the fee on its own commitment transaction once the `update_fee`
-is acknowledged by the recipient.  In this case, the fee will be less
-than the fee rate, as described in [BOLT #3](03-transactions.md#fee-calculation).
-
-The exact calculation used for deriving the fee from the fee rate is
-given in [BOLT #3].
-
-
-1. type: 37 (`update_fee`)
-2. data:
-   * [8:channel-id]
-   * [4:feerate-per-kw]
-
-#### Requirements
-
-The node which is responsible for paying the bitcoin fee SHOULD send
-`update_fee` to ensure the current fee rate is sufficient for
-timely processing of the commitment transaction by a significant
-margin.
-
-The node which is not responsible for paying the bitcoin fee MUST NOT
-send `update_fee`.
-
-A receiving node SHOULD fail the channel if the `update_fee` is too
-low for timely processing, or unreasonably large.
-
-A receiving node MUST fail the channel if the sender is not
-responsible for paying the bitcoin fee.
-
-A receiving node SHOULD fail the channel if the sender cannot afford
-the new fee rate on the receiving node's current commitment
-transaction, but it MAY delay this check until the `update_fee` is
-committed.
-
-#### Rationale
-
-Bitcoin fees are required for unilateral closes to be effective,
-particularly since there is no general method for the node which
-broadcasts it to use child-pays-for-parent to increase its effective
-fee.
-
-Given the variance in fees, and the fact that the transaction may be
-spent in the future, it's a good idea for the fee payer to keep a good
-margin, say 5x the expected fee requirement, but differing methods of
-fee estimation mean we don't specify an exact value.
-
-Since the fees are currently one-sided (the party which requested the
-channel creation always pays the fees for the commitment transaction),
-it is simplest to only allow them to set fee levels, but as the same
-fee rate applies to HTLC transactions, the receiving node must also
-care about the reasonableness of the fee.
 
 ## Channel Close
 
@@ -762,6 +700,68 @@ Nodes MUST NOT broadcast old (revoked) commitment transactions; doing
 so will allow the other node to seize all the funds.  Nodes SHOULD NOT
 sign commitment transactions unless it is about to broadcast them (due
 to a failed connection), to reduce this risk.
+
+### Updating Fees: `update_fee`
+
+An `update_fee` message is sent by the node which is paying the
+bitcoin fee.  Like any update, it is first committed to the receiver's
+commitment transaction, then (once acknowledged) committed to the
+sender's.  Unlike an HTLC, `update_fee` is never closed, simply
+replaced.
+
+There is a possibility of a race: the recipient can add new HTLCs
+before it receives the `update_fee`, and the sender may not be able to
+afford the fee on its own commitment transaction once the `update_fee`
+is acknowledged by the recipient.  In this case, the fee will be less
+than the fee rate, as described in [BOLT #3](03-transactions.md#fee-calculation).
+
+The exact calculation used for deriving the fee from the fee rate is
+given in [BOLT #3].
+
+
+1. type: 134 (`update_fee`)
+2. data:
+   * [8:channel-id]
+   * [4:feerate-per-kw]
+
+#### Requirements
+
+The node which is responsible for paying the bitcoin fee SHOULD send
+`update_fee` to ensure the current fee rate is sufficient for
+timely processing of the commitment transaction by a significant
+margin.
+
+The node which is not responsible for paying the bitcoin fee MUST NOT
+send `update_fee`.
+
+A receiving node SHOULD fail the channel if the `update_fee` is too
+low for timely processing, or unreasonably large.
+
+A receiving node MUST fail the channel if the sender is not
+responsible for paying the bitcoin fee.
+
+A receiving node SHOULD fail the channel if the sender cannot afford
+the new fee rate on the receiving node's current commitment
+transaction, but it MAY delay this check until the `update_fee` is
+committed.
+
+#### Rationale
+
+Bitcoin fees are required for unilateral closes to be effective,
+particularly since there is no general method for the node which
+broadcasts it to use child-pays-for-parent to increase its effective
+fee.
+
+Given the variance in fees, and the fact that the transaction may be
+spent in the future, it's a good idea for the fee payer to keep a good
+margin, say 5x the expected fee requirement, but differing methods of
+fee estimation mean we don't specify an exact value.
+
+Since the fees are currently one-sided (the party which requested the
+channel creation always pays the fees for the commitment transaction),
+it is simplest to only allow them to set fee levels, but as the same
+fee rate applies to HTLC transactions, the receiving node must also
+care about the reasonableness of the fee.
 
 # Authors
 
