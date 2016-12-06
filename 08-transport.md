@@ -442,6 +442,8 @@ construction, and `16 bytes` for a final authenticating tag.
      * This step generates the final encryption keys to be used for sending and
        receiving messages for the duration of the session.
 
+  * `rn = 0, sn = 0`
+     * The sending and receiving nonces are initialized to zero.
 
   * Send `m = 0 || c || t` over the network buffer.
 
@@ -492,6 +494,9 @@ construction, and `16 bytes` for a final authenticating tag.
      * This step generates the final encryption keys to be used for sending and
        receiving messages for the duration of the session.
 
+  * `rn = 0, sn = 0`
+     * The sending and receiving nonces are initialized to zero.
+
 ## Lightning Message Specification
 
 At the conclusion of `Act Three` both sides have derived the encryption keys
@@ -537,7 +542,7 @@ for a total maximum packet length of `2 + 16 + 65535 + 16` = `65569` bytes.
 
 
 In order to encrypt a lightning message (`m`), given a sending key (`sk`), and a nonce
-(`n`), the following is done:
+(`sn`), the following is done:
 
 
   * let `l = len(m)`,
@@ -547,15 +552,15 @@ In order to encrypt a lightning message (`m`), given a sending key (`sk`), and a
   * Serialize `l` into `2-bytes` encoded as a big-endian integer.
 
 
-  * Encrypt `l` using `ChaChaPoly-1305`, `n`, and `sk` to obtain `lc`
+  * Encrypt `l` using `ChaChaPoly-1305`, `sn`, and `sk` to obtain `lc`
     (`18-bytes`)
-    * The nonce for `sk` MUST be incremented after this step.
+    * The nonce `sn` is encoded as a 96-bit big-endian number.
+	* The nonce `sn` MUST be incremented after this step.
     * A zero-length byte slice is to be passed as the AD (associated data).
-
 
   * Finally encrypt the message itself (`m`) using the same procedure used to
     encrypt the length prefix. Let encrypted ciphertext be known as `c`.
-    * The nonce for `sk` MUST be incremented after this step.
+    * The nonce `sn` MUST be incremented after this step.
 
   * Send `lc || c` over the network buffer.
 
@@ -573,21 +578,20 @@ done:
   * Let the encrypted length prefix be known as `lc`
 
 
-  * Decrypt `lc` using `ChaCha20-Poy1305`, `n`, and `rk` to obtain size of
+  * Decrypt `lc` using `ChaCha20-Poy1305`, `rn`, and `rk` to obtain size of
     the encrypted packet `l`.
     * A zero-length byte slice is to be passed as the AD (associated data).
-    * The nonce for `rk` MUST be incremented after this step.
+    * The nonce `rn` MUST be incremented after this step.
 
 
   * Read _exactly_ `l+16` bytes from the network buffer, let the bytes be known as
     `c`.
 
 
-  * Decrypt `c` using `ChaCha20-Poly1305`, `n`, and `rk` to obtain decrypted
+  * Decrypt `c` using `ChaCha20-Poly1305`, `rn`, and `rk` to obtain decrypted
     plaintext packet `p`.
 
-
-    * The nonce for `rk` MUST be incremented after this step.
+    * The nonce `rn` MUST be incremented after this step.
 
 
 ## Lightning Message Key Rotation
