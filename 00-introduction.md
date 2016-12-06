@@ -35,7 +35,7 @@ This is version 0.
 
 
 * *Commitment Transaction*:
-   * A transaction which spends the funding transaction; each peers
+   * A transaction which spends the funding transaction; each peer
          holds a signature from the other peer for this transaction, so it
          always has a commitment transaction it can spend.  After a new
          commitment transaction is negotiated, the old one is *revoked*.

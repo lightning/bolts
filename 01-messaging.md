@@ -49,7 +49,7 @@ The "it's OK to be odd" rule allows for future optional extensions
 without negotiation or special coding in clients.  The "ignore
 additional data" rule similarly allows for future expansion.
 
-Implementations may prefer have message data aligned on an 8 byte
+Implementations may prefer to have message data aligned on an 8 byte
 boundary (the largest natural alignment requirement of any type here),
 but adding a 6 byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
