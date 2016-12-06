@@ -104,7 +104,7 @@ The exact size of each Act is as follows:
 
 ### Handshake State
 
-Throughout the handshake process, each side maintains these three variables:
+Throughout the handshake process, each side maintains these variables:
 
  * `ck`: The **chaining key**. This value is the accumulated hash of all
    previous ECDH outputs. At the end of the handshake, `ck` is used to derive
@@ -118,12 +118,12 @@ Throughout the handshake process, each side maintains these three variables:
    zero-length AEAD payloads at the end of each handshake message.
 
  * `n`: A **counter-based nonce** which is to be used with `temp_k` to encrypt
-   each message with a new nonce.
+   each message with a new nonce.  It is encoded as a big-endian number.
 
- * `e`: A party's **ephemeral public key**. For each session a node MUST generate a
+ * `e`: A party's **ephemeral keypair**. For each session a node MUST generate a
    new ephemeral key with strong cryptographic randomness.
 
- * `s`: A party's **static public key**.
+ * `s`: A party's **static public key** (`ls` for local, `rs` for remote)
 
 The following functions will also be referenced:
 
@@ -133,11 +133,11 @@ The following functions will also be referenced:
       * The returned value is the raw big-endian byte serialization of
         `x-coordinate` (using affine coordinates) of the generated point.
 
-  * `HKDF`: a function is defined in [3](#reference-3), evaluated with a
+  * `HKDF`: a function is defined in [5](#reference-5), evaluated with a
     zero-length `info` field.
      * All invocations of the `HKDF` implicitly return `64-bytes` of
        cryptographic randomness using the extract-and-expand component of the
-       `HKDF.
+       `HKDF`.
 
   * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n++, ad, plaintext)`
      * where `encrypt` is an evaluation of `ChaCha20-Poly1305` with the passed
@@ -228,12 +228,12 @@ and `16 bytes` for the `poly1305` tag.
        handshake digest.
 
 
-  * `s = ECDH(rs, e.priv)`
+  * `ss = ECDH(rs, e.priv)`
      * The initiator performs a `ECDH` between its newly generated ephemeral
        key with the remote node's static public key.
 
 
-  * `ck, temp_k = HKDF(ck, s)`
+  * `ck, temp_k = HKDF(ck, ss)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
      * The nonce `n` should be reset to zero: `n = 0`.
@@ -257,7 +257,7 @@ and `16 bytes` for the `poly1305` tag.
   * Read _exactly_ `50-bytes` from the network buffer.
 
 
-  * Parse out the read message (`m`) into `v = m[0]`, `e = m[1:34]` and `c = m[43:]`
+  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:34]` and `c = m[43:]`
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` are the next `33`
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
     * The raw bytes of the remote party's ephemeral public key (`e`) are to be
@@ -269,16 +269,16 @@ and `16 bytes` for the `poly1305` tag.
     abort the connection attempt.
 
 
-  * `h = SHA-256(h || e.pub.serializeCompressed())`
+  * `h = SHA-256(h || re.serializeCompressed())`
     * Accumulate the initiator's ephemeral key into the authenticating
       handshake digest.
 
-  * `s = ECDH(e, s.priv)`
+  * `ss = ECDH(re, s.priv)`
     * The responder performs an `ECDH` between its static public key and the
       initiator's ephemeral public key.
 
 
-  * `ck, temp_k = HKDF(ck, s)`
+  * `ck, temp_k = HKDF(ck, ss)`
     * This phase generates a new temporary encryption key (`temp_k`) which will
       be used to shortly check the authenticating MAC.
     * The nonce `n` should be reset to zero: `n = 0`.
@@ -321,12 +321,12 @@ for the `poly1305` tag.
        handshake digest.
 
 
-  * `s = ECDH(re, e.priv)`
+  * `ss = ECDH(re, e.priv)`
      * where `re` is the ephemeral key of the initiator which was received
        during `ActOne`.
 
 
-  * `ck, temp_k = HKDF(ck, s)`
+  * `ck, temp_k = HKDF(ck, ss)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
      * The nonce `n` should be reset to zero: `n = 0`.
@@ -349,7 +349,7 @@ for the `poly1305` tag.
   * Read _exactly_ `50-bytes` from the network buffer.
 
 
-  * Parse out the read message (`m`) into `v = m[0]`, e = m[1:34]` and `c = m[43:]`
+  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:34]` and `c = m[43:]`
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` are the next `33`
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
 
@@ -358,17 +358,17 @@ for the `poly1305` tag.
     abort the connection attempt.
 
 
-  * `h = SHA-256(h || e.pub.serializeCompressed())`
+  * `h = SHA-256(h || re.serializeCompressed())`
 
 
-  * `s = ECDH(re, e.priv)`
+  * `ss = ECDH(re, e.priv)`
      * where `re` is the responder's ephemeral public key.
-    * The raw bytes of the remote party's ephemeral public key (`e`) are to be
+    * The raw bytes of the remote party's ephemeral public key (`re`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
 
 
-  * `ck, temp_k = HKDF(ck, s)`
+  * `ck, temp_k = HKDF(ck, ss)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
      * The nonce `n` should be reset to zero: `n = 0`.
@@ -415,11 +415,11 @@ construction, and `16 bytes` for a final authenticating tag.
   * `h = SHA-256(h || c)`
 
 
-  * `s = ECDH(re, s.priv)`
+  * `ss = ECDH(re, s.priv)`
     * where `re` is the ephemeral public key of the responder.
 
 
-  * `ck, temp_k = HKDF(ck, s)`
+  * `ck, temp_k = HKDF(ck, ss)`
     * Mix the final intermediate shared secret into the running chaining key.
     * The nonce `n` should be reset to zero: `n = 0`.
 
@@ -467,12 +467,10 @@ construction, and `16 bytes` for a final authenticating tag.
   * `h = SHA-256(h || rs.pub.serializeCompressed())`
 
 
-  * `s = ECDH(rs, e.priv)`
+  * `ss = ECDH(rs, e.priv)`
      * where `e` is the responder's original ephemeral key
 
-  * `ck, temp_k = HKDF(ck, s)`
-     * The underscore denots that the final `32-bytes` generated by the `HKDF`
-       invocation are discarded.
+  * `ck, temp_k = HKDF(ck, ss)`
      * The nonce `n` should be reset to zero: `n = 0`.
 
   * `p = decryptWithAD(temp_k, n, h, t)`
@@ -629,6 +627,7 @@ TODO(roasbeef); fin
 # References
 3. <a id="reference-3">https://tools.ietf.org/html/rfc7539</a>
 4. <a id="reference-4">http://noiseprotocol.org/noise.html</a>
+5. <a id="reference-5">https://tools.ietf.org/html/rfc5869</a>
 
 
 # Authors
