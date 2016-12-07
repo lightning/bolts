@@ -5,7 +5,7 @@ provide confidentiality for all transcripts between nodes, and authenticated to
 avoid malicious interference. Each node has a known long-term identifier which
 is a public key on Bitcoin's `secp256k1` curve. This long-term public key is
 used within the protocol to establish an encrypted+authenticated connection
-with peers, and also to authenticate any information advertised on the behalf
+with peers, and also to authenticate any information advertised on behalf
 of a node.
 
 ## Cryptographic Messaging Overview
@@ -38,7 +38,7 @@ The authenticated key agreement (`Noise_XK`) is performed in three distinct
 steps. During each "act" of the handshake, some (possibly encrypted) keying
 material is sent to the other party, an `ECDH` is performed based on exactly
 which act is being executed with the result mixed into the current sent of
-encryption keys (`ck` the chainin gkey and `k` the encryption key), and finally
+encryption keys (`ck` the chaining gkey and `k` the encryption key), and finally
 an `AEAD` payload with a zero length cipher text is sent.  As this payload is
 of length zero, only a `MAC` is sent across.  The mixing of `ECDH` outputs into
 a hash digest forms an incremental TripleDH handshake.
@@ -54,7 +54,7 @@ indicate possibly encrypted keying material, and `es, ee, se` each indicate an
        <- e, ee
        -> s, se
 
-All of the handshake data sent across the wire including the keying material is
+All of the handshake data sent across the wire, including the keying material, is
 incrementally hashed into a session-wide "handshake digest", `h`. Note that the
 handshake state `h`, is never transmitted during the handshake, instead digest
 is used as the Authenticated Data within the zero-length AEAD messages.
@@ -88,7 +88,7 @@ and `Poly1305` used MUST conform to `RFC 7539`<sup>[3](#reference-3)</sup>. With
 official Noise protocol name for our variant is:
 `Noise_XK_secp256k1_ChaChaPoly_SHA256`.  The ascii string representation of
 this value is hashed into a digest used to initialize the starting handshake
-state. If the protocol names of two endpoints differs, then the handshake
+state. If the protocol names of two endpoints differ, then the handshake
 process fails immediately.
 
 
