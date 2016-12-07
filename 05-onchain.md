@@ -7,7 +7,7 @@ Lightning allows for two parties (A and B) to make transactions off-chain, by bo
 There are three ways a channel can end:
 
 1. The good way (*mutual close*): at some point A and B agree on closing the channel, they generate a *closing transaction* (which is similar to a *commitment transaction* without any pending payments), and publish it on the blockchain (see "BOLT #2: Channel close").
-2. The bad way (*unilateral close*): something goes wrong, without necessarily any evil intent on either side (maybe one of the party crashed, for instance). Anyway, one side publishes its latest *commitment transaction*.
+2. The bad way (*unilateral close*): something goes wrong, without necessarily any evil intent on either side (maybe one party crashed, for instance). Anyway, one side publishes its latest *commitment transaction*.
 3. The ugly way (*revoked transaction close*): one of the parties deliberately tries to cheat by publishing an outdated version of its *commitment transaction* (presumably one that was more in her favor).
 
 Because Lightning is designed to be trustless, there is no risk of loss of funds in any of these 3 cases, provided that the situation is properly handled. The goal of this document is to explain exactly how node A should react to seeing any of these on-chain.

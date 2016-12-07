@@ -8,7 +8,7 @@ Lexicographic ordering as per BIP 69.
 
 ## Use of segwit
 
-Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2SWH output that is being spent. This last item has been omitted for brevity in the rest of this document.
+Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
 
 ## Funding Transaction Output
 
