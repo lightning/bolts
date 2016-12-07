@@ -34,7 +34,7 @@ node and discard the packet.
 
 ## Conventions
 
-There are a number of conventions we will adhere throughout the document:
+There are a number of conventions we will adhere to throughout the document:
 
  - The maximum route length is limited to 20 hops.
  - Nodes are addressed using 20 byte identifiers. These are computed
@@ -54,7 +54,7 @@ There are a number of conventions we will adhere throughout the document:
 
 ## Key Generation
 
-A number of encryption and verification keys is derived from the shared secret:
+A number of encryption and verification keys are derived from the shared secret:
 
  - _rho_: used as key when generating the pseudo random byte stream
    used to obfuscate the routing information.
@@ -93,7 +93,7 @@ The overall structure of the packet is depicted below. The network format of the
 ~~~~
 
 The header is a fixed 854 byte array containing the necessary information for each hop to identify the next hop, and verify the integrity of the packet.
-It consists of a version byte, a 33 byte compressed `secp256k1` public key, used during the shared secret generation, a 20 byte HMAC used to verify the packet's integrity and a 800 byte routing information field.
+It consists of a version byte, a 33 byte compressed `secp256k1` public key, used during the shared secret generation, a 20 byte HMAC used to verify the packet's integrity and an 800 byte routing information field.
 For this specification the version byte has a constant value of `0x00`.
 
 ~~~~
@@ -113,7 +113,7 @@ It is 800 bytes long, i.e., 20 byte MAC and 20 byte address times 20 hops, and h
 
 Where the `filler` consists of obfuscated deterministically generated
 padding. For details about how the `filler` is generated please see
-below. In addition every _(address, HMAC)_-pair is incrementally
+below. In addition, every _(address, HMAC)_-pair is incrementally
 obfuscated at each hop.
 
 The per-hop payloads has a similar structure:
@@ -264,8 +264,8 @@ func ConstructPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKe
 
 ## Packet Forwarding
 
-Upon receiving a packet a node compares the version byte of the packet with its supported versions and aborts otherwise.
-This specification is limited to version `0` packets and the structure of future version may change.
+Upon receiving a packet, a node compares the version byte of the packet with its supported versions and aborts otherwise.
+This specification is limited to version `0` packets and the structure of future versions may change.
 The receiving node then splits the packet into its fields.
 
 The node MUST check that the ephemeral public key is on the `secp256k1` curve.
@@ -316,7 +316,7 @@ Notice that this is not the ECDH variant implemented in `libsecp256k1` which als
 
 ## Filler Generation
 
-Upon receiving a packet each node extracts the information destined for that node from the route info and the per-hop payload.
+Upon receiving a packet, each node extracts the information destined for that node from the route info and the per-hop payload.
 The extraction is done by deobfuscating and left-shifting the field.
 This would make the field shorter at each hop, allowing an attacker to deduce the route length.
 For this reason the field is padded before forwarding.
@@ -326,7 +326,7 @@ The filler is also used to pad the field-length in case the selected route is sh
 We call the number of bytes extracted from the field _hopsize_.
 In case of the route info the hopsize is 40 bytes (20 bytes address and 20 bytes HMAC), while in the case of the per-hop payload it is 20 bytes.
 
-Before deobfuscating the field the node pads the field with hopsize `0x00` bytes, such that the total length of the field is `(20 + 1) * hopsize`.
+Before deobfuscating the field, the node pads the field with hopsize `0x00` bytes, such that the total length of the field is `(20 + 1) * hopsize`.
 It then generates the pseudo random byte stream of matching length and applies it with `XOR` to the field.
 This deobfuscates the information destined for it, and simultaneously obfuscates the added
 `0x00`-bytes at the end.
