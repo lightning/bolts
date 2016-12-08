@@ -59,7 +59,7 @@ This output sends funds back to the owner of this commitment transaction, thus m
 
 It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig> 0`.
 
-If a revoked commit tx is published, the other party can spend this output immediately with the following witness script:
+If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness script:
 
     <revocation-sig> 1
 
@@ -74,7 +74,7 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
     <remotekey> OP_SWAP
         OP_SIZE 32 OP_EQUAL
     OP_NOTIF
-        # To me via HTLC-timeout tx (timelocked).
+        # To me via HTLC-timeout transaction (timelocked).
         OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
     OP_ELSE
         # To you with preimage.
@@ -95,7 +95,7 @@ This output sends funds to the remote peer after the HTLC timeout, or to an HTLC
     <remotekey> OP_SWAP
         OP_SIZE 32 OP_EQUAL
     OP_IF
-        # To me via HTLC-success tx.
+        # To me via HTLC-success transaction.
         OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
         2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
     OP_ELSE

@@ -79,7 +79,7 @@ A and B each hold a *commitment transaction*, which has 4 types of outputs:
 4. _B's offered HTLCs_: Zero or more pending payments (*HTLCs*) to pay A in return for a payment preimage.
 
 
-As an incentive for A and B to cooperate, an `OP_CHECKSEQUENCEVERIFY` relative timeout encumbers A's outputs in A's *commitment transaction*, and B's outputs in B's *commitment transaction*. If A publishes its commitment tx, she won't be able to get her funds immediately but B will. As a consequence, A and B's *commitment transactions* are not identical, they are (usually) symmetrical.
+As an incentive for A and B to cooperate, an `OP_CHECKSEQUENCEVERIFY` relative timeout encumbers A's outputs in A's *commitment transaction*, and B's outputs in B's *commitment transaction*. If A publishes its commitment transaction, she won't be able to get her funds immediately but B will. As a consequence, A and B's *commitment transactions* are not identical, they are (usually) symmetrical.
 
 
 See "BOLT #3: Bitcoin Transaction and Script Formats" for more details.
@@ -127,9 +127,9 @@ Similarly, when node A sees a *commitment transaction* from B:
 
 
 1. _A's main output_: No action is required; this is a simple P2WPKH output.
-   This output is considered *resolved* by the *commitment tx* itself.
+   This output is considered *resolved* by the *commitment transaction* itself.
 2. _B's main output_: No action required, this output is considered *resolved*
-   by the *commitment tx*.
+   by the *commitment transaction*.
 3. _A's offered HTLCs_: See "On-chain HTLC Output Handling: Our Offers" below.
 4. _B's offered HTLCs_: See "On-chain HTLC Output Handling: Their Offers" below.
 
