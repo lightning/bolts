@@ -4,7 +4,7 @@ This specification describes simple node discovery, channel discovery and channe
 
 Node and channel discovery serve two different purposes:
 
- - Channel discovery allows the creation and maintenance of a local view of the network's topology such that the node can discover routes to desired the destination.
+ - Channel discovery allows the creation and maintenance of a local view of the network's topology such that the node can discover routes to the desired destination.
  - Node discovery allows nodes to broadcast their ID, host and port, such that other nodes can open connections and establish payment channels.
  
 Peers in the network exchange `channel_announcement` messages that contain information about new channels between two nodes.  They can also exchange `node_announcement` messages which supply additional information about nodes, and `channel_update` messages which update information about a channel.

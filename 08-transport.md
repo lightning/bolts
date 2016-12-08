@@ -38,7 +38,7 @@ The authenticated key agreement (`Noise_XK`) is performed in three distinct
 steps. During each "act" of the handshake, some (possibly encrypted) keying
 material is sent to the other party, an `ECDH` is performed based on exactly
 which act is being executed with the result mixed into the current sent of
-encryption keys (`ck` the chaining gkey and `k` the encryption key), and finally
+encryption keys (`ck` the chaining key and `k` the encryption key), and finally
 an `AEAD` payload with a zero length cipher text is sent.  As this payload is
 of length zero, only a `MAC` is sent across.  The mixing of `ECDH` outputs into
 a hash digest forms an incremental TripleDH handshake.
