@@ -114,7 +114,7 @@ Throughout the handshake process, each side maintains these variables:
    handshake data that has been sent and received so far during the handshake
    process.
 
- * `temp_k`: An **intermediate key** key used to encrypt/decrypt the
+ * `temp_k1`, `temp_k2`, `temp_k3`: **intermediate keys** used to encrypt/decrypt the
    zero-length AEAD payloads at the end of each handshake message.
 
  * `e`: A party's **ephemeral keypair**. For each session a node MUST generate a
@@ -170,11 +170,7 @@ state as follows:
  2. `ck = h`
 
 
- 3. `temp_k = empty`
-    * where `empty` is a byte string of length 32 fully zeroed out.
-
-
- 5. `h = SHA-256(h || prologue)`
+ 3. `h = SHA-256(h || prologue)`
     * where `prologue` is the ascii string: `lightning`.
 
 
@@ -229,12 +225,12 @@ and `16 bytes` for the `poly1305` tag.
        key with the remote node's static public key.
 
 
-  * `ck, temp_k = HKDF(ck, ss)`
-     * This phase generates a new temporary encryption key (`temp_k`) which is
+  * `ck, temp_k1 = HKDF(ck, ss)`
+     * This phase generates a new temporary encryption key which is
        used to generate the authenticating MAC.
 
 
-  * `c = encryptWithAD(temp_k, 0, h, zero)`
+  * `c = encryptWithAD(temp_k1, 0, h, zero)`
      * where `zero` is a zero-length plaintext
 
 
@@ -273,11 +269,11 @@ and `16 bytes` for the `poly1305` tag.
       initiator's ephemeral public key.
 
 
-  * `ck, temp_k = HKDF(ck, ss)`
-    * This phase generates a new temporary encryption key (`temp_k`) which will
+  * `ck, temp_k1 = HKDF(ck, ss)`
+    * This phase generates a new temporary encryption key which will
       be used to shortly check the authenticating MAC.
 
-  * `p = decryptWithAD(temp_k, 0, h, c)`
+  * `p = decryptWithAD(temp_k1, 0, h, c)`
     * If the MAC check in this operation fails, then the initiator does _not_
       know our static public key. If so, then the responder MUST terminate the
       connection without any further messages.
@@ -320,12 +316,12 @@ for the `poly1305` tag.
        during `ActOne`.
 
 
-  * `ck, temp_k = HKDF(ck, ss)`
-     * This phase generates a new temporary encryption key (`temp_k`) which is
+  * `ck, temp_k2 = HKDF(ck, ss)`
+     * This phase generates a new temporary encryption key which is
        used to generate the authenticating MAC.
 
 
-  * `c = encryptWithAD(temp_k, 0, h, zero)`
+  * `c = encryptWithAD(temp_k2, 0, h, zero)`
      * where `zero` is a zero-length plaintext
 
 
@@ -361,12 +357,12 @@ for the `poly1305` tag.
       by the key's serialized composed format.
 
 
-  * `ck, temp_k = HKDF(ck, ss)`
-     * This phase generates a new temporary encryption key (`temp_k`) which is
+  * `ck, temp_k2 = HKDF(ck, ss)`
+     * This phase generates a new temporary encryption key which is
        used to generate the authenticating MAC.
 
 
-  * `p = decryptWithAD(temp_k, 0, h, c)`
+  * `p = decryptWithAD(temp_k2, 0, h, c)`
     * If the MAC check in this operation fails, then the initiator MUST
       terminate the connection without any further messages.
 
@@ -399,7 +395,7 @@ construction, and `16 bytes` for a final authenticating tag.
 **Sender Actions:**
 
 
-  * `c = encryptWithAD(temp_k, 1, h, s.pub.serializeCompressed())`
+  * `c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())`
     * where `s` is the static public key of the initiator.
 
 
@@ -410,11 +406,11 @@ construction, and `16 bytes` for a final authenticating tag.
     * where `re` is the ephemeral public key of the responder.
 
 
-  * `ck, temp_k = HKDF(ck, ss)`
+  * `ck, temp_k3 = HKDF(ck, ss)`
     * Mix the final intermediate shared secret into the running chaining key.
 
 
-  * `t = encryptWithAD(temp_k, 0, h, zero)`
+  * `t = encryptWithAD(temp_k3, 0, h, zero)`
      * where `zero` is a zero-length plaintext
 
 
@@ -451,7 +447,7 @@ construction, and `16 bytes` for a final authenticating tag.
     abort the connection attempt.
 
 
-  * `rs = decryptWithAD(temp_k, 1, h, c)`
+  * `rs = decryptWithAD(temp_k2, 1, h, c)`
      * At this point, the responder has recovered the static public key of the
        initiator.
 
@@ -462,9 +458,9 @@ construction, and `16 bytes` for a final authenticating tag.
   * `ss = ECDH(rs, e.priv)`
      * where `e` is the responder's original ephemeral key
 
-  * `ck, temp_k = HKDF(ck, ss)`
+  * `ck, temp_k3 = HKDF(ck, ss)`
 
-  * `p = decryptWithAD(temp_k, 0, h, t)`
+  * `p = decryptWithAD(temp_k3, 0, h, t)`
      * If the MAC check in this operation fails, then the responder MUST
        terminate the connection without any further messages.
 
