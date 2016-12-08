@@ -117,9 +117,6 @@ Throughout the handshake process, each side maintains these variables:
  * `temp_k`: An **intermediate key** key used to encrypt/decrypt the
    zero-length AEAD payloads at the end of each handshake message.
 
- * `n`: A **counter-based nonce** which is to be used with `temp_k` to encrypt
-   each message with a new nonce.  It is encoded as a 96-bit big-endian number.
-
  * `e`: A party's **ephemeral keypair**. For each session a node MUST generate a
    new ephemeral key with strong cryptographic randomness.
 
@@ -139,13 +136,15 @@ The following functions will also be referenced:
        cryptographic randomness using the extract-and-expand component of the
        `HKDF`.
 
-  * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n++, ad, plaintext)`
+  * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n, ad, plaintext)`
      * where `encrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant) with the passed
-       arguments.
+       arguments, with nonce `n` encoded as a big-endian 96-bit value.
 
-  * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n++, ad, ciphertext)`
+
+
+  * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n, ad, ciphertext)`
      * where `decrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant) with the passed
-       arguments.
+       arguments, with nonce `n` encoded as a big-endian 96-bit value.
 
   * `generateKey()`
      * where generateKey generates and returns a fresh `secp256k1` keypair
@@ -173,9 +172,6 @@ state as follows:
 
  3. `temp_k = empty`
     * where `empty` is a byte string of length 32 fully zeroed out.
-
-
- 4. `n = 0`
 
 
  5. `h = SHA-256(h || prologue)`
@@ -236,10 +232,9 @@ and `16 bytes` for the `poly1305` tag.
   * `ck, temp_k = HKDF(ck, ss)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
-     * The nonce `n` should be reset to zero: `n = 0`.
 
 
-  * `c = encryptWithAD(temp_k, n, h, zero)`
+  * `c = encryptWithAD(temp_k, 0, h, zero)`
      * where `zero` is a zero-length plaintext
 
 
@@ -281,9 +276,8 @@ and `16 bytes` for the `poly1305` tag.
   * `ck, temp_k = HKDF(ck, ss)`
     * This phase generates a new temporary encryption key (`temp_k`) which will
       be used to shortly check the authenticating MAC.
-    * The nonce `n` should be reset to zero: `n = 0`.
 
-  * `p = decryptWithAD(temp_k, n, h, c)`
+  * `p = decryptWithAD(temp_k, 0, h, c)`
     * If the MAC check in this operation fails, then the initiator does _not_
       know our static public key. If so, then the responder MUST terminate the
       connection without any further messages.
@@ -329,10 +323,9 @@ for the `poly1305` tag.
   * `ck, temp_k = HKDF(ck, ss)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
-     * The nonce `n` should be reset to zero: `n = 0`.
 
 
-  * `c = encryptWithAD(temp_k, n, h, zero)`
+  * `c = encryptWithAD(temp_k, 0, h, zero)`
      * where `zero` is a zero-length plaintext
 
 
@@ -371,13 +364,11 @@ for the `poly1305` tag.
   * `ck, temp_k = HKDF(ck, ss)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
-     * The nonce `n` should be reset to zero: `n = 0`.
 
 
-  * `p = decryptWithAD(temp_k, n, h, c)`
+  * `p = decryptWithAD(temp_k, 0, h, c)`
     * If the MAC check in this operation fails, then the initiator MUST
       terminate the connection without any further messages.
-    * The nonce `n` should be reset to zero: `n = 0`.
 
 
   * `h = SHA-256(h || c)`
@@ -408,7 +399,7 @@ construction, and `16 bytes` for a final authenticating tag.
 **Sender Actions:**
 
 
-  * `c = encryptWithAD(temp_k, n, h, s.pub.serializeCompressed())`
+  * `c = encryptWithAD(temp_k, 1, h, s.pub.serializeCompressed())`
     * where `s` is the static public key of the initiator.
 
 
@@ -421,10 +412,9 @@ construction, and `16 bytes` for a final authenticating tag.
 
   * `ck, temp_k = HKDF(ck, ss)`
     * Mix the final intermediate shared secret into the running chaining key.
-    * The nonce `n` should be reset to zero: `n = 0`.
 
 
-  * `t = encryptWithAD(temp_k, n, h, zero)`
+  * `t = encryptWithAD(temp_k, 0, h, zero)`
      * where `zero` is a zero-length plaintext
 
 
@@ -461,7 +451,7 @@ construction, and `16 bytes` for a final authenticating tag.
     abort the connection attempt.
 
 
-  * `rs = decryptWithAD(temp_k, n, h, c)`
+  * `rs = decryptWithAD(temp_k, 1, h, c)`
      * At this point, the responder has recovered the static public key of the
        initiator.
 
@@ -473,9 +463,8 @@ construction, and `16 bytes` for a final authenticating tag.
      * where `e` is the responder's original ephemeral key
 
   * `ck, temp_k = HKDF(ck, ss)`
-     * The nonce `n` should be reset to zero: `n = 0`.
 
-  * `p = decryptWithAD(temp_k, n, h, t)`
+  * `p = decryptWithAD(temp_k, 0, h, t)`
      * If the MAC check in this operation fails, then the responder MUST
        terminate the connection without any further messages.
 
