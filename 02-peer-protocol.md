@@ -94,7 +94,7 @@ desire to set up a new channel.
    * [33:first-per-commitment-point]
 
 
-The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable onchain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the bitcoin network.
+The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
 
 `max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node will accept.
 
@@ -123,7 +123,7 @@ immediately included in a block.
 
 
 The sender SHOULD set `dust-limit-satoshis` to a sufficient value to
-allow commitment transactions to propagate through the bitcoin
+allow commitment transactions to propagate through the Bitcoin
 network.  It SHOULD set `htlc-minimum-msat` to the minimum
 amount HTLC it is willing to accept from this peer.
 
@@ -355,7 +355,7 @@ As shutdown implies a desire to terminate, it implies that no new
 HTLCs will be added or accepted.
 
 The `scriptpubkey` forms include only standard forms accepted by the
-bitcoin network, ensuring that the resulting transaction will
+Bitcoin network, ensuring that the resulting transaction will
 propagate to miners.
 
 The `shutdown` response requirement implies that the node sends `update_commit` to commit any outstanding changes before replying, but it could theoretically reconnect instead, which simply erases all outstanding uncommitted changes.
@@ -387,7 +387,7 @@ fee of the final commitment transaction.
 The sender SHOULD set the initial `fee-satoshis` according to its
 estimate of cost of inclusion in a block.
 
-The sender MUST set `signature` to the bitcoin signature of the close
+The sender MUST set `signature` to the Bitcoin signature of the close
 transaction with the node responsible for paying the bitcoin fee
 paying `fee-satoshis`, without populating any output which is below
 the receiver's `dust-limit-satoshis`.

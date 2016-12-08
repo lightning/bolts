@@ -28,7 +28,7 @@ the output is considered to be its own *resolving* transaction.
 Outputs which are *resolved* are considered *irrevocably resolved*
 once their *resolving* transaction is included in a block at least 100
 deep on the most-work blockchain.  100 blocks is far greater than the
-longest known bitcoin fork, and the same value used to wait for
+longest known Bitcoin fork, and the same value used to wait for
 confirmations of miner's rewards[FIXME: ref].
 
 
