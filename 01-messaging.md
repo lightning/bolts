@@ -45,7 +45,7 @@ A node MUST fail the channels if it receives a known message with insufficient l
 
 ### Rationale
 
-The standard endian of `SHA2` and the encoding of bitcoin public keys
+The standard endian of `SHA2` and the encoding of Bitcoin public keys
 are big endian, thus it would be unusual to use a different endian for
 other fields.
 

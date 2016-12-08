@@ -16,7 +16,7 @@ information), and at least two `channel_update` messages are expected.
 ## The `channel_announcement` message
 
 This message contains ownership information about a channel.  It ties each
-on-chain bitcoin key to the lightning node key, and vice-versa.
+on-chain Bitcoin key to the lightning node key, and vice-versa.
 
 The channel is not really usable until at least one side has announced
 its fee levels and expiry using `channel_update`.
@@ -84,7 +84,7 @@ been spent or reorganized out.
 
 Requiring both nodes to sign indicates they are both willing to route
 other payments via this node (ie. take part of the public network).
-Requiring the bitcoin signatures proves they control the channel.
+Requiring the Bitcoin signatures proves they control the channel.
 
 The blacklisting of conflicting nodes means that we disallow multiple
 different announcements: no node should ever do this, as it implies
