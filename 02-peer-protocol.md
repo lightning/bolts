@@ -493,11 +493,11 @@ Either node can send `update_add_htlc` to offer a HTLC to the other,
 which is redeemable in return for a payment preimage.  Amounts are in
 millisatoshi, though on-chain enforcement is only possible for whole
 satoshi amounts greater than the dust limit: in commitment transactions these are rounded down as
-specified in [BOLT #3].
+specified in [BOLT #3](03-transactions.md).
 
 
 The format of the `route` portion, which indicates where the payment
-is destined, is described in [BOLT #4].
+is destined, is described in [BOLT #4](04-onion-routing.md).
 
 
 1. type: 128 (`update_add_htlc`)
@@ -570,7 +570,7 @@ There are three reasons for removing an HTLC: it has timed out, it has
 failed to route, or the payment preimage is supplied.
 
 The `reason` field is an opaque encrypted blob for the benefit of the
-original HTLC initiator as defined in [BOLT #4].
+original HTLC initiator as defined in [BOLT #4](04-onion-routing.md).
 
 1. type: 130 (`update_fulfill_htlc`)
 2. data:
@@ -615,7 +615,7 @@ A node which doesn't time out HTLCs risks channel failure (see
 
 
 When a node has changes for the remote commitment, it can apply them,
-sign the resulting transaction as defined in [BOLT #3] and send a
+sign the resulting transaction as defined in [BOLT #3](03-transactions.md) and send a
 `commitsig` message.
 
 
@@ -716,7 +716,7 @@ is acknowledged by the recipient.  In this case, the fee will be less
 than the fee rate, as described in [BOLT #3](03-transactions.md#fee-calculation).
 
 The exact calculation used for deriving the fee from the fee rate is
-given in [BOLT #3].
+given in [BOLT #3](03-transactions.md).
 
 
 1. type: 134 (`update_fee`)
