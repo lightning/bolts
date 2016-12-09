@@ -20,12 +20,12 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
 * version: 2
 * locktime: lower 24 bits are the obscured commitment transaction number.
 * txin count: 1
-   * txin[0] outpoint: `txid` and `output_index` from `funding_created` message
-   * txin[0] sequence: lower 24 bits are upper 24 bits of the obscured commitment transaction number.
-   * txin[0] script bytes: 0
-   * txin[0] witness: `<signature-for-key1>` `<signature-for-key-2>`
+   * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
+   * `txin[0]` sequence: lower 24 bits are upper 24 bits of the obscured commitment transaction number.
+   * `txin[0]` script bytes: 0
+   * `txin[0]` witness: `<signature-for-key1>` `<signature-for-key-2>`
 
-The 48-bit commitment transaction number is obscured by XOR with the lower 48 bits of:
+The 48-bit commitment transaction number is obscured by `XOR` with the lower 48 bits of:
 
     SHA256(payment-basepoint from open_channel || payment-basepoint from accept_channel)
 
@@ -38,13 +38,14 @@ commitment transaction.
 
 To allow an opportunity for penalty transactions in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to-self-delay` blocks.  This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
-The reason for the separate transaction stage for HTLC outputs is so that HTLCs can time out or be fulfilled even though they are within the `to-self-delay` `OP_CHECKSEQUENCEVERIFY` delay.  Otherwise the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
+The reason for the separate transaction stage for HTLC outputs is so that HTLCs can time out or be fulfilled even though they are within the `to-self-delay` delay.
+Otherwise the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
 The amounts for each output are rounded down to whole satoshis.  If this amount, minus the fees for the HTLC transaction is less than the `dust-limit-satoshis` set by the owner of the commitment transaction, the output is not produced (thus the funds add to fees).
 
 #### To-Local Output
 
-This output sends funds back to the owner of this commitment transaction, thus must be timelocked using OP_CSV. It can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction, thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
 
     OP_IF
         # Penalty transaction
@@ -57,7 +58,7 @@ This output sends funds back to the owner of this commitment transaction, thus m
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with nSequence field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig> 0`.
+It is spent by a transaction with `nSequence` field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig> 0`.
 
 If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness script:
 
@@ -117,13 +118,13 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
 * txin: the commitment transaction HTLC output.
 * locktime: 0 for HTLC-Success, `htlc-timeout` for HTLC-Timeout.
 * txin count: 1
-   * txin[0] outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
-   * txin[0] sequence: 0
-   * txin[0] script bytes: 0
-   * txin[0] witness stack: `0 <remotesig> <localsig> 0` (HTLC-Timeout) or `0 <remotesig> <localsig>  <payment-preimage>` (HTLC-success).
+   * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
+   * `txin[0]` sequence: 0
+   * `txin[0]` script bytes: 0
+   * `txin[0]` witness stack: `0 <remotesig> <localsig> 0` (HTLC-Timeout) or `0 <remotesig> <localsig>  <payment-preimage>` (HTLC-success).
 * txout count: 1
-   * txout[0] amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
-   * txout[0] script: version 0 P2WSH with witness script as below.
+   * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
+   * `txout[0]` script: version 0 P2WSH with witness script as below.
 
 The witness script for the output is:
 
@@ -147,12 +148,14 @@ transactions is based on the current `feerate-per-kw` and the
 *expected weight* of the transaction.
 
 The actual and expected weight vary for several reasons:
+
 * Bitcoin uses DER-encoded signatures which vary in size.
 * Bitcoin also uses variable-length integers, so a large number of outputs will take 3 bytes to encode rather than 1.
 * The `to-remote` output may be below the dust limit.
 * The `to-local` output may be below the dust limit once fees are extracted.
 
 Thus we use a simplified formula for *expected weight*, which assumes:
+
 * Signatures are 73 bytes long (the maximum length)
 * There is a small number of outputs (thus 1 byte to count them)
 * There is always both a to-local output and a to-remote output.
@@ -379,11 +382,11 @@ The fee for a commitment transaction MUST BE calculated to match:
 
 # Key Derivation
 
-Each commitment transaction uses a unique set of keys; `<localkey>` and `<remotekey>`.  The HTLC-success and HTLC-timeout transactions use `<local-delayedkey>` and `<revocationkey>`.  These are changed every time depending on the
+Each commitment transaction uses a unique set of keys; `localkey` and `remotekey`.  The HTLC-success and HTLC-timeout transactions use `local-delayedkey` and `revocationkey`.  These are changed every time depending on the
 `per-commitment-point`.
 
 Keys change because of the desire for trustless outsourcing of
-watching for revoked transactions; a "watcher" should not be able to
+watching for revoked transactions; a _watcher_ should not be able to
 determine what the contents of commitment transaction is, even if
 given the transaction ID to watch for and can make a resonable guess
 as to what HTLCs and balances might be included.  Nonetheless, to
@@ -398,7 +401,7 @@ Changing the `<localkey>` and `<remotekey>` every time ensures that commitment t
 Finally, even in the case of normal unilateral close, the HTLC-success
 and/or HTLC-timeout transactions do not reveal anything to the
 watcher, as it does not know the corresponding `per-commitment-secret` and
-cannot relate the `<local-delayedkey>` or `<revocationkey>` with
+cannot relate the `local-delayedkey` or `revocationkey` with
 their bases.
 
 For efficiency, keys are generated from a series of per-commitment secrets which are generated from a single seed, allowing the receiver to compactly store them (see [below](#efficient-per-commitment-secret-storage)).
@@ -416,7 +419,7 @@ uses the local node's `delayed-payment-basepoint`, and the
 `delayed-payment-basepoint`.
 
 The correspoding private keys can be derived similarly if the basepoint
-secrets are known (ie. `localkey` and `local-delayedkey` only):
+secrets are known (i.e., `localkey` and `local-delayedkey` only):
 
     secretkey = basepoint-secret + SHA256(per-commitment-point || basepoint)
 
@@ -468,15 +471,15 @@ The receiver of a series of secrets can store them compactly in an
 array of 49 (value,index) pairs.  This is because given a secret on a
 2^X boundary, we can derive all secrets up to the next 2^X boundary,
 and we always receive secrets in descending order starting at
-0xFFFFFFFFFFFF.
+`0xFFFFFFFFFFFF`.
 
 In binary, it's helpful to think of any index in terms of a *prefix*,
 followed by some trailing zeroes.  You can derive the secret for any
 index which matches this *prefix*.
 
-For example, secret 0xFFFFFFFFFFF0 allows us to derive secrets for
-0xFFFFFFFFFFF1 through 0xFFFFFFFFFFFF inclusive. Secret 0xFFFFFFFFFF08
-allows us to derive secrets 0xFFFFFFFFFF09 through 0xFFFFFFFFFF0F
+For example, secret `0xFFFFFFFFFFF0` allows us to derive secrets for
+`0xFFFFFFFFFFF1` through `0xFFFFFFFFFFFF` inclusive. Secret `0xFFFFFFFFFF08`
+allows us to derive secrets `0xFFFFFFFFFF09` through `0xFFFFFFFFFF0F`
 inclusive.
 
 We do this using a slight generalization of `generate_from_seed` above:
@@ -572,8 +575,8 @@ These test the optional compact storage system.  In many cases, an
 incorrect entry cannot be determined until its parent is revealed; we
 specifically corrupt an entry and all its children (except for the
 last test, which would require another 8 samples to be detected).  For
-these tests we use a seed of 0xFFF...FF and incorrect entries are
-seeded with 0x000...00.
+these tests we use a seed of `0xFFF...FF` and incorrect entries are
+seeded with `0x000...00`.
 
     name: insert_secret correct sequence
 	I: 281474976710655
