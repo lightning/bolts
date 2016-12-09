@@ -4,7 +4,7 @@
 This protocol assumes an underlying authenticated and ordered transport mechanism that takes care of framing individual messages.
 [BOLT #8](08-transport.md) specifies the canonical transport layer used in Lightning, though it can be replaced by any transport that fulfills the above guarantees.
 
-The default TCP port is 9735. This corresponds to hexadecimal `0x2607`, the unicode code point for LIGHTNING.<sup>[2](#reference-2)</sup>
+The default TCP port is 9735. This corresponds to hexadecimal `0x2607`, the unicode code point for LIGHTNING.<sup>[1](#reference-1)</sup>
 
 All data fields are big-endian unless otherwise specified.
 
@@ -150,8 +150,7 @@ TODO(roasbeef); fin
 
 
 ## References
-1. <a id="reference-1">https://en.bitcoin.it/wiki/Secp256k1</a>
-2. <a id="reference-2">http://www.unicode.org/charts/PDF/U2600.pdf</a>
+1. <a id="reference-2">http://www.unicode.org/charts/PDF/U2600.pdf</a>
 
 ## Authors
 
