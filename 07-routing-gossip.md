@@ -4,7 +4,7 @@ This specification describes simple node discovery, channel discovery and channe
 
 Node and channel discovery serve two different purposes:
 
- - Channel discovery allows the creation and maintenance of a local view of the network's topology such that the node can discover routes to desired destination.
+ - Channel discovery allows the creation and maintenance of a local view of the network's topology such that the node can discover routes to the desired destination.
  - Node discovery allows nodes to broadcast their ID, host and port, such that other nodes can open connections and establish payment channels.
  
 Peers in the network exchange `channel_announcement` messages that contain information about new channels between two nodes.  They can also exchange `node_announcement` messages which supply additional information about nodes, and `channel_update` messages which update information about a channel.
@@ -52,7 +52,7 @@ the double-SHA256 of `node-id-1` using `bitcoin-key-1`, and set
 `node-id-2` using `bitcoin-key-2`
 
 The creating node MUST set `node-signature-1` and `node-signature-2`
-to the signaturea of the double-SHA256 of message after the end of
+to the signature of the double-SHA256 of the message after the end of
 `node-signature-2`, using `node-id-1` and `node-id-2` as keys respectively.
 
 The receiving node MUST ignore the message if the output specified

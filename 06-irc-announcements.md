@@ -5,12 +5,12 @@ It will eventually be superseded by a discovery mechanism that does not rely on 
 
 Node and channel discovery serve two different purposes:
 
- - Channel discovery allows the creation and maintenance of a local view of the network's topology such that the node can discover routes to desired destination.
+ - Channel discovery allows the creation and maintenance of a local view of the network's topology such that the node can discover routes to the desired destination.
  - Node discovery allows nodes to broadcast their ID, host and port, such that other nodes can open connections and establish payment.
 
 ## Announcements
 
-The current transport of node and channel announcements is IRC. As such implementations MUST currently include a basic IRC implementation as well, though this transport is eventually going to be superseded by a P2P transport.
+The current transport of node and channel announcements is IRC. As such, implementations MUST currently include a basic IRC implementation as well, though this transport is eventually going to be superseded by a P2P transport.
 Please refer to [RFC 1459](https://tools.ietf.org/html/rfc1459) for implementation details of the IRC protocol.
 A minimal working implementation MUST include support for the `JOIN`, `PING`/`PONG`, `PRIVMSG`, `USER` and `NICK` messages.
 Lightning nodes wishing to discover nodes and channels MUST connect to the *Freenode* IRC network and join the channel `#lightning-nodes`.
@@ -36,7 +36,7 @@ The signature and the public key are hex-encoded, while the message type is the 
 
 ### `NODE` message
 
-The node message is used to announce the presence of a lightning node and signal the that node is accepting incoming connections.
+The node message is used to announce the presence of a lightning node and signal that the node is accepting incoming connections.
 The node message has 2 mandatory arguments and 1 option argument:
 
  - `host`: the hostname or IP of the node. For IP nodes MUST implement parsing of both IPv4 and IPv6. Nodes that do not support it may discard IPv6 announcements.
@@ -67,7 +67,7 @@ Upon receiving a message a node MUST split the message into signature and body b
 Any leading or trailing whitespace characters are dropped from the body.
 The node then extracts the public key, by searching for the second and third space character in the message.
 The node MUST verify that the signature is a valid signature for the body with the public key.
-If the signature is invalid the message is dropped and processing ends.
+If the signature is invalid, the message is dropped and processing ends.
 
 After verifying the signature, the node splits the body into message type, public key and arguments and continues processing depending on the message type. The announcements are used to populate the node's local view of the topology, inserting new channels, and updating existing ones with new parameters.
 
