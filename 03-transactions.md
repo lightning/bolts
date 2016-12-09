@@ -14,7 +14,7 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
 
 * The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
    * `0 2 <key1> <key2> 2 OP_CHECKMULTISIG`
-* Where `<key1>` is the numerically lesser of the two DER-encoded `funding-pubkey` and `<key2>` is the greater.
+* Where `key1` is the numerically lesser of the two DER-encoded `funding-pubkey` and `key2` is the greater.
 
 ## Commitment Transaction
 * version: 2
@@ -23,7 +23,7 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
    * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
    * `txin[0]` sequence: lower 24 bits are upper 24 bits of the obscured commitment transaction number.
    * `txin[0]` script bytes: 0
-   * `txin[0]` witness: `<signature-for-key1>` `<signature-for-key-2>`
+   * `txin[0]` witness: `<signature-for-key1> <signature-for-key-2>`
 
 The 48-bit commitment transaction number is obscured by `XOR` with the lower 48 bits of:
 
@@ -58,7 +58,9 @@ This output sends funds back to the owner of this commitment transaction, thus m
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with `nSequence` field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script `<local-delayedsig> 0`.
+It is spent by a transaction with `nSequence` field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script:
+
+	<local-delayedsig> 0
 
 If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness script:
 
@@ -66,7 +68,7 @@ If a revoked commitment transaction is published, the other party can spend this
 
 #### To-Remote Output
 
-This output sends funds to the other peer, thus is a simple P2PKH to `<remotekey>`.
+This output sends funds to the other peer, thus is a simple P2PKH to `remotekey`.
 
 #### Offered HTLC Outputs
 
@@ -396,7 +398,7 @@ avoid storage for every commitment transaction, it can be given the
 the scripts required for the penalty transaction: it need only be
 given (and store) the signatures for each penalty input.
 
-Changing the `<localkey>` and `<remotekey>` every time ensures that commitment transaction id cannot be guessed: Every commitment transaction uses one of these in its output script.  Splitting the `<local-delayedkey>` which is required for the penalty transaction allows that to be shared with the watcher without revealing `<localkey>`; even if both peers use the same watcher, nothing is revealed.
+Changing the `localkey` and `remotekey` every time ensures that commitment transaction id cannot be guessed: Every commitment transaction uses one of these in its output script.  Splitting the `local-delayedkey` which is required for the penalty transaction allows that to be shared with the watcher without revealing `localkey`; even if both peers use the same watcher, nothing is revealed.
 
 Finally, even in the case of normal unilateral close, the HTLC-success
 and/or HTLC-timeout transactions do not reveal anything to the
