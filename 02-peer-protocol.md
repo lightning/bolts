@@ -32,7 +32,7 @@ Channel establishment begins immediately after authentication, and
 consists of the funding node sending an `open_channel` message,
 followed by the responding node sending `accept_channel`. With the
 channel parameters locked in, the funder is able to create the funding
-transaction and both version of commitment transaction as described in
+transaction and both versions of the commitment transaction as described in
 [BOLT
 03](https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#bolt-3-bitcoin-transaction-and-script-formats).
 The funder then sends the outpoint of the funding output along with a
@@ -47,7 +47,7 @@ must broadcast the funding transaction to the Bitcoin network. After
 the `funding_signed` message is sent/received, both sides should wait
 for the funding transaction to ensure the blockchain and reach their
 specified depth (number of confirmations). After both sides have sent
-the `funding_locked` message, the channel is estimated and can begin
+the `funding_locked` message, the channel is established and can begin
 normal operation. The `funding_locked` message includes information
 which will be used to construct channel authentication proofs.
 
