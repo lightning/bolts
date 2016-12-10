@@ -18,7 +18,7 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
 
 ## Commitment Transaction
 * version: 2
-* locktime: lower 24 bits are the obscured commitment transaction number.
+* locktime: lower 24 bits are the lower 24 bits of the obscured commitment transaction number.
 * txin count: 1
    * txin[0] outpoint: `txid` and `output_index` from `funding_created` message
    * txin[0] sequence: lower 24 bits are upper 24 bits of the obscured commitment transaction number.
