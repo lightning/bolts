@@ -43,7 +43,7 @@ There are a number of conventions we will adhere to throughout the document:
    serialized compressed public key of the node. Refer to
    [`OP_HASH160`](https://en.bitcoin.it/wiki/Script#Crypto) for
    details.
- - HMAC: the integrity verification of the packet is based on Keyed-Hash Message Authentication Code as defined by the [FIPS 198 Standard](http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf), using `SHA256` as hashing algorithm.
+ - HMAC: the integrity verification of the packet is based on Keyed-Hash Message Authentication Code as defined by the [FIPS 198 Standard](http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf)/[RFC 2104](https://tools.ietf.org/html/rfc2104), using `SHA256` as hashing algorithm.
    The resulting HMAC is then truncated at 20 bytes in order to reduce the overhead.
  - Elliptic Curve: for all computations involving elliptic curves, the
    Bitcoin curve, [`secp256k1`](http://www.secg.org/sec2-v2.pdf), is used.
