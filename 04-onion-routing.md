@@ -310,9 +310,9 @@ In the packet generation phase the secret is the `sessionkey` and the public key
 In the pocessing phase the secret is the node's private key and the public key is the ephemeral public key from the packet, which has been incrementally blinded by the predecessors.
 
 The public key is multiplied by the secret, using to the `secp256k1` curve.
-The `X` coordinate of the multiplication result is serialized and hashed using `SHA256`.
+The DER compressed representation of the multiplication result is serialized and hashed using `SHA256`.
 The resulting hash is returned as the shared secret.
-Notice that this is not the ECDH variant implemented in `libsecp256k1` which also includes the `Y` coordinate in the hash.
+Notice that this is the ECDH variant implemented in `libsecp256k1`.
 
 ## Filler Generation
 
