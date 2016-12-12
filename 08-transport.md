@@ -127,8 +127,8 @@ The following functions will also be referenced:
   * `ECDH(rk, k)`: Performs an Elliptic-Curve Diffie-Hellman operation using
     `rk` which is a `secp256k1` public key and `k` which is a valid private key
     within the finite field as defined by the curve paramters.
-      * The returned value is the raw big-endian byte serialization of
-        `x-coordinate` (using affine coordinates) of the generated point.
+      * The returned value is the SHA256 of the DER compressed format of the
+	    generated point.
 
   * `HKDF`: a function is defined in [5](#reference-5), evaluated with a
     zero-length `info` field.
