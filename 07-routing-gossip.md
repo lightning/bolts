@@ -75,7 +75,8 @@ ignore the message.
 
 Otherwise, if the transaction referred to was not previously announced
 as a channel, the receiving node SHOULD queue the message for
-rebroadcasting.  If it has previously received a valid
+rebroadcasting, but MAY choose not to for messages longer than
+the minimum expected length.  If it has previously received a valid
 `channel_announcement` for the same transaction in the same block, but
 different `node-id-1` or `node-id-2`, it SHOULD blacklist the
 previous message's `node-id-1` and `node-id-2` as well as this
@@ -101,6 +102,10 @@ that keys have leaked.
 While channels shouldn't be advertised before they are sufficiently
 deep, the requirement against rebroadcasting only applies if the
 transaction hasn't moved to a different block.
+
+To avoid having to store excessive-sized messages, yet allow
+reasonable expansion in future, nodes are allowed to restrict
+rebroadcasting (perhaps statistically).
 
 New channel features are possible in future; backwards compatible (or
 optional) ones will have odd feature bits, incompatible ones will have
@@ -160,7 +165,8 @@ previously known from a `channel_announcement` message, or if
 `node_announcement` from this `node-id`.  Otherwise, if the
 `timestamp` is greater than the last-received `node_announcement` from
 this `node-id` the receiving node SHOULD queue the message for
-rebroadcasting.
+rebroadcasting, but MAY choose not to for messages longer than
+the minimum expected length.
 
 The receiving node SHOULD NOT connect to a node which has an unknown
 `feature` bit set in the `node_announcement` which is even.
@@ -231,7 +237,8 @@ this channel and node-id.  Otherwise, if the `timestamp` is equal to
 the last-received `channel_announcement` and the fields other than
 `signature` differ, the node MAY blacklist this node-id and forget all
 channels associated with it.  Otherwise the receiving node SHOULD
-queue the message for rebroadcasting.
+queue the message for rebroadcasting, but MAY choose not to for
+messages longer than the minimum expected length.
 
 ## Rebroadcasting
 
