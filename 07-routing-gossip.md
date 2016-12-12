@@ -32,6 +32,8 @@ its fee levels and expiry using `channel_update`.
     * [33:node-id-2]
     * [33:bitcoin-key-1]
     * [33:bitcoin-key-2]
+    * [2:len]
+    * [len:features]
 
 ### Requirements
 
@@ -55,6 +57,9 @@ The creating node MUST set `node-signature-1` and `node-signature-2`
 to the signature of the double-SHA256 of the message after the end of
 `node-signature-2`, using `node-id-1` and `node-id-2` as keys respectively.
 
+The creating node SHOULD set `len` to the minimum length required to
+hold the `features` bits it sets.
+
 The receiving node MUST ignore the message if the output specified
 by `channel-id` does not
 correspond to a P2WSH using `bitcoin-key-1` and `bitcoin-key-2` as
@@ -77,6 +82,9 @@ previous message's `node-id-1` and `node-id-2` as well as this
 `node-id-1` and `node-id-2` and forget channels connected to them,
 otherwise it SHOULD store this `channel_announcement`.
 
+The receiving node SHOULD NOT route through a channel which has an
+unknown `feature` bit set which is even.
+
 The receiving node SHOULD forget a channel once its funding output has
 been spent or reorganized out.
 
@@ -94,6 +102,11 @@ While channels shouldn't be advertised before they are sufficiently
 deep, the requirement against rebroadcasting only applies if the
 transaction hasn't moved to a different block.
 
+New channel features are possible in future; backwards compatible (or
+optional) ones will have odd feature bits, incompatible ones will have
+even feature bits.  These will be propagated by nodes even if they
+can't use the announcements themselves.
+
 ## The `node_announcement` message
 
 This allows a node to indicate extra data associated with it, in
@@ -109,6 +122,8 @@ nodes for which a channel is not already known are ignored.
    * [33:node-id]
    * [3:rgb-color]
    * [32:alias]
+   * [2:len]
+   * [len:features]
 
 The `timestamp` allows ordering in the case of multiple announcements;
 the `ipv6` and `port` allow the node to announce its willingness to
@@ -124,6 +139,9 @@ timestamp.  It MUST set the `ipv6` and `port` fields to all zeroes, or
 a non-zero `port` and `ipv6` set to a valid IPv6 address or an IPv4-Mapped IPv6 Address format as defined in [RFC 4291 section 2.5.5.2](https://tools.ietf.org/html/rfc4291#section-2.5.5.2).  It MUST set `signature` to the signature of
 the double-SHA256 of the entire remaining packet after `signature` using the
 key given by `node-id`.  It MAY set `alias` and `rgb-color` to customize their node's appearance in maps and graphs, where the first byte of `rgb` is the red value, the second byte is the green value and the last byte is the blue value.  It MUST set `alias` to a valid UTF-8 string of up to 21 bytes in length, with all `alias` bytes following equal to zero.
+
+The creating node SHOULD set `len` to the minimum length required to
+hold the `features` bits it sets.
 
 The receiving node SHOULD fail the connection if `node-id` is not a valid
 compressed public key, and MUST NOT further process the message.
@@ -144,9 +162,17 @@ previously known from a `channel_announcement` message, or if
 this `node-id` the receiving node SHOULD queue the message for
 rebroadcasting.
 
+The receiving node SHOULD NOT connect to a node which has an unknown
+`feature` bit set in the `node_announcement` which is even.
+
 The receiving node MAY use `rgb` and `alias` to reference nodes in interfaces, but SHOULD insinuate their self-signed origin.
 
 ### Rationale
+
+New node features are possible in future; backwards compatible (or
+optional) ones will have odd feature bits, incompatible ones will have
+even feature bits.  These will be propagated by nodes even if they
+can't use the announcements themselves.
 
 RFC 4291 section 2.5.5.2 described IPv4 addresses like so:
 
