@@ -40,7 +40,7 @@ the corresponding `node-id`.
 
 We also need to prove that `node-1` and `node-2` both agree on this
 announcement message; that is done by having a signature from each
-`node-id` signing the entire message (`node-signature-1` and
+`node-id` signing the message (`node-signature-1` and
 `node-signature-2`).
 
 1. type: 256 (`channel_announcement`)
@@ -131,7 +131,7 @@ rebroadcasting (perhaps statistically).
 
 New channel features are possible in future; backwards compatible (or
 optional) ones will have odd feature bits, incompatible ones will have
-even feature bits.  These will be propagated by nodes even if they
+even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide).  These will be propagated by nodes even if they
 can't use the announcements themselves.
 
 ## The `node_announcement` message
