@@ -127,8 +127,7 @@ The following functions will also be referenced:
   * `ECDH(rk, k)`: Performs an Elliptic-Curve Diffie-Hellman operation using
     `rk` which is a `secp256k1` public key and `k` which is a valid private key
     within the finite field as defined by the curve paramters.
-      * The returned value is the raw big-endian byte serialization of
-        `x-coordinate` (using affine coordinates) of the generated point.
+      * The returned value is the serialization of the generated point in compressed format (33 bytes)
 
   * `HKDF`: a function is defined in [5](#reference-5), evaluated with a
     zero-length `info` field.
@@ -608,6 +607,31 @@ Key rotation for a key `k` is performed according to the following:
 It is strongly recommended that existing, commonly-used, validated
 libraries be used for encryption and decryption, to avoid the many
 implementation pitfalls possible.
+
+# Test vectors
+
+The following test vectors were generated with the Noise go library listed at [4](#reference-4) with the addition of the secp256k1 ECDH function described above:
+
+```
+handshake=Noise_XK_secp256k1_ChaChaPoly_SHA256
+init_static=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+resp_static=0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20
+gen_init_ephemeral=202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f
+gen_resp_ephemeral=4142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f60
+prologue=6e6f74736563726574
+priv=202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f pub=021f8a566c205633d029094747d2e18f44e05993dda7a5f88f496078205f656e59
+msg_0_payload=
+msg_0_ciphertext=021f8a566c205633d029094747d2e18f44e05993dda7a5f88f496078205f656e59795b489341de8ba2aede9ef724ef41ed
+priv=4142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f60 pub=037c3f0429768437a942f1818ef1616c609b7a6d8a8dd245e179c8c0838e7d169d
+msg_1_payload=
+msg_1_ciphertext=037c3f0429768437a942f1818ef1616c609b7a6d8a8dd245e179c8c0838e7d169db055b26c58562e78aeca76e40d12e862
+msg_2_payload=
+msg_2_ciphertext=9f9d6475c1af2e67564b29b1dfc4a6b864eaa0a9f74db4f793c6679fa0ada71ebcd946b0ffa309c143121811670afa40b06dd1f7a01f6e8411928ab73e72b64815
+msg_3_payload=79656c6c6f777375626d6172696e65
+msg_3_ciphertext=aba32cad174896f16cfa9666cba96a1ffca17e0f5403295e3bab452dee714b
+msg_4_payload=7375626d6172696e6579656c6c6f77
+msg_4_ciphertext=3ab95ff1ebdcc5e26d6656571eca24023065d71abaa976298ea5e3f30bf8d1
+```
 
 ## Acknowledgements
 
