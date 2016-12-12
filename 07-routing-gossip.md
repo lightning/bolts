@@ -125,11 +125,16 @@ a non-zero `port` and `ipv6` set to a valid IPv6 address or an IPv4-Mapped IPv6 
 the double-SHA256 of the entire remaining packet after `signature` using the
 key given by `node-id`.  It MAY set `alias` and `rgb-color` to customize their node's appearance in maps and graphs, where the first byte of `rgb` is the red value, the second byte is the green value and the last byte is the blue value.  It MUST set `alias` to a valid UTF-8 string of up to 21 bytes in length, with all `alias` bytes following equal to zero.
 
-The receiving node SHOULD fail the connection if `signature` is
-invalid or incorrect for the entire message including unknown fields
-following `alias`, and MUST NOT further process the message.  The
-receiving node SHOULD ignore `ipv6` if `port` is zero.  It SHOULD fail
-the connection if the final byte of `alias` is not zero.
+The receiving node SHOULD fail the connection if `node-id` is not a valid
+compressed public key, and MUST NOT further process the message.
+
+The receiving node SHOULD fail the connection if `signature` is not a
+valid signature using `node-id` of the double-SHA256 of the entire
+message following the `signature` field (including unknown fields
+following `alias`), and MUST NOT further process the message.
+
+The receiving node SHOULD ignore `ipv6` if `port` is zero.  It SHOULD
+fail the connection if the final byte of `alias` is not zero.
 
 The receiving node SHOULD ignore the message if `node-id` is not
 previously known from a `channel_announcement` message, or if
@@ -184,14 +189,15 @@ The creating node MUST set `timestamp` to greater than zero, and MUST set it to 
 It MUST set `expiry` to the number of blocks it will subtract from an incoming HTLC's `expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
 
 The receiving node MUST ignore `flags` other than the least significant bit.
-The receiving node SHOULD fail
-the connection if `signature` is invalid or incorrect for the entire
-message including unknown fields following `signature`, and MUST NOT
-further process the message.  The receiving node SHOULD ignore `ipv6`
+The receiving node SHOULD ignore `ipv6`
 if `port` is zero.  It SHOULD ignore the message if `channel-id`does
 not correspond to a previously
 known, unspent channel from `channel_announcement`, otherwise the node-id
 is taken from the `channel_announcement` `node-id-1` if least-significant bit of flags is 0 or `node-id-2` otherwise.
+The receiving node SHOULD fail the connection if `signature` is not a
+valid signature using `node-id` of the double-SHA256 of the entire
+message following the `signature` field (including unknown fields
+following `fee-proportional-millionths`), and MUST NOT further process the message.
 
 The receiving node SHOULD ignore the message if `timestamp`
 is not greater than than the last-received `channel_announcement` for
