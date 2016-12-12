@@ -16,7 +16,7 @@ operation, and closing.
       * [Closing negotiation: `closing_signed`](#closing-negotiation-closing_signed)
     * [Normal Operation](#normal-operation)
       * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
-      * [Adding an HTLC](#adding-an-htlc)
+      * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
       * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
       * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
       * [Completing the transition to the updated state: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
@@ -486,7 +486,7 @@ deadline, and MUST fail the channel if an HTLC which it offered is in
 either node's current commitment transaction past this deadline.
 
 
-### Adding an HTLC
+### Adding an HTLC: `update_add_htlc`
 
 
 Either node can send `update_add_htlc` to offer a HTLC to the other,
