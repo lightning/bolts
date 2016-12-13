@@ -144,13 +144,12 @@ nodes for which a channel is not already known are ignored.
 2. data:
    * [64:signature]
    * [4:timestamp]
-   * [16:ipv6]
-   * [2:port]
    * [33:node-id]
    * [3:rgb-color]
    * [32:alias]
    * [2:len]
    * [len:features]
+   * address-descriptors...
 
 The `timestamp` allows ordering in the case of multiple announcements;
 the `ipv6` and `port` allow the node to announce its willingness to
@@ -158,14 +157,30 @@ accept incoming network connections, the `rgb-color` and `alias` allow
 intelligence services to give their nodes cool monikers like IRATEMONK
 and WISTFULTOLL and use the color black.
 
+The one or more `address-descriptor`s have format:
+
+   * [1:addrtype]
+   * [1:addrlen]
+   * [addrlen:addr]
+
+The following address descriptor types are defined:
+
+1. `1`: IPv4.  `addrlen` = 6. addr = `[4:ipv4-addr][2:port]`.
+2. `2`: IPv6.  `addrlen` = 18. addr = `[16:ipv6-addr][2:port]`.
+
 ### Requirements
 
 The creating node MUST set `timestamp` to be greater than any previous
 `node_announcement` it has created.  It MAY base it on a UNIX
-timestamp.  It MUST set the `ipv6` and `port` fields to all zeroes, or
-a non-zero `port` and `ipv6` set to a valid IPv6 address or an IPv4-Mapped IPv6 Address format as defined in [RFC 4291 section 2.5.5.2](https://tools.ietf.org/html/rfc4291#section-2.5.5.2).  It MUST set `signature` to the signature of
+timestamp.  It MUST set `signature` to the signature of
 the double-SHA256 of the entire remaining packet after `signature` using the
 key given by `node-id`.  It MAY set `alias` and `rgb-color` to customize their node's appearance in maps and graphs, where the first byte of `rgb` is the red value, the second byte is the green value and the last byte is the blue value.  It MUST set `alias` to a valid UTF-8 string of up to 21 bytes in length, with all `alias` bytes following equal to zero.
+
+The creating node SHOULD append an `address-descriptor` for each
+distinct network address which expects incoming connections.  For IPv4
+and IPv6 address descriptors, `port` MUST NOT be zero, and `ipv4-addr`
+and `ipv6-addr` SHOULD be routable addresses.  The creating node MAY
+include more than one `address-descriptor` of the same type.
 
 The creating node SHOULD set `len` to the minimum length required to
 hold the `features` bits it sets.
@@ -178,8 +193,11 @@ valid signature using `node-id` of the double-SHA256 of the entire
 message following the `signature` field (including unknown fields
 following `alias`), and MUST NOT further process the message.
 
-The receiving node SHOULD ignore `ipv6` if `port` is zero.  It SHOULD
-fail the connection if the final byte of `alias` is not zero.
+The receiving node SHOULD ignore `address-descriptor`s which are not
+types defined above.  The receiving node SHOULD fail the connection if
+an `address-descriptor` of a type defined above has `addrlen` not
+equal to that defined above. It SHOULD fail the
+connection if the final byte of `alias` is not zero.
 
 The receiving node SHOULD ignore the message if `node-id` is not
 previously known from a `channel_announcement` message, or if
