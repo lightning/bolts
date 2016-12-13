@@ -128,6 +128,53 @@ With the `hopfiller` being constructed in the same way as the routing
 info `filler` and each payload being incrementally obfuscated at each
 hop.
 
+### Per Hop Payload Format
+
+Using the per-hop-payload, the sender is able precisely specify the path and
+structure of the HTLC's forwarded at each hop. As the per-hop-payload is
+protected under the packet-wide HMAC, the information within the
+per-hop-payload is fully authenticated with each pair-wise relationship between
+the HTLC sender, and each intermediate node in the path.  Using this end-to-end
+authentication, forwarding nodes are able to ensure that the incoming node
+didn't forward an ill-crafted HTLC by cross-checking the HTLC parameters with
+the values as specified within the per-hop-payload.
+
+The format of the per-hop-payload for a version 0 packet is as follows: 
+```
+┌──────────────┬─────────────────────────┬───────────────────────────────┬───────────────────────────────────────────┐
+│realm (1 byte)│amt_to_forward (8 bytes) │ incoming_cltv_value (2 bytes) │unused_with_v0_version_on_header (9 bytes) │
+└──────────────┴─────────────────────────┴───────────────────────────────┴───────────────────────────────────────────┘
+```
+
+Field Description: 
+
+   * `realm` - The realm (chain) link that the outgoing HTLC should be forwarded
+     on. Within a version 0 packet, this field currently carries no meaning as
+     cross-chain forwarding has not yet been fully specified.
+
+   * `amt_to_forward` - The amount in milli-satoshi to forward to the next
+     (outgoing) hop specified within the routing information. 
+     
+     This value factors in the computed fee for this particular hop. When
+     processing an incoming Sphinx packet, if the `amt_to_forward` field
+     unconverted does not match the value of the HTLC extended, then the HTLC
+     should be failed and rejected as this indicates the node has deivated from
+     the specified paramters.
+
+   * `incoming_cltv_value` - The CLTV value that the _incoming_ HTLC carrying
+     the packet should have. 
+     
+     Inclusion of this field allows a node to authtenicate the information
+     specified by the original sender and the paramters of the HTLC forwarded.
+     If the values don't correspond, then the HTLC should be failed+rejected as
+     this incidcates the incoming node has tamprered with the intended HTLC
+     values.
+
+
+Nodes forwarding HTLC's MUST construct the outgoing HTLC as specified within
+the per-hop-payload.  Otherwise, deviation from the specified HTLC parameters
+may lead to extraneous routing failure.
+
 ## Packet Construction
 
 Assuming a _sender node_ `n_0` wants to route a packet to a _final recipient_ `n_r`.
