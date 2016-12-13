@@ -89,7 +89,7 @@ The remote node can redeem the HTLC with the scriptsig:
 
     <remotesig> <payment-preimage>
 
-Either node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as show below.
+Either node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as shown below.
 
 #### Received HTLC Outputs
 
@@ -118,15 +118,15 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
 
 * version: 2
 * txin: the commitment transaction HTLC output.
-* locktime: 0 for HTLC-Success, `htlc-timeout` for HTLC-Timeout.
+* locktime: `0` for HTLC-Success, `htlc-timeout` for HTLC-Timeout.
 * txin count: 1
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
-   * `txin[0]` sequence: 0
-   * `txin[0]` script bytes: 0
-   * `txin[0]` witness stack: `0 <remotesig> <localsig> 0` (HTLC-Timeout) or `0 <remotesig> <localsig>  <payment-preimage>` (HTLC-success).
+   * `txin[0]` sequence: `0`
+   * `txin[0]` script bytes: `0`
+   * `txin[0]` witness stack: `0 <remotesig> <localsig>  <payment-preimage>` for HTLC-Success, `0 <remotesig> <localsig> 0` for HTLC-Timeout.
 * txout count: 1
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
-   * `txout[0]` script: version 0 P2WSH with witness script as below.
+   * `txout[0]` script: version 0 P2WSH with witness script as shown below.
 
 The witness script for the output is:
 
