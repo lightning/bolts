@@ -709,7 +709,7 @@ A receiving node MUST fail the channel if `num-htlc-timeout` is not
 equal to the number of outputs in the sending node's commitment
 transaction corresponding to HTLCs offered by the sending node. A
 receiving node MUST fail the channel if any `htlc-timeout-signature`
-is not valid.
+is not valid for the corresponding HTLC transaction.
 
 Nodes MUST NOT broadcast old (revoked) commitment transactions; doing
 so will allow the other node to seize all the funds.  Nodes SHOULD NOT
