@@ -160,7 +160,7 @@ and WISTFULTOLL and use the color black.
 `addresses` allows the node to announce its willingness to accept
 incoming network connections: it contains series of `address
 descriptor`s for connecting to the node.  The first byte describes the
-address type, followed by the number of bytes for that type.
+address type, followed by the appropriate number of bytes for that type.
 
 The following `address descriptor` types are defined:
 
@@ -177,14 +177,15 @@ the double-SHA256 of the entire remaining packet after `signature` using the
 key given by `node-id`.  It MAY set `alias` and `rgb-color` to customize their node's appearance in maps and graphs, where the first byte of `rgb` is the red value, the second byte is the green value and the last byte is the blue value.  It MUST set `alias` to a valid UTF-8 string, with any `alias` bytes following equal to zero.
 
 The creating node SHOULD fill `addresses` with an address descriptor
-for each distinct network address which expects incoming connections.
+for each public network address which expects incoming connections,
+and MUST set `addrlen` to the number of bytes in `addresses`.
 Non-zero typed address descriptors MUST be placed in ascending order;
 any number of zero-typed address descriptors MAY be placed anywhere,
 but SHOULD only be used for aligning fields following `addresses`.
 
 The creating node MUST NOT create a type 1 or type 2 address
 descriptor with `port` equal to zero, and SHOULD ensure `ipv4-addr`
-and `ipv6-addr` are routable addresses.  The creating node MAY include
+and `ipv6-addr` are routable addresses.  The creating node MUST NOT include
 more than one `address descriptor` of the same type.
 
 The creating node SHOULD set `flen` to the minimum length required to
