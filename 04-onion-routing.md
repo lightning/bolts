@@ -130,7 +130,7 @@ hop.
 
 ### Per Hop Payload Format
 
-Using the per-hop-payload, the sender is able precisely specify the path and
+Using the per-hop-payload, the sender is able to precisely specify the path and
 structure of the HTLC's forwarded at each hop. As the per-hop-payload is
 protected under the packet-wide HMAC, the information within the
 per-hop-payload is fully authenticated with each pair-wise relationship between
@@ -141,9 +141,9 @@ the values as specified within the per-hop-payload.
 
 The format of the per-hop-payload for a version 0 packet is as follows: 
 ```
-┌──────────────┬─────────────────────────┬───────────────────────────────┬───────────────────────────────────────────┐
-│realm (1 byte)│amt_to_forward (8 bytes) │ incoming_cltv_value (2 bytes) │unused_with_v0_version_on_header (9 bytes) │
-└──────────────┴─────────────────────────┴───────────────────────────────┴───────────────────────────────────────────┘
++----------------+--------------------------+-------------------------------+--------------------------------------------+
+| realm (1 byte) | amt_to_forward (8 bytes) | incoming_cltv_value (2 bytes) | unused_with_v0_version_on_header (9 bytes) |
++----------------+--------------------------+-------------------------------+--------------------------------------------+
 ```
 
 Field Description: 
@@ -155,11 +155,16 @@ Field Description:
    * `amt_to_forward` - The amount in milli-satoshi to forward to the next
      (outgoing) hop specified within the routing information. 
      
-     This value factors in the computed fee for this particular hop. When
-     processing an incoming Sphinx packet, if the `amt_to_forward` field
-     unconverted does not match the value of the HTLC extended, then the HTLC
-     should be failed and rejected as this indicates the node has deivated from
-     the specified paramters.
+     This value MUST factor in the computed fee for this particular hop. When
+     processing an incoming Sphinx packet along with the HTLC message it's
+     encapsulated within, if the following inequality doesn't hold, then the
+     HTLC should be rejected as it indicates a prior node in the path has
+     deviated from the specified paramters:
+
+        incoming_htlc_amt - fee >= amt_to_forward
+
+     Where `fee` is calculated according to the receving node's advertised fee
+     schema as described in [BOLT 7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#htlc-fees).
 
    * `incoming_cltv_value` - The CLTV value that the _incoming_ HTLC carrying
      the packet should have. 
