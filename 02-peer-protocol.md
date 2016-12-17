@@ -215,7 +215,7 @@ The recipient MUST fail the channel if `signature` is incorrect, and MUST ignore
 
 #### Rationale
 
-The `output-index` can only be 1 byte, since that's how we'll pack it into the channel-id used throughout the protocol.  The limit of 255 outputs should not be overly burdensome.
+The `output-index` can only be 1 byte, since that's how we'll pack it into the channel-id used throughout the protocol.  The limit of 252 outputs should not be overly burdensome.
 
 ### The `funding_signed` message
 
