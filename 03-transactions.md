@@ -395,18 +395,38 @@ The fee for a commitment transaction MUST BE calculated to match:
 
 1. Start with `weight` = 724, and `fee` = 0.
 
-3. For every offered HTLC, if the HTLC amount plus the HTLC-timeout
-   transaction fee is greater or equal to the local node's
-   `dust-limit-satoshis`, then add 172 to `weight`, otherwise add
+3. For every offered HTLC, if the HTLC amount is greater or equal to the local node's
+   `dust-limit-satoshis` plus the HTLC-timeout
+   transaction fee, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
-4. For every accepted HTLC, if the HTLC amount plus the HTLC-success
-   transaction fee is greater or equal to the local node's
-   `dust-limit-satoshis`, then add 172 to `weight`, otherwise add
+4. For every accepted HTLC, if the HTLC amount is greater or equal to the local node's
+   `dust-limit-satoshis` plus the HTLC-success
+   transaction fee, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
 5. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
    and add to `fee`.
+
+For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 546 satoshis, and commitment transaction with:
+* 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
+* 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
+
+The commitment transaction fee would be 6214 satoshis
+The HTLC timeout transaction fee would be 3095 satoshis
+The HTLC success transaction fee would be 3276 satoshis
+
+The offered HTLC of 5000 satoshis is above 546 + 3095 and would result in:
+* an output of 5000 satoshi in the commitment transaction
+* a HTLC timeout transaction of 5000 - 3095 satoshis which spends this output
+
+The offered HTLC of 1000 satoshis is below 546 + 3095, and its amount would be added to the commitment transaction fee
+
+The received HTLC of 7000 satoshis is above 546 + 3276 and would result in:
+* an output of 7000 satoshi in the commitment transaction
+* a HTLC success transaction of 7000 - 3276 satoshis which spends this output
+
+The received HTLC of 800 satoshis is below 546 + 3276 and its amount would be added to the commitment transaction fee
 
 # Key Derivation
 
