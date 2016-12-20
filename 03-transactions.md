@@ -23,7 +23,8 @@ This details the exact format of on-chain transactions, which both sides need to
   * [Appendix A: Expected weights](#appendix-a-expected-weights)    
       * [Expected weight of the commitment transaction](#expected-weight-of-the-commitment-transaction)
       * [Expected weight of HTLC-Timeout and HTLC-Success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
-  * [Appendix B: Per-commitment Secret Generation Test Vectors](#appendix-b-per-commitment-secret-generation-test-vectors)    
+  * [Appendix B: Transactions Test Vectors](#appendix-b-transactions-test-vectors)
+  * [Appendix C: Per-commitment Secret Generation Test Vectors](#appendix-c-per-commitment-secret-generation-test-vectors)    
     * [Generation tests](#generation-tests)
     * [Storage tests](#storage-tests)
   * [References](#references)   
@@ -262,7 +263,7 @@ uses the local node's `delayed-payment-basepoint`, and the
 `remote-delayedkey` uses the remote node's
 `delayed-payment-basepoint`.
 
-The correspoding private keys can be derived similarly if the basepoint
+The corresponding private keys can be derived similarly if the basepoint
 secrets are known (i.e., `localkey` and `local-delayedkey` only):
 
     secretkey = basepoint-secret + SHA256(per-commitment-point || basepoint)
@@ -581,7 +582,111 @@ HTLC-success) gives a weight of:
 	634 (HTLC-timeout)
 	671 (HTLC-success)
 
-# Appendix B: Per-commitment Secret Generation Test Vectors
+# Appendix B: Transactions Test Vectors
+
+In the following examples, we show the *local* transactions, which implies that
+all payments to *local* are delayed.
+
+Here are the parameters used for all tests (they may be overridden).
+
+    funding_output_index: 1
+    funding_amount_satoshi: 10 000 000
+    local_funding_key: 30ff4956bbdd3222d44cc5e8a1261dab1e07957bdac5ae88fe3261ef321f3749
+    remote_funding_key: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e13
+    local_revocation_key: 131526c63723ff1d36c28e61a8bdc86660d7893879bbda4cfeaad2022db7c109
+    local_payment_key: e937268a37a774aa948ebddff3187fedc7035e3f0a029d8d85f31bda33b02d55
+    remote_payment_key: ce65059278a571ee4f4c9b4d5d7fa07449bbe09d9c716879343d9e975df1de33
+    local_delay: 144
+    local_dust_limit_satoshi: 35 000
+    local_feerate_per_kw: 50 000
+ 
+## Two outputs, no htlcs
+
+    inputs:
+        to_local_satoshi: 7 000 000
+        to_remote_satoshi: 3 000 000
+    
+    output:
+        local_commit_tx: 02000000010169a4f030e96663ad275a1dde5086b132a3041946be47e4af3d7cea08f499d60100000000ffffffff02b5812d00000000001600141844e52616af46f531635b5b770737ec5695a08bb58a6a00000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+    
+## Two outputs with one below dust limit, no htlcs
+    
+    inputs:
+        to_local_satoshi: 9 999 000
+        to_remote_satoshi: 1 000
+     
+    outputs:
+        commit_tx: 02000000010169a4f030e96663ad275a1dde5086b132a3041946be47e4af3d7cea08f499d60100000000ffffffff01690c9800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+    
+## Two outputs with one above dust limit but lesser than fee/2, no htlcs
+
+    inputs:
+        local_dust_limit_satoshi: 10 000
+        to_local_satoshi: 9 988 000
+        to_remote_satoshi: 12 000
+   
+    outputs:
+        commit_tx: 02000000010169a4f030e96663ad275a1dde5086b132a3041946be47e4af3d7cea08f499d60100000000ffffffff01690c9800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+    
+## With htlcs, all above dust limit
+    
+    inputs:
+        to_local_satoshi: 6 970 000
+        to_remote_satoshi: 3 000 000
+        htlc_1:
+            direction: local->remote
+            amount_msat: 10 000 000
+            expiry: 443 210
+            payment_preimage: f1a90faf44857d6c6b83dba3d27259bc0c9edb7215d21d2d5d9e7b84a9a555ab
+        htlc_2:
+            direction: remote->local
+            amount_msat: 20 000 000
+            expiry: 453 203
+            payment_preimage: 5bd0169de7a4a90c0b2b44a6f7c93860ac96630f60e40252fdd0e9f4758bc4ed
+        
+    outputs:
+        commit_tx: 02000000010169a4f030e96663ad275a1dde5086b132a3041946be47e4af3d7cea08f499d60100000000ffffffff04fd9f0000000000002200207d8a3d7311cf89ac5e3110bf97a68fa69c0079cd0329d56135d52466388282021bce000000000000220020fca23ba30fe0400a01af3c1ca47ceeb679bff7bad703f0e44c7d3266faea88cc72e42c00000000001600141844e52616af46f531635b5b770737ec5695a08b42786900000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        htlc_timeout_tx_1: 020000000180e651c8c20e773812a2607b7ee44c2894eaad6ba4c882e5c79e37f37765a2930000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
+        htlc_success_tx_1: 020000000180e651c8c20e773812a2607b7ee44c2894eaad6ba4c882e5c79e37f37765a2930100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+
+## With htlcs, some below dust limit
+
+    inputs:
+        to_local_satoshi: 6 839 700
+        to_remote_satoshi: 3 000 000
+        htlc_1:
+            direction: local->remote
+            amount_msat: 10 000 000
+            expiry: 443 210
+            payment_preimage: ae150412bcd53556bf52f03eccfc7a39ee516ffd45288d5dcc4d5b8720feb353
+        htlc_2:
+            direction: local->remote
+            amount_msat: 200 000
+            expiry: 443 120
+            payment_preimage: ca1153ea17994d47369342eef5f11d92d2855e0fec34b337dd8eed978b3e9339
+        htlc_3:
+            direction: remote->local
+            amount_msat: 20 000 000
+            expiry: 445 435
+            payment_preimage: 9b61ef0df1f9cecfe8b09881f93459db46355ba136058b7b99a8c143a3495e9b
+        htlc_4:
+            direction: remote->local
+            amount_msat: 100 000
+            expiry: 448 763
+            payment_preimage: 458397eca14e17f29c5b388b5454b5d44a9cab17cab68198dd02a7ab54f8dfb7
+        htlc_5:
+            direction: remote->local
+            amount_msat: 130 000 000
+            expiry: 445 678
+            payment_preimage: c6420effb8e0c5239edb2acf6dd40a8fcfbe6ae96eb71bf75fb9a04bec230d68
+        
+    outputs:
+        commit_tx: 0200000001e9704a6fe6984c0e818249b32bd2537242549e1eb4a1ac54d5d60b9be582ebbd0100000000ffffffff05fd9f000000000000220020aa135872238ade884390f2db277186bab2fa4aa4c92137e137558a482f2172061bce000000000000220020456a02eb2b2e32d1f5cc126ed4b59c36996c1280dd30760d274e03c86f30f7a5cb7b02000000000022002095c9d9e8a78e97242682d84f7307ae8a6a628543b6c00ff44a11b43d0472713c75d32c00000000001600141844e52616af46f531635b5b770737ec5695a08b496a6700000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        htlc_timeout_tx_1: 02000000019bc92971f05739a1e4a13bda9e884d9ce071777827cdd8f1ddafc7af2c251bf10000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
+        htlc_success_tx_1: 02000000019bc92971f05739a1e4a13bda9e884d9ce071777827cdd8f1ddafc7af2c251bf10200000000ffffffff01d0fb0100000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        htlc_success_tx_2: 02000000019bc92971f05739a1e4a13bda9e884d9ce071777827cdd8f1ddafc7af2c251bf10100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+
+# Appendix C: Per-commitment Secret Generation Test Vectors
 
 These test the generation algorithm which all nodes use.
 
