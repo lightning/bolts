@@ -19,8 +19,11 @@ This details the exact format of on-chain transactions, which both sides need to
     * [`localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation](#localkey-remotekey-local-delayedkey-and-remote-delayedkey-derivation)
     * [`revocationkey` Derivation](#revocationkey-derivation) 
     * [Per-commitment Secret Requirements](#per-commitment-secret-requirements) 
-    * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage) 
-  * [Appendix A: Per-commitment Secret Generation Test Vectors](#appendix-a-per-commitment-secret-generation-test-vectors)    
+    * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
+  * [Appendix A: Expected weights](#appendix-a-expected-weights)    
+      * [Expected weight of the commitment transaction](#expected-weight-of-the-commitment-transaction)
+      * [Expected weight of HTLC-Timeout and HTLC-Success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
+  * [Appendix B: Per-commitment Secret Generation Test Vectors](#appendix-b-per-commitment-secret-generation-test-vectors)    
     * [Generation tests](#generation-tests)
     * [Storage tests](#storage-tests)
   * [References](#references)   
@@ -188,198 +191,11 @@ Thus we use a simplified formula for *expected weight*, which assumes:
 * There is a small number of outputs (thus 1 byte to count them)
 * There is always both a to-local output and a to-remote output.
 
-The *expected weight* of a commitment transaction is calculated as follows:
+This gives us the following *expected weight* (details of the computation in [Appendix A](#appendix-a-expected-weights)):
 
-	p2wsh: 34 bytes
-		- OP_0: 1 byte
-		- OP_DATA: 1 byte (witness_script_SHA256 length)
-		- witness_script_SHA256: 32 bytes
-
-	p2wpkh: 22 bytes
-		- OP_0: 1 byte
-		- OP_DATA: 1 byte (public_key_HASH160 length)
-		- public_key_HASH160: 20 bytes
-
-	multi_sig: 71 bytes
-		- OP_2: 1 byte
-		- OP_DATA: 1 byte (pub_key_alice length)
-		- pub_key_alice: 33 bytes
-		- OP_DATA: 1 byte (pub_key_bob length)
-		- pub_key_bob: 33 bytes
-		- OP_2: 1 byte
-		- OP_CHECKMULTISIG: 1 byte
-
-	witness: 222 bytes
-		- number_of_witness_elements: 1 byte
-		- nil_length: 1 byte
-		- sig_alice_length: 1 byte
-		- sig_alice: 73 bytes
-		- sig_bob_length: 1 byte
-		- sig_bob: 73 bytes
-		- witness_script_length: 1 byte
-		- witness_script (multi_sig)
-		
-	funding_input: 41 bytes
-		- previous_out_point: 36 bytes
-			- hash: 32 bytes
-			- index: 4 bytes
-		- var_int: 1 byte (script_sig length)
-		- script_sig: 0 bytes
-		- witness <----	we use "witness" instead of "script_sig" for
-	 			transaction validation, but "witness" is stored
-	 			separately and cost for it size is smaller. So
-	 			we separate the calculation of ordinary data
-	 			from witness data.
-		- sequence: 4 bytes
-
-	output_paying_to_us: 43 bytes
-		- value: 8 bytes
-		- var_int: 1 byte (pk_script length)
-		- pk_script (p2wsh): 34 bytes
-
-	output_paying_to_them: 31 bytes
-		- value: 8 bytes
-		- var_int: 1 byte (pk_script length)
-		- pk_script (p2wpkh): 22 bytes
-
-	 htlc_output: 43 bytes
-		- value: 8 bytes
-		- var_int: 1 byte (pk_script length)
-		- pk_script (p2wsh): 34 bytes
-
-	 witness_header: 2 bytes
-		- flag: 1 byte
-		- marker: 1 byte
-
-	 commitment_transaction: 125 + 43 * num-htlc-outputs bytes
-		- version: 4 bytes
-		- witness_header <---- part of the witness data
-		- count_tx_in: 1 byte
-		- tx_in: 41 bytes
-			funding_input
-		- count_tx_out: 1 byte
-		- tx_out: 74 + 43 * num-htlc-outputs bytes
-			output_paying_to_them,
-			output_paying_to_us,
-			....htlc_output's...
-		- lock_time: 4 bytes
-	
-Multiplying non-witness data by 4, this gives a weight of:
-	
-	// 500 + 172 * num-htlc-outputs weight
-	commitment_transaction_weight = 4 * commitment_transaction
-
-	// 224 weight
-	witness_weight = witness_header + witness
-
-	overall_weight = 500 + 172 * num-htlc-outputs + 224 weight 
-
-The *expected weight* of an HTLC transaction is calculated as follows:
-
-    accepted_htlc_script: 109 bytes
-	    - OP_DATA: 1 byte (remotekey length)
-		- remotekey: 33 bytes
-		- OP_SWAP: 1 byte
-		- OP_SIZE: 1 byte
-		- 32: 1 byte
-		- OP_EQUAL: 1 byte
-		- OP_IF: 1 byte
-		- OP_HASH160: 1 byte
-		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
-		- ripemd-of-payment-hash: 20 bytes
-		- OP_EQUALVERIFY: 1 byte
-		- 2: 1 byte
-		- OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localkey length)
-		- localkey: 33 bytes
-		- 2: 1 byte
-		- OP_CHECKMULTISIG: 1 byte
-		- OP_ELSE: 1 byte
-		- OP_DROP: 1 byte
-		- OP_PUSHDATA2: 1 byte (locktime length)
-		- locktime: 2 bytes
-		- OP_CHECKLOCKTIMEVERIFY: 1 byte
-		- OP_DROP: 1 byte
-        - OP_CHECKSIG: 1 byte
-		- OP_ENDIF: 1 byte
-
-    offered_htlc_script: 104 bytes
-		- OP_DATA: 1 byte (remotekey length)
-		- remotekey: 33 bytes
-		- OP_SWAP: 1 byte
-		- OP_SIZE: 1 byte
-		- 32: 1 byte
-		- OP_EQUAL: 1 byte
-		- OP_NOTIF: 1 byte
-		- OP_DROP: 1 byte
-		- 2: 1 byte
-		- OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localkey length)
-		- localkey: 33 bytes
-		- 2: 1 byte
-		- OP_CHECKMULTISIG: 1 byte
-		- OP_ELSE: 1 byte
-		- OP_HASH160: 1 byte
-		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
-		- ripemd-of-payment-hash: 20 bytes
-		- OP_EQUALVERIFY: 1 byte
-		- OP_CHECKSIG: 1 byte
-		- OP_ENDIF: 1 byte
-
-    timeout_witness: 256 bytes
-		- number_of_witness_elements: 1 byte
-		- nil_length: 1 byte
-		- sig_alice_length: 1 byte
-		- sig_alice: 73 bytes
-		- sig_bob_length: 1 byte
-		- sig_bob: 73 bytes
-		- nil_length: 1 byte
-		- witness_script_length: 1 byte
-		- witness_script (offered_htlc_script)
-
-    success_witness: 293 bytes
-		- number_of_witness_elements: 1 byte
-		- nil_length: 1 byte
-		- sig_alice_length: 1 byte
-		- sig_alice: 73 bytes
-		- sig_bob_length: 1 byte
-		- sig_bob: 73 bytes
-		- preimage_length: 1 byte
-		- preimage: 32 bytes
-		- witness_script_length: 1 byte
-		- witness_script (accepted_htlc_script)
-
-    commitment_input: 41 bytes
-		- previous_out_point: 36 bytes
-			- hash: 32 bytes
-			- index: 4 bytes
-		- var_int: 1 byte (script_sig length)
-		- script_sig: 0 bytes
-		- witness (success_witness or timeout_witness)
-		- sequence: 4 bytes
-
-    htlc_tx_output: 43 bytes
-		- value: 8 bytes
-		- var_int: 1 byte (pk_script length)
-		- pk_script (p2wsh): 34 bytes
-
-	htlc_transaction: 
-		- version: 4 bytes
-		- witness_header <---- part of the witness data
-		- count_tx_in: 1 byte
-		- tx_in: 41 bytes
-			commitment_input
-		- count_tx_out: 1 byte
-		- tx_out: 43
-			htlc_tx_output
-		- lock_time: 4 bytes
-
-Multiplying non-witness data by 4, this gives a weight of 376.  Adding
-the witness data for each case (256 + 2 for HTLC-timeout, 293 + 2 for
-HTLC-success) gives a weight of:
-
-	634 (HTLC-timeout)
-	671 (HTLC-success)
+	Commitment weight:   724 + 172 * num-htlc-outputs
+	HTLC-timeout weight: 634
+    HTLC-success weight: 671
 
 ### Requirements
 
@@ -566,7 +382,206 @@ This looks complicated, but remember that the index in entry `b` has
 `b` trailing zeros; the mask and compare is just seeing if the index
 at each bucket is a prefix of the index we want.
 
-# Appendix A: Per-commitment Secret Generation Test Vectors
+# Appendix A: Expected weights
+
+## Expected weight of the commitment transaction
+
+The *expected weight* of a commitment transaction is calculated as follows:
+
+	p2wsh: 34 bytes
+		- OP_0: 1 byte
+		- OP_DATA: 1 byte (witness_script_SHA256 length)
+		- witness_script_SHA256: 32 bytes
+
+	p2wpkh: 22 bytes
+		- OP_0: 1 byte
+		- OP_DATA: 1 byte (public_key_HASH160 length)
+		- public_key_HASH160: 20 bytes
+
+	multi_sig: 71 bytes
+		- OP_2: 1 byte
+		- OP_DATA: 1 byte (pub_key_alice length)
+		- pub_key_alice: 33 bytes
+		- OP_DATA: 1 byte (pub_key_bob length)
+		- pub_key_bob: 33 bytes
+		- OP_2: 1 byte
+		- OP_CHECKMULTISIG: 1 byte
+
+	witness: 222 bytes
+		- number_of_witness_elements: 1 byte
+		- nil_length: 1 byte
+		- sig_alice_length: 1 byte
+		- sig_alice: 73 bytes
+		- sig_bob_length: 1 byte
+		- sig_bob: 73 bytes
+		- witness_script_length: 1 byte
+		- witness_script (multi_sig)
+		
+	funding_input: 41 bytes
+		- previous_out_point: 36 bytes
+			- hash: 32 bytes
+			- index: 4 bytes
+		- var_int: 1 byte (script_sig length)
+		- script_sig: 0 bytes
+		- witness <----	we use "witness" instead of "script_sig" for
+	 			transaction validation, but "witness" is stored
+	 			separately and cost for it size is smaller. So
+	 			we separate the calculation of ordinary data
+	 			from witness data.
+		- sequence: 4 bytes
+
+	output_paying_to_us: 43 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wsh): 34 bytes
+
+	output_paying_to_them: 31 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wpkh): 22 bytes
+
+	 htlc_output: 43 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wsh): 34 bytes
+
+	 witness_header: 2 bytes
+		- flag: 1 byte
+		- marker: 1 byte
+
+	 commitment_transaction: 125 + 43 * num-htlc-outputs bytes
+		- version: 4 bytes
+		- witness_header <---- part of the witness data
+		- count_tx_in: 1 byte
+		- tx_in: 41 bytes
+			funding_input
+		- count_tx_out: 1 byte
+		- tx_out: 74 + 43 * num-htlc-outputs bytes
+			output_paying_to_them,
+			output_paying_to_us,
+			....htlc_output's...
+		- lock_time: 4 bytes
+	
+Multiplying non-witness data by 4, this gives a weight of:
+	
+	// 500 + 172 * num-htlc-outputs weight
+	commitment_transaction_weight = 4 * commitment_transaction
+
+	// 224 weight
+	witness_weight = witness_header + witness
+
+	overall_weight = 500 + 172 * num-htlc-outputs + 224 weight 
+
+## Expected weight of HTLC-Timeout and HTLC-Success Transactions
+
+The *expected weight* of an HTLC transaction is calculated as follows:
+
+    accepted_htlc_script: 109 bytes
+	    - OP_DATA: 1 byte (remotekey length)
+		- remotekey: 33 bytes
+		- OP_SWAP: 1 byte
+		- OP_SIZE: 1 byte
+		- 32: 1 byte
+		- OP_EQUAL: 1 byte
+		- OP_IF: 1 byte
+		- OP_HASH160: 1 byte
+		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
+		- ripemd-of-payment-hash: 20 bytes
+		- OP_EQUALVERIFY: 1 byte
+		- 2: 1 byte
+		- OP_SWAP: 1 byte
+		- OP_DATA: 1 byte (localkey length)
+		- localkey: 33 bytes
+		- 2: 1 byte
+		- OP_CHECKMULTISIG: 1 byte
+		- OP_ELSE: 1 byte
+		- OP_DROP: 1 byte
+		- OP_PUSHDATA2: 1 byte (locktime length)
+		- locktime: 2 bytes
+		- OP_CHECKLOCKTIMEVERIFY: 1 byte
+		- OP_DROP: 1 byte
+        - OP_CHECKSIG: 1 byte
+		- OP_ENDIF: 1 byte
+
+    offered_htlc_script: 104 bytes
+		- OP_DATA: 1 byte (remotekey length)
+		- remotekey: 33 bytes
+		- OP_SWAP: 1 byte
+		- OP_SIZE: 1 byte
+		- 32: 1 byte
+		- OP_EQUAL: 1 byte
+		- OP_NOTIF: 1 byte
+		- OP_DROP: 1 byte
+		- 2: 1 byte
+		- OP_SWAP: 1 byte
+		- OP_DATA: 1 byte (localkey length)
+		- localkey: 33 bytes
+		- 2: 1 byte
+		- OP_CHECKMULTISIG: 1 byte
+		- OP_ELSE: 1 byte
+		- OP_HASH160: 1 byte
+		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
+		- ripemd-of-payment-hash: 20 bytes
+		- OP_EQUALVERIFY: 1 byte
+		- OP_CHECKSIG: 1 byte
+		- OP_ENDIF: 1 byte
+
+    timeout_witness: 256 bytes
+		- number_of_witness_elements: 1 byte
+		- nil_length: 1 byte
+		- sig_alice_length: 1 byte
+		- sig_alice: 73 bytes
+		- sig_bob_length: 1 byte
+		- sig_bob: 73 bytes
+		- nil_length: 1 byte
+		- witness_script_length: 1 byte
+		- witness_script (offered_htlc_script)
+
+    success_witness: 293 bytes
+		- number_of_witness_elements: 1 byte
+		- nil_length: 1 byte
+		- sig_alice_length: 1 byte
+		- sig_alice: 73 bytes
+		- sig_bob_length: 1 byte
+		- sig_bob: 73 bytes
+		- preimage_length: 1 byte
+		- preimage: 32 bytes
+		- witness_script_length: 1 byte
+		- witness_script (accepted_htlc_script)
+
+    commitment_input: 41 bytes
+		- previous_out_point: 36 bytes
+			- hash: 32 bytes
+			- index: 4 bytes
+		- var_int: 1 byte (script_sig length)
+		- script_sig: 0 bytes
+		- witness (success_witness or timeout_witness)
+		- sequence: 4 bytes
+
+    htlc_tx_output: 43 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wsh): 34 bytes
+
+	htlc_transaction: 
+		- version: 4 bytes
+		- witness_header <---- part of the witness data
+		- count_tx_in: 1 byte
+		- tx_in: 41 bytes
+			commitment_input
+		- count_tx_out: 1 byte
+		- tx_out: 43
+			htlc_tx_output
+		- lock_time: 4 bytes
+
+Multiplying non-witness data by 4, this gives a weight of 376.  Adding
+the witness data for each case (256 + 2 for HTLC-timeout, 293 + 2 for
+HTLC-success) gives a weight of:
+
+	634 (HTLC-timeout)
+	671 (HTLC-success)
+
+# Appendix B: Per-commitment Secret Generation Test Vectors
 
 These test the generation algorithm which all nodes use.
 
