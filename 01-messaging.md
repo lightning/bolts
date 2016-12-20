@@ -124,7 +124,9 @@ errors which make channels unusable or further communication unusable.
 A node MAY send an empty [data] field.  A node sending `error` MUST
 fail the channel referred to by the `channel-id`, or if `channel-id`
 is `0xFFFFFFFFFFFFFFFF` it MUST fail all channels and MUST close the connection.
-A node MUST NOT set `len` to greater than the data length.
+A node MUST NOT set `len` to greater than the data length.  A node
+SHOULD include the raw, hex-encoded transaction in the case where failure
+was caused by an invalid signature check.
 
 A node receiving `error` MUST fail the channel referred to by
 `channel-id`, or if `channel-id` is `0xFFFFFFFFFFFFFFFF` it MUST fail
