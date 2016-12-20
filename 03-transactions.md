@@ -2,6 +2,32 @@
 
 This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid.  That is, the funding transaction output script, commitment transactions and the HTLC transactions.
 
+# Table of Contents
+  * [Transactions](#transactions)
+    * [Transaction input and output ordering](#transaction-input-and-outpu-ordering)
+    * [Use of segwit](#use-of-segwit)
+    * [Funding Transaction Output](#funding-transaction-output)
+    * [Commitment Transaction](#commitment-transaction)
+        * [Commitment Transaction Outputs](#commitment-transaction-outputs)
+        * [To-Local Output](#to-local-output)
+        * [To-Remote Output](#to-remote-output)
+        * [Offered HTLC Outputs](#offered-htlc-outputs)
+        * [Received HTLC Outputs](#received-htlc-outputs)
+    * [HTLC-Timeout and HTLC-Success Transactions](#htlc-timeout-and-htlc-success-transactions)
+    * [Fee Calculation](#fee-calculation)
+  * [Key Derivation](#key-derivation)
+    * [`localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation](#localkey-remotekey-local-delayedkey-and-remote-delayedkey-derivation)
+    * [`revocationkey` Derivation](#revocationkey-derivation) 
+    * [Per-commitment Secret Requirements](#per-commitment-secret-requirements) 
+    * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage) 
+  * [Appendix A: Per-commitment Secret Generation Test Vectors](#appendix-a-per-commitment-secret-generation-test-vectors)    
+    * [Generation tests](#generation-tests)
+    * [Storage tests](#storage-tests)
+  * [References](#references)   
+  * [Authors](#authors)   
+  
+# Transactions
+
 ## Transaction input and output ordering
 
 Lexicographic ordering as per BIP 69.
@@ -113,7 +139,7 @@ To timeout the htlc, the remote node spends it with the scriptsig:
 
 To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
-## HTLC-Timeout and HTLC-Success Transaction
+## HTLC-Timeout and HTLC-Success Transactions
 These HTLC transactions are almost identical, except the HTLC-Timeout transaction is timelocked.  This is also the transaction which can be spent by a valid penalty transaction.
 
 * version: 2
@@ -445,7 +471,7 @@ This construction ensures that neither the node providing the
 basepoint nor the node providing the `per-commitment-point` can know the
 private key without the other node's secret.
 
-### Per-commitment Secret Requirements
+## Per-commitment Secret Requirements
 
 A node MUST select an unguessable 256-bit seed for each connection,
 and MUST NOT reveal the seed.  Up to 2^48-1 per-commitment secrets can be
@@ -467,7 +493,7 @@ Where "flip(B)" alternates the B'th least significant bit in the value P.
 The receiving node MAY store all previous per-commitment secrets, or
 MAY calculate it from a compact representation as described below.
 
-### Efficient Per-commitment Secret Storage
+## Efficient Per-commitment Secret Storage
 
 The receiver of a series of secrets can store them compactly in an
 array of 49 (value,index) pairs.  This is because given a secret on a
