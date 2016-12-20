@@ -446,7 +446,7 @@ uses the local node's `delayed-payment-basepoint`, and the
 `remote-delayedkey` uses the remote node's
 `delayed-payment-basepoint`.
 
-The correspoding private keys can be derived similarly if the basepoint
+The corresponding private keys can be derived similarly if the basepoint
 secrets are known (i.e., `localkey` and `local-delayedkey` only):
 
     secretkey = basepoint-secret + SHA256(per-commitment-point || basepoint)
