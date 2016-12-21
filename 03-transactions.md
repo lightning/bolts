@@ -212,18 +212,40 @@ The fee for a commitment transaction MUST BE calculated to match:
 
 1. Start with `weight` = 724, and `fee` = 0.
 
-3. For every offered HTLC, if the HTLC amount plus the HTLC-timeout
-   transaction fee is greater or equal to the local node's
-   `dust-limit-satoshis`, then add 172 to `weight`, otherwise add
+2. For every offered HTLC, if the HTLC amount is greater or equal to the local node's
+   `dust-limit-satoshis` plus the HTLC-timeout
+   transaction fee, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
-4. For every accepted HTLC, if the HTLC amount plus the HTLC-success
-   transaction fee is greater or equal to the local node's
-   `dust-limit-satoshis`, then add 172 to `weight`, otherwise add
+3. For every accepted HTLC, if the HTLC amount is greater or equal to the local node's
+   `dust-limit-satoshis` plus the HTLC-success
+   transaction fee, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
-5. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
+4. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
    and add to `fee`.
+   
+### Example
+
+For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 546 satoshis, and commitment transaction with:
+* 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
+* 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
+
+The commitment transaction fee would be 6214 satoshis
+The HTLC timeout transaction fee would be 3095 satoshis
+The HTLC success transaction fee would be 3276 satoshis
+
+The offered HTLC of 5000 satoshis is above 546 + 3095 and would result in:
+* an output of 5000 satoshi in the commitment transaction
+* a HTLC timeout transaction of 5000 - 3095 satoshis which spends this output
+
+The offered HTLC of 1000 satoshis is below 546 + 3095, and its amount would be added to the commitment transaction fee
+
+The received HTLC of 7000 satoshis is above 546 + 3276 and would result in:
+* an output of 7000 satoshi in the commitment transaction
+* a HTLC success transaction of 7000 - 3276 satoshis which spends this output
+
+The received HTLC of 800 satoshis is below 546 + 3276 and its amount would be added to the commitment transaction fee
 
 # Key Derivation
 
@@ -589,6 +611,7 @@ all payments to *local* are delayed.
 
 Here are the parameters used for all tests (they may be overridden).
 
+    funding_tx_hash: 42a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba7
     funding_output_index: 1
     funding_amount_satoshi: 10 000 000
     local_funding_key: 30ff4956bbdd3222d44cc5e8a1261dab1e07957bdac5ae88fe3261ef321f3749
@@ -607,7 +630,7 @@ Here are the parameters used for all tests (they may be overridden).
         to_remote_satoshi: 3 000 000
     
     output:
-        local_commit_tx: 02000000010169a4f030e96663ad275a1dde5086b132a3041946be47e4af3d7cea08f499d60100000000ffffffff02b5812d00000000001600141844e52616af46f531635b5b770737ec5695a08bb58a6a00000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        local_commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff02b5812d00000000001600141844e52616af46f531635b5b770737ec5695a08bb58a6a00000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
     
 ## Two outputs with one below dust limit, no htlcs
     
@@ -616,7 +639,7 @@ Here are the parameters used for all tests (they may be overridden).
         to_remote_satoshi: 1 000
      
     outputs:
-        commit_tx: 02000000010169a4f030e96663ad275a1dde5086b132a3041946be47e4af3d7cea08f499d60100000000ffffffff01690c9800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff01690c9800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
     
 ## Two outputs with one above dust limit but lesser than fee/2, no htlcs
 
@@ -626,7 +649,7 @@ Here are the parameters used for all tests (they may be overridden).
         to_remote_satoshi: 12 000
    
     outputs:
-        commit_tx: 02000000010169a4f030e96663ad275a1dde5086b132a3041946be47e4af3d7cea08f499d60100000000ffffffff01690c9800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff01690c9800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
     
 ## With htlcs, all above dust limit
     
@@ -645,9 +668,9 @@ Here are the parameters used for all tests (they may be overridden).
             payment_preimage: 5bd0169de7a4a90c0b2b44a6f7c93860ac96630f60e40252fdd0e9f4758bc4ed
         
     outputs:
-        commit_tx: 02000000010169a4f030e96663ad275a1dde5086b132a3041946be47e4af3d7cea08f499d60100000000ffffffff04fd9f0000000000002200207d8a3d7311cf89ac5e3110bf97a68fa69c0079cd0329d56135d52466388282021bce000000000000220020fca23ba30fe0400a01af3c1ca47ceeb679bff7bad703f0e44c7d3266faea88cc72e42c00000000001600141844e52616af46f531635b5b770737ec5695a08b42786900000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-        htlc_timeout_tx_1: 020000000180e651c8c20e773812a2607b7ee44c2894eaad6ba4c882e5c79e37f37765a2930000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
-        htlc_success_tx_1: 020000000180e651c8c20e773812a2607b7ee44c2894eaad6ba4c882e5c79e37f37765a2930100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff0410270000000000002200207d8a3d7311cf89ac5e3110bf97a68fa69c0079cd0329d56135d5246638828202204e000000000000220020fca23ba30fe0400a01af3c1ca47ceeb679bff7bad703f0e44c7d3266faea88cc72e42c00000000001600141844e52616af46f531635b5b770737ec5695a08b42786900000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        htlc_timeout_tx_1: 0200000001010d18aabeb5b42247d3ff91a8fbc254702a440d112d96d525b409230b2e191d0000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
+        htlc_success_tx_1: 0200000001010d18aabeb5b42247d3ff91a8fbc254702a440d112d96d525b409230b2e191d0100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
 ## With htlcs, some below dust limit
 
@@ -681,10 +704,10 @@ Here are the parameters used for all tests (they may be overridden).
             payment_preimage: c6420effb8e0c5239edb2acf6dd40a8fcfbe6ae96eb71bf75fb9a04bec230d68
         
     outputs:
-        commit_tx: 0200000001e9704a6fe6984c0e818249b32bd2537242549e1eb4a1ac54d5d60b9be582ebbd0100000000ffffffff05fd9f000000000000220020aa135872238ade884390f2db277186bab2fa4aa4c92137e137558a482f2172061bce000000000000220020456a02eb2b2e32d1f5cc126ed4b59c36996c1280dd30760d274e03c86f30f7a5cb7b02000000000022002095c9d9e8a78e97242682d84f7307ae8a6a628543b6c00ff44a11b43d0472713c75d32c00000000001600141844e52616af46f531635b5b770737ec5695a08b496a6700000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-        htlc_timeout_tx_1: 02000000019bc92971f05739a1e4a13bda9e884d9ce071777827cdd8f1ddafc7af2c251bf10000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
-        htlc_success_tx_1: 02000000019bc92971f05739a1e4a13bda9e884d9ce071777827cdd8f1ddafc7af2c251bf10200000000ffffffff01d0fb0100000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-        htlc_success_tx_2: 02000000019bc92971f05739a1e4a13bda9e884d9ce071777827cdd8f1ddafc7af2c251bf10100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff051027000000000000220020aa135872238ade884390f2db277186bab2fa4aa4c92137e137558a482f217206204e000000000000220020456a02eb2b2e32d1f5cc126ed4b59c36996c1280dd30760d274e03c86f30f7a5d0fb01000000000022002095c9d9e8a78e97242682d84f7307ae8a6a628543b6c00ff44a11b43d0472713c75d32c00000000001600141844e52616af46f531635b5b770737ec5695a08b496a6700000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        htlc_timeout_tx_1: 02000000015e97aee1036f234a459bc2e8190ce8620ea36d886ec49dce724c25568a48beaa0000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
+        htlc_success_tx_1: 02000000015e97aee1036f234a459bc2e8190ce8620ea36d886ec49dce724c25568a48beaa0200000000ffffffff01d0fb0100000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+        htlc_success_tx_2: 02000000015e97aee1036f234a459bc2e8190ce8620ea36d886ec49dce724c25568a48beaa0100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
 # Appendix C: Per-commitment Secret Generation Test Vectors
 

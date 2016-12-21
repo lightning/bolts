@@ -18,7 +18,7 @@ operation, and closing.
       * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
       * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
       * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
-      * [Committing Updates So Far: `commitsig`](#committing-updates-so-far-commitsig)
+      * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the transition to the updated state: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
   * [Authors](#authors)
@@ -614,12 +614,12 @@ A node which doesn't time out HTLCs risks channel failure (see
 "Risks With HTLC Timeouts").
 
 
-### Committing Updates So Far: `commitsig`
+### Committing Updates So Far: `commitment_signed`
 
 
 When a node has changes for the remote commitment, it can apply them,
 sign the resulting transaction as defined in [BOLT #3](03-transactions.md) and send a
-`commitsig` message.
+`commitment_signed` message.
 
 
 1. type: 132 (`commit_sig`)
@@ -632,9 +632,9 @@ sign the resulting transaction as defined in [BOLT #3](03-transactions.md) and s
 #### Requirements
 
 
-A node MUST NOT send a `commitsig` message which does not include any
-updates.  Note that a node MAY send a `commitsig` message which only
-alters the fee, and MAY send a `commitsig` message which doesn't
+A node MUST NOT send a `commitment_signed` message which does not include any
+updates.  Note that a node MAY send a `commitment_signed` message which only
+alters the fee, and MAY send a `commitment_signed` message which doesn't
 change the commitment transaction other than the new revocation hash
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).  A node MUST include one `htlc-signature` for every HTLC
@@ -665,16 +665,16 @@ The `num-htlcs` field is redundant, but makes the packet length check fully self
 ### Completing the transition to the updated state: `revoke_and_ack`
 
 
-Once the recipient of `commitsig` checks the signature, it knows that
+Once the recipient of `commitment_signed` checks the signature, it knows that
 it has a valid new commitment transaction, replies with the commitment
 preimage for the previous commitment transaction in a `revoke_and_ack`
 message.
 
 
 This message also implicitly serves as an acknowledgement of receipt
-of the `commitsig`, so it's a logical time for the `commitsig` sender
+of the `commitment_signed`, so it's a logical time for the `commitment_signed` sender
 to apply to its own commitment, any pending updates it sent before
-that `commitsig`.
+that `commitment_signed`.
 
 
 This message also supplies the signatures for the sender's HTLC-timeout transactions. See [BOLT #5](05-onchain.md) for how this is used with a penalty transaction.
