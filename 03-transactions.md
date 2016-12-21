@@ -263,8 +263,7 @@ If a party is unable to pay her fair share of the fee, then the other party will
 Assuming that `to-local` and `to-remote` are the theoretical main output amounts of the current commitment before
 fees are applied, let's define `to-local-final` and `to-remote-final` as the actual main output amounts that will be used. 
 
-In the following:
-* the result of the division by 2 should be truncated to obtain an integer.
+In the following, the result of the division by 2 should be truncated to obtain an integer.
 
 The fee splitting MUST be computed in this order: 
 
