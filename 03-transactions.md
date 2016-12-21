@@ -395,18 +395,20 @@ The fee for a commitment transaction MUST BE calculated to match:
 
 1. Start with `weight` = 724, and `fee` = 0.
 
-3. For every offered HTLC, if the HTLC amount is greater or equal to the local node's
+2. For every offered HTLC, if the HTLC amount is greater or equal to the local node's
    `dust-limit-satoshis` plus the HTLC-timeout
    transaction fee, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
-4. For every accepted HTLC, if the HTLC amount is greater or equal to the local node's
+3. For every accepted HTLC, if the HTLC amount is greater or equal to the local node's
    `dust-limit-satoshis` plus the HTLC-success
    transaction fee, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
-5. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
+4. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
    and add to `fee`.
+   
+### Example
 
 For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 546 satoshis, and commitment transaction with:
 * 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
