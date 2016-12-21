@@ -124,7 +124,7 @@ errors which make channels unusable or further communication unusable.
 A node MAY send an empty [data] field.  A node sending `error` MUST
 fail the channel referred to by the `channel-id`, or if `channel-id`
 is `0xFFFFFFFFFFFFFFFF` it MUST fail all channels and MUST close the connection.
-A node MUST set `len` equal to the length of `data`.  A node SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed` or `commitsig` message when failure was caused by an invalid signature check.
+A node MUST set `len` equal to the length of `data`.  A node SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed` or `commitment_signed` message when failure was caused by an invalid signature check.
 
 A node receiving `error` MUST fail the channel referred to by
 `channel-id`, or if `channel-id` is `0xFFFFFFFFFFFFFFFF` it MUST fail

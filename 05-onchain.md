@@ -147,7 +147,7 @@ spending.
 
 
 Note that there can be more than one valid, unrevoked *commitment
-transaction* after a signature has been received via `commitsig` and
+transaction* after a signature has been received via `commitment_signed` and
 before the corresponding `revocation`.  Either commitment can serve as
 B's *commitment transaction*, hence the requirement to handle both.
 
@@ -160,7 +160,7 @@ or them if they have the payment preimage.
 
 
 The HTLC has *timed out* once the depth of the latest block is equal
-or greater than the HTLC `expiry`.
+or greater than the HTLC `ctlv-expiry`.
 
 
 ## Requirements
