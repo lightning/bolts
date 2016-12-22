@@ -49,7 +49,7 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
    * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
    * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits of the obscured commitment transaction number.
    * `txin[0]` script bytes: 0
-   * `txin[0]` witness: `<signature-for-key1> <signature-for-key-2>`
+   * `txin[0]` witness: `<signature-for-key1> <signature-for-key-2> <2 <key1> <key2> 2 OP_CHECKMULTISIG>`
 
 The 48-bit commitment transaction number is obscured by `XOR` with the lower 48 bits of:
 
