@@ -138,13 +138,14 @@ The following functions will also be referenced:
 
   * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n, ad, plaintext)`
      * where `encrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant) with the passed
-       arguments, with nonce `n` encoded as a big-endian 96-bit value.
+       arguments, with nonce `n` encoded as 32 zero bits followed by a *little-endian* 64-bit value (this
+	   follows the Noise Protocol convention, rather than our normal endian).
 
 
 
   * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n, ad, ciphertext)`
      * where `decrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant) with the passed
-       arguments, with nonce `n` encoded as a big-endian 96-bit value.
+       arguments, with nonce `n` encoded as 32 zero bits followed by a *little-endian* 64-bit value.
 
   * `generateKey()`
      * where generateKey generates and returns a fresh `secp256k1` keypair
