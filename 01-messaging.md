@@ -131,8 +131,8 @@ A node receiving `error` MUST fail the channel referred to by
 all channels and MUST close the connection.  A receiving node MUST truncate
 `len` to the remainder of the packet if it is larger.
 
-A receiving node SHOULD only print out `data` verbatim if it is a
-valid string.
+A receiving node SHOULD only print out `data` verbatim if the string is composed solely of printable ASCII characters.
+For referece, the printable character set includes byte values 32 through 127 inclusive.
 
 #### Rationale
 
