@@ -84,13 +84,13 @@ This output sends funds back to the owner of this commitment transaction, thus m
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with `nSequence` field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script:
+It is spent by a transaction with `nSequence` field set to `to-self-delay` (which can only be valid after that duration has passed), and witness:
 
-	<local-delayedsig> 0
+	<local-delayedsig> 0 <witness script>
 
-If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness script:
+If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness:
 
-    <revocation-sig> 1
+    <revocation-sig> 1 <witness script>
 
 #### To-Remote Output
 
@@ -111,9 +111,9 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
         OP_CHECKSIG
     OP_ENDIF
 
-The remote node can redeem the HTLC with the scriptsig:
+The remote node can redeem the HTLC with the witness:
 
-    <remotesig> <payment-preimage>
+    <remotesig> <payment-preimage> <witness script>
 
 Either node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as shown below.
 
@@ -133,9 +133,9 @@ This output sends funds to the remote peer after the HTLC timeout, or to an HTLC
         OP_CHECKSIG
     OP_ENDIF
 
-To timeout the htlc, the remote node spends it with the scriptsig:
+To timeout the htlc, the remote node spends it with the witness:
 
-    <remotesig> 0
+    <remotesig> 0 <witness script>
 
 To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
