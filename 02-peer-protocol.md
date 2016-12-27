@@ -78,12 +78,14 @@ desire to set up a new channel.
 1. type: 32 (`open_channel`)
 2. data:
    * [8:temporary-channel-id]
-   * [8:funding-satoshis]
-   * [8:push-msat]
+   * [2:num-assets]
+   * [num-assets\*34:asset-ids]
+   * [num-assets\*8:funding-amounts]
+   * [num-assets\*8:push-milliamounts]
    * [8:dust-limit-satoshis]
-   * [8:max-htlc-value-in-flight-msat]
-   * [8:channel-reserve-satoshis]
-   * [4:htlc-minimum-msat]
+   * [num-assets\*8:max-htlc-value-in-flight-milliamounts]
+   * [num-assets\*8:channel-reserve-amounts]
+   * [num-assets\*4:htlc-minimum-milliamounts]
    * [4:feerate-per-kw]
    * [2:to-self-delay]
    * [2:max-accepted-htlcs]
@@ -94,7 +96,10 @@ desire to set up a new channel.
    * [33:first-per-commitment-point]
 
 
-The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
+The `temporary-channel-id` is used to identify this channel until the funding transaction is established. `asset-ids` are the assets the sender is putting into the channel.
+The `-amounts` and `-milliamounts` variable-length fields contains an amount for each channel asset, in the same order as specified in `asset-ids`.
+
+`funding-amounts` are the amounts the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
 
 `max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node will accept.
 
@@ -108,9 +113,14 @@ FIXME: Describe Dangerous feature bit for larger channel amounts.
 #### Requirements
 
 
+
 A sending node MUST set the most significant bit in
 `temporary-channel-id`, and MUST ensure it is unique from any other
-channel id with the same peer.  The sender MUST set `funding-satoshis`
+channel id with the same peer.
+The channel MUST have exactly one native blockchain asset, plus zero or more additional meta-protocol assets.
+The native blockchain asset SHOULD be used to implicitly identify the blockchain to conduct the transactions on.
+
+The sender MUST set `funding-satoshis`
 to less than 2^24 satoshi.  The sender MUST set `push-msat` to
 equal or less than to 1000 * `funding-satoshis`.   The sender SHOULD set `to-self-delay` sufficient to ensure the sender
 can irreversibly spend a commitment transaction output in case of
@@ -127,6 +137,8 @@ allow commitment transactions to propagate through the Bitcoin
 network.  It SHOULD set `htlc-minimum-msat` to the minimum
 amount HTLC it is willing to accept from this peer.
 
+The receiving node MUST fail the channel if it contains any unknown or unsupported assets,
+does not contain any native blockchain assets, or contains more than one native blockchain assets.
 
 The receiving node MUST fail the channel if `to-self-delay` is
 unreasonably large.  The receiver MAY fail the channel if
@@ -154,6 +166,8 @@ The sender can unconditionally give initial funds to the receiver using a non-ze
 
 The `feerate-per-kw` is generally only a concern to the sender (who pays the fees), but that is also the feerate paid by HTLC transactions; thus unresonably large fee rates can also penalize the reciepient.
 
+The native blockchain asset is always required for fees, and therefore must be included in every channel.
+
 #### Future
 
 
@@ -173,10 +187,10 @@ acceptance of the new channel.
 2. data:
    * [8:temporary-channel-id]
    * [8:dust-limit-satoshis]
-   * [8:max-htlc-value-in-flight-msat]
-   * [8:channel-reserve-satoshis]
+   * [num-assets\*8:max-htlc-value-in-flight-milliamounts]
+   * [num-assets\*8:channel-reserve-amounts]
    * [4:minimum-depth]
-   * [4:htlc-minimum-msat]
+   * [num-assets\*4:htlc-minimum-milliamounts]
    * [2:to-self-delay]
    * [2:max-accepted-htlcs]
    * [33:funding-pubkey]
@@ -192,6 +206,9 @@ The `temporary-channel-id` MUST be the same as the `temporary-channel-id` in the
 
 The receiver MAY reject the `minimum-depth` if it considers it unreasonably large.
 Other fields have the same requirements as their counterparts in `open_channel`.
+
+The receiver MUST parse the amount fields using the same `asset-ids` order
+provided in the `open_channel` message.
 
 
 ### The `funding_created` message
@@ -504,7 +521,7 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 2. data:
    * [8:channel-id]
    * [8:id]
-   * [4:amount-msat]
+   * [num-assets\*4:milliamounts]
    * [4:expiry]
    * [32:payment-hash]
    * [1254:onion-routing-packet]
@@ -517,6 +534,8 @@ remote commitment transaction at the current `fee-rate` (see "Updating
 Fees") while maintaining its channel reserve, and MUST offer
 `amount-msat` greater than 0, and MUST NOT offer `amount-msat` below
 the receiving node's `htlc-minimum-msat`.
+
+`milliamounts` MUST be specified in the same order as the `asset-ids` specified in the `open_channel` message.
 
 A sending node MUST NOT add an HTLC if it would result in it offering
 more than the remote's `max-accepted-htlcs` HTLCs in the remote commitment
