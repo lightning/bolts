@@ -619,108 +619,76 @@ HTLC-success) gives a weight of:
 
 # Appendix B: Transactions Test Vectors
 
-In the following examples, we show the *local* transactions, which implies that
-all payments to *local* are delayed.
-
-Here are the parameters used for all tests (they may be overridden).
-
+In the following test vectors:
+ - we consider *local* transactions, which implies that all payments to *local* are delayed
+ - we assume that *local* is the funder
+ - we start by defining common parameters used in all tests
+ 
+ 
     funding_tx_hash: 42a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba7
     funding_output_index: 1
-    funding_amount_satoshi: 10 000 000
-    local_funding_key: 30ff4956bbdd3222d44cc5e8a1261dab1e07957bdac5ae88fe3261ef321f3749
-    remote_funding_key: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e13
-    local_revocation_key: 131526c63723ff1d36c28e61a8bdc86660d7893879bbda4cfeaad2022db7c109
-    local_payment_key: e937268a37a774aa948ebddff3187fedc7035e3f0a029d8d85f31bda33b02d55
-    remote_payment_key: ce65059278a571ee4f4c9b4d5d7fa07449bbe09d9c716879343d9e975df1de33
+    funding_amount_satoshi: 10000000
+    local_funding_key: 30ff4956bbdd3222d44cc5e8a1261dab1e07957bdac5ae88fe3261ef321f374901
+    remote_funding_key: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e1301
+    local_revocation_key: 131526c63723ff1d36c28e61a8bdc86660d7893879bbda4cfeaad2022db7c10901
+    local_payment_key: e937268a37a774aa948ebddff3187fedc7035e3f0a029d8d85f31bda33b02d5501
+    remote_payment_key: ce65059278a571ee4f4c9b4d5d7fa07449bbe09d9c716879343d9e975df1de3301
     local_delay: 144
-    local_dust_limit_satoshi: 35 000
-    local_feerate_per_kw: 50 000
- 
-## Two outputs, no htlcs
+    local_dust_limit_satoshi: 35000
+    local_feerate_per_kw: 50000
 
-    inputs:
-        to_local_satoshi: 7 000 000
-        to_remote_satoshi: 3 000 000
-    
-    output:
-        local_commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff02b5812d00000000001600141844e52616af46f531635b5b770737ec5695a08bb58a6a00000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-    
-## Two outputs with one below dust limit, no htlcs
-    
-    inputs:
-        to_local_satoshi: 9 999 000
-        to_remote_satoshi: 1 000
-     
-    outputs:
-        commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff01690c9800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-    
-## Two outputs with one above dust limit but lesser than fee/2, no htlcs
+    name: simple tx with two outputs
+    to_local_satoshi: 7000000000
+    to_remote_satoshi: 3000000000
+    output commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff02c0c62d00000000001600141844e52616af46f531635b5b770737ec5695a08ba9456a00000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
-    inputs:
-        local_dust_limit_satoshi: 10 000
-        to_local_satoshi: 9 988 000
-        to_remote_satoshi: 12 000
-   
-    outputs:
-        commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff01690c9800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-    
-## With htlcs, all above dust limit
-    
-    inputs:
-        to_local_satoshi: 6 970 000
-        to_remote_satoshi: 3 000 000
-        htlc_1:
-            direction: local->remote
-            amount_msat: 10 000 000
-            expiry: 443 210
-            payment_preimage: f1a90faf44857d6c6b83dba3d27259bc0c9edb7215d21d2d5d9e7b84a9a555ab
-        htlc_2:
-            direction: remote->local
-            amount_msat: 20 000 000
-            expiry: 453 203
-            payment_preimage: 5bd0169de7a4a90c0b2b44a6f7c93860ac96630f60e40252fdd0e9f4758bc4ed
-        
-    outputs:
-        commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff0410270000000000002200207d8a3d7311cf89ac5e3110bf97a68fa69c0079cd0329d56135d5246638828202204e000000000000220020fca23ba30fe0400a01af3c1ca47ceeb679bff7bad703f0e44c7d3266faea88cc72e42c00000000001600141844e52616af46f531635b5b770737ec5695a08b42786900000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-        htlc_timeout_tx_1: 0200000001010d18aabeb5b42247d3ff91a8fbc254702a440d112d96d525b409230b2e191d0000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
-        htlc_success_tx_1: 0200000001010d18aabeb5b42247d3ff91a8fbc254702a440d112d96d525b409230b2e191d0100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+    name: two outputs with fundee below dust limit
+    to_local_satoshi: 9999000000
+    to_remote_satoshi: 1000000
+    output commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff0181089800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
-## With htlcs, some below dust limit
+    name: with htlcs, all above dust limit
+    to_local_satoshi: 6970000000
+    to_remote_satoshi: 3000000000
+    htlc 0 direction: local->remote
+    htlc 0 amount_msat: 10000000
+    htlc 0 expiry: 443210
+    htlc 0 payment_hash: 4231f5cbd75de98283f65f0eadf95ba05cd7331c94d88934a69031fda244d70e
+    htlc 1 direction: remote->local
+    htlc 1 amount_msat: 20000000
+    htlc 1 expiry: 453203
+    htlc 1 payment_hash: a44748f172677f67585ea34acf38fdc8f7c566c34e176842f2d87d2afa16f240
+    output commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff0410270000000000002200207d8a3d7311cf89ac5e3110bf97a68fa69c0079cd0329d56135d5246638828202204e000000000000220020fca23ba30fe0400a01af3c1ca47ceeb679bff7bad703f0e44c7d3266faea88ccc0c62d00000000001600141844e52616af46f531635b5b770737ec5695a08bf4956800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+    output htlc_timeout_tx 0: 0200000001aa487c30a0751e7b8fb655b15c86bb2be832f03575b50e19377a565119b279aa0000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
+    output htlc_success_tx 0: 0200000001aa487c30a0751e7b8fb655b15c86bb2be832f03575b50e19377a565119b279aa0100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
-    inputs:
-        to_local_satoshi: 6 839 700
-        to_remote_satoshi: 3 000 000
-        htlc_1:
-            direction: local->remote
-            amount_msat: 10 000 000
-            expiry: 443 210
-            payment_preimage: ae150412bcd53556bf52f03eccfc7a39ee516ffd45288d5dcc4d5b8720feb353
-        htlc_2:
-            direction: local->remote
-            amount_msat: 200 000
-            expiry: 443 120
-            payment_preimage: ca1153ea17994d47369342eef5f11d92d2855e0fec34b337dd8eed978b3e9339
-        htlc_3:
-            direction: remote->local
-            amount_msat: 20 000 000
-            expiry: 445 435
-            payment_preimage: 9b61ef0df1f9cecfe8b09881f93459db46355ba136058b7b99a8c143a3495e9b
-        htlc_4:
-            direction: remote->local
-            amount_msat: 100 000
-            expiry: 448 763
-            payment_preimage: 458397eca14e17f29c5b388b5454b5d44a9cab17cab68198dd02a7ab54f8dfb7
-        htlc_5:
-            direction: remote->local
-            amount_msat: 130 000 000
-            expiry: 445 678
-            payment_preimage: c6420effb8e0c5239edb2acf6dd40a8fcfbe6ae96eb71bf75fb9a04bec230d68
-        
-    outputs:
-        commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff051027000000000000220020aa135872238ade884390f2db277186bab2fa4aa4c92137e137558a482f217206204e000000000000220020456a02eb2b2e32d1f5cc126ed4b59c36996c1280dd30760d274e03c86f30f7a5d0fb01000000000022002095c9d9e8a78e97242682d84f7307ae8a6a628543b6c00ff44a11b43d0472713c75d32c00000000001600141844e52616af46f531635b5b770737ec5695a08b496a6700000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-        htlc_timeout_tx_1: 02000000015e97aee1036f234a459bc2e8190ce8620ea36d886ec49dce724c25568a48beaa0000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
-        htlc_success_tx_1: 02000000015e97aee1036f234a459bc2e8190ce8620ea36d886ec49dce724c25568a48beaa0200000000ffffffff01d0fb0100000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
-        htlc_success_tx_2: 02000000015e97aee1036f234a459bc2e8190ce8620ea36d886ec49dce724c25568a48beaa0100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+    name: with htlcs, some below dust limit
+    to_local_satoshi: 6839700000
+    to_remote_satoshi: 3000000000
+    htlc 0 direction: remote->local
+    htlc 0 amount_msat: 130000000
+    htlc 0 expiry: 445678
+    htlc 0 payment_hash: c6420effb8e0c5239edb2acf6dd40a8fcfbe6ae96eb71bf75fb9a04bec230d68
+    htlc 1 direction: remote->local
+    htlc 1 amount_msat: 100000
+    htlc 1 expiry: 448763
+    htlc 1 payment_hash: 458397eca14e17f29c5b388b5454b5d44a9cab17cab68198dd02a7ab54f8dfb7
+    htlc 2 direction: local->remote
+    htlc 2 amount_msat: 200000
+    htlc 2 expiry: 443120
+    htlc 2 payment_hash: ca1153ea17994d47369342eef5f11d92d2855e0fec34b337dd8eed978b3e9339
+    htlc 3 direction: local->remote
+    htlc 3 amount_msat: 10000000
+    htlc 3 expiry: 443210
+    htlc 3 payment_hash: ae150412bcd53556bf52f03eccfc7a39ee516ffd45288d5dcc4d5b8720feb353
+    htlc 4 direction: remote->local
+    htlc 4 amount_msat: 20000000
+    htlc 4 expiry: 445435
+    htlc 4 payment_hash: 9b61ef0df1f9cecfe8b09881f93459db46355ba136058b7b99a8c143a3495e9b
+    output commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff051027000000000000220020aa135872238ade884390f2db277186bab2fa4aa4c92137e137558a482f217206204e000000000000220020456a02eb2b2e32d1f5cc126ed4b59c36996c1280dd30760d274e03c86f30f7a5d0fb01000000000022002095c9d9e8a78e97242682d84f7307ae8a6a628543b6c00ff44a11b43d0472713cc0c62d00000000001600141844e52616af46f531635b5b770737ec5695a08bfe766600000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+    output htlc_timeout_tx 0: 0200000001a4373271e9cadf556056faf363acfa83deb79339c6416cdef9e8bc913c26c1080000000000ffffffff0110270000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194424ac30600
+    output htlc_success_tx 0: 0200000001a4373271e9cadf556056faf363acfa83deb79339c6416cdef9e8bc913c26c1080200000000ffffffff01d0fb0100000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
+    output htlc_success_tx 1: 0200000001a4373271e9cadf556056faf363acfa83deb79339c6416cdef9e8bc913c26c1080100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
 # Appendix C: Per-commitment Secret Generation Test Vectors
 
