@@ -638,18 +638,18 @@ In the following test vectors:
     local_feerate_per_kw: 50000
 
     name: simple tx with two outputs
-    to_local_satoshi: 7000000000
-    to_remote_satoshi: 3000000000
+    to_local_msat: 7000000000
+    to_remote_msat: 3000000000
     output commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff02c0c62d00000000001600141844e52616af46f531635b5b770737ec5695a08ba9456a00000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
     name: two outputs with fundee below dust limit
-    to_local_satoshi: 9999000000
-    to_remote_satoshi: 1000000
+    to_local_msat: 9999000000
+    to_remote_msat: 1000000
     output commit_tx: 020000000142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba70100000000ffffffff0181089800000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
     name: with htlcs, all above dust limit
-    to_local_satoshi: 6970000000
-    to_remote_satoshi: 3000000000
+    to_local_msat: 6970000000
+    to_remote_msat: 3000000000
     htlc 0 direction: local->remote
     htlc 0 amount_msat: 10000000
     htlc 0 expiry: 443210
@@ -663,8 +663,8 @@ In the following test vectors:
     output htlc_success_tx 0: 0200000001aa487c30a0751e7b8fb655b15c86bb2be832f03575b50e19377a565119b279aa0100000000ffffffff01204e0000000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d1944200000000
 
     name: with htlcs, some below dust limit
-    to_local_satoshi: 6839700000
-    to_remote_satoshi: 3000000000
+    to_local_msat: 6839700000
+    to_remote_msat: 3000000000
     htlc 0 direction: remote->local
     htlc 0 amount_msat: 130000000
     htlc 0 expiry: 445678
