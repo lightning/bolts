@@ -279,9 +279,7 @@ The fee splitting MUST be computed in this order:
 
 3. Previous point applies in a symmetrical way if `to-remote` is lesser than `fee`/2 plus local node's `dust-limit-satoshis`.
 
-4. If we are here it means that the fee cannot be paid. In that case the channel should be failed because:
-    * either last `update_fee` set a `feerate-per-kw` that was too high (see [BOLT #2](02-peer-protocol.md#updating-fees-update_fee))
-    * or channel parameters are incorrect if we are signing the first commitment transaction.
+4. If we are here it means that `fee` cannot be paid: TODO??
   
 #### Examples
 
