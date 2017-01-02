@@ -14,14 +14,11 @@ This details the exact format of on-chain transactions, which both sides need to
         * [Offered HTLC Outputs](#offered-htlc-outputs)
         * [Received HTLC Outputs](#received-htlc-outputs)
     * [HTLC-Timeout and HTLC-Success Transactions](#htlc-timeout-and-htlc-success-transactions)
-    * [Fees](#fees)
-        * [Fee Calculation](#fee-calculation)
-        * [Fee Splitting](#fee-splitting)
-  * [Keys](#keys)  
-    * [Key Derivation](#key-derivation)
-        * [`localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation](#localkey-remotekey-local-delayedkey-and-remote-delayedkey-derivation)
-        * [`revocationkey` Derivation](#revocationkey-derivation) 
-        * [Per-commitment Secret Requirements](#per-commitment-secret-requirements)
+    * [Fee Calculation](#fee-calculation)
+  * [Key Derivation](#key-derivation)
+    * [`localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation](#localkey-remotekey-local-delayedkey-and-remote-delayedkey-derivation)
+    * [`revocationkey` Derivation](#revocationkey-derivation) 
+    * [Per-commitment Secret Requirements](#per-commitment-secret-requirements) 
     * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
   * [Appendix A: Expected weights](#appendix-a-expected-weights)    
       * [Expected weight of the commitment transaction](#expected-weight-of-the-commitment-transaction)
@@ -176,9 +173,7 @@ The witness script for the output is:
 
 To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to-self-delay` and a witness stack `<local-delayedsig> 0`
 
-## Fees
-
-### Fee Calculation
+## Fee Calculation
 
 The fee calculation for both commitment transactions and HTLC
 transactions is based on the current `feerate-per-kw` and the
@@ -203,7 +198,7 @@ This gives us the following *expected weight* (details of the computation in [Ap
 	HTLC-timeout weight: 634
     HTLC-success weight: 671
 
-#### Requirements
+### Requirements
 
 The fee for an HTLC-timeout transaction MUST BE calculated to match:
 
@@ -230,7 +225,7 @@ The fee for a commitment transaction MUST BE calculated to match:
 4. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
    and add to `fee`.
    
-#### Example
+### Example
 
 For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 546 satoshis, and commitment transaction with:
 * 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
@@ -252,62 +247,7 @@ The received HTLC of 7000 satoshis is above 546 + 3276 and would result in:
 
 The received HTLC of 800 satoshis is below 546 + 3276 and its amount would be added to the commitment transaction fee
 
-### Fee Splitting
-
-Ideally each party should pay half the fee, but depending on their respective balances they may not be able to do so.
- 
-If a party is unable to pay her fair share of the fee, then the other party will compensate.
-
-#### Requirements
-
-Assuming that `to-local` and `to-remote` are the theoretical main output amounts of the current commitment before
-fees are applied, let's define `to-local-final` and `to-remote-final` as the actual main output amounts that will be used. 
-
-In the following:
-* the result of the division by 2 should be truncated to obtain an integer.
-
-The fee splitting MUST be computed in this order: 
-
-1. If `to-local` and `to-remote` are both greater or equal to `fee`/2 plus local node's `dust-limit-satoshis` then:
-    * `to-local-final` MUST be set to `to-local` - `fee`/2
-    * `to-remote-final` MUST be set to `to-remote` - `fee`/2
-
-2. If `to-local` is lesser than `fee`/2 plus local node's `dust-limit-satoshis`, and `to-remote` is greater or equal to 
-`to-remote` plus `fee` minus `to-local` plus local nodes's `dust-limit-satoshis` then:
-    * the main local output MUST be removed from the transaction while keeping the same computed `fee`
-    * `to-remote-final` MUST be set to `to-remote` - `fee` + `to-local`
-
-3. Previous point applies in a symmetrical way if `to-remote` is lesser than `fee`/2 plus local node's `dust-limit-satoshis`.
-
-4. If we are here it means that `fee` cannot be paid: TODO??
-  
-#### Examples
-
-Let's say that:
-* local's `dust-limit-satoshis` = 1 000
-* `fee` = 30 000
-
-Example 1:
-* `to-local` = 100 000
-* `to-remote` = 200 000
-* `to-local-final` = 85 000
-* `to-remote-final` = 185 000
-
-Example 2:
-* `to-local` = 50 000
-* `to-remote` = 800
-* `to-local-final` = 20 800
-* `to-remote-final` = N/A
-
-Example 3:
-* `to-local` = 20 000
-* `to-remote` = 100 000
-* `to-local-final` = N/A
-* `to-remote-final` = 90 000
-
-# Keys
-
-## Key Derivation
+# Key Derivation
 
 Each commitment transaction uses a unique set of keys; `localkey` and `remotekey`.  The HTLC-success and HTLC-timeout transactions use `local-delayedkey` and `revocationkey`.  These are changed every time depending on the
 `per-commitment-point`.
@@ -333,7 +273,7 @@ their bases.
 
 For efficiency, keys are generated from a series of per-commitment secrets which are generated from a single seed, allowing the receiver to compactly store them (see [below](#efficient-per-commitment-secret-storage)).
 
-### `localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation
+## `localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation
 
 These keys are simply generated by addition from their base points:
 
@@ -350,7 +290,7 @@ secrets are known (i.e., `localkey` and `local-delayedkey` only):
 
     secretkey = basepoint-secret + SHA256(per-commitment-point || basepoint)
 
-### `revocationkey` Derivation
+## `revocationkey` Derivation
 
 The revocationkey is a blinded key: the remote node provides the base,
 and the local node provides the blinding factor which it later
@@ -370,7 +310,7 @@ This construction ensures that neither the node providing the
 basepoint nor the node providing the `per-commitment-point` can know the
 private key without the other node's secret.
 
-### Per-commitment Secret Requirements
+## Per-commitment Secret Requirements
 
 A node MUST select an unguessable 256-bit seed for each connection,
 and MUST NOT reveal the seed.  Up to 2^48-1 per-commitment secrets can be
