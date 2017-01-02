@@ -728,10 +728,10 @@ There is a possibility of a race: the recipient can add new HTLCs
 before it receives the `update_fee`, and the sender may not be able to
 afford the fee on its own commitment transaction once the `update_fee`
 is acknowledged by the recipient.  In this case, the fee will be less
-than the fee rate, as described in [BOLT #3](03-transactions.md#fee-calculation).
+than the fee rate, as described in [BOLT #3](03-transactions.md#fee-payment).
 
 The exact calculation used for deriving the fee from the fee rate is
-given in [BOLT #3](03-transactions.md).
+given in [BOLT #3](03-transactions.md#fee-calculation).
 
 
 1. type: 134 (`update_fee`)
