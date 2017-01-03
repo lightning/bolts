@@ -14,7 +14,9 @@ This details the exact format of on-chain transactions, which both sides need to
         * [Offered HTLC Outputs](#offered-htlc-outputs)
         * [Received HTLC Outputs](#received-htlc-outputs)
     * [HTLC-Timeout and HTLC-Success Transactions](#htlc-timeout-and-htlc-success-transactions)
-    * [Fee Calculation](#fee-calculation)
+    * [Fees](#fees)
+        * [Fee Calculation](#fee-calculation)   
+        * [Fee Payment](#fee-payment)
   * [Keys](#keys)
     * [Key Derivation](#key-derivation)
         * [`localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation](#localkey-remotekey-local-delayedkey-and-remote-delayedkey-derivation)
@@ -173,7 +175,9 @@ The witness script for the output is:
 
 To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to-self-delay` and a witness stack `<local-delayedsig> 0`
 
-## Fee Calculation
+## Fees
+
+### Fee Calculation
 
 The fee calculation for both commitment transactions and HTLC
 transactions is based on the current `feerate-per-kw` and the
@@ -198,7 +202,7 @@ This gives us the following *expected weights* (details of the computation in [A
     HTLC-timeout weight: 634
     HTLC-success weight: 671
 
-### Requirements
+#### Requirements
 
 The fee for an HTLC-timeout transaction MUST BE calculated to match:
 
@@ -225,7 +229,7 @@ The fee for a commitment transaction MUST BE calculated to match:
 4. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
    and add to `fee`.
    
-### Example
+#### Example
 
 For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 546 satoshis, and commitment transaction with:
 * 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
@@ -246,6 +250,12 @@ The received HTLC of 7000 satoshis is above 546 + 3276 and would result in:
 * a HTLC success transaction of 7000 - 3276 satoshis which spends this output
 
 The received HTLC of 800 satoshis is below 546 + 3276 and its amount would be added to the commitment transaction fee
+
+### Fee Payment
+
+Fees will be extracted from the funder's amount, or if that is insufficient, will use the entire amount of the funder's output.
+
+A node MAY fail the channel if the resulting fee rate is too low.
 
 # Keys
 
