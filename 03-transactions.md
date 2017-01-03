@@ -15,12 +15,16 @@ This details the exact format of on-chain transactions, which both sides need to
         * [Received HTLC Outputs](#received-htlc-outputs)
     * [HTLC-Timeout and HTLC-Success Transactions](#htlc-timeout-and-htlc-success-transactions)
     * [Fee Calculation](#fee-calculation)
-  * [Key Derivation](#key-derivation)
-    * [`localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation](#localkey-remotekey-local-delayedkey-and-remote-delayedkey-derivation)
-    * [`revocationkey` Derivation](#revocationkey-derivation) 
-    * [Per-commitment Secret Requirements](#per-commitment-secret-requirements) 
-    * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage) 
-  * [Appendix A: Per-commitment Secret Generation Test Vectors](#appendix-a-per-commitment-secret-generation-test-vectors)    
+  * [Keys](#keys)
+    * [Key Derivation](#key-derivation)
+        * [`localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation](#localkey-remotekey-local-delayedkey-and-remote-delayedkey-derivation)
+        * [`revocationkey` Derivation](#revocationkey-derivation) 
+        * [Per-commitment Secret Requirements](#per-commitment-secret-requirements) 
+    * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
+  * [Appendix A: Expected weights](#appendix-a-expected-weights)    
+      * [Expected weight of the commitment transaction](#expected-weight-of-the-commitment-transaction)
+      * [Expected weight of HTLC-Timeout and HTLC-Success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
+  * [Appendix B: Per-commitment Secret Generation Test Vectors](#appendix-b-per-commitment-secret-generation-test-vectors)    
     * [Generation tests](#generation-tests)
     * [Storage tests](#storage-tests)
   * [References](#references)   
@@ -188,6 +192,225 @@ Thus we use a simplified formula for *expected weight*, which assumes:
 * There is a small number of outputs (thus 1 byte to count them)
 * There is always both a to-local output and a to-remote output.
 
+This gives us the following *expected weights* (details of the computation in [Appendix A](#appendix-a-expected-weights)):
+
+    Commitment weight:   724 + 172 * num-htlc-outputs
+    HTLC-timeout weight: 634
+    HTLC-success weight: 671
+
+### Requirements
+
+The fee for an HTLC-timeout transaction MUST BE calculated to match:
+
+1. Multiply `feerate-per-kw` by 634 and divide by 1024 (rounding down).
+
+The fee for an HTLC-success transaction MUST BE calculated to match:
+
+1. Multiply `feerate-per-kw` by 671 and divide by 1024 (rounding down).
+
+The fee for a commitment transaction MUST BE calculated to match:
+
+1. Start with `weight` = 724, and `fee` = 0.
+
+2. For every offered HTLC, if the HTLC amount is greater or equal to the local node's
+   `dust-limit-satoshis` plus the HTLC-timeout
+   transaction fee, then add 172 to `weight`, otherwise add
+   the HTLC amount to `fee`.
+
+3. For every accepted HTLC, if the HTLC amount is greater or equal to the local node's
+   `dust-limit-satoshis` plus the HTLC-success
+   transaction fee, then add 172 to `weight`, otherwise add
+   the HTLC amount to `fee`.
+
+4. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
+   and add to `fee`.
+   
+### Example
+
+For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 546 satoshis, and commitment transaction with:
+* 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
+* 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
+
+The commitment transaction fee would be 6214 satoshis
+The HTLC timeout transaction fee would be 3095 satoshis
+The HTLC success transaction fee would be 3276 satoshis
+
+The offered HTLC of 5000 satoshis is above 546 + 3095 and would result in:
+* an output of 5000 satoshi in the commitment transaction
+* a HTLC timeout transaction of 5000 - 3095 satoshis which spends this output
+
+The offered HTLC of 1000 satoshis is below 546 + 3095, and its amount would be added to the commitment transaction fee
+
+The received HTLC of 7000 satoshis is above 546 + 3276 and would result in:
+* an output of 7000 satoshi in the commitment transaction
+* a HTLC success transaction of 7000 - 3276 satoshis which spends this output
+
+The received HTLC of 800 satoshis is below 546 + 3276 and its amount would be added to the commitment transaction fee
+
+# Keys
+
+## Key Derivation
+
+Each commitment transaction uses a unique set of keys; `localkey` and `remotekey`.  The HTLC-success and HTLC-timeout transactions use `local-delayedkey` and `revocationkey`.  These are changed every time depending on the
+`per-commitment-point`.
+
+Keys change because of the desire for trustless outsourcing of
+watching for revoked transactions; a _watcher_ should not be able to
+determine what the contents of commitment transaction is, even if
+given the transaction ID to watch for and can make a resonable guess
+as to what HTLCs and balances might be included.  Nonetheless, to
+avoid storage for every commitment transaction, it can be given the
+`per-commitment-secret` values (which can be stored compactly) and the
+`revocation-basepoint` and `delayed-payment-basepoint` to regnerate
+the scripts required for the penalty transaction: it need only be
+given (and store) the signatures for each penalty input.
+
+Changing the `localkey` and `remotekey` every time ensures that commitment transaction id cannot be guessed: Every commitment transaction uses one of these in its output script.  Splitting the `local-delayedkey` which is required for the penalty transaction allows that to be shared with the watcher without revealing `localkey`; even if both peers use the same watcher, nothing is revealed.
+
+Finally, even in the case of normal unilateral close, the HTLC-success
+and/or HTLC-timeout transactions do not reveal anything to the
+watcher, as it does not know the corresponding `per-commitment-secret` and
+cannot relate the `local-delayedkey` or `revocationkey` with
+their bases.
+
+For efficiency, keys are generated from a series of per-commitment secrets which are generated from a single seed, allowing the receiver to compactly store them (see [below](#efficient-per-commitment-secret-storage)).
+
+### `localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation
+
+These keys are simply generated by addition from their base points:
+
+	pubkey = basepoint + SHA256(per-commitment-point || basepoint)*G
+
+The `localkey` uses the local node's `payment-basepoint`, `remotekey`
+uses the remote node's `payment-basepoint`, the `local-delayedkey`
+uses the local node's `delayed-payment-basepoint`, and the
+`remote-delayedkey` uses the remote node's
+`delayed-payment-basepoint`.
+
+The corresponding private keys can be derived similarly if the basepoint
+secrets are known (i.e., `localkey` and `local-delayedkey` only):
+
+    secretkey = basepoint-secret + SHA256(per-commitment-point || basepoint)
+
+### `revocationkey` Derivation
+
+The revocationkey is a blinded key: the remote node provides the base,
+and the local node provides the blinding factor which it later
+reveals, so the remote node can use the secret revocationkey for a
+penalty transaction.
+
+The `per-commitment-point` is generated using EC multiplication:
+
+	per-commitment-point = per-commitment-secret * G
+
+And this is used to derive the revocation key from the remote node's
+`revocation-basepoint`:
+
+	revocationkey = revocation-basepoint * SHA256(revocation-basepoint || per-commitment-point) + per-commitment-point*SHA256(per-commitment-point || revocation-basepoint)
+
+This construction ensures that neither the node providing the
+basepoint nor the node providing the `per-commitment-point` can know the
+private key without the other node's secret.
+
+### Per-commitment Secret Requirements
+
+A node MUST select an unguessable 256-bit seed for each connection,
+and MUST NOT reveal the seed.  Up to 2^48-1 per-commitment secrets can be
+generated; the first secret used MUST be index 281474976710655, and
+then the index decremented.
+
+The I'th secret P MUST match the output of this algorithm:
+
+    generate_from_seed(seed, I):
+        P = seed
+        for B in 0 to 47:
+            if B set in I:
+                flip(B) in P
+                P = SHA256(P)
+        return P
+
+Where "flip(B)" alternates the B'th least significant bit in the value P.
+
+The receiving node MAY store all previous per-commitment secrets, or
+MAY calculate it from a compact representation as described below.
+
+## Efficient Per-commitment Secret Storage
+
+The receiver of a series of secrets can store them compactly in an
+array of 49 (value,index) pairs.  This is because given a secret on a
+2^X boundary, we can derive all secrets up to the next 2^X boundary,
+and we always receive secrets in descending order starting at
+`0xFFFFFFFFFFFF`.
+
+In binary, it's helpful to think of any index in terms of a *prefix*,
+followed by some trailing zeroes.  You can derive the secret for any
+index which matches this *prefix*.
+
+For example, secret `0xFFFFFFFFFFF0` allows us to derive secrets for
+`0xFFFFFFFFFFF1` through `0xFFFFFFFFFFFF` inclusive. Secret `0xFFFFFFFFFF08`
+allows us to derive secrets `0xFFFFFFFFFF09` through `0xFFFFFFFFFF0F`
+inclusive.
+
+We do this using a slight generalization of `generate_from_seed` above:
+
+    # Return I'th secret given base secret whose index has bits..47 the same.
+    derive_secret(base, bits, I):
+        P = base
+        for B in 0 to bits:
+            if B set in I:
+                flip(B) in P
+                P = SHA256(P)
+        return P
+
+We need only save one secret for each unique prefix; in effect we can
+count the number of trailing zeros, and that determines where in our
+storage array we store the secret:
+
+    # aka. count trailing zeroes
+    where_to_put_secret(I):
+		for B in 0 to 47:
+			if testbit(I) in B == 1:
+				return B
+        # I = 0, this is the seed.
+		return 48
+
+We also need to double-check that all previous secrets derive correctly,
+otherwise the secrets were not generated from the same seed:
+
+    insert_secret(secret, I):
+		B = where_to_put_secret(secret, I)
+
+        # This tracks the index of the secret in each bucket as we traverse.
+		for b in 0 to B:
+			if derive_secret(secret, B, known[b].index) != known[b].secret:
+				error The secret for I is incorrect
+				return
+
+        # Assuming this automatically extends known[] as required.
+		known[B].index = I
+		known[B].secret = secret
+
+Finally, if we are asked to derive secret at index `I`, we need to
+figure out which known secret we can derive it from.  The simplest
+method is iterating over all the known secrets, and testing if we
+can derive from it:
+
+	derive_old_secret(I):
+		for b in 0 to len(secrets):
+		    # Mask off the non-zero prefix of the index.
+		    MASK = ~((1 << b)-1)
+			if (I & MASK) == secrets[b].index:
+				return derive_secret(known, i, I)
+	    error We haven't received index I yet.
+
+This looks complicated, but remember that the index in entry `b` has
+`b` trailing zeros; the mask and compare is just seeing if the index
+at each bucket is a prefix of the index we want.
+
+# Appendix A: Expected weights
+
+## Expected weight of the commitment transaction
+
 The *expected weight* of a commitment transaction is calculated as follows:
 
 	p2wsh: 34 bytes
@@ -273,6 +496,8 @@ Multiplying non-witness data by 4, this gives a weight of:
 	witness_weight = witness_header + witness
 
 	overall_weight = 500 + 172 * num-htlc-outputs + 224 weight 
+
+## Expected weight of HTLC-Timeout and HTLC-Success Transactions
 
 The *expected weight* of an HTLC transaction is calculated as follows:
 
@@ -381,214 +606,7 @@ HTLC-success) gives a weight of:
 	634 (HTLC-timeout)
 	671 (HTLC-success)
 
-### Requirements
-
-The fee for an HTLC-timeout transaction MUST BE calculated to match:
-
-1. Multiply `feerate-per-kw` by 634 and divide by 1024 (rounding down).
-
-The fee for an HTLC-success transaction MUST BE calculated to match:
-
-1. Multiply `feerate-per-kw` by 671 and divide by 1024 (rounding down).
-
-The fee for a commitment transaction MUST BE calculated to match:
-
-1. Start with `weight` = 724, and `fee` = 0.
-
-2. For every offered HTLC, if the HTLC amount is greater or equal to the local node's
-   `dust-limit-satoshis` plus the HTLC-timeout
-   transaction fee, then add 172 to `weight`, otherwise add
-   the HTLC amount to `fee`.
-
-3. For every accepted HTLC, if the HTLC amount is greater or equal to the local node's
-   `dust-limit-satoshis` plus the HTLC-success
-   transaction fee, then add 172 to `weight`, otherwise add
-   the HTLC amount to `fee`.
-
-4. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
-   and add to `fee`.
-   
-### Example
-
-For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 546 satoshis, and commitment transaction with:
-* 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
-* 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
-
-The commitment transaction fee would be 6214 satoshis
-The HTLC timeout transaction fee would be 3095 satoshis
-The HTLC success transaction fee would be 3276 satoshis
-
-The offered HTLC of 5000 satoshis is above 546 + 3095 and would result in:
-* an output of 5000 satoshi in the commitment transaction
-* a HTLC timeout transaction of 5000 - 3095 satoshis which spends this output
-
-The offered HTLC of 1000 satoshis is below 546 + 3095, and its amount would be added to the commitment transaction fee
-
-The received HTLC of 7000 satoshis is above 546 + 3276 and would result in:
-* an output of 7000 satoshi in the commitment transaction
-* a HTLC success transaction of 7000 - 3276 satoshis which spends this output
-
-The received HTLC of 800 satoshis is below 546 + 3276 and its amount would be added to the commitment transaction fee
-
-# Key Derivation
-
-Each commitment transaction uses a unique set of keys; `localkey` and `remotekey`.  The HTLC-success and HTLC-timeout transactions use `local-delayedkey` and `revocationkey`.  These are changed every time depending on the
-`per-commitment-point`.
-
-Keys change because of the desire for trustless outsourcing of
-watching for revoked transactions; a _watcher_ should not be able to
-determine what the contents of commitment transaction is, even if
-given the transaction ID to watch for and can make a resonable guess
-as to what HTLCs and balances might be included.  Nonetheless, to
-avoid storage for every commitment transaction, it can be given the
-`per-commitment-secret` values (which can be stored compactly) and the
-`revocation-basepoint` and `delayed-payment-basepoint` to regnerate
-the scripts required for the penalty transaction: it need only be
-given (and store) the signatures for each penalty input.
-
-Changing the `localkey` and `remotekey` every time ensures that commitment transaction id cannot be guessed: Every commitment transaction uses one of these in its output script.  Splitting the `local-delayedkey` which is required for the penalty transaction allows that to be shared with the watcher without revealing `localkey`; even if both peers use the same watcher, nothing is revealed.
-
-Finally, even in the case of normal unilateral close, the HTLC-success
-and/or HTLC-timeout transactions do not reveal anything to the
-watcher, as it does not know the corresponding `per-commitment-secret` and
-cannot relate the `local-delayedkey` or `revocationkey` with
-their bases.
-
-For efficiency, keys are generated from a series of per-commitment secrets which are generated from a single seed, allowing the receiver to compactly store them (see [below](#efficient-per-commitment-secret-storage)).
-
-## `localkey`, `remotekey`, `local-delayedkey` and `remote-delayedkey` Derivation
-
-These keys are simply generated by addition from their base points:
-
-	pubkey = basepoint + SHA256(per-commitment-point || basepoint)*G
-
-The `localkey` uses the local node's `payment-basepoint`, `remotekey`
-uses the remote node's `payment-basepoint`, the `local-delayedkey`
-uses the local node's `delayed-payment-basepoint`, and the
-`remote-delayedkey` uses the remote node's
-`delayed-payment-basepoint`.
-
-The corresponding private keys can be derived similarly if the basepoint
-secrets are known (i.e., `localkey` and `local-delayedkey` only):
-
-    secretkey = basepoint-secret + SHA256(per-commitment-point || basepoint)
-
-## `revocationkey` Derivation
-
-The revocationkey is a blinded key: the remote node provides the base,
-and the local node provides the blinding factor which it later
-reveals, so the remote node can use the secret revocationkey for a
-penalty transaction.
-
-The `per-commitment-point` is generated using EC multiplication:
-
-	per-commitment-point = per-commitment-secret * G
-
-And this is used to derive the revocation key from the remote node's
-`revocation-basepoint`:
-
-	revocationkey = revocation-basepoint * SHA256(revocation-basepoint || per-commitment-point) + per-commitment-point*SHA256(per-commitment-point || revocation-basepoint)
-
-This construction ensures that neither the node providing the
-basepoint nor the node providing the `per-commitment-point` can know the
-private key without the other node's secret.
-
-## Per-commitment Secret Requirements
-
-A node MUST select an unguessable 256-bit seed for each connection,
-and MUST NOT reveal the seed.  Up to 2^48-1 per-commitment secrets can be
-generated; the first secret used MUST be index 281474976710655, and
-then the index decremented.
-
-The I'th secret P MUST match the output of this algorithm:
-
-    generate_from_seed(seed, I):
-        P = seed
-        for B in 0 to 47:
-            if B set in I:
-                flip(B) in P
-                P = SHA256(P)
-        return P
-
-Where "flip(B)" alternates the B'th least significant bit in the value P.
-
-The receiving node MAY store all previous per-commitment secrets, or
-MAY calculate it from a compact representation as described below.
-
-## Efficient Per-commitment Secret Storage
-
-The receiver of a series of secrets can store them compactly in an
-array of 49 (value,index) pairs.  This is because given a secret on a
-2^X boundary, we can derive all secrets up to the next 2^X boundary,
-and we always receive secrets in descending order starting at
-`0xFFFFFFFFFFFF`.
-
-In binary, it's helpful to think of any index in terms of a *prefix*,
-followed by some trailing zeroes.  You can derive the secret for any
-index which matches this *prefix*.
-
-For example, secret `0xFFFFFFFFFFF0` allows us to derive secrets for
-`0xFFFFFFFFFFF1` through `0xFFFFFFFFFFFF` inclusive. Secret `0xFFFFFFFFFF08`
-allows us to derive secrets `0xFFFFFFFFFF09` through `0xFFFFFFFFFF0F`
-inclusive.
-
-We do this using a slight generalization of `generate_from_seed` above:
-
-    # Return I'th secret given base secret whose index has bits..47 the same.
-    derive_secret(base, bits, I):
-        P = base
-        for B in 0 to bits:
-            if B set in I:
-                flip(B) in P
-                P = SHA256(P)
-        return P
-
-We need only save one secret for each unique prefix; in effect we can
-count the number of trailing zeros, and that determines where in our
-storage array we store the secret:
-
-    # aka. count trailing zeroes
-    where_to_put_secret(I):
-		for B in 0 to 47:
-			if testbit(I) in B == 1:
-				return B
-        # I = 0, this is the seed.
-		return 48
-
-We also need to double-check that all previous secrets derive correctly,
-otherwise the secrets were not generated from the same seed:
-
-    insert_secret(secret, I):
-		B = where_to_put_secret(secret, I)
-
-        # This tracks the index of the secret in each bucket as we traverse.
-		for b in 0 to B:
-			if derive_secret(secret, B, known[b].index) != known[b].secret:
-				error The secret for I is incorrect
-				return
-
-        # Assuming this automatically extends known[] as required.
-		known[B].index = I
-		known[B].secret = secret
-
-Finally, if we are asked to derive secret at index `I`, we need to
-figure out which known secret we can derive it from.  The simplest
-method is iterating over all the known secrets, and testing if we
-can derive from it:
-
-	derive_old_secret(I):
-		for b in 0 to len(secrets):
-		    # Mask off the non-zero prefix of the index.
-		    MASK = ~((1 << b)-1)
-			if (I & MASK) == secrets[b].index:
-				return derive_secret(known, i, I)
-	    error We haven't received index I yet.
-
-This looks complicated, but remember that the index in entry `b` has
-`b` trailing zeros; the mask and compare is just seeing if the index
-at each bucket is a prefix of the index we want.
-
-# Appendix A: Per-commitment Secret Generation Test Vectors
+# Appendix B: Per-commitment Secret Generation Test Vectors
 
 These test the generation algorithm which all nodes use.
 
