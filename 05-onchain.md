@@ -317,7 +317,7 @@ should cover this. [FIXME: May have to divide and conquer here, since they may b
 
 ## Penalty Transaction Weight Calculation
 
-As described in [BOLT #3](03-transactions.md), the witness script for
+As described in [BOLT #3](03-transactions.md), the witness for
 a penalty transaction is:
 
     <sig> 1 { OP_IF <key> OP_ELSE to-self-delay OP_CSV OP_DROP <key> OP_ENDIF OP_CHECKSIG }

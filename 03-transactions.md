@@ -56,7 +56,7 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
    * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
    * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits of the obscured commitment transaction number.
    * `txin[0]` script bytes: 0
-   * `txin[0]` witness: `<signature-for-key1> <signature-for-key-2>`
+   * `txin[0]` witness: `0 <signature-for-key1> <signature-for-key-2>`
 
 The 48-bit commitment transaction number is obscured by `XOR` with the lower 48 bits of:
 
@@ -91,11 +91,11 @@ This output sends funds back to the owner of this commitment transaction, thus m
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with `nSequence` field set to `to-self-delay` (which can only be valid after that duration has passed), and witness script:
+It is spent by a transaction with `nSequence` field set to `to-self-delay` (which can only be valid after that duration has passed), and witness:
 
 	<local-delayedsig> 0
 
-If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness script:
+If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness:
 
     <revocation-sig> 1
 
@@ -118,7 +118,7 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
         OP_CHECKSIG
     OP_ENDIF
 
-The remote node can redeem the HTLC with the scriptsig:
+The remote node can redeem the HTLC with the witness:
 
     <remotesig> <payment-preimage>
 
@@ -140,7 +140,7 @@ This output sends funds to the remote peer after the HTLC timeout, or to an HTLC
         OP_CHECKSIG
     OP_ENDIF
 
-To timeout the htlc, the remote node spends it with the scriptsig:
+To timeout the htlc, the remote node spends it with the witness:
 
     <remotesig> 0
 
