@@ -21,6 +21,7 @@ operation, and closing.
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the transition to the updated state: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
+    * [Message Retransmission](#message-retransmission)
   * [Authors](#authors)
   
 # Channel
@@ -127,6 +128,11 @@ allow commitment transactions to propagate through the Bitcoin
 network.  It SHOULD set `htlc-minimum-msat` to the minimum
 amount HTLC it is willing to accept from this peer.
 
+The receiving node MUST accept a new `open-channel` message if the
+connection has been re-established after receiving a previous
+`open-channel` and before receiving a `funding-created` message.  In
+this case, the receiving node MUST discard the previous `open-channel`
+message.
 
 The receiving node MUST fail the channel if `to-self-delay` is
 unreasonably large.  The receiver MAY fail the channel if
@@ -777,6 +783,73 @@ channel creation always pays the fees for the commitment transaction),
 it is simplest to only allow them to set fee levels, but as the same
 fee rate applies to HTLC transactions, the receiving node must also
 care about the reasonableness of the fee.
+
+## Message Retransmission
+
+Because communication transports are unreliable and may need to be
+re-established from time to time, the design of the transport has been
+explicitly separated from the protocol.
+
+Nonetheless, we assume that our transport is ordered and reliable;
+reconnection introduces doubt as to what has been received, so we
+retransmit any channel messages which may not have been.
+
+This is fairly straightforward in the case of channel establishment
+and close where messages have an explicit order, but in normal
+operation acknowlegements of updates are delayed until the
+`commitment_signed` / `revoke_and_ack` exchange, so we cannot assume
+the updates have been received.  This also means that the receiving
+node only needs to store updates upon receipt of `commitment_signed`.
+
+Note that messages described in [BOLT #7](07-routing-gossip.md) are
+independent of particular channels; their transmission requirements
+are covered there, and other than being transmitted after `init` (like
+any message), they are independent of requirements here.
+
+### Requirements
+
+A node MUST handle continuing a previous channel on a new encrypted
+transport.  On disconnection, a node MAY forget nodes which have not
+sent or received an `accept_channel` message.
+
+On disconnection, a node MUST reverse any uncommitted updates sent by
+the other side (ie. all messages beginning with `update_` for which no
+`commitment_signed` has been received).  A node SHOULD retain the `r`
+value from the `update_fulfill_htlc`, however.
+
+On reconnection, a node MUST retransmit old messages which may not
+have been received, and MUST NOT retransmit old messages which have
+been explicitly or implicitly acknowledged.  The following table
+lists the acknowledgement conditions for each message:
+
+* `open_channel`: acknowledged by `accept_channel`.
+* `accept_channel`: acknowledged by `funding_created`.
+* `funding_created`: acknowledged by `funding_signed`.
+* `funding_signed`: acknowledged by `funding_locked`.
+* `funding_locked`: acknowledged by `update_` messages, `commitment_signed`, `revoke_and_ack` or `shutdown` messages.
+* `update_` messages: acknowledged by `revoke_and_ack`.
+* `commitment_signed`: acknowledged by `revoke_and_ack`.
+* `revoke_and_ack`: acknowledged by `shutdown`, `update_` messages, or `commitment_signed`
+* `shutdown`: acknowledged by `closing_signed` or `revoke_and_ack`.
+
+The last `closing_signed` (if any) must always be retransmitted, as there
+is no explicit acknowledgement.
+
+Before retransmitting `commitment_signed`, the node MUST send
+appropriate `update_` messages (the other node will have forgotten
+them, as required above).
+
+A node MAY simply retransmit messages which are identical to the
+previous transmission.  A node MUST not assume that
+previously-transmitted messages were lost: in particular, if it has
+sent a previous `commitment_signed` message, a node MUST handle the
+case where the corresponding commitment transaction is broadcast by
+the other side at any time.  This is particularly important if a node
+does not simply retransmit the exact same `update_` messages as
+previously sent.
+
+A receiving node MAY ignore spurious message retransmission, or MAY
+fail the channel if they occur.
 
 # Authors
 

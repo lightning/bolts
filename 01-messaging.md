@@ -66,7 +66,7 @@ a buffer with 6 bytes of pre-padding.
 
 ### The `init` message
 
-Once authentication is complete, the first message reveals the features supported or required by this node.
+Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 Odd features are optional, even features are compulsory (_it's OK to be odd_).
 The meaning of these bits will be defined in the future.
 
@@ -81,6 +81,8 @@ The 2 byte `gflen` and `lflen` fields indicate the number of bytes in the immedi
 
 #### Requirements
 
+The sending node MUST send `init` as the first lightning message for any
+connection.
 The sending node SHOULD use the minimum lengths required to represent
 the feature fields.  The sending node MUST set feature bits
 corresponding to features it requires the peer to support, and SHOULD
