@@ -475,7 +475,7 @@ to be used for an incoming HTLC, leaving the node with unexpected
 liability.
 
 
-Thus the effective timeout of the HTLC is the `expiry`, plus some
+Thus the effective timeout of the HTLC is the `cltv-expiry`, plus some
 additional delay for the transaction which redeems the HTLC output to
 be irreversibly committed to the blockchain.
 
@@ -505,7 +505,7 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
    * [8:channel-id]
    * [8:id]
    * [4:amount-msat]
-   * [4:expiry]
+   * [4:cltv-expiry]
    * [32:payment-hash]
    * [1254:onion-routing-packet]
 
