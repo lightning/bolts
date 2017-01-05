@@ -244,7 +244,7 @@ it wants to change fees.
     * [8:channel-id]
     * [4:timestamp]
     * [2:flags]
-    * [2:expiry]
+    * [2:cltv-expiry-delta]
     * [4:htlc-minimum-msat]
     * [4:fee-base-msat]
     * [4:fee-proportional-millionths]
@@ -259,7 +259,7 @@ match those in the already-sent `channel_announcement` message, and MUST set the
 
 The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this channel.
 
-It MUST set `expiry` to the number of blocks it will subtract from an incoming HTLC's `expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
+It MUST set `cltv-expiry-delta` to the number of blocks it will subtract from an incoming HTLC's `cltv-expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
 
 The receiving node MUST ignore `flags` other than the least significant bit.
 The receiving node SHOULD ignore `ipv6`
@@ -329,8 +329,8 @@ As the fee is proportional, it must be calculated backwards from the
 destination to the source: only the amount required at the final
 destination is known initially.
 
-When calculating a route for an HTLC, the `expiry` and the fee both
-need to be considered: the `expiry` contributes to the time that funds
+When calculating a route for an HTLC, the `cltv-expiry-delta` and the fee both
+need to be considered: the `cltv-expiry-delta` contributes to the time that funds
 will be unavailable on worst-case failure.  The tradeoff between these
 two is unclear, as it depends on the reliability of nodes.
 
