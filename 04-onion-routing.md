@@ -429,13 +429,13 @@ Blinding is done by computing a blinding factor from the node's public key and t
 The blinding factor is the result of serializing the node's public key into its compressed format, appending the shared secret and computing the `SHA256` hash.
 The blinded EC point then is the result of the scalar multiplication between the EC point and the blinding factor.
 
-## Returning Messages
+## Returning Errors
 
-The protocol includes a simple mechanism to return messages to the origin node.
-The returned messages may either be failures reported by any intermediate hop, or a success message from the final node.
-The format of the forward packet is not usable for the return path, since no node other than the origin has the required information.
+The protocol includes a simple mechanism to return encrypted error messages to the origin node.
+The returned messages may either be failures reported by any intermediate hop, or the final node.
+The format of the forward packet is not usable for the return path, since no node other than the origin has the required information.  Note that these error messages are not reliable, as they are not placed on-chain in the case of node failure.
 
-Intermediate hops store the shared secret on from the forward path along and reuse it to obfuscate the return packets on each hop.
+Intermediate hops store the shared secret from the forward path and reuse it to obfuscate the error packet on each hop.
 In addition each node locally stores the previous hop it received the forward packet from, in order to determine where to send an eventual return packet.
 The node returning the message builds a return packet consisting of the following fields:
 
