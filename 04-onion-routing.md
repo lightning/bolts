@@ -444,13 +444,13 @@ The node returning the message builds a return packet consisting of the followin
 
  - `hmac` (20 bytes): an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type "_um_".
  - `failure code` (4 bytes)
- - `message length` (2 bytes): the length of the message field in bytes
- - `message` (variable): a string representation of the message.
  - `additional length` (2 bytes): the length of any additional protocol level message attached as additional information.
- - `additional` (variable): a protocol level message, preceeded by the
-   its `type`, as defined by other specifications. For example a route
-   failure MAY include a `channel_update` message to inform the sender
-   that a channel is no longer usable.
+ - `additional` (variable): as specified under "Failure Codes" below.
+ - `pad length` (2 bytes): the length of `pad`.
+ - `pad` (variable): extra bytes to conceal length.
+
+The node SHOULD set `pad` such that the `additional length` plus `pad length` is equal to 128.
+This is 30 bytes longer than then the longest currently-defined message.
 
 The node then generates a new key, using the key type `ammag`.
 This key is then used to generate a pseudo-random stream, which is then applied to the packet using `XOR`.
