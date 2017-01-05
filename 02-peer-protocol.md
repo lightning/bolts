@@ -587,7 +587,8 @@ For a timed out or route-failed HTLC:
 2. data:
    * [8:channel-id]
    * [8:id]
-   * [154:reason]
+   * [2:len]
+   * [len:reason]
 
 #### Requirements
 

@@ -453,7 +453,7 @@ The node returning the message builds a return packet consisting of the followin
    that a channel is no longer usable.
 
 The node then generates a new key, using the key type `ammag`.
-This key is then used to generate a 154 byte pseudo-random stream, which is then applied to the packet using `XOR`.
+This key is then used to generate a pseudo-random stream, which is then applied to the packet using `XOR`.
 
 The obfuscation step is repeated by every node on the return path.
 Upon receiving a packet the node will generate its `ammag`, generate the pseudo-random byte stream and apply it to the packet before forwarding.
