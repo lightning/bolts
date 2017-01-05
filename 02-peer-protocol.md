@@ -618,7 +618,11 @@ A receiving node MUST check that the `payment-preimage` value in
 A receiving node MUST fail the channel if the `BADONION` bit in
 `failure-code` is not set for `update-fail-malformed-htlc`.
 
-A receiving node which has an outgoing HTLC canceled by
+A receiving node MAY check the `sha256-of-onion` in
+`update-fail-malformed-htlc` and MAY retry or choose an alternate
+error response if it does not match the onion it sent.
+
+Otherwise, a receiving node which has an outgoing HTLC canceled by
 `update-fail-malformed-htlc` MUST return an error in the
 `update-fail-htlc` sent to the link which originally sent the HTLC
 using the `failure-code` given and setting the `additional` data to
@@ -632,6 +636,12 @@ A node which doesn't time out HTLCs risks channel failure (see
 If the onion is malformed, the upstream node won't be able to extract
 a key to generate a response, hence the special failure message which
 makes this node do it.
+
+The node can check that the SHA256 the upstream is complaining about
+does match the onion it sent, which may allow it to detect random bit
+errors.  Without re-checking the actual encrypted packet sent, however,
+it won't know whether the error was its own or on the remote side, so
+such detection is left as an option.
 
 ### Committing Updates So Far: `commitment_signed`
 
