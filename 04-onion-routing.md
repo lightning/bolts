@@ -142,7 +142,7 @@ the values as specified within the per-hop-payload.
 The format of the per-hop-payload for a version 0 packet is as follows: 
 ```
 +----------------+--------------------------+-------------------------------+--------------------------------------------+
-| realm (1 byte) | amt_to_forward (8 bytes) | incoming_cltv_value (2 bytes) | unused_with_v0_version_on_header (9 bytes) |
+| realm (1 byte) | amt_to_forward (8 bytes) | outgoing_cltv_value (2 bytes) | unused_with_v0_version_on_header (9 bytes) |
 +----------------+--------------------------+-------------------------------+--------------------------------------------+
 ```
 
@@ -166,14 +166,17 @@ Field Description:
      Where `fee` is calculated according to the receving node's advertised fee
      schema as described in [BOLT 7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#htlc-fees).
 
-   * `incoming_cltv_value` - The CLTV value that the _incoming_ HTLC carrying
+   * `outgoing_cltv_value` - The CLTV value that the _outgoing_ HTLC carrying
      the packet should have. 
-     
-     Inclusion of this field allows a node to authtenicate the information
-     specified by the original sender and the paramters of the HTLC forwarded.
+
+        cltv-expiry - cltv-expiry-delta = outgoing_cltv_value
+
+     Inclusion of this field allows a node to both authenticate the information
+     specified by the original sender and the paramaters of the HTLC forwarded,
+	 and ensure the original sender is using the current `cltv-expiry-delta` value.
      If the values don't correspond, then the HTLC should be failed+rejected as
-     this incidcates the incoming node has tamprered with the intended HTLC
-     values.
+     this indicates the incoming node has tampered with the intended HTLC
+     values, or the origin has an obsolete `cltv-expiry-delta` value.
 
 
 Nodes forwarding HTLC's MUST construct the outgoing HTLC as specified within
