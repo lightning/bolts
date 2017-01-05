@@ -566,14 +566,17 @@ still be under the maximum message size.  It also ensures that
 a single penalty transaction can spend the entire commitment transaction,
 as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
 
-### Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`
+### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc` and `update_fail_malformed_htlc`
 
 For simplicity, a node can only remove HTLCs added by the other node.
 There are three reasons for removing an HTLC: it has timed out, it has
 failed to route, or the payment preimage is supplied.
 
 The `reason` field is an opaque encrypted blob for the benefit of the
-original HTLC initiator as defined in [BOLT #4](04-onion-routing.md).
+original HTLC initiator as defined in [BOLT #4](04-onion-routing.md),
+but there's a special malformed failure variant for the case where
+our peer couldn't parse it; in this case the current node encrypts
+it into a `update_fail_htlc` for relaying.
 
 1. type: 130 (`update_fulfill_htlc`)
 2. data:
@@ -590,6 +593,15 @@ For a timed out or route-failed HTLC:
    * [2:len]
    * [len:reason]
 
+For a unparsable HTLC:
+
+1. type: 133 (`update_fail_malformed_htlc`)
+2. data:
+   * [8:channel-id]
+   * [8:id]
+   * [4:failure-code]
+   * [32:sha256-of-onion]
+
 #### Requirements
 
 A node SHOULD remove an HTLC as soon as it can; in particular, a node
@@ -603,17 +615,23 @@ A receiving node MUST check that the `payment-preimage` value in
 `update-fulfill_htlc` SHA256 hashes to the corresponding HTLC
 `payment-hash`, and MUST fail the channel if it does not.
 
-A receiving node which closes an incoming HTLC in response to an
-`update-fail-htlc` message on an offered HTLC MUST copy the `reason`
-field to the outgoing `update-fail-htlc`.
+A receiving node MUST fail the channel if the `BADONION` bit in
+`failure-code` is not set for `update-fail-malformed-htlc`.
 
+A receiving node which has an outgoing HTLC canceled by
+`update-fail-malformed-htlc` MUST return an error in the
+`update-fail-htlc` sent to the link which originally sent the HTLC
+using the `failure-code` given and setting the `additional` data to
+`sha256-of-onion`.
 
 #### Rationale
-
 
 A node which doesn't time out HTLCs risks channel failure (see
 "Risks With HTLC Timeouts").
 
+If the onion is malformed, the upstream node won't be able to extract
+a key to generate a response, hence the special failure message which
+makes this node do it.
 
 ### Committing Updates So Far: `commitment_signed`
 
