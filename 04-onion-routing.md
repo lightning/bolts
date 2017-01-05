@@ -442,12 +442,15 @@ Intermediate hops store the shared secret from the forward path and reuse it to 
 In addition each node locally stores the previous hop it received the forward packet from, in order to determine where to send an eventual return packet.
 The node returning the message builds a return packet consisting of the following fields:
 
- - `hmac` (20 bytes): an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type "_um_".
- - `failure code` (4 bytes)
- - `additional length` (2 bytes): the length of any additional protocol level message attached as additional information.
- - `additional` (variable): as specified under "Failure Codes" below.
- - `pad length` (2 bytes): the length of `pad`.
- - `pad` (variable): extra bytes to conceal length.
+1. data:
+   * [20:hmac]
+   * [4:failure-code]
+   * [2:additional-len]
+   * [additional-len:additional]
+   * [2:pad-len]
+   * [pad-len:pad]
+
+Where `hmac` is an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type "_um_", `failure-code` and `additional` are defined below, and `pad` as extra bytes to conceal length.
 
 The node SHOULD set `pad` such that the `additional length` plus `pad length` is equal to 128.
 This is 30 bytes longer than then the longest currently-defined message.
