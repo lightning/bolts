@@ -64,15 +64,17 @@ parser.add_option("--message-fields",
 
 (options, args) = parser.parse_args()
 
-# Example input:
-# 1. type: 17 (`MSG_ERROR`)
+# Example inputs:
+# 1. type: 17 (`error`)
 # 2. data:
 #    * [8:channel-id]
 #    * [4:len]
 #    * [len:data]
+#
+# 1. type: PERM|NODE|3 (`required_node_feature_missing`)
 message = None
 havedata = None
-typeline = re.compile('1\. type: (?P<value>[0-9]+) \(`(?P<name>[-A-Za-z_]+)`\)')
+typeline = re.compile('1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[-A-Za-z_]+)`\)')
 dataline = re.compile('\s+\* \[(?P<size>[-a-z0-9*+]+):(?P<name>[-a-z0-9]+)\]')
 
 for i,line in enumerate(fileinput.input(args)):
@@ -89,7 +91,7 @@ for i,line in enumerate(fileinput.input(args)):
         havedata = None
     elif message is not None and havedata is None:
         if line != '2. data:':
-            raise ValueError('{}:Expected 2. data:'.format(linenum))
+            message = None
         havedata = True
         dataoff = 0
         off_extraterms = ""
