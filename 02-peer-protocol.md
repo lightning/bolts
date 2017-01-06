@@ -623,8 +623,8 @@ For a unparsable HTLC:
 2. data:
    * [8:channel-id]
    * [8:id]
-   * [4:failure-code]
    * [32:sha256-of-onion]
+   * [2:failure-code]
 
 #### Requirements
 
@@ -649,7 +649,7 @@ error response if it does not match the onion it sent.
 Otherwise, a receiving node which has an outgoing HTLC canceled by
 `update-fail-malformed-htlc` MUST return an error in the
 `update-fail-htlc` sent to the link which originally sent the HTLC
-using the `failure-code` given and setting the `additional` data to
+using the `failure-code` given and setting the data to
 `sha256-of-onion`.
 
 #### Rationale
