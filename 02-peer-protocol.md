@@ -595,7 +595,7 @@ For a timed out or route-failed HTLC:
 
 For a unparsable HTLC:
 
-1. type: 133 (`update_fail_malformed_htlc`)
+1. type: 135 (`update_fail_malformed_htlc`)
 2. data:
    * [8:channel-id]
    * [8:id]
