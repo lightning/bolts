@@ -540,8 +540,10 @@ In order to encrypt a lightning message (`m`), given a sending key (`sk`), and a
 
   * Encrypt `l` using `ChaChaPoly-1305`, `sn`, and `sk` to obtain `lc`
     (`18-bytes`)
-    * The nonce `sn` is encoded as a 96-bit big-endian number.
-	* The nonce `sn` MUST be incremented after this step.
+    * The nonce `sn` is encoded as a 96-bit little-endian number. As our
+      decoded nonces a 64-bit, we encode the 96-bit nonce as follows: 32-bits
+      of leading zeroes followed by a 64-bit value.
+        * The nonce `sn` MUST be incremented after this step.
     * A zero-length byte slice is to be passed as the AD (associated data).
 
   * Finally encrypt the message itself (`m`) using the same procedure used to
