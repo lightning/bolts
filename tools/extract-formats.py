@@ -16,27 +16,27 @@ def guess_alignment(message,name,sizestr):
     # - node_announcement.ipv6 has size 16, but alignment 4 (to align IPv4 addr).
     # - node_announcement.alias is a string, so alignment 1
     # - signatures have no alignment requirement.
-    if match.group('name').startswith('pad'):
+    if name.startswith('pad'):
         return 1
 
-    if match.group('name') == 'channel-id':
+    if name == 'channel-id':
         return 4
 
-    if message == 'node_announcement' and match.group('name') == 'ipv6':
+    if message == 'node_announcement' and name == 'ipv6':
         return 4
 
-    if message == 'node_announcement' and match.group('name') == 'alias':
+    if message == 'node_announcement' and name == 'alias':
         return 1
 
-    if 'signature' in match.group('name'):
+    if 'signature' in name:
        return 1
     
     # Size can be variable.
     try:
-        size = int(match.group('size'))
+        size = int(sizestr)
     except ValueError:
         # If it contains a "*xxx" factor, that's our per-unit size.
-        s = re.search('\*([0-9]*)$', match.group('size'))
+        s = re.search('\*([0-9]*)$', sizestr)
         if s is None:
             size = 1
         else:
