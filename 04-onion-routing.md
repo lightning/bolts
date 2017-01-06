@@ -444,16 +444,15 @@ The node returning the message builds a return packet consisting of the followin
 
 1. data:
    * [20:hmac]
-   * [4:failure-code]
-   * [2:additional-len]
-   * [additional-len:additional]
+   * [2:failure-len]
+   * [failure-len:failuremsg]
    * [2:pad-len]
    * [pad-len:pad]
 
-Where `hmac` is an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type "_um_", `failure-code` and `additional` are defined below, and `pad` as extra bytes to conceal length.
+Where `hmac` is an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type "_um_", `failuremsg` is defined below, and `pad` as extra bytes to conceal length.
 
-The node SHOULD set `pad` such that the `additional length` plus `pad length` is equal to 128.
-This is 30 bytes longer than then the longest currently-defined message.
+The node SHOULD set `pad` such that the `failure-len` plus `pad-len` is equal to 128.
+This is 28 bytes longer than then the longest currently-defined message.
 
 The node then generates a new key, using the key type `ammag`.
 This key is then used to generate a pseudo-random stream, which is then applied to the packet using `XOR`.
@@ -466,20 +465,22 @@ Having the shared secrets of all intermediate nodes it can unwrap the packet unt
 
 The association between forward and return packet is handled outside of the protocol, e.g., by association to an HTLC in a payment channel.
 
-### Failure Codes
+### Failure Messages
 
-The following `failure-code` values are supported.  A node MUST select one of
+The failure message encapsulated in `failuremsg` has identical format to
+a normal message: two byte type (`failure-code`) followed by data suitable
+for that type. The following `failure-code` values are supported.  A node MUST select one of
 these codes when creating an error message, and MUST include the
-appropriate `additional` data.
+appropriate data.
 
 In the case of more than one error, a node SHOULD select the first one
 listed.
 
 The top byte of `failure-code` can be read as a set of flags:
-* 0x80000000 (BADONION): unparsable onion, encrypted by previous node.
-* 0x40000000 (PERM): permanent failure (otherwise transient)
-* 0x20000000 (NODE): node failure (otherwise channel)
-* 0x10000000 (UPDATE): new channel update enclosed
+* 0x8000 (BADONION): unparsable onion, encrypted by previous node.
+* 0x4000 (PERM): permanent failure (otherwise transient)
+* 0x2000 (NODE): node failure (otherwise channel)
+* 0x1000 (UPDATE): new channel update enclosed
 
 Any node MAY return one of the following errors:
 
@@ -601,6 +602,8 @@ If the `cltv-expiry` is too low, the final node MUST fail the HTLC:
 1. type: 17 (`final_expiry_too_soon`)
 
 ### Receiving Failure Codes
+
+A node MUST ignore any extra bytes in `failuremsg`.
 
 If node sending the error is the final node:
 * If the PERM bit is set, the origin node SHOULD fail the payment,
