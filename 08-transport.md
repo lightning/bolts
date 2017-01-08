@@ -441,7 +441,7 @@ construction, and `16 bytes` for a final authenticating tag.
   * Read _exactly_ `66-bytes` from the network buffer.
 
 
-  * Parse out the read message (`m`) into `v = m[0]`, `c = m[1:50]` and `t = m[50:]`
+  * Parse out the read message (`m`) into `v = m[0]`, `c = m[1:49]` and `t = m[50:]`
 
 
   * If `v` is an unrecognized handshake version, then the responder MUST
