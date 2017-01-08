@@ -263,20 +263,25 @@ The sender MUST wait until the funding transaction has reached
 `minimum-depth` before sending this message.  The sender MUST encode
 the block position of the funding transaction into `channel-id`.  If
 the sender has already received `funding_locked` from the other node,
-it MAY fail the channel if its own `channel-id` does not match the
-received: otherwise it MUST ignore the `funding_locked` message.
-The sender MAY re-transmit `funding_locked` if the `channel-id` changes.
+and its own `channel-id` does not match that received, it MUST either
+fail the channel or ignore the `funding_locked` message.  If it
+ignores the `funding_locked` message it MUST re-transmit
+`funding_locked` if the `channel-id` changes, otherwise it MAY
+re-transmit `funding_locked` if the `channel-id` changes.
 
 The sender MUST set `next-per-commitment-point` to the
 per-commitment point to be used for the following commitment
 transaction, derived as specified in
 [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
-If the recipient has already sent `funding_locked` it MAY fail the
-channel if `channel-id` does not match the `channel-id` it sent,
-otherwise it SHOULD ignore the `funding_locked` message.  If the
-recipient has received previous `funding_locked` message, it MUST
-ignore it in favor of the new `funding_locked`.
+If the recipient has already sent `funding_locked` with `channel-id`
+which does not match the `channel-id` it sent, it MUST either fail the
+channel or ignore the `funding_locked` message.    If it
+ignores the `funding_locked` message it MUST re-transmit
+`funding_locked` if the `channel-id` changes, otherwise it MAY
+re-transmit `funding_locked` if the `channel-id` changes.
+If the recipient has received previous `funding_locked` message, it
+MUST ignore it in favor of the new `funding_locked`.
 
 The sender MUST set `announcement-node-signature` and `announcement-bitcoin-signature` to the signatures for the
 `channel_announcement` message, or all zeroes if it does not want the
@@ -291,9 +296,10 @@ peers if it has sent and received a non-zero `announcement-node-signature` and `
 If the `minimum-depth` is very low (such as 1), it's possible that
 both nodes see different blocks containing the transaction: current
 evidence suggests that this would happen once every three days.  Thus
-we allow implementations to retransmit in this case, and even wait for
-such retransmissions in the case where both `minimum-depth` were too
-low for a canonical answer.
+there are two modes: one in which we simply fail, should that happen,
+and a more flexible mode in which nodes wait for updated
+`funding_locked` if there's disagreement.  In this mode, we require
+that they send updates to avoid relying on timeouts.
 
 Such waiting is optional, as it is extremely unlikely for
 `minimum-depth` values of 2 or more.
