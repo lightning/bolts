@@ -249,7 +249,7 @@ and `16 bytes` for the `poly1305` tag.
   * Read _exactly_ `50-bytes` from the network buffer.
 
 
-  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:34]` and `c = m[43:]`
+  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]` and `c = m[34:]`
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` are the next `33`
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
     * The raw bytes of the remote party's ephemeral public key (`e`) are to be
@@ -339,7 +339,7 @@ for the `poly1305` tag.
   * Read _exactly_ `50-bytes` from the network buffer.
 
 
-  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:34]` and `c = m[43:]`
+  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]` and `c = m[34:]`
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` are the next `33`
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
 
