@@ -67,7 +67,7 @@ This is version 0.
 * *Per-commitment secret*:
    * Every commitment derives its keys from a *per-commitment secret*,
      which is generated such that the series of per-commitment secrets
-     for all prevoius commitments can be stored compactly.
+     for all previous commitments can be stored compactly.
 
 
 * *Mutual Close*:
