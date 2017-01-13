@@ -1,0 +1,7 @@
+language: python
+python:
+  - "3.4"
+  - "3.5"
+  - "3.6"
+script:
+  - (set -e; for i in 0?-*.md; do echo "Extracting $i"; python3 tools/extract-formats.py --message-types --message-fields --check-alignment $i; done)
