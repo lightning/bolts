@@ -207,11 +207,11 @@ This gives us the following *expected weights* (details of the computation in [A
 
 The fee for an HTLC-timeout transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 634 and divide by 1024 (rounding down).
+1. Multiply `feerate-per-kw` by 634 and divide by 1000 (rounding down).
 
 The fee for an HTLC-success transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 671 and divide by 1024 (rounding down).
+1. Multiply `feerate-per-kw` by 671 and divide by 1000 (rounding down).
 
 The fee for a commitment transaction MUST BE calculated to match:
 
@@ -227,7 +227,7 @@ The fee for a commitment transaction MUST BE calculated to match:
    transaction fee, then add 172 to `weight`, otherwise add
    the HTLC amount to `fee`.
 
-4. Multiply `feerate-per-kw` by `weight`, divide by 1024 (rounding down),
+4. Multiply `feerate-per-kw` by `weight`, divide by 1000 (rounding down),
    and add to `fee`.
    
 #### Example
