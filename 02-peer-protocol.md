@@ -863,12 +863,14 @@ any message), they are independent of requirements here.
 
 A node MUST handle continuing a previous channel on a new encrypted
 transport.  On disconnection, a node MAY forget nodes which have not
-sent or received an `accept_channel` message.
+sent or received an `accept_channel` message, and MAY forget nodes
+which have not sent `funding_locked` after a reasonable timeout.
 
 On disconnection, a node MUST reverse any uncommitted updates sent by
 the other side (ie. all messages beginning with `update_` for which no
-`commitment_signed` has been received).  A node SHOULD retain the `r`
-value from the `update_fulfill_htlc`, however.
+`commitment_signed` has been received).  Note that a node MAY have
+already use the `payment-preimage` value from the `update_fulfill_htlc`,
+so the effects of `update_fulfill_htlc` is not completely reversed.
 
 On reconnection, a node MUST retransmit old messages which may not
 have been received, and MUST NOT retransmit old messages which have
