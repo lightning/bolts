@@ -30,6 +30,7 @@ This details the exact format of on-chain transactions, which both sides need to
   * [Appendix C: Per-commitment Secret Generation Test Vectors](#appendix-c-per-commitment-secret-generation-test-vectors)    
     * [Generation tests](#generation-tests)
     * [Storage tests](#storage-tests)
+  * [Appendix D: Key Derivation Test Vectors](#appendix-d-key-derivation-test-vectors)
   * [References](#references)   
   * [Authors](#authors)   
   
