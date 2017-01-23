@@ -233,7 +233,7 @@ The fee for a commitment transaction MUST BE calculated to match:
    
 #### Example
 
-For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 546 satoshis, and commitment transaction with:
+For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit-satoshis` of 546 satoshis, and commitment transaction with:
 * 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
 * 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
 
