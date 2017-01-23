@@ -4,7 +4,7 @@ This details the exact format of on-chain transactions, which both sides need to
 
 # Table of Contents
   * [Transactions](#transactions)
-    * [Transaction input and output ordering](#transaction-input-and-outpu-ordering)
+    * [Transaction input and output ordering](#transaction-input-and-output-ordering)
     * [Use of segwit](#use-of-segwit)
     * [Funding Transaction Output](#funding-transaction-output)
     * [Commitment Transaction](#commitment-transaction)
