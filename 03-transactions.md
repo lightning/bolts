@@ -237,21 +237,21 @@ For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit` of 
 * 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
 * 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
 
-The commitment transaction fee would be 6214 satoshis
-The HTLC timeout transaction fee would be 3095 satoshis
-The HTLC success transaction fee would be 3276 satoshis
+The commitment transaction fee would be 7140 satoshis
+The HTLC timeout transaction fee would be 3170 satoshis
+The HTLC success transaction fee would be 3355 satoshis
 
-The offered HTLC of 5000 satoshis is above 546 + 3095 and would result in:
+The offered HTLC of 5000 satoshis is above 546 + 3170 and would result in:
 * an output of 5000 satoshi in the commitment transaction
-* a HTLC timeout transaction of 5000 - 3095 satoshis which spends this output
+* a HTLC timeout transaction of 5000 - 3170 satoshis which spends this output
 
-The offered HTLC of 1000 satoshis is below 546 + 3095, and its amount would be added to the commitment transaction fee
+The offered HTLC of 1000 satoshis is below 546 + 3170, and its amount would be added to the commitment transaction fee
 
-The received HTLC of 7000 satoshis is above 546 + 3276 and would result in:
+The received HTLC of 7000 satoshis is above 546 + 3355 and would result in:
 * an output of 7000 satoshi in the commitment transaction
-* a HTLC success transaction of 7000 - 3276 satoshis which spends this output
+* a HTLC success transaction of 7000 - 3355 satoshis which spends this output
 
-The received HTLC of 800 satoshis is below 546 + 3276 and its amount would be added to the commitment transaction fee
+The received HTLC of 800 satoshis is below 546 + 3355 and its amount would be added to the commitment transaction fee
 
 ### Fee Payment
 
