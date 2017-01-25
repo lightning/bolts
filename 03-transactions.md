@@ -190,7 +190,6 @@ MUST be generated as specified in
 These HTLC transactions are almost identical, except the HTLC-Timeout transaction is timelocked.  This is also the transaction which can be spent by a valid penalty transaction.
 
 * version: 2
-* txin: the commitment transaction HTLC output.
 * locktime: `0` for HTLC-Success, `htlc-timeout` for HTLC-Timeout.
 * txin count: 1
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
@@ -314,6 +313,8 @@ given that peer's `dust-limit-satoshis`, the current `feerate-per-kw`,
 amounts due to each peer (`to-local` and `to-remote`), and all
 committed HTLCs:
 
+1. Initialize the commitment transaction input and locktime as specified
+   in [Commitment Transaction](#commitment-transaction).
 1. Calculate which committed HTLCs need to be trimmed (see [Trimmed Outputs](#trimmed-outputs)).
 2. Calculate the base [commitment transaction fee](#fee-calculation).
 3. Subtract this base fee from the funder (either `to-local` or `to-remote`),
