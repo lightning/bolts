@@ -95,7 +95,7 @@ desire to set up a new channel.
    * [33:first-per-commitment-point]
 
 
-The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node’s commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
+The `temporary-channel-id` is used to identify this channel until the funding transaction is established.  `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node's commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
 
 `max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node will accept.
 
@@ -356,7 +356,7 @@ and indicating the scriptpubkey it wants to be paid to.
 #### Requirements
 
 A node MUST NOT send a `shutdown` if there are updates pending
-on the receiving node's commitment transaction which are not yet added to the sender’s commitment.
+on the receiving node's commitment transaction which are not yet added to the sender's commitment.
 
 A node MUST NOT send an `update_add_htlc` after a `shutdown`,
 and MUST NOT send more than one `shutdown`.  A sending node
