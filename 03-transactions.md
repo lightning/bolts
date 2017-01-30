@@ -699,31 +699,70 @@ In the following:
  - we consider *local* transactions, which implies that all payments to *local* are delayed
  - we assume that *local* is the funder
  - private keys are displayed as 32 bytes plus a trailing 1 (bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed)
- - transactions are signed and all signatures are deterministic 
- 
-We start by defining common parameters used in all tests.
+ - transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256)
+
+We start by defining common basic parameters from which others are derived:
 
     funding_tx_hash: 42a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba7
     funding_output_index: 1
     funding_amount_satoshi: 10000000
-    local_funding_privkey: 30ff4956bbdd3222d44cc5e8a1261dab1e07957bdac5ae88fe3261ef321f374901
-    local_funding_key: 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb
-    remote_funding_privkey: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e1301
-    remote_funding_key: 030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1
-    local_revocation_privkey: 131526c63723ff1d36c28e61a8bdc86660d7893879bbda4cfeaad2022db7c10901
-    local_revocation_key: 03c1782563bcabb56acfa23ccf03ddfe1289950dd37893b602bfd0431c883cb11f
-    local_payment_privkey: e937268a37a774aa948ebddff3187fedc7035e3f0a029d8d85f31bda33b02d5501
-    local_payment_key: 020a1e6b477afed50c7e2aaa017a8a15bf0dd0453124eefffebed89a346e662db6
-    remote_payment_privkey: ce65059278a571ee4f4c9b4d5d7fa07449bbe09d9c716879343d9e975df1de3301
-    remote_payment_key: 03f3f312e7ef3ec0694954f77de37bd008382cb119abd6177b47215840972feaa4
+    commitment_number: 42
     local_delay: 144
     local_dust_limit_satoshi: 546
     local_feerate_per_kw: 15000
 
+The following keys are derived from first-principles here for completeness, but the ones in comments (prefixed by #) would not be known by the local node:
+
+    local_funding_privkey: 30ff4956bbdd3222d44cc5e8a1261dab1e07957bdac5ae88fe3261ef321f374901
+    # remote_funding_privkey: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e1301
+    local_payment_basepoint_secret: 1111111111111111111111111111111111111111111111111111111111111111
+    local_revocation_basepoint_secret: 2222222222222222222222222222222222222222222222222222222222222222
+    local_delayed_payment_basepoint_secret: 3333333333333333333333333333333333333333333333333333333333333333
+    # remote_payment_basepoint_secret: 4444444444444444444444444444444444444444444444444444444444444444
+    local_per_commitment_secret: 0x1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100
+    # remote_per_commitment_secret: 0x0f0e0d0c0b0a090807060504030201001f1e1d1c1b1a19181716151413121110
+
+From this we can derive the following keys and points:
+
+    # From local_funding_privkey
+    local_funding_pubkey: 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb
+    # From remote_funding_privkey
+    remote_funding_pubkey: 030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1
+    # From local_per_commitment_secret
+    local_per_commitment_point: 025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486
+    # From remote_per_commitment_secret
+    remote_per_commitment_point: 022c76692fd70814a8d1ed9dedc833318afaaed8188db4d14727e2e99bc619d325
+    # From local_revocation_basepoint_secret
+    local_revocation_basepoint: 02466d7fcae563e5cb09a0d1870bb580344804617879a14949cf22285f1bae3f27
+    # From local_delayed_payment_basepoint_secret
+    local_delayed_payment_basepoint: 023c72addb4fdf09af94f0c94d7fe92a386a7e70cf8a1d85916386bb2535c7b1b1
+    # From local_payment_basepoint_secret
+    local_payment_basepoint: 034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa
+    # From remote_payment_basepoint_secret
+    remote_payment_basepoint: 032c0b7cf95324a07d05398b240174dc0c2be444d96b159aa6c7f7b1e668680991
+    # From local_payment_basepoint_secret, local_per_commitment_point and local_payment_basepoint
+    local_secretkey: bb13b121cdc357cd2e608b0aea294afca36e2b34cf958e2e6451a2f27469449101
+    # Either from local_secretkey, or local_payment_basepoint and local_per_commitment_point
+    localkey: 030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e7
+    # From remote_payment_basepoint and remote_per_commitment_point
+    remotekey: 039390232673a9de88820d44ea910f364a332dc815cb0122bf5088d581dcbac878
+    # From local_delayed_payment_basepoint_secret, local_per_commitment_point and local_delayed_payment_basepoint
+    local_delayed_secretkey: adf3464ce9c2f230fd2582fda4c6965e4993ca5524e8c9580e3df0cf226981ad01
+    # Either from local_delayed_secretkey, or local_delayed_payment_basepoint and local_per_commitment_point
+    localkey: 03fd5960528dc152014952efdb702a88f71e3c1653b2314431701ec77e57fde83c
+    # From local_revocation_basepoint and local_per_commit_point
+    local_revocation_key: 0212a140cd0c6539d07cd08dfe09984dec3251ea808b892efeac3ede9402bf2b19
+
     name: simple tx with two outputs
     to_local_msat: 7000000000
     to_remote_msat: 3000000000
-    output commit_tx: 0200000000010142a26bb3a430a536cf9e3a8ce2cbcb0427c29ec6c7d647175cfc78328b57fba701000000005347388002c0c62d00000000001976a9141844e52616af46f531635b5b770737ec5695a08b88ac54a56a00000000002200201c1a9b14ca64510fa53ec4a910dfbf023983489f82f3f51c5884941ef0d194420400483045022100dd2545306903cfece22dea5730a5eacc8d1501a122893cb55f48c33bdc6ea9fb02204f39455954d5f0325ebcc708ef79614a6dbcf75f1d66d9c85b82af2100b22a7901473044022025fafc100dacdccae22f1dadac2cb021b3bcebfb4fca24f907709b740f99ac47022079cee1204fa166f899b1c69e3444d6a57b65c51068bef87f0b7df2db544bdce701475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae34ee4e20
+    # obscured commitment transaction number = FIXME ^ 42
+    # fee = FIXME
+    # to-remote: P2PKH(localkey FIXME)
+    # to-local: P2WSH(FIXME)
+    output unsigned commit_tx: FIXME
+    remote_signature: FIXME
+    output commit_tx: FIXME
 
     name: two outputs with fundee below dust limit
     to_local_msat: 9999000000
