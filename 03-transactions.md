@@ -103,7 +103,7 @@ If a revoked commitment transaction is published, the other party can spend this
 
 #### To-Remote Output
 
-This output sends funds to the other peer, thus is a simple P2PKH to `remotekey`.
+This output sends funds to the other peer, thus is a simple P2WPKH to `remotekey`.
 
 #### Offered HTLC Outputs
 
