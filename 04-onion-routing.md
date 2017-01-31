@@ -142,7 +142,7 @@ the values as specified within the per-hop-payload.
 The format of the per-hop-payload for a version 0 packet is as follows: 
 ```
 +----------------+--------------------------+-------------------------------+--------------------------------------------+
-| realm (1 byte) | amt_to_forward (8 bytes) | outgoing_cltv_value (2 bytes) | unused_with_v0_version_on_header (9 bytes) |
+| realm (1 byte) | amt_to_forward (8 bytes) | outgoing_cltv_value (4 bytes) | unused_with_v0_version_on_header (7 bytes) |
 +----------------+--------------------------+-------------------------------+--------------------------------------------+
 ```
 
