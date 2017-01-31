@@ -248,8 +248,6 @@ This message indicates that the funding transaction has reached the `minimum-dep
 2. data:
     * [8:temporary-channel-id]
     * [8:channel-id]
-    * [64:announcement-node-signature]
-    * [64:announcement-bitcoin-signature]
     * [33:next-per-commitment-point]
 
 The `channel-id` is the unique description of the funding transaction.
@@ -260,8 +258,6 @@ index which pays to the channel.
 
 This `channel-id` is used in all messages referring to the channel
 from this point onwards.
-
-`announcement-node-signature` and `announcement-bitcoin-signature` are the optional signature for `channel_announcement` as described in [BOLT #7](07-routing-gossip.md#the-channel_announcement-message).
 
 #### Requirements
 

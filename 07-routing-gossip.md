@@ -13,6 +13,19 @@ There can only be one valid `channel_announcement` for any channel,
 but multiple `node_announcement` messages are possible (to update node
 information), and at least two `channel_update` messages are expected.
 
+## The `announcement_signatures` message
+This is a direct message between two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
+It contains the necessary signatures by the sender to construct the `channel_announcement` message.
+
+1. type: 259 (`announcement_signatures`)
+2. data:
+    * [8:channel-id]
+    * [64:node-signature]
+    * [64:bitcoin-signature]
+
+Assuming both endpoints agree to announce the channel, then they SHOULD create a `channel_announcement` message, and sign it with the secrets matching their `node-id` and `bitcoin-key`, and send them using an `announcement_signatures`.
+Should one or both endpoints not want to announce the channel to the rest of the network, then they MUST NOT send an `announcement_signatures` message, and ignore any incoming `announcement_signatures` messages.
+
 ## The `channel_announcement` message
 
 This message contains ownership information about a channel.  It ties
