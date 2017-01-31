@@ -47,9 +47,9 @@ announcement message; that is done by having a signature from each
 2. data:
     * [64:node-signature-1]
     * [64:node-signature-2]
-    * [8:channel-id]
     * [64:bitcoin-signature-1]
     * [64:bitcoin-signature-2]
+    * [8:channel-id]
     * [33:node-id-1]
     * [33:node-id-2]
     * [33:bitcoin-key-1]
@@ -70,14 +70,10 @@ ascending numerical order, and MUST set `bitcoin-key-1` and
 `bitcoin-key-2` to `funding-pubkey`s of `node-id-1` and `node-id-2`
 respectively.
 
-The creating node MUST set `bitcoin-signature-1` to the signature of
-the double-SHA256 of `node-id-1` using `bitcoin-key-1`, and set
-`bitcoin-signature-2` to the signature of the double-SHA256 of
-`node-id-2` using `bitcoin-key-2`
-
-The creating node MUST set `node-signature-1` and `node-signature-2`
-to the signature of the double-SHA256 of the message after the end of
-`node-signature-2`, using `node-id-1` and `node-id-2` as keys respectively.
+The creating node MUST compute the double-SHA256 hash `h` of the message, starting at offset 256, up to the end of the message.
+Thus the hash skips the 4 signatures, but hashes the rest of the message, including any future fields appended to the end.
+`node-signature-1` and `node-signature-2` MUST be valid signatures of the hash `h` using the secret associated with `node-id-1` and `node-id-2` respectively.
+`bitcoin-signature-1` and `bitcoin-signature-2` MUST be valid signatures of the hash `h` using the secret associated with `bitcoin-key-1` and `bitcoin-key-2` respectively.
 
 The creating node SHOULD set `len` to the minimum length required to
 hold the `features` bits it sets.
