@@ -111,7 +111,7 @@ unknown `feature` bit set which is even.
 The receiving node SHOULD forget a channel once its funding output has
 been spent or reorganized out.
 
-## Rationale
+### Rationale
 
 Requiring both nodes to sign indicates they are both willing to route
 other payments via this node (ie. take part of the public network).
