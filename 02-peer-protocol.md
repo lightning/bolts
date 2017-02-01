@@ -285,14 +285,6 @@ re-transmit `funding_locked` if the `channel-id` changes.
 If the recipient has received previous `funding_locked` message, it
 MUST ignore it in favor of the new `funding_locked`.
 
-The sender MUST set `announcement-node-signature` and `announcement-bitcoin-signature` to the signatures for the
-`channel_announcement` message, or all zeroes if it does not want the
-channel announced.
-
-The recipient SHOULD fail the channel if the `announcement-node-signature` and `announcement-bitcoin-signature`s are incorrect (and not all zeroes).
-The recipient SHOULD queue the `channel_announcement` message for its
-peers if it has sent and received a non-zero `announcement-node-signature` and `announcement-bitcoin-signature`.
-
 #### Rationale
 
 If the `minimum-depth` is very low (such as 1), it's possible that
@@ -439,8 +431,7 @@ reason to pay a premium for rapid processing.
 
 ## Normal Operation
 
-Once both nodes have exchanged `funding_locked`, the channel can be
-used to make payments via Hash TimeLocked Contracts.
+Once both nodes have exchanged `funding_locked`, the channel can be used to make payments via Hash TimeLocked Contracts.
 
 Changes are sent in batches: one or more `update` messages are sent before a
 `commit_sig` message, as in the following diagram:

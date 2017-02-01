@@ -23,8 +23,13 @@ It contains the necessary signatures by the sender to construct the `channel_ann
     * [64:node-signature]
     * [64:bitcoin-signature]
 
+An `announcement_signatures` message MUST NOT be sent before the channel is fully established, i.e., before both ends have received the corresponding `channel_locked` messages.
+
 Assuming both endpoints agree to announce the channel, then they SHOULD create a `channel_announcement` message, and sign it with the secrets matching their `node-id` and `bitcoin-key`, and send them using an `announcement_signatures`.
 Should one or both endpoints not want to announce the channel to the rest of the network, then they MUST NOT send an `announcement_signatures` message, and ignore any incoming `announcement_signatures` messages.
+
+The recipient MAY fail the channel if the `node-signature` or `bitcoin-signature` is incorrect.
+The recipient SHOULD queue the `channel_announcement` message for its peers if it has sent and received a valid `announcement_signatures` message.
 
 ## The `channel_announcement` message
 
