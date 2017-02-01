@@ -570,8 +570,8 @@ commitment of that HTLC.  A receiving node MAY fail the channel if
 other `id` violations occur.
 
 The `onion-routing-packet` contains an obfuscated list of hops and instructions for each hop along the path.
-It commits to the HTLC by setting the `payment-key` as associated data, i.e., including the `payment-key` in the computation of HMACs.
-This prevents replay attacks that'd reuse a previous `onion-routing-packet` with a different `payment-key`.
+It commits to the HTLC by setting the `payment-hash` as associated data, i.e., including the `payment-hash` in the computation of HMACs.
+This prevents replay attacks that'd reuse a previous `onion-routing-packet` with a different `payment-hash`.
 
 #### Rationale
 
