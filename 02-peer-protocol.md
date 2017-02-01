@@ -17,7 +17,7 @@ operation, and closing.
     * [Normal Operation](#normal-operation)
       * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
       * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
-      * [Removing an HTLC: `update_fulfill_htlc` and `update_fail_htlc`](#removing-an-htlc-update_fulfill_htlc-and-update_fail_htlc)
+      * [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc` and `update_fail_malformed_htlc`](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the transition to the updated state: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
