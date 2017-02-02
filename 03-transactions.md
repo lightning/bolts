@@ -773,7 +773,7 @@ And here are the keys needed to create the transactions:
 
 And here are the test vectors themselves:
 
-    name: simple tx with two outputs
+    name: simple commitment tx with no HTLCs
     to_local_msat: 7000000000
     to_remote_msat: 3000000000
     feerate_per_kw: 15000
