@@ -431,7 +431,7 @@ reason to pay a premium for rapid processing.
 
 ## Normal Operation
 
-Once both nodes have exchanged `funding_locked`, the channel can be used to make payments via Hash TimeLocked Contracts.
+Once both nodes have exchanged `funding_locked` (and optionally `announcement_signatures`), the channel can be used to make payments via Hash TimeLocked Contracts.
 
 Changes are sent in batches: one or more `update` messages are sent before a
 `commit_sig` message, as in the following diagram:
