@@ -7,10 +7,13 @@ The `features` flags in the routing messages are a subset of the `globalfeatures
 
 ## Assigned `localfeatures` flags
 
-This flags may only be used in the `init` message.
+These flags may only be used in the `init` message, and are generally assigned in pairs.
 
-| Bits | Description                                     | Link                                                                |
-|------|-------------------------------------------------|---------------------------------------------------------------------|
-| 1    | The sending node wishes to announce the channel | [BOLT #7](07-routing-gossip.md#the-announcement_signatures-message) |
+Flags begin at bit 0 (ie. 0x1), and odd-numbered flags (eg. 0x2) are optional.
+
+
+| Bits | Name             |Description                                     | Link                                                                |
+|------|------------------|------------------------------------------------|---------------------------------------------------------------------|
+| 0/1  | `channel_public` | The sending node wishes to announce the channel | [BOLT #7](07-routing-gossip.md#the-announcement_signatures-message) |
 
 ## Assigned `globalfeatures` flags
