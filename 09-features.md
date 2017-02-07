@@ -1,4 +1,4 @@
-# BOLT #9: Assigned feature flags
+# BOLT #9: Assigned Feature Flags
 
 This document tracks the assignment of `localfeatures` and `globalfeatures` flags in the `init` message ([BOLT #1](01-messaging.md)), as well as the `features` field in the `channel_announcement` message and `node_announcement` message ([BOLT #7](07-routing-gossip.md)).
 They are tracked separately since new flags will likely be added over time.

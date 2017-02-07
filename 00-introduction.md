@@ -20,6 +20,7 @@ This is version 0.
 6. [BOLT #6](06-irc-announcements.md): Interim Node and Channel Discovery
 7. [BOLT #7](07-routing-gossip.md): P2P Node and Channel Discovery
 8. [BOLT #8](08-transport.md): Encrypted and Authenticated Transport
+9. [BOLT #9](09-features.md): Assigned Feature Flags
 
 ## Glossary and Terminology Guide
 
