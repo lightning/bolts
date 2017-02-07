@@ -248,8 +248,6 @@ This message indicates that the funding transaction has reached the `minimum-dep
 2. data:
     * [8:temporary-channel-id]
     * [8:channel-id]
-    * [64:announcement-node-signature]
-    * [64:announcement-bitcoin-signature]
     * [33:next-per-commitment-point]
 
 The `channel-id` is the unique description of the funding transaction.
@@ -260,8 +258,6 @@ index which pays to the channel.
 
 This `channel-id` is used in all messages referring to the channel
 from this point onwards.
-
-`announcement-node-signature` and `announcement-bitcoin-signature` are the optional signature for `channel_announcement` as described in [BOLT #7](07-routing-gossip.md#the-channel_announcement-message).
 
 #### Requirements
 
@@ -288,14 +284,6 @@ ignores the `funding_locked` message it MUST re-transmit
 re-transmit `funding_locked` if the `channel-id` changes.
 If the recipient has received previous `funding_locked` message, it
 MUST ignore it in favor of the new `funding_locked`.
-
-The sender MUST set `announcement-node-signature` and `announcement-bitcoin-signature` to the signatures for the
-`channel_announcement` message, or all zeroes if it does not want the
-channel announced.
-
-The recipient SHOULD fail the channel if the `announcement-node-signature` and `announcement-bitcoin-signature`s are incorrect (and not all zeroes).
-The recipient SHOULD queue the `channel_announcement` message for its
-peers if it has sent and received a non-zero `announcement-node-signature` and `announcement-bitcoin-signature`.
 
 #### Rationale
 
@@ -443,8 +431,7 @@ reason to pay a premium for rapid processing.
 
 ## Normal Operation
 
-Once both nodes have exchanged `funding_locked`, the channel can be
-used to make payments via Hash TimeLocked Contracts.
+Once both nodes have exchanged `funding_locked` (and optionally `announcement_signatures`), the channel can be used to make payments via Hash TimeLocked Contracts.
 
 Changes are sent in batches: one or more `update` messages are sent before a
 `commit_sig` message, as in the following diagram:
