@@ -294,6 +294,14 @@ channels associated with it.  Otherwise the receiving node SHOULD
 queue the message for rebroadcasting, but MAY choose not to for
 messages longer than the minimum expected length.
 
+## Initial Sync
+
+Upon establishing a connection, the two endpoints negotiate whether to perform an initial sync by setting the `initial_routing_sync` flags in the `init` message.
+The endpoint SHOULD set the `initial_routing_sync` flag if it requires a full copy of the other endpoint's routing state.
+Upon receiving an `init` message with the `initial_routing_sync` flag set the node sends `channel_announcement`s, `channel_update`s and `node_announcement`s for all known channels and nodes as if they were just received. 
+
+If the `initial_routing_sync` flag is not set, or initial sync was completed, then the node resumes normal operation, see the _Rebroadcasting_ section for details.
+
 ## Rebroadcasting
 
 Nodes receiving a new `channel_announcement` or a `channel_update` or
