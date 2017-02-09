@@ -456,6 +456,7 @@ commitment transaction when the remote node acknowledges it has
 applied them via `revoke_and_ack`.
 
 Thus each update traverses through the following states:
+
 1. Pending on the receiver
 2. In the receiver's latest commitment transaction,
 3. ... and the receiver's previous commitment transaction has been revoked,
