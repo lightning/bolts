@@ -215,9 +215,9 @@ signature, it will broadcast the funding transaction.
 
 #### Requirements
 
-The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `txid` to the transaction ID of a non-malleable transaction, which it MUST NOT broadcast, and MUST set `output-index` to the output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), MUST set `pad` to zero, and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `txid` to the transaction ID of a non-malleable transaction, which it MUST NOT broadcast, and MUST set `output-index` to the output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
-The recipient MUST fail the channel if `signature` is incorrect, and MUST ignore `pad`.
+The recipient MUST fail the channel if `signature` is incorrect.
 
 #### Rationale
 
