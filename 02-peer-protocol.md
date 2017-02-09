@@ -37,7 +37,7 @@ transaction and both versions of the commitment transaction as described in
 [BOLT
 03](https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#bolt-3-bitcoin-transaction-and-script-formats).
 The funder then sends the outpoint of the funding output along with a
-signature for the responser's version of the commitment transaction
+signature for the responder's version of the commitment transaction
 with the `funding_created` message. Once the responder learns the
 funding outpoint, she is able to generate the initiator's commitment
 for the commitment transaction, and send it over using the
