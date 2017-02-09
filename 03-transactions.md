@@ -239,8 +239,8 @@ Thus we use a simplified formula for *expected weight*, which assumes:
 This gives us the following *expected weights* (details of the computation in [Appendix A](#appendix-a-expected-weights)):
 
     Commitment weight:   724 + 172 * num-untrimmed-htlc-outputs
-    HTLC-timeout weight: 634
-    HTLC-success weight: 671
+    HTLC-timeout weight: 635
+    HTLC-success weight: 673
 
 Note that we refer to the "base fee" for a commitment transaction in the requirements below, which is what the funder pays.  The actual fee may be higher than the amount calculated here, due to rounding and trimmed outputs.
 
@@ -248,11 +248,11 @@ Note that we refer to the "base fee" for a commitment transaction in the require
 
 The fee for an HTLC-timeout transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 634 and divide by 1000 (rounding down).
+1. Multiply `feerate-per-kw` by 635 and divide by 1000 (rounding down).
 
 The fee for an HTLC-success transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 671 and divide by 1000 (rounding down).
+1. Multiply `feerate-per-kw` by 673 and divide by 1000 (rounding down).
 
 The base fee for a commitment transaction MUST BE calculated to match:
 
@@ -269,26 +269,26 @@ For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit-sato
 * 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
 * 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
 
-The HTLC timeout transaction weight is 634, thus fee would be 3170 satoshis.
-The HTLC success transaction weight is 671, thus fee would be 3355 satoshis
+The HTLC timeout transaction weight is 635, thus fee would be 3175 satoshis.
+The HTLC success transaction weight is 673, thus fee would be 3365 satoshis
 
 The commitment transaction weight would be calculated as follows:
 
 * weight starts at 724.
 
-* The offered HTLC of 5000 satoshis is above 546 + 3170 and would result in:
+* The offered HTLC of 5000 satoshis is above 546 + 3175 and would result in:
   * an output of 5000 satoshi in the commitment transaction
-  * a HTLC timeout transaction of 5000 - 3170 satoshis which spends this output
+  * a HTLC timeout transaction of 5000 - 3175 satoshis which spends this output
   * weight increases to 896
 
-* The offered HTLC of 1000 satoshis is below 546 + 3710, so would be trimmed.
+* The offered HTLC of 1000 satoshis is below 546 + 3175, so would be trimmed.
 
-* The received HTLC of 7000 satoshis is above 546 + 3355 and would result in:
+* The received HTLC of 7000 satoshis is above 546 + 3365 and would result in:
   * an output of 7000 satoshi in the commitment transaction
-  * a HTLC success transaction of 7000 - 3355 satoshis which spends this output
+  * a HTLC success transaction of 7000 - 3365 satoshis which spends this output
   * weight increases to 1068
 
-* The received HTLC of 800 satoshis is below 546 + 3355 so would be trimmed.
+* The received HTLC of 800 satoshis is below 546 + 3365 so would be trimmed.
 
 The base commitment transaction fee would be 5340 satoshi; the actual
 fee (adding the 1000 and 800 satoshi HTLCs which would have made dust
@@ -588,11 +588,12 @@ Multiplying non-witness data by 4, this gives a weight of:
 
 The *expected weight* of an HTLC transaction is calculated as follows:
 
-    accepted_htlc_script: 109 bytes
+    accepted_htlc_script: 111 bytes
 	    - OP_DATA: 1 byte (remotekey length)
 		- remotekey: 33 bytes
 		- OP_SWAP: 1 byte
 		- OP_SIZE: 1 byte
+		- OP_DATA: 1 byte (32 length)
 		- 32: 1 byte
 		- OP_EQUAL: 1 byte
 		- OP_IF: 1 byte
@@ -608,18 +609,19 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_CHECKMULTISIG: 1 byte
 		- OP_ELSE: 1 byte
 		- OP_DROP: 1 byte
-		- OP_PUSHDATA2: 1 byte (locktime length)
-		- locktime: 2 bytes
+		- OP_DATA: 1 byte (locktime length)
+		- locktime: 3 bytes
 		- OP_CHECKLOCKTIMEVERIFY: 1 byte
 		- OP_DROP: 1 byte
         - OP_CHECKSIG: 1 byte
 		- OP_ENDIF: 1 byte
 
-    offered_htlc_script: 104 bytes
+    offered_htlc_script: 105 bytes
 		- OP_DATA: 1 byte (remotekey length)
 		- remotekey: 33 bytes
 		- OP_SWAP: 1 byte
 		- OP_SIZE: 1 byte
+		- OP_DATA: 1 byte (32 length)
 		- 32: 1 byte
 		- OP_EQUAL: 1 byte
 		- OP_NOTIF: 1 byte
@@ -638,7 +640,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_CHECKSIG: 1 byte
 		- OP_ENDIF: 1 byte
 
-    timeout_witness: 256 bytes
+    timeout_witness: 257 bytes
 		- number_of_witness_elements: 1 byte
 		- nil_length: 1 byte
 		- sig_alice_length: 1 byte
@@ -649,7 +651,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- witness_script_length: 1 byte
 		- witness_script (offered_htlc_script)
 
-    success_witness: 293 bytes
+    success_witness: 295 bytes
 		- number_of_witness_elements: 1 byte
 		- nil_length: 1 byte
 		- sig_alice_length: 1 byte
@@ -687,11 +689,11 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- lock_time: 4 bytes
 
 Multiplying non-witness data by 4, this gives a weight of 376.  Adding
-the witness data for each case (256 + 2 for HTLC-timeout, 293 + 2 for
+the witness data for each case (257 + 2 for HTLC-timeout, 295 + 2 for
 HTLC-success) gives a weight of:
 
-	634 (HTLC-timeout)
-	671 (HTLC-success)
+	635 (HTLC-timeout)
+	673 (HTLC-success)
 
 # Appendix C: Funding Transaction Test Vectors
 
