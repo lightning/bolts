@@ -290,8 +290,13 @@ A node MUST resolve all unresolved outputs as follows:
    This output is considered *resolved* by the *commitment transaction*.
 2. _B's main output_: The node MUST *resolve* this by spending using the
    revocation key.
-3. _A's offered HTLCs_: The node MUST *resolve* this in one of two ways: either by spending using the payment preimage if known, or spending using B's HTLC-timeout transaction.
-4. _B's offered HTLCs_: The node MUST *resolve* this by spending once the HTLC timeout has passed.
+3. _A's offered HTLCs_: The node MUST *resolve* this in one of three ways by spending: 
+  * the *commitment tx* using the payment revocation
+  * the *commitment tx* using the payment preimage if known
+  * the *HTLC-timeout tx* if B publishes them
+4. _B's offered HTLCs_: The node MUST *resolve* this in one of two ways by spending:
+  * the *commitment tx* using the payment revocation
+  * the *commitment tx* once the HTLC timeout has passed.
 5. _B's HTLC-timeout transaction_: The node MUST *resolve* this by
    spending using the revocation key.
 6. _B's HTLC-success transaction_: The node MUST *resolve* this by
@@ -315,32 +320,33 @@ broadcasts HTLC-timeout and HTLC-success transactions, but the
 requirement that we persist until all outputs are irrevocably resolved
 should cover this. [FIXME: May have to divide and conquer here, since they may be able to delay us long enough to avoid successful penalty spend? ]
 
-## Penalty Transaction Weight Calculation
+## Penalty Transactions Weight Calculation
 
-As described in [BOLT #3](03-transactions.md), the witness for
-a penalty transaction is:
+There are three different scripts for penalty transactions, with the following witnesses weight (details of the computation in [Appendix A](#appendix-a-expected-weights)):
 
-    <sig> 1 { OP_IF <key> OP_ELSE to-self-delay OP_CSV OP_DROP <key> OP_ENDIF OP_CHECKSIG }
+    to_local_penalty_witness: 154 bytes
+    offered_htlc_penalty_witness: 291 bytes
+    accepted_htlc_penalty_witness: 307 bytes
 
-Which takes 1 byte to indicate the number of stack elements, plus one
-byte for the size of each element (+3), 73 bytes worst-case for
-`<sig>` (+73), one byte for the `1` (+1), nine bytes for the script
-instructions (+9), 33 bytes for each of the keys (+66), and two bytes
-for `to-self-delay` (+2).
+The penalty txinput itself takes 41 bytes, thus has a weight of 164, making the weight of each input:
 
-This gives 1+3+73+1+9+66+2=155 bytes of witness data, weight 155.
-
-The penalty txinput itself takes 41 bytes, thus has a weight of 164,
-meaning each input adds 319 weight.
+    to_local_penalty_input_weight: 318 bytes
+    offered_htlc_penalty_input_weight: 455 bytes
+    accepted_htlc_penalty_input_weight: 471 bytes
 
 The rest of the penalty transaction takes 4+3+1+8+1+34+4=55 bytes
 assuming it has a pay-to-witness-script-hash (the largest standard
-output script), thus a base weight of 220.
+output script).
 
-With a maximum standard weight of 400000, this means a standard
-penalty transaction can have up to 1253 inputs.  Thus we could allow
-626 HTLCs in each direction (with one output to-self) and still
-resolve it with a single penalty transaction.
+In a worst case scenario, we have only incoming htlcs and the HTLC-timeout transactions are not published, forcing
+us to spend from the commitment transaction.
+
+With a maximum standard weight of 400000:
+ 
+    max_num_htlcs = (400000 - 318 - 55) / 471  = 848
+ 
+Thus we could allow 424 HTLCs in each direction (with one output to-self) and still resolve it with a single penalty 
+transaction.
 
 # General Requirements
 
@@ -357,6 +363,75 @@ transactions, or MAY watch for (valid) broadcast transactions a.k.a
 mempool.  Considering mempool transactions should cause lower latency
 for HTLC redemption, but on-chain HTLCs should be such an unusual case
 that speed cannot be considered critical.
+
+# Appendix A: Expected weights
+
+## Expected weight of the to-local penalty transaction witness
+
+As described in [BOLT #3](03-transactions.md), the witness for
+this transaction is:
+
+    <sig> 1 { OP_IF <key> OP_ELSE to-self-delay OP_CSV OP_DROP <key> OP_ENDIF OP_CHECKSIG }
+
+The *expected weight* is calculated as follows:
+
+    to_local_script: 77 bytes
+        - OP_IF: 1 byte
+        - OP_DATA: 1 byte (revocationkey length)
+		- revocationkey: 33 bytes
+		- OP_ELSE: 1 byte
+		- OP_DATA: 1 byte (delay length)
+		- delay: 2 bytes
+		- OP_CSV: 1 byte
+		- OP_DROP: 1 byte
+		- OP_DATA: 1 byte (localkey length)
+		- localkey: 33 bytes
+		- OP_ENDIF: 1 byte
+		- OP_CHECKSIG: 1 byte
+		
+    to_local_penalty_witness: 154 bytes
+        - number_of_witness_elements: 1 byte
+        - revocation_sig_length: 1 byte
+        - revocation_sig: 73 bytes
+        - one_length: 1 byte
+        - witness_script_length: 1 byte
+        - witness_script (to_local_script)
+    
+    
+## Expected weight of the offered-htlc penalty transaction witness
+
+The *expected weight* is calculated as follows (some calculations have already been made in [BOLT #3](03-transactions.md)):
+
+    offered_htlc_script: 139 bytes
+		
+    offered_htlc_penalty_witness: 291 bytes
+        - number_of_witness_elements: 1 byte
+        - nil_length: 1 byte
+        - remote_sig_length: 1 byte
+        - remote_sig: 73 bytes
+        - revocation_sig_length: 1 byte
+        - revocation_sig: 73 bytes
+        - nil_length: 1 byte
+        - witness_script_length: 1 byte
+        - witness_script (to_local_script)
+
+      
+## Expected weight of the received-htlc penalty transaction witness
+
+The *expected weight* is calculated as follows (some calculations have already been made in [BOLT #3](03-transactions.md)):
+
+    accepted_htlc_script: 156 bytes
+		
+    accepted_htlc_penalty_witness: 307 bytes
+        - number_of_witness_elements: 1 byte
+        - nil_length: 1 byte
+        - remote_sig_length: 1 byte
+        - remote_sig: 73 bytes
+        - revocation_sig_length: 1 byte
+        - revocation_sig: 73 bytes
+        - witness_script_length: 1 byte
+        - witness_script (to_local_script)
+            
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
