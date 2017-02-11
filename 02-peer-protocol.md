@@ -624,6 +624,9 @@ For a unparsable HTLC:
 A node SHOULD remove an HTLC as soon as it can; in particular, a node
 SHOULD fail an HTLC which has timed out.
 
+A node MUST NOT send `update_fulfill_htlc` until an HTLC is
+irrevocably committed in both sides' commitment transactions.
+
 A receiving node MUST check that `id` corresponds to an HTLC in its
 current commitment transaction, and MUST fail the channel if it does
 not.
@@ -649,6 +652,9 @@ using the `failure-code` given and setting the data to
 
 A node which doesn't time out HTLCs risks channel failure (see
 "Risks With HTLC Timeouts").
+
+A node which sends `update_fulfill_htlc` before the sender is also
+committed to the HTLC risks losing funds.
 
 If the onion is malformed, the upstream node won't be able to extract
 a key to generate a response, hence the special failure message which
