@@ -9,6 +9,7 @@ The default TCP port is 9735. This corresponds to hexadecimal `0x2607`, the unic
 All data fields are big-endian unless otherwise specified.
 
 ## Table of Contents
+  * [Connection handling and multiplexing](#connection-handling-and-multiplexing)
   * [Lightning Message Format](#lightning-message-format)
   * [Setup Messages](#setup-messages)
     * [The `init` message](#the-init-message)
@@ -16,6 +17,11 @@ All data fields are big-endian unless otherwise specified.
   * [Acknowledgements](#acknowledgements)
   * [References](#references)
   * [Authors](#authors)
+
+## Connection handling and multiplexing
+
+Implementations MUST use one connection per peer, channel messages (which include a channel id) being multiplexed over this single connection.
+
 
 ## Lightning Message Format
 
