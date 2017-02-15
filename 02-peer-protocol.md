@@ -15,6 +15,7 @@ operation, and closing.
       * [Closing initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing negotiation: `closing_signed`](#closing-negotiation-closing_signed)
     * [Normal Operation](#normal-operation)
+      * [Forwarding HTLCs](#forwarding-htlcs)
       * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
       * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
       * [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc` and `update_fail_malformed_htlc`](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)
@@ -470,16 +471,58 @@ transactions may be out of sync indefinitely.  This is not concerning:
 what matters is whether both sides have irrevocably committed to a
 particular HTLC or not (the final state, above).
 
+### Forwarding HTLCs
+
+In general, a node offers HTLCs for two reasons: to initiate a payment of its own, 
+or to forward a payment coming from another node. In the forwarding case, care must 
+be taken to ensure that the *outgoing* HTLC cannot be redeemed unless the *incoming* 
+HTLC can be redeemed; these requirements ensure that is always true.
+
+The addition/removal of an HTLC is considered *irrevocably committed* when:
+
+1. the commitment transaction with/without it it is committed by both nodes, and any 
+previous commitment transaction which without/with it has been revoked, OR
+2. the commitment transaction with/without it has been irreversibly committed to 
+the blockchain.
+
+#### Requirements
+
+A node MUST NOT offer an HTLC (`update_htlc_add`) in response to an incoming HTLC until 
+the incoming HTLC has been irrevocably committed.
+
+A node MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed 
+to an outgoing HTLC, until the removal of the outgoing HTLC is irrevocably committed.
+ 
+A node SHOULD fulfill an incoming HTLC for which it has committed to an outgoing HTLC, 
+as soon as it receives `update_fulfill_htlc` for the outgoing HTLC.
+
+#### Rationale
+
+In general, we need to complete one side of the exchange before dealing with the other.
+Fulfilling an HTLC is different: knowledge of the preimage is by definition irrevocable, 
+so we should fulfill the incoming HTLC as soon as we can to reduce latency.
+
 
 ### Risks With HTLC Timeouts
 
 
-HTLCs tend to be chained across the network.  For example, node A
-might offer node B an HTLC with a timeout of 3 days, and node B might
-offer node C the same HTLC with a timeout of 2 days.
+As a result of forwarding an HTLC from node A to node C, B will end up having an incoming
+HTLC from A and an outgoing HTLC to C. B will make sure that the incoming HTLC has a greater 
+timeout than the outgoing HTLC, so that B can get refunded from C sooner than it has to refund
+ A if the payment does not complete.
 
+For example, node A might offer node B an HTLC with a timeout of 3 days, and node B might
+offer node C the same HTLC with a timeout of 2 days:
 
-This difference in timeouts is important: after 2 days B can try to
+```
+    3 days timeout        2 days timeout
+A ------------------> B ------------------> C 
+```
+
+The difference in timeouts is called `cltv-expiry-delta` in 
+[BOLT #7](07-routing-gossip.md).
+
+This difference is important: after 2 days B can try to
 remove the offer to C even if C is unresponsive, by broadcasting the
 commitment transaction it has with C and spending the HTLC output.
 Even though C might race to try to use its payment preimage at that point to
