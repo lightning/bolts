@@ -538,7 +538,8 @@ the receiving node's `htlc-minimum-msat`.
 
 A sending node MUST NOT add an HTLC if it would result in it offering
 more than the remote's `max-accepted-htlcs` HTLCs in the remote commitment
-transaction.
+transaction, or if the sum of total offered HTLCs would exceed the remote's 
+`max-htlc-value-in-flight-msat`.
 
 A sending node MUST set `id` to 0 for the first HTLC it offers, and
 increase the value by 1 for each successive offer.
@@ -548,7 +549,7 @@ A receiving node SHOULD fail the channel if it receives an
 which the sending node cannot afford at the current `fee-rate` while
 maintaining its channel reserve.  A receiving node SHOULD fail the
 channel if a sending node adds more than its `max-accepted-htlcs` HTLCs to
-its local commitment transaction.
+its local commitment transaction, or adds more than its `max-htlc-value-in-flight-msat` worth of offered HTLCs to its local commitment transaction.
 
 A receiving node MUST allow multiple HTLCs with the same payment hash.
 
