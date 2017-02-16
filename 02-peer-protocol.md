@@ -922,7 +922,7 @@ lists the acknowledgement conditions for each message:
 * `funding_locked`: acknowledged by `update_` messages, `commitment_signed`, `revoke_and_ack` or `shutdown` messages.
 * `update_` messages: acknowledged by `revoke_and_ack`.
 * `commitment_signed`: acknowledged by `revoke_and_ack`.
-* `revoke_and_ack`: acknowledged by `shutdown`, `update_` messages, or `commitment_signed`
+* `revoke_and_ack`: acknowledged by `shutdown` or `commitment_signed`
 * `shutdown`: acknowledged by `closing_signed` or `revoke_and_ack`.
 
 The last `closing_signed` (if any) must always be retransmitted, as there
