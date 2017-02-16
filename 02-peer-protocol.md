@@ -264,13 +264,14 @@ from this point onwards.
 
 The sender MUST wait until the funding transaction has reached
 `minimum-depth` before sending this message.  The sender MUST encode
-the block position of the funding transaction into `channel-id`.  If
-the sender has already received `funding_locked` from the other node,
-and its own `channel-id` does not match that received, it MUST either
-fail the channel or ignore the `funding_locked` message.  If it
-ignores the `funding_locked` message it MUST re-transmit
-`funding_locked` if the `channel-id` changes, otherwise it MAY
-re-transmit `funding_locked` if the `channel-id` changes.
+the block position of the funding transaction into `channel-id`.
+
+If the sender has already received `funding_locked` from the other node,
+and its own `channel-id` does not match that it received:
+- if both nodes have the `retransmit_channelid` feature bit enabled, the 
+sender MUST re-transmit `funding_locked` if the `channel-id` changes, 
+until it matches with the last `channel-id` received
+- otherwise the sender MUST fail the channel.
 
 The sender MUST set `next-per-commitment-point` to the
 per-commitment point to be used for the following commitment
@@ -278,23 +279,21 @@ transaction, derived as specified in
 [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
 If the recipient has already sent `funding_locked` with `channel-id`
-which does not match the `channel-id` it sent, it MUST either fail the
-channel or ignore the `funding_locked` message.    If it
-ignores the `funding_locked` message it MUST re-transmit
-`funding_locked` if the `channel-id` changes, otherwise it MAY
-re-transmit `funding_locked` if the `channel-id` changes.
-If the recipient has received previous `funding_locked` message, it
-MUST ignore it in favor of the new `funding_locked`.
+which does not match the `channel-id` it received:
+- if both nodes have the `retransmit_channelid` feature bit enabled, the 
+recipient MUST re-transmit `funding_locked` if the `channel-id` changes, 
+until it matches with the last `channel-id` received
+- otherwise the recipient MUST fail the channel.
 
 #### Rationale
 
 If the `minimum-depth` is very low (such as 1), it's possible that
 both nodes see different blocks containing the transaction: current
 evidence suggests that this would happen once every three days.  Thus
-there are two modes: one in which we simply fail, should that happen,
-and a more flexible mode in which nodes wait for updated
-`funding_locked` if there's disagreement.  In this mode, we require
-that they send updates to avoid relying on timeouts.
+there are two modes: one by default in which we simply fail, should that happen,
+and a more flexible optional mode defined by the `retransmit_channelid` feature
+bit, in which nodes wait for updated `funding_locked` if there's disagreement.
+In this mode, we require that they send updates to avoid relying on timeouts.
 
 Such waiting is optional, as it is extremely unlikely for
 `minimum-depth` values of 2 or more.

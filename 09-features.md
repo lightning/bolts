@@ -16,5 +16,6 @@ Flags begin at bit 0 (ie. 0x1), and odd-numbered flags (eg. 0x2) are optional.
 |------|------------------|------------------------------------------------|---------------------------------------------------------------------|
 | 0/1  | `channel_public` | The sending node wishes to announce the channel | [BOLT #7](07-routing-gossip.md#the-announcement_signatures-message) |
 | 2/3  | `initial_routing_sync` | The sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
+| 4/5  | `retransmit_channelid` | The sending node will re-transmit `funding_locked` messages until peers agree on the same `channel-id` instead of failing right away.| [BOLT #2](02-peer-protocol.md#the-funding_locked-message) |
 
 ## Assigned `globalfeatures` flags
