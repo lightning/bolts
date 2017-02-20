@@ -23,12 +23,12 @@ It contains the necessary signatures by the sender to construct the `channel_ann
     * [64:node-signature]
     * [64:bitcoin-signature]
 
-The willingness of the endpoints to announce the channel is signaled during the connection setup by setting a `channel_public` bit in the `localfeatures` field.
+The willingness of the endpoints to announce the channel is signaled during the connection setup by setting a `channels_public` bit in the `localfeatures` field.
 Should both endpoints have signaled that they'd like to publish the channel then the `announcement_signatures` message MUST directly sent following the `funding_locked` message that established the corresponding channel.
 The `announcement_signatures` message is created by constructing a `channel_announcement` message corresponding to the newly established channel, and sign it with the secrets matching their `node-id` and `bitcoin-key`, and send them using an `announcement_signatures`.
 The recipient MAY fail the channel if the `node-signature` or `bitcoin-signature` is incorrect.
 The recipient SHOULD queue the `channel_announcement` message for its peers if it has sent and received a valid `announcement_signatures` message.
-If either endpoints does not signal `channel_public` then `announcement_signatures` MUST NOT be sent.
+If either endpoints does not signal `channels_public` then `announcement_signatures` MUST NOT be sent.
 
 ## The `channel_announcement` message
 
