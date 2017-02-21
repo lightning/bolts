@@ -107,7 +107,7 @@ This output sends funds to the other peer, thus is a simple P2WPKH to `remotekey
 
 #### Offered HTLC Outputs
 
-This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or to the remote peer on successful payment preimage.  The output is a P2WSH, with a witness script:
+This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or to the remote peer on successful payment preimage.  To allow penalties, it has an additional condition which allows the remote peer to claim the funds long after the HTLC has expired.  We use the local node's specified `to-self-delay` to determine what how long the extra HTLC delay is (rather than that specified by the remote node as used in the HTLC transactions). The output is a P2WSH, with a witness script:
 
     <remotekey> OP_SWAP
         OP_SIZE 32 OP_EQUAL
@@ -116,7 +116,11 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
         OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
     OP_ELSE
         # To you with preimage.
-        OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
+        OP_HASH160 <ripemd-of-payment-hash> OP_EQUAL
+		OP_NOTIF
+			# Or to you after long timeout.
+			<ctlv-expiry+to-self-delay> OP_CHECKLOCKTIMEVERIFY OP_DROP
+		OP_ENDIF
         OP_CHECKSIG
     OP_ENDIF
 
@@ -124,7 +128,11 @@ The remote node can redeem the HTLC with the witness:
 
     <remotesig> <payment-preimage>
 
-Either node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as shown below.
+Or the remote node can redeem the HTLC after the extra delay with the witness:
+
+    <remotesig> <32-bytes-of-0>
+
+The local node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as shown below.
 
 #### Received HTLC Outputs
 
@@ -138,7 +146,7 @@ This output sends funds to the remote peer after the HTLC timeout, or to an HTLC
         2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
     OP_ELSE
         # To you after timeout.
-        OP_DROP <locktime> OP_CHECKLOCKTIMEVERIFY OP_DROP
+        OP_DROP <ctlv-expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
         OP_CHECKSIG
     OP_ENDIF
 
@@ -239,7 +247,7 @@ Thus we use a simplified formula for *expected weight*, which assumes:
 This gives us the following *expected weights* (details of the computation in [Appendix A](#appendix-a-expected-weights)):
 
     Commitment weight:   724 + 172 * num-untrimmed-htlc-outputs
-    HTLC-timeout weight: 635
+    HTLC-timeout weight: 643
     HTLC-success weight: 673
 
 Note that we refer to the "base fee" for a commitment transaction in the requirements below, which is what the funder pays.  The actual fee may be higher than the amount calculated here, due to rounding and trimmed outputs.
@@ -609,14 +617,14 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_CHECKMULTISIG: 1 byte
 		- OP_ELSE: 1 byte
 		- OP_DROP: 1 byte
-		- OP_DATA: 1 byte (locktime length)
-		- locktime: 3 bytes
+		- OP_DATA: 1 byte (ctlv-expiry length)
+		- ctlv-expiry: 3 bytes
 		- OP_CHECKLOCKTIMEVERIFY: 1 byte
 		- OP_DROP: 1 byte
         - OP_CHECKSIG: 1 byte
 		- OP_ENDIF: 1 byte
 
-    offered_htlc_script: 105 bytes
+    offered_htlc_script: 113 bytes
 		- OP_DATA: 1 byte (remotekey length)
 		- remotekey: 33 bytes
 		- OP_SWAP: 1 byte
@@ -636,11 +644,17 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_HASH160: 1 byte
 		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
 		- ripemd-of-payment-hash: 20 bytes
-		- OP_EQUALVERIFY: 1 byte
+		- OP_EQUAL: 1 byte
+		- OP_NOTIF: 1 byte
+		- OP_DATA: 1 byte (ctlv-expiry+to-self-delay length)
+		- ctlv-expiry+to-self-delay: 3 bytes
+		- OP_CHECKLOCKTIMEVERIFY: 1 byte
+		- OP_DROP: 1 byte
+		- OP_ENDIF: 1 byte
 		- OP_CHECKSIG: 1 byte
 		- OP_ENDIF: 1 byte
 
-    timeout_witness: 257 bytes
+    timeout_witness: 265 bytes
 		- number_of_witness_elements: 1 byte
 		- nil_length: 1 byte
 		- sig_alice_length: 1 byte
@@ -689,10 +703,10 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- lock_time: 4 bytes
 
 Multiplying non-witness data by 4, this gives a weight of 376.  Adding
-the witness data for each case (257 + 2 for HTLC-timeout, 295 + 2 for
+the witness data for each case (265 + 2 for HTLC-timeout, 295 + 2 for
 HTLC-success) gives a weight of:
 
-	635 (HTLC-timeout)
+	643 (HTLC-timeout)
 	673 (HTLC-success)
 
 # Appendix C: Funding Transaction Test Vectors
