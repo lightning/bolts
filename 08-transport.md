@@ -20,7 +20,7 @@ The transcript between two nodes is separated into two distinct segments:
 
 1. First, before any actual data transfer, both nodes participate in an
    authenticated key agreement protocol which is based off of the Noise
-   Protocol Framework<sup>[4](#reference-4)</sup>.
+   Protocol Framework<sup>[2](#reference-2)</sup>.
 2. If the initial handshake is successful, then nodes enter the lightning
    message exchange phase. In the lightning message exchange phase, all
    messages are `AEAD` ciphertexts.
@@ -84,7 +84,7 @@ three abstract cryptographic objects: the hash function, the elliptic curve,
 and finally the `AEAD` cipher scheme. Within our instantiation `SHA-256` is
 chosen as the hash function, `secp256k1` as the elliptic curve, and finally
 `ChaChaPoly-1305` as the `AEAD` construction. The composition of `ChaCha20`
-and `Poly1305` used MUST conform to `RFC 7539`<sup>[3](#reference-3)</sup>. With this laid out, the
+and `Poly1305` used MUST conform to `RFC 7539`<sup>[1](#reference-1)</sup>. With this laid out, the
 official Noise protocol name for our variant is:
 `Noise_XK_secp256k1_ChaChaPoly_SHA256`.  The ascii string representation of
 this value is hashed into a digest used to initialize the starting handshake
@@ -130,7 +130,7 @@ The following functions will also be referenced:
       * The returned value is the SHA256 of the DER compressed format of the
 	    generated point.
 
-  * `HKDF(salt,ikm)`: a function is defined in [5](#reference-5), evaluated with a
+  * `HKDF(salt,ikm)`: a function is defined in [3](#reference-3), evaluated with a
     zero-length `info` field.
      * All invocations of the `HKDF` implicitly return `64-bytes` of
        cryptographic randomness using the extract-and-expand component of the
@@ -877,9 +877,9 @@ two key rotations):
 TODO(roasbeef); fin
 
 # References
-3. <a id="reference-3">https://tools.ietf.org/html/rfc7539</a>
-4. <a id="reference-4">http://noiseprotocol.org/noise.html</a>
-5. <a id="reference-5">https://tools.ietf.org/html/rfc5869</a>
+1. <a id="reference-1">https://tools.ietf.org/html/rfc7539</a>
+2. <a id="reference-2">http://noiseprotocol.org/noise.html</a>
+3. <a id="reference-3">https://tools.ietf.org/html/rfc5869</a>
 
 
 # Authors
