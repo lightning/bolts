@@ -103,10 +103,6 @@ This is version 0.
          are independent for each peer in the channel, and start at 0.
 
 
-* *Channel shortid*:
-   * An 8 byte globally unique identifier for the *funding transaction*
-         (and thus for the channel).
-
 * *It's ok to be odd*:
    * A rule applied to some numeric fields that indicates optional and
      compulsory support for features. Even numbers indicate that both endpoints

@@ -19,16 +19,31 @@ It contains the necessary signatures by the sender to construct the `channel_ann
 
 1. type: 259 (`announcement_signatures`)
 2. data:
+    * [32:funding-txid]
+    * [1:funding-output-index]
     * [8:channel-id]
     * [64:node-signature]
     * [64:bitcoin-signature]
 
 The willingness of the endpoints to announce the channel is signaled during the connection setup by setting a `channels_public` bit in the `localfeatures` field.
-Should both endpoints have signaled that they'd like to publish the channel then the `announcement_signatures` message MUST directly sent following the `funding_locked` message that established the corresponding channel.
+
+### Requirements
+
+If both endpoints have signaled that they'd like to publish the channel then the `announcement_signatures` message MUST be sent, otherwise they MUST NOT be sent.
+
+If sent, `announcement_signatures` messages MUST NOT be sent until `funding_locked` has been sent, and the funding transaction is has at least 6 confirmations.
+
+The `channel-id` is the unique description of the funding transaction.
+It is constructed with the most significant 3 bytes as the block
+height, the next 3 bytes indicating the transaction index within the
+block, and the least significant two bytes indicating the output
+index which pays to the channel.
+
 The `announcement_signatures` message is created by constructing a `channel_announcement` message corresponding to the newly established channel, and sign it with the secrets matching their `node-id` and `bitcoin-key`, and send them using an `announcement_signatures`.
 The recipient MAY fail the channel if the `node-signature` or `bitcoin-signature` is incorrect.
 The recipient SHOULD queue the `channel_announcement` message for its peers if it has sent and received a valid `announcement_signatures` message.
-If either endpoints does not signal `channels_public` then `announcement_signatures` MUST NOT be sent.
+
+On reconnection, a node SHOULD retransmit the `announcement_signatures` message if it has not received an `announcement_signatures` message, and MUST respond to the first `announcement_signatures` message after reconnection with its own `announcement_signatures` message.
 
 ## The `channel_announcement` message
 
