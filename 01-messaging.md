@@ -120,7 +120,7 @@ For simplicity of diagnosis, it is often useful to tell the peer that something 
 1. type: 17 (`error`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [2:len]
    * [len:data]
 
@@ -129,8 +129,8 @@ The 2-byte `len` field indicates the number of bytes in the immediately followin
 #### Requirements
 
 The channel is referred to by `funding-txid` and `funding-output-index`,
-unless `funding-txid` is 0, in which case `funding-output-index` of 0 refers
-to the currently opening channel (ie. before `funding_signed` or `funding_created` are sent), and a `funding-output-index` of 255 refers to all channels.
+unless `funding-txid` is all-zero, in which case `funding-output-index` of 0 refers
+to the currently opening channel (ie. before `funding_signed` or `funding_created` are sent), and a `funding-output-index` of 65535 refers to all channels.
 
 A node SHOULD send `error` for protocol violations or internal
 errors which make channels unusable or further communication unusable.

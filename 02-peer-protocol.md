@@ -209,7 +209,7 @@ signature, it will broadcast the funding transaction.
 1. type: 34 (`funding_created`)
 2. data:
     * [32:funding-txid]
-    * [1:funding-output-index]
+    * [2:funding-output-index]
     * [64:signature]
 
 #### Requirements
@@ -220,7 +220,7 @@ The recipient MUST fail the channel if `signature` is incorrect.
 
 #### Rationale
 
-The `funding-output-index` can only be 1 byte, since that's how we'll pack it into the channel-id used throughout the gossip protocol.  The limit of 255 outputs should not be overly burdensome.
+The `funding-output-index` can only be 2 bytes, since that's how we'll pack it into the channel-id used throughout the gossip protocol.  The limit of 65535 outputs should not be overly burdensome.
 
 ### The `funding_signed` message
 
@@ -231,7 +231,7 @@ redeem their funds if they need to.
 1. type: 35 (`funding_signed`)
 2. data:
     * [32:funding-txid]
-    * [1:funding-output-index]
+    * [2:funding-output-index]
     * [64:signature]
 
 #### Requirements
@@ -247,7 +247,7 @@ This message indicates that the funding transaction has reached the `minimum-dep
 1. type: 36 (`funding_locked`)
 2. data:
     * [32:funding-txid]
-    * [1:funding-output-index]
+    * [2:funding-output-index]
     * [33:next-per-commitment-point]
 
 #### Requirements
@@ -300,7 +300,7 @@ and indicating the scriptpubkey it wants to be paid to.
 1. type: 38 (`shutdown`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [2:len]
    * [len:scriptpubkey]
 
@@ -354,7 +354,7 @@ the channel.
 1. type: 39 (`closing_signed`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [8:fee-satoshis]
    * [64:signature]
 
@@ -527,7 +527,7 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 1. type: 128 (`update_add_htlc`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [8:id]
    * [4:amount-msat]
    * [4:cltv-expiry]
@@ -607,7 +607,7 @@ it into a `update_fail_htlc` for relaying.
 1. type: 130 (`update_fulfill_htlc`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [8:id]
    * [32:payment-preimage]
 
@@ -616,7 +616,7 @@ For a timed out or route-failed HTLC:
 1. type: 131 (`update_fail_htlc`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [8:id]
    * [2:len]
    * [len:reason]
@@ -626,7 +626,7 @@ For a unparsable HTLC:
 1. type: 135 (`update_fail_malformed_htlc`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [8:id]
    * [32:sha256-of-onion]
    * [2:failure-code]
@@ -689,7 +689,7 @@ sign the resulting transaction as defined in [BOLT #3](03-transactions.md) and s
 1. type: 132 (`commit_sig`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [64:signature]
    * [2:num-htlcs]
    * [num-htlcs*64:htlc-signature]
@@ -751,7 +751,7 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
 1. type: 133 (`revoke_and_ack`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [32:per-commitment-secret]
    * [33:next-per-commitment-point]
    * [1:padding]
@@ -803,7 +803,7 @@ given in [BOLT #3](03-transactions.md#fee-calculation).
 1. type: 134 (`update_fee`)
 2. data:
    * [32:funding-txid]
-   * [1:funding-output-index]
+   * [2:funding-output-index]
    * [4:feerate-per-kw]
 
 #### Requirements

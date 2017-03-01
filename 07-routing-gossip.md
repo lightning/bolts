@@ -20,7 +20,7 @@ It contains the necessary signatures by the sender to construct the `channel_ann
 1. type: 259 (`announcement_signatures`)
 2. data:
     * [32:funding-txid]
-    * [1:funding-output-index]
+    * [2:funding-output-index]
     * [8:channel-id]
     * [64:node-signature]
     * [64:bitcoin-signature]
