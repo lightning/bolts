@@ -19,9 +19,8 @@ It contains the necessary signatures by the sender to construct the `channel_ann
 
 1. type: 259 (`announcement_signatures`)
 2. data:
-    * [32:funding-txid]
-    * [2:funding-output-index]
-    * [8:channel-id]
+    * [32:channel-id]
+    * [8:short-channel-id]
     * [64:node-signature]
     * [64:bitcoin-signature]
 
@@ -33,7 +32,7 @@ If both endpoints have signaled that they'd like to publish the channel then the
 
 If sent, `announcement_signatures` messages MUST NOT be sent until `funding_locked` has been sent, and the funding transaction is has at least 6 confirmations.
 
-The `channel-id` is the unique description of the funding transaction.
+The `short-channel-id` is the unique description of the funding transaction.
 It is constructed with the most significant 3 bytes as the block
 height, the next 3 bytes indicating the transaction index within the
 block, and the least significant two bytes indicating the output
@@ -62,7 +61,7 @@ In order to prove the existence of channel between `node-1` and
 
 The first one is done by assuming that all nodes know the unspent
 transaction outputs, and thus can find the output given by
-`channel-id` and validate that it is indeed a P2WSH funding
+`short-channel-id` and validate that it is indeed a P2WSH funding
 transaction output as to those keys specified in
 [BOLT #3](03-transactions.md#funding-transaction-output).
 
@@ -81,7 +80,7 @@ announcement message; that is done by having a signature from each
     * [64:node-signature-2]
     * [64:bitcoin-signature-1]
     * [64:bitcoin-signature-2]
-    * [8:channel-id]
+    * [8:short-channel-id]
     * [33:node-id-1]
     * [33:node-id-2]
     * [33:bitcoin-key-1]
@@ -91,7 +90,7 @@ announcement message; that is done by having a signature from each
 
 ### Requirements
 
-The creating node MUST set `channel-id` to refer to the confirmed
+The creating node MUST set `short-channel-id` to refer to the confirmed
 funding transaction as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).  The corresponding output MUST be a
 P2WSH as described in [BOLT #3](03-transactions.md#funding-transaction-output).
 
@@ -111,7 +110,7 @@ The creating node SHOULD set `len` to the minimum length required to
 hold the `features` bits it sets.
 
 The receiving node MUST ignore the message if the output specified
-by `channel-id` does not
+by `short-channel-id` does not
 correspond to a P2WSH using `bitcoin-key-1` and `bitcoin-key-2` as
 specified in [BOLT #3](03-transactions.md#funding-transaction-output).
 The receiving node MUST ignore the message if this output is spent.
@@ -269,7 +268,7 @@ it wants to change fees.
 1. type: 258 (`channel_update`)
 2. data:
     * [64:signature]
-    * [8:channel-id]
+    * [8:short-channel-id]
     * [4:timestamp]
     * [2:flags]
     * [2:cltv-expiry-delta]
@@ -282,7 +281,7 @@ it wants to change fees.
 The creating node MUST set `signature` to the signature of the
 double-SHA256 of the entire remaining packet after `signature` using its own `node-id`.
 
-The creating node MUST set `channel-id` to
+The creating node MUST set `short-channel-id` to
 match those in the already-sent `channel_announcement` message, and MUST set the least-significant bit of `flags` to 0 if the creating node is `node-id-1` in that message, otherwise 1.  It MUST set other bits of `flags` to zero.
 
 The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this channel.
@@ -291,7 +290,7 @@ It MUST set `cltv-expiry-delta` to the number of blocks it will subtract from an
 
 The receiving node MUST ignore `flags` other than the least significant bit.
 The receiving node SHOULD ignore `ipv6`
-if `port` is zero.  It SHOULD ignore the message if `channel-id`does
+if `port` is zero.  It SHOULD ignore the message if `short-channel-id` does
 not correspond to a previously
 known, unspent channel from `channel_announcement`, otherwise the node-id
 is taken from the `channel_announcement` `node-id-1` if least-significant bit of flags is 0 or `node-id-2` otherwise.

@@ -119,8 +119,7 @@ For simplicity of diagnosis, it is often useful to tell the peer that something 
 
 1. type: 17 (`error`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [2:len]
    * [len:data]
 
@@ -128,19 +127,17 @@ The 2-byte `len` field indicates the number of bytes in the immediately followin
 
 #### Requirements
 
-The channel is referred to by `funding-txid` and `funding-output-index`,
-unless `funding-txid` is all-zero, in which case `funding-output-index` of 0 refers
-to the currently opening channel (ie. before `funding_signed` or `funding_created` are sent), and a `funding-output-index` of 65535 refers to all channels.
+The channel is referred to by `channel-id` unless `channel-id` is all-zero, in which case it refers to all channels.
 
 A node SHOULD send `error` for protocol violations or internal
 errors which make channels unusable or further communication unusable.
 A node MAY send an empty [data] field.  A node sending `error` MUST
-fail the channel referred to by the error message, or if all channels, MUST
+fail the channel referred to by the error message, or if `channel-id` is all-zero, MUST
 fail all channels and MUST close the connection.
 A node MUST set `len` equal to the length of `data`.  A node SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed` or `commitment_signed` message when failure was caused by an invalid signature check.
 
 A node receiving `error` MUST fail the channel referred to by the message,
-or if all channels, it MUST fail all channels and MUST close the connection.  If no existing channel is referred to by the message, the receiver MAY fail all channels and close the connection. A receiving node MUST truncate
+or if `channel-id` is all-zero, it MUST fail all channels and MUST close the connection.  If no existing channel is referred to by the message, the receiver MUST ignore the message. A receiving node MUST truncate
 `len` to the remainder of the packet if it is larger.
 
 A receiving node SHOULD only print out `data` verbatim if the string is composed solely of printable ASCII characters.

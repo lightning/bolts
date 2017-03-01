@@ -70,9 +70,10 @@ If this fails at any stage, or a node decides that the channel terms
 offered by the other node are not suitable, the channel establishment
 fails.
 
-Note that multiple channels can operate in parallel, but only after
-the funding transaction (which uniquely identifies them) is agreed
-with the `funding_created` and `funding_signed` exchange.
+Note that multiple channels can operate in parallel, as all channel
+messages are identified by either a `temporary-channel-id` (before the
+funding transaction is created) or `channel-id` derived from the
+funding transaction.
 
 ### The `open_channel` message
 
@@ -82,6 +83,7 @@ desire to set up a new channel.
 
 1. type: 32 (`open_channel`)
 2. data:
+   * [32:temporary-channel-id]
    * [8:funding-satoshis]
    * [8:push-msat]
    * [8:dust-limit-satoshis]
@@ -98,7 +100,7 @@ desire to set up a new channel.
    * [33:first-per-commitment-point]
 
 
-`funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node's commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
+The `temporary-channel-id` is used to identify this channel until the funding transaction is established. `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node's commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
 
 `max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node will accept.
 
@@ -112,7 +114,8 @@ FIXME: Describe Dangerous feature bit for larger channel amounts.
 #### Requirements
 
 
-The sender MUST set `funding-satoshis`
+A sending node MUST ensure `temporary-channel-id` is unique from any other
+channel id with the same peer.  The sender MUST set `funding-satoshis`
 to less than 2^24 satoshi.  The sender MUST set `push-msat` to
 equal or less than to 1000 * `funding-satoshis`.   The sender SHOULD set `to-self-delay` sufficient to ensure the sender
 can irreversibly spend a commitment transaction output in case of
@@ -178,6 +181,7 @@ acceptance of the new channel.
 
 1. type: 33 (`accept_channel`)
 2. data:
+   * [32:temporary-channel-id]
    * [8:dust-limit-satoshis]
    * [8:max-htlc-value-in-flight-msat]
    * [8:channel-reserve-satoshis]
@@ -194,7 +198,7 @@ acceptance of the new channel.
 #### Requirements
 
 
-The sender SHOULD set `minimum-depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
+The `temporary-channel-id` MUST be the same as the `temporary-channel-id` in the `open_channel` message.  The sender SHOULD set `minimum-depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
 
 The receiver MAY reject the `minimum-depth` if it considers it unreasonably large.
 Other fields have the same requirements as their counterparts in `open_channel`.
@@ -208,13 +212,14 @@ signature, it will broadcast the funding transaction.
 
 1. type: 34 (`funding_created`)
 2. data:
+    * [32:temporary-funding-id]
     * [32:funding-txid]
     * [2:funding-output-index]
     * [64:signature]
 
 #### Requirements
 
-The sender MUST set `funding-txid` to the transaction ID of a non-malleable transaction, which it MUST NOT broadcast, and MUST set `funding-output-index` to the output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `funding-txid` to the transaction ID of a non-malleable transaction, which it MUST NOT broadcast, and MUST set `funding-output-index` to the output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
 The recipient MUST fail the channel if `signature` is incorrect.
 
@@ -228,15 +233,16 @@ This message gives the funder the signature they need for the first
 commitment transaction, so they can broadcast it knowing they can
 redeem their funds if they need to.
 
+This message introduces the `channel-id` which identifies , which is derived from the funding transaction by combining the `funding-txid` and the `funding-output-index` using big-endian exclusive-OR (ie. `funding-output-index` alters the last two bytes).
+
 1. type: 35 (`funding_signed`)
 2. data:
-    * [32:funding-txid]
-    * [2:funding-output-index]
+    * [32:channel-id]
     * [64:signature]
 
 #### Requirements
 
-The sender MUST set `funding-txid` and `funding-output-index` to the same as the`open_channel` message, and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+The sender MUST set `channel-id` by exclusive-OR of the `funding-txid` and the `funding-output-index` from the `funding_created` message, and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
 The recipient MUST fail the channel if `signature` is incorrect.
 
@@ -246,8 +252,7 @@ This message indicates that the funding transaction has reached the `minimum-dep
 
 1. type: 36 (`funding_locked`)
 2. data:
-    * [32:funding-txid]
-    * [2:funding-output-index]
+    * [32:channel-id]
     * [33:next-per-commitment-point]
 
 #### Requirements
@@ -299,8 +304,7 @@ and indicating the scriptpubkey it wants to be paid to.
 
 1. type: 38 (`shutdown`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [2:len]
    * [len:scriptpubkey]
 
@@ -353,8 +357,7 @@ the channel.
 
 1. type: 39 (`closing_signed`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [8:fee-satoshis]
    * [64:signature]
 
@@ -526,8 +529,7 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 
 1. type: 128 (`update_add_htlc`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [8:id]
    * [4:amount-msat]
    * [4:cltv-expiry]
@@ -606,8 +608,7 @@ it into a `update_fail_htlc` for relaying.
 
 1. type: 130 (`update_fulfill_htlc`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [8:id]
    * [32:payment-preimage]
 
@@ -615,8 +616,7 @@ For a timed out or route-failed HTLC:
 
 1. type: 131 (`update_fail_htlc`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [8:id]
    * [2:len]
    * [len:reason]
@@ -625,8 +625,7 @@ For a unparsable HTLC:
 
 1. type: 135 (`update_fail_malformed_htlc`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [8:id]
    * [32:sha256-of-onion]
    * [2:failure-code]
@@ -688,8 +687,7 @@ sign the resulting transaction as defined in [BOLT #3](03-transactions.md) and s
 
 1. type: 132 (`commit_sig`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [64:signature]
    * [2:num-htlcs]
    * [num-htlcs*64:htlc-signature]
@@ -750,8 +748,7 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
 
 1. type: 133 (`revoke_and_ack`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [32:per-commitment-secret]
    * [33:next-per-commitment-point]
    * [1:padding]
@@ -802,8 +799,7 @@ given in [BOLT #3](03-transactions.md#fee-calculation).
 
 1. type: 134 (`update_fee`)
 2. data:
-   * [32:funding-txid]
-   * [2:funding-output-index]
+   * [32:channel-id]
    * [4:feerate-per-kw]
 
 #### Requirements
