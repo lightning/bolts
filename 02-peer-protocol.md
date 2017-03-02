@@ -212,7 +212,7 @@ signature, it will broadcast the funding transaction.
 
 1. type: 34 (`funding_created`)
 2. data:
-    * [32:temporary-funding-id]
+    * [32:temporary-channel-id]
     * [32:funding-txid]
     * [2:funding-output-index]
     * [64:signature]
