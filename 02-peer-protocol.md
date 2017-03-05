@@ -219,13 +219,15 @@ signature, it will broadcast the funding transaction.
 
 #### Requirements
 
-The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `funding-txid` to the transaction ID of a non-malleable transaction, which it MUST NOT broadcast, and MUST set `funding-output-index` to the output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+The sender MUST set `temporary-channel-id` the same as the `temporary-channel-id` in the `open_channel` message.  The sender MUST set `funding-txid` to the transaction ID of a non-malleable transaction, which it MUST NOT broadcast, and MUST set `funding-output-index` to the output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), and MUST set `signature` to the valid signature using its `funding-pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).  The sender SHOULD use only BIP141 (Segregated Witness) inputs when creating the funding transaction.
 
 The recipient MUST fail the channel if `signature` is incorrect.
 
 #### Rationale
 
 The `funding-output-index` can only be 2 bytes, since that's how we'll pack it into the channel-id used throughout the gossip protocol.  The limit of 65535 outputs should not be overly burdensome.
+
+A transaction with all Segregated Witness inputs is not malleable, hence the recommendation for the funding transaction.
 
 ### The `funding_signed` message
 
