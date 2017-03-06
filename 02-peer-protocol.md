@@ -143,7 +143,7 @@ unreasonably large.  The receiver MAY fail the channel if
 `funding-satoshis` is too small, and MUST fail the channel if
 `push-msat` is greater than `funding-amount` * 1000.
 The receiving node MAY fail the channel if it considers
-`htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-accepted-htlcs` too small.  It MUST fail the channel if `max-accepted-htlcs` is greater than 511.
+`htlc-minimum-msat` too large, `max-htlc-value-in-flight` too small, `channel-reserve-satoshis` too large, or `max-accepted-htlcs` too small.  It MUST fail the channel if `max-accepted-htlcs` is greater than 483.
 
 The receiver MUST fail the channel if it
 considers `feerate-per-kw` too small for timely processing, or unreasonably large.  The
@@ -590,7 +590,7 @@ Retransmissions of unacknowledged updates are explicitly allowed for
 reconnection purposes; allowing them at other times simplifies the
 recipient code, though strict checking may help debugging.
 
-`max-accepted-htlcs` is limited to 511, to ensure that even if both
+`max-accepted-htlcs` is limited to 483, to ensure that even if both
 sides send the maximum number of HTLCs, the `commit_sig` message will
 still be under the maximum message size.  It also ensures that
 a single penalty transaction can spend the entire commitment transaction,
