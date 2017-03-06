@@ -325,14 +325,14 @@ should cover this. [FIXME: May have to divide and conquer here, since they may b
 There are three different scripts for penalty transactions, with the following witnesses weight (details of the computation in [Appendix A](#appendix-a-expected-weights)):
 
     to_local_penalty_witness: 154 bytes
-    offered_htlc_penalty_witness: 291 bytes
-    accepted_htlc_penalty_witness: 307 bytes
+    offered_htlc_penalty_witness: 243 bytes
+    accepted_htlc_penalty_witness: 249 bytes
 
 The penalty txinput itself takes 41 bytes, thus has a weight of 164, making the weight of each input:
 
     to_local_penalty_input_weight: 318 bytes
-    offered_htlc_penalty_input_weight: 455 bytes
-    accepted_htlc_penalty_input_weight: 471 bytes
+    offered_htlc_penalty_input_weight: 407 bytes
+    accepted_htlc_penalty_input_weight: 413 bytes
 
 The rest of the penalty transaction takes 4+3+1+8+1+34+4=55 bytes
 assuming it has a pay-to-witness-script-hash (the largest standard
@@ -343,9 +343,9 @@ us to spend from the commitment transaction.
 
 With a maximum standard weight of 400000:
  
-    max_num_htlcs = (400000 - 318 - 55) / 471  = 848
+    max_num_htlcs = (400000 - 318 - 55) / 413  = 967
  
-Thus we could allow 424 HTLCs in each direction (with one output to-self) and still resolve it with a single penalty 
+Thus we could allow 483 HTLCs in each direction (with one output to-self) and still resolve it with a single penalty
 transaction.
 
 # General Requirements
@@ -402,35 +402,32 @@ The *expected weight* is calculated as follows:
 
 The *expected weight* is calculated as follows (some calculations have already been made in [BOLT #3](03-transactions.md)):
 
-    offered_htlc_script: 139 bytes
+    offered_htlc_script: 133 bytes
 		
-    offered_htlc_penalty_witness: 291 bytes
+    offered_htlc_penalty_witness: 243 bytes
         - number_of_witness_elements: 1 byte
-        - nil_length: 1 byte
-        - remote_sig_length: 1 byte
-        - remote_sig: 73 bytes
         - revocation_sig_length: 1 byte
         - revocation_sig: 73 bytes
-        - nil_length: 1 byte
+        - revocation_key_length: 1 byte
+        - revocation_key: 33 bytes
         - witness_script_length: 1 byte
-        - witness_script (to_local_script)
+        - witness_script (offered_htlc_script)
 
       
 ## Expected weight of the received-htlc penalty transaction witness
 
 The *expected weight* is calculated as follows (some calculations have already been made in [BOLT #3](03-transactions.md)):
 
-    accepted_htlc_script: 156 bytes
+    accepted_htlc_script: 139 bytes
 		
-    accepted_htlc_penalty_witness: 307 bytes
+    accepted_htlc_penalty_witness: 249 bytes
         - number_of_witness_elements: 1 byte
-        - nil_length: 1 byte
-        - remote_sig_length: 1 byte
-        - remote_sig: 73 bytes
         - revocation_sig_length: 1 byte
         - revocation_sig: 73 bytes
+        - revocation_key_length: 1 byte
+        - revocation_key: 33 bytes
         - witness_script_length: 1 byte
-        - witness_script (to_local_script)
+        - witness_script (accepted_htlc_script)
             
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")

@@ -258,8 +258,8 @@ Thus we use a simplified formula for *expected weight*, which assumes:
 This gives us the following *expected weights* (details of the computation in [Appendix A](#appendix-a-expected-weights)):
 
     Commitment weight:   724 + 172 * num-untrimmed-htlc-outputs
-    HTLC-timeout weight: 669
-    HTLC-success weight: 718
+    HTLC-timeout weight: 663
+    HTLC-success weight: 703
 
 Note that we refer to the "base fee" for a commitment transaction in the requirements below, which is what the funder pays.  The actual fee may be higher than the amount calculated here, due to rounding and trimmed outputs.
 
@@ -267,11 +267,11 @@ Note that we refer to the "base fee" for a commitment transaction in the require
 
 The fee for an HTLC-timeout transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 669 and divide by 1000 (rounding down).
+1. Multiply `feerate-per-kw` by 663 and divide by 1000 (rounding down).
 
 The fee for an HTLC-success transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 718 and divide by 1000 (rounding down).
+1. Multiply `feerate-per-kw` by 703 and divide by 1000 (rounding down).
 
 The base fee for a commitment transaction MUST BE calculated to match:
 
@@ -288,8 +288,8 @@ For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit-sato
 * 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
 * 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
 
-The HTLC timeout transaction weight is 669, thus fee would be 3345 satoshis.
-The HTLC success transaction weight is 718, thus fee would be 3590 satoshis
+The HTLC timeout transaction weight is 663, thus fee would be 3315 satoshis.
+The HTLC success transaction weight is 703, thus fee would be 3515 satoshis
 
 The commitment transaction weight would be calculated as follows:
 
@@ -607,48 +607,51 @@ Multiplying non-witness data by 4, this gives a weight of:
 
 The *expected weight* of an HTLC transaction is calculated as follows:
 
-    accepted_htlc_script: 156 bytes
-        - OP_DATA: 1 byte (remotekey length)
-		- remotekey: 33 bytes
-		- OP_SWAP: 1 byte
-		- OP_SIZE: 1 byte
-		- OP_DATA: 1 byte (32 length)
-		- 32: 1 byte
-		- OP_EQUAL: 1 byte
-		- OP_IF: 1 byte
-		- OP_HASH160: 1 byte
-		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
-		- ripemd-of-payment-hash: 20 bytes
-		- OP_EQUALVERIFY: 1 byte
-		- 2: 1 byte
-		- OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localkey length)
-		- localkey: 33 bytes
-		- 2: 1 byte
-		- OP_CHECKMULTISIG: 1 byte
-		- OP_ELSE: 1 byte
-		- OP_SIZE: 1 byte
-        - 0: 1 byte
+    accepted_htlc_script: 139 bytes
+        - OP_DUP: 1 byte
+        - OP_HASH160: 1 byte
+        - OP_DATA: 1 byte (revocationkey-hash length)
+        - revocationkey-hash: 20 bytes
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
-		- OP_DROP: 1 byte
-		- OP_DATA: 1 byte (locktime length)
-		- locktime: 3 bytes
-		- OP_CHECKLOCKTIMEVERIFY: 1 byte
-		- OP_DROP: 1 byte
         - OP_CHECKSIG: 1 byte
         - OP_ELSE: 1 byte
+        - OP_DATA: 1 byte (remotekey length)
+        - remotekey: 33 bytes
         - OP_SWAP: 1 byte
+        - OP_SIZE: 1 byte
+        - 32: 2 bytes
+        - OP_EQUAL: 1 byte
+        - OP_IF: 1 byte
+        - OP_HASH160: 1 byte
+		- OP_DATA: 1 byte (ripemd-of-payment-hash length)
+		- ripemd-of-payment-hash: 20 bytes
+        - OP_EQUALVERIFY: 1 byte
         - 2: 1 byte
         - OP_SWAP: 1 byte
-        - OP_DATA: 1 byte (revocationkey length)
-        - revocationkey: 33 bytes
+		- OP_DATA: 1 byte (localkey length)
+		- localkey: 33 bytes
         - 2: 1 byte
         - OP_CHECKMULTISIG: 1 byte
+        - OP_ELSE: 1 byte
+        - OP_DROP: 1 byte
+		- OP_DATA: 1 byte (locktime length)
+		- locktime: 3 bytes
+        - OP_CHECKLOCKTIMEVERIFY: 1 byte
+        - OP_DROP: 1 byte
+        - OP_CHECKSIG: 1 byte
         - OP_ENDIF: 1 byte
-		- OP_ENDIF: 1 byte
+        - OP_ENDIF: 1 byte
 
-    offered_htlc_script: 139 bytes
+    offered_htlc_script: 133 bytes
+        - OP_DUP: 1 byte
+        - OP_HASH160: 1 byte
+        - OP_DATA: 1 byte (revocationkey-hash length)
+        - revocationkey-hash: 20 bytes
+        - OP_EQUAL: 1 byte
+        - OP_IF: 1 byte
+        - OP_CHECKSIG: 1 byte
+        - OP_ELSE: 1 byte
 		- OP_DATA: 1 byte (remotekey length)
 		- remotekey: 33 bytes
 		- OP_SWAP: 1 byte
@@ -662,9 +665,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_SWAP: 1 byte
 		- OP_DATA: 1 byte (localkey length)
 		- localkey: 33 bytes
-		- OP_DATA: 1 byte (revocationkey length)
-        - revocationkey: 33 bytes
-		- 3: 1 byte
+		- 2: 1 byte
 		- OP_CHECKMULTISIG: 1 byte
 		- OP_ELSE: 1 byte
 		- OP_HASH160: 1 byte
@@ -673,8 +674,9 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_EQUALVERIFY: 1 byte
 		- OP_CHECKSIG: 1 byte
 		- OP_ENDIF: 1 byte
+        - OP_ENDIF: 1 byte
 
-    timeout_witness: 291 bytes
+    timeout_witness: 285 bytes
 		- number_of_witness_elements: 1 byte
 		- nil_length: 1 byte
 		- sig_alice_length: 1 byte
@@ -685,7 +687,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- witness_script_length: 1 byte
 		- witness_script (offered_htlc_script)
 
-    success_witness: 340 bytes
+    success_witness: 325 bytes
 		- number_of_witness_elements: 1 byte
 		- nil_length: 1 byte
 		- sig_alice_length: 1 byte
@@ -723,11 +725,11 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- lock_time: 4 bytes
 
 Multiplying non-witness data by 4, this gives a weight of 376.  Adding
-the witness data for each case (291 + 2 for HTLC-timeout, 340 + 2 for
+the witness data for each case (285 + 2 for HTLC-timeout, 325 + 2 for
 HTLC-success) gives a weight of:
 
-	669 (HTLC-timeout)
-	718 (HTLC-success)
+	663 (HTLC-timeout)
+	703 (HTLC-success)
 
 # Appendix C: Funding Transaction Test Vectors
 
