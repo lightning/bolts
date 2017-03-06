@@ -109,15 +109,20 @@ This output sends funds to the other peer, thus is a simple P2WPKH to `remotekey
 
 This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or to the remote peer using the payment preimage or the revocation key.  The output is a P2WSH, with a witness script:
 
-    <remotekey> OP_SWAP
-        OP_SIZE 32 OP_EQUAL
-    OP_NOTIF
-        # To me via HTLC-timeout transaction (timelocked) or to you with revocation key.
-        OP_DROP 2 OP_SWAP <localkey> <revocationkey> 3 OP_CHECKMULTISIG
-    OP_ELSE
-        # To you with preimage.
-        OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
+    # To you with revocation key
+    OP_DUP OP_HASH160 <revocationkey-hash> OP_EQUAL
+    OP_IF
         OP_CHECKSIG
+    OP_ELSE
+        <remotekey> OP_SWAP OP_SIZE 32 OP_EQUAL
+        OP_NOTIF
+            # To me via HTLC-timeout transaction (timelocked).
+            OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
+        OP_ELSE
+            # To you with preimage.
+            OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
+            OP_CHECKSIG
+        OP_ENDIF
     OP_ENDIF
 
 The remote node can redeem the HTLC with the witness:
@@ -126,7 +131,7 @@ The remote node can redeem the HTLC with the witness:
 
 If a revoked commitment transaction is published, the remote node can spend this output immediately with the following witness:
 
-    0 <remote-sig> <revocation-sig> 0
+    <revocation-sig> <revocationkey>
 
 The sending node can use the HTLC-timeout transaction to time out the HTLC once the HTLC is expired, as shown below.
 
@@ -134,21 +139,21 @@ The sending node can use the HTLC-timeout transaction to time out the HTLC once 
 
 This output sends funds to the remote peer after the HTLC timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
 
-    <remotekey> OP_SWAP
-        OP_SIZE 32 OP_EQUAL
+    # To you with revocation key
+    OP_DUP OP_HASH160 <revocationkey-hash> OP_EQUAL
     OP_IF
-        # To me via HTLC-success transaction.
-        OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
-        2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
+        OP_CHECKSIG
     OP_ELSE
-        OP_SIZE 0 OP_EQUAL
+        <remotekey> OP_SWAP
+            OP_SIZE 32 OP_EQUAL
         OP_IF
+            # To me via HTLC-success transaction.
+            OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
+            2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
+        OP_ELSE
             # To you after timeout.
             OP_DROP <locktime> OP_CHECKLOCKTIMEVERIFY OP_DROP
             OP_CHECKSIG
-        OP_ELSE
-            # To you if you have the revocation key  
-            OP_SWAP 2 OP_SWAP <revocationkey> 2 OP_CHECKMULTISIG
         OP_ENDIF
     OP_ENDIF
 
@@ -158,7 +163,7 @@ To timeout the htlc, the remote node spends it with the witness:
 
 If a revoked commitment transaction is published, the remote node can spend this output immediately with the following witness:
 
-    0 <remote-sig> <revocation-sig>
+    <revocation-sig> <revocation-key>
 
 To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
