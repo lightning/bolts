@@ -290,8 +290,8 @@ A node MUST resolve all unresolved outputs as follows:
    This output is considered *resolved* by the *commitment transaction*.
 2. _B's main output_: The node MUST *resolve* this by spending using the
    revocation key.
-3. _A's offered HTLCs_: The node MUST *resolve* this in one of two ways: either by spending using the payment preimage if known, or spending using B's HTLC-timeout transaction.
-4. _B's offered HTLCs_: The node MUST *resolve* this by spending once the HTLC timeout has passed.
+3. _B's offered HTLCs_: The node MUST *resolve* this in one of two ways: either by spending using the payment preimage if known, or waiting until `ctlv-expiry` plus `to-self-delay` and spending using its own `remotekey`.
+4. _A's offered HTLCs_: The node MUST *resolve* this by spending once the HTLC timeout has passed.
 5. _B's HTLC-timeout transaction_: The node MUST *resolve* this by
    spending using the revocation key.
 6. _B's HTLC-success transaction_: The node MUST *resolve* this by
@@ -318,28 +318,35 @@ should cover this. [FIXME: May have to divide and conquer here, since they may b
 ## Penalty Transaction Weight Calculation
 
 As described in [BOLT #3](03-transactions.md), the witness for
-a penalty transaction is:
+a penalty transaction is either:
 
     <sig> 1 { OP_IF <key> OP_ELSE to-self-delay OP_CSV OP_DROP <key> OP_ENDIF OP_CHECKSIG }
 
+Or (worst case) for claiming an offered HTLC output directly after the long timeout:
+
+    <sig> <all-zero-preimage> { <remotekey> OP_SWAP OP_SIZE 32 OP_EQUAL OP_NOTIF
+	OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG OP_ELSE
+	OP_HASH160 <ripemd-of-payment-hash> OP_EQUAL
+	OP_NOTIF <ctlv-expiry+to-self-delay> OP_CHECKLOCKTIMEVERIFY OP_DROP
+	OP_ENDIF OP_CHECKSIG OP_ENDIF }
+
 Which takes 1 byte to indicate the number of stack elements, plus one
 byte for the size of each element (+3), 73 bytes worst-case for
-`<sig>` (+73), one byte for the `1` (+1), nine bytes for the script
-instructions (+9), 33 bytes for each of the keys (+66), and two bytes
-for `to-self-delay` (+2).
+`<sig>` (+73), 32-bytes for the the all-zero preimage, and 113 bytes for
+the script.
 
-This gives 1+3+73+1+9+66+2=155 bytes of witness data, weight 155.
+This gives 1+3+73+32+113=222 bytes of witness data, weight 222.
 
 The penalty txinput itself takes 41 bytes, thus has a weight of 164,
 meaning each input adds 319 weight.
 
 The rest of the penalty transaction takes 4+3+1+8+1+34+4=55 bytes
 assuming it has a pay-to-witness-script-hash (the largest standard
-output script), thus a base weight of 220.
+output script), thus a base weight of 386.
 
 With a maximum standard weight of 400000, this means a standard
-penalty transaction can have up to 1253 inputs.  Thus we could allow
-626 HTLCs in each direction (with one output to-self) and still
+penalty transaction can have up to 1036 inputs.  Thus we could allow
+517 HTLCs in each direction (with one output to-self) and still
 resolve it with a single penalty transaction.
 
 # General Requirements
