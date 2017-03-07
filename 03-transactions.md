@@ -295,19 +295,19 @@ The commitment transaction weight would be calculated as follows:
 
 * weight starts at 724.
 
-* The offered HTLC of 5000 satoshis is above 546 + 3345 and would result in:
+* The offered HTLC of 5000 satoshis is above 546 + 3315 and would result in:
   * an output of 5000 satoshi in the commitment transaction
-  * a HTLC timeout transaction of 5000 - 3345 satoshis which spends this output
+  * a HTLC timeout transaction of 5000 - 3145 satoshis which spends this output
   * weight increases to 896
 
-* The offered HTLC of 1000 satoshis is below 546 + 3345, so would be trimmed.
+* The offered HTLC of 1000 satoshis is below 546 + 3315, so would be trimmed.
 
 * The received HTLC of 7000 satoshis is above 546 + 3590 and would result in:
   * an output of 7000 satoshi in the commitment transaction
   * a HTLC success transaction of 7000 - 3590 satoshis which spends this output
   * weight increases to 1068
 
-* The received HTLC of 800 satoshis is below 546 + 3590 so would be trimmed.
+* The received HTLC of 800 satoshis is below 546 + 3515 so would be trimmed.
 
 The base commitment transaction fee would be 5340 satoshi; the actual
 fee (adding the 1000 and 800 satoshi HTLCs which would have made dust
@@ -316,7 +316,7 @@ outputs) is 7140 satoshi.  The final fee may even be more if the
 
 ### Fee Payment
 
-Base commimtment transaction fees will be extracted from the funder's amount, or if that is insufficient, will use the entire amount of the funder's output.
+Base commitment transaction fees will be extracted from the funder's amount, or if that is insufficient, will use the entire amount of the funder's output.
 
 Note that if once fee amount is subtracted from the to-funder output,
 that output may be below `dust-limit-satoshis` and thus also
