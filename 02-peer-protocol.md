@@ -377,11 +377,13 @@ estimate of cost of inclusion in a block.
 The sender MUST set `signature` to the Bitcoin signature of the close
 transaction with the node responsible for paying the bitcoin fee
 paying `fee-satoshis`, without populating any output which is below
-the receiver's `dust-limit-satoshis`.
+its own `dust-limit-satoshis`. The sender MAY also eliminate its own
+output from the mutual close transaction.
 
-The receiver MUST check `signature` is valid for the close transaction
-with the given `fee-satoshis` as detailed above, and MUST fail the
-connection if it is not.
+The receiver MUST check `signature` is valid for either the close
+transaction with the given `fee-satoshis` as detailed above and its
+own `dust-limit-satoshis` OR that same transaction with the sender's
+output eliminated, and MUST fail the connection if it is not.
 
 If the receiver agrees with the fee, it SHOULD reply with a
 `closing_signed` with the same `fee-satoshis` value, otherwise it
@@ -393,6 +395,18 @@ Once a node has sent or received a `closing_signed` with matching
 broadcast the final closing transaction.
 
 #### Rationale
+
+There is a possibility of irreparable differences on closing if one
+node considers the other's output too small to allow propagation on
+the bitcoin network (aka "dust"), and that other node instead
+considers that output to be too valuable to discard.  This is why each
+side uses its own `dust-limit-satoshis`, and the result can be a
+signature validation failure, if they disagree on what the closing
+transaction should look like.
+
+However, if one side chooses to eliminate its own output, there's no
+reason for the other side to fail the closing protocol, so this is
+explicitly allowed.
 
 Note that there is limited risk if the closing transaction is
 delayed, and it will be broadcast very soon, so there is usually no
