@@ -313,10 +313,9 @@ and indicating the scriptpubkey it wants to be paid to.
 #### Requirements
 
 A node MUST NOT send a `shutdown` if there are updates pending
-on the receiving node's commitment transaction which are not yet added to the sender's commitment.
+on the receiving node's commitment transaction.
 
-A node MUST NOT send an `update_add_htlc` after a `shutdown`,
-and MUST NOT send more than one `shutdown`.  A sending node
+A node MUST NOT send an `update_add_htlc` after a `shutdown`.  A sending node
 SHOULD fail to route any HTLC added after it sent `shutdown`.
 
 A sending node MUST set `scriptpubkey` to one of the following forms:
@@ -873,8 +872,8 @@ lists the acknowledgement conditions for each message:
 * `funding_locked`: acknowledged by `update_` messages, `commitment_signed`, `revoke_and_ack` or `shutdown` messages.
 * `update_` messages: acknowledged by `revoke_and_ack`.
 * `commitment_signed`: acknowledged by `revoke_and_ack`.
-* `revoke_and_ack`: acknowledged by `shutdown`, `commitment_signed` or `closing_signed`
-* `shutdown`: acknowledged by `closing_signed` or `revoke_and_ack`.
+* `revoke_and_ack`: acknowledged by `commitment_signed` or `closing_signed`
+* `shutdown`: acknowledged by `closing_signed`.
 
 The last `closing_signed` (if any) must always be retransmitted, as there
 is no explicit acknowledgement.
