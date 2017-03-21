@@ -403,7 +403,7 @@ reason to pay a premium for rapid processing.
 Once both nodes have exchanged `funding_locked` (and optionally `announcement_signatures`), the channel can be used to make payments via Hash TimeLocked Contracts.
 
 Changes are sent in batches: one or more `update` messages are sent before a
-`commit_sig` message, as in the following diagram:
+`commitment_signed` message, as in the following diagram:
 
         +-------+                            +-------+
         |       |--(1)---- add_htlc   ------>|       |
@@ -591,7 +591,7 @@ reconnection purposes; allowing them at other times simplifies the
 recipient code, though strict checking may help debugging.
 
 `max-accepted-htlcs` is limited to 483, to ensure that even if both
-sides send the maximum number of HTLCs, the `commit_sig` message will
+sides send the maximum number of HTLCs, the `commitment_signed` message will
 still be under the maximum message size.  It also ensures that
 a single penalty transaction can spend the entire commitment transaction,
 as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
@@ -687,7 +687,7 @@ sign the resulting transaction as defined in [BOLT #3](03-transactions.md) and s
 `commitment_signed` message.
 
 
-1. type: 132 (`commit_sig`)
+1. type: 132 (`commitment_signed`)
 2. data:
    * [32:channel-id]
    * [64:signature]
