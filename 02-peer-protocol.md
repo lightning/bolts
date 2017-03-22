@@ -47,7 +47,7 @@ for the commitment transaction, and send it over using the
 Once the channel funder receives the `funding_signed` message, they
 must broadcast the funding transaction to the Bitcoin network. After
 the `funding_signed` message is sent/received, both sides should wait
-for the funding transaction to ensure the blockchain and reach their
+for the funding transaction to enter the blockchain and reach their
 specified depth (number of confirmations). After both sides have sent
 the `funding_locked` message, the channel is established and can begin
 normal operation. The `funding_locked` message includes information
