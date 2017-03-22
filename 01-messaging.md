@@ -14,6 +14,9 @@ All data fields are big-endian unless otherwise specified.
   * [Setup Messages](#setup-messages)
     * [The `init` message](#the-init-message)
     * [The `error` message](#the-error-message)
+  * [Control Messages](#control-messages)
+    * [The `ping` message](#the-ping-message)
+    * [The `pong` message](#the-pong-message)
   * [Acknowledgements](#acknowledgements)
   * [References](#references)
   * [Authors](#authors)
@@ -152,6 +155,73 @@ diagnosis, as it indicates that one peer has a bug.
 
 It may be wise not to distinguish errors in production settings, lest
 it leak information, thus the optional data field.
+
+## Control Messages
+
+### The `ping` message
+
+In order to allow for the existence of very long-lived TCP connections, at
+times it may be required that both ends keep alive the TCP connection at the
+application level.
+
+1. type: 18 (`ping`)
+2. data: 
+    * [2:num_pong_bytes]
+
+#### Requirements
+
+A node receiving a `ping` message MUST respond with a `pong` message that
+contains the specified `num_pong_bytes` number of bytes within it's data
+payload. These `ping` messages may be sent any time at the sender's discretion,
+however `ping` messages MUST NOT be sent with a frequency lower than one every
+30 seconds.
+
+### The `pong` message
+
+The `pong` message is to be sent whenever a `ping` message is received. It
+serves as a reply, and also serves to keep the connection alive while
+explicitly notifying the other end that the receiver is still active.
+
+1. type: 19 (`pong`)
+2. data:
+    * [2:byteslen]
+    * [byteslen:randombytes]
+
+#### Requirements
+
+A `pong` message MUST only be sent in response to receiving a `ping` message.
+Within the received `ping` message, the sender will specify the number of bytes
+to be included within the data payload of the `pong` message. Senders of the
+`pong` message may retrieve the payload bytes from any source as the bytes are
+opaque and convey no meaning. Senders of a `pong` message SHOULD take care to
+ensure that the bytes being sent don't contain sensitive data such as secrets,
+or portions of initialized memory.
+
+### Rationale
+
+Connections between nodes within the network may be very long lived as payment
+channels have an indefinite lifetime. However, it's likely that for a
+significant portion of the life-time of a connection, no new data will be
+exchanged. Additionally, on several platforms it's possible that Lightning
+clients will be put to sleep without prior warning.  As a result, we use a
+distinct ping message in order to probe for the liveness of the connection on
+the other side, and also to keep the established connection active. 
+
+Additionally, the ability for a sender to request that the receiver send a
+response with a particular number of bytes enables nodes on the network to
+create _synthentic_ traffic. Such traffic can be used to partially defend
+against packet and timing analysis as nodes can fake the traffic patterns of
+typical exchanges, without applying any true updates to their respective
+channels. 
+
+When combined with the onion routing protocol defined in
+[BOLT #4](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md),
+careful statistically driven synthetic traffic can serve to further bolster the
+privacy of participants within the network.
+
+Finally, the usage of periodic `ping` messages serves to promote frequent key
+rotations as specified within [BOLT #8](https://github.com/lightningnetwork/lightning-rfc/blob/master/08-transport.md).
+
 
 ## Acknowledgements
 
