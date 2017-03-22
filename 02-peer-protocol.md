@@ -487,6 +487,9 @@ so we should fulfill the incoming HTLC as soon as we can to reduce latency.
 ### Risks With HTLC Timeouts
 
 
+Once an HTLC has timed out where it could either be fulfilled or timed-out;
+care must be taken around this transition both for offered and received HTLCs.
+
 As a result of forwarding an HTLC from node A to node C, B will end up having an incoming
 HTLC from A and an outgoing HTLC to C. B will make sure that the incoming HTLC has a greater 
 timeout than the outgoing HTLC, so that B can get refunded from C sooner than it has to refund
@@ -521,12 +524,21 @@ Thus the effective timeout of the HTLC is the `cltv-expiry`, plus some
 additional delay for the transaction which redeems the HTLC output to
 be irreversibly committed to the blockchain.
 
+The fulfillment risk is similar: if a node C fulfills an HTLC after
+its timeout, B might broadcast the commitment transaction and
+immediately broadcast the HTLC timeout transaction.  In this scenario,
+B would gain knowledge of the preimage without paying C.
 
-Thus a node MUST estimate the deadline for successful redemption for
-each HTLC it offers.  A node MUST NOT offer a HTLC after this
-deadline, and MUST fail the channel if an HTLC which it offered is in
-either node's current commitment transaction past this deadline.
+#### Requirements
 
+A node MUST estimate the deadline for successful redemption for each
+HTLC.  A node MUST NOT offer a HTLC after this deadline, and
+MUST fail the channel if an HTLC which it offered is in either node's
+current commitment transaction past this deadline.
+
+A node MUST NOT fulfill an HTLC after this deadline, and MUST fail the
+connection if a HTLC it has fulfilled is in either node's current
+commitment transaction past this deadline.
 
 ### Adding an HTLC: `update_add_htlc`
 
