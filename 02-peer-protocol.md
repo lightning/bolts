@@ -101,13 +101,11 @@ desire to set up a new channel.
    * [33:first-per-commitment-point]
 
 
-The `chain-hash` value denotes the exact blockchain the opened channel will
-reside within. In order to unique identify a given blockchain, the `chain-hash`
-value is to be sent to the _genesis hash_ of the respective blockchain. The
-genesis hash is the block hash of the _first_ block (the genesis) block of the
-blockchain. The existence of the `chain-hash` allows nodes to open channel
+The chain-hash value denotes the exact blockchain the opened channel will
+reside within. This is usually the genesis hash of the respective blockchain.
+The existence of the chain-hash allows nodes to open channel
 across many distinct blockchains as well as have channels within multiple
-blockchains opened to the same peer (if they support the target chains). 
+blockchains opened to the same peer (if they support the target chains).
 
 The `temporary-channel-id` is used to identify this channel until the funding transaction is established. `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node's commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
 
@@ -122,10 +120,10 @@ FIXME: Describe Dangerous feature bit for larger channel amounts.
 
 #### Requirements
 
-A sending node MUST ensure that the `chain-hash` value be a valid genesis block
-hash from the chain they wish to open the channel within. For the Bitcoin
-blockchain, the `chain-hash` value MUST be (encoded in hex):
-000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f.
+A sending node MUST ensure that the chain-hash value identifies the chain they
+they wish to open the channel within. For the Bitcoin blockchain, the
+chain-hash value MUST be (encoded in hex):
+`000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
 
 A sending node MUST ensure `temporary-channel-id` is unique from any other
 channel id with the same peer.  The sender MUST set `funding-satoshis`
@@ -211,7 +209,7 @@ acceptance of the new channel.
 #### Requirements
 
 
-The receiving MAY reject the channel if the `chain-hash` value within the
+The receiving MUST reject the channel if the `chain-hash` value within the
 `open_channel` message is set to a hash of a chain unknown to the receiver.
 
 The `temporary-channel-id` MUST be the same as the `temporary-channel-id` in the `open_channel` message.  The sender SHOULD set `minimum-depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
