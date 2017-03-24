@@ -582,9 +582,10 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 
 A sending node MUST NOT offer `amount-msat` it cannot pay for in the
 remote commitment transaction at the current `fee-rate` (see "Updating
-Fees") while maintaining its channel reserve, and MUST offer
-`amount-msat` greater than 0, and MUST NOT offer `amount-msat` below
-the receiving node's `htlc-minimum-msat`.
+Fees") while maintaining its channel reserve, MUST offer
+`amount-msat` greater than 0, MUST NOT offer `amount-msat` below
+the receiving node's `htlc-minimum-msat`, and MUST set `cltv-expiry` less
+than 500000000.
 
 A sending node MUST NOT add an HTLC if it would result in it offering
 more than the remote's `max-accepted-htlcs` HTLCs in the remote commitment
@@ -599,12 +600,13 @@ A receiving node SHOULD fail the channel if it receives an
 which the sending node cannot afford at the current `fee-rate` while
 maintaining its channel reserve.  A receiving node SHOULD fail the
 channel if a sending node adds more than its `max-accepted-htlcs` HTLCs to
-its local commitment transaction, or adds more than its `max-htlc-value-in-flight-msat` worth of offered HTLCs to its local commitment transaction.
+its local commitment transaction, or adds more than its `max-htlc-value-in-flight-msat` worth of offered HTLCs to its local commitment transaction, or
+sets `cltv-expiry` to greater or equal to 500000000.
 
 A receiving node MUST allow multiple HTLCs with the same payment hash.
 
 A receiving node MUST ignore a repeated `id` value after a
-reconnection if it has the sender did not previously acknowledge the
+reconnection if the sender did not previously acknowledge the
 commitment of that HTLC.  A receiving node MAY fail the channel if
 other `id` violations occur.
 
@@ -634,6 +636,9 @@ sides send the maximum number of HTLCs, the `commitment_signed` message will
 still be under the maximum message size.  It also ensures that
 a single penalty transaction can spend the entire commitment transaction,
 as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
+
+`cltv-expiry` values equal or above 500000000 would indicate a time in
+seconds, and the protocol only supports an expiry in blocks.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc` and `update_fail_malformed_htlc`
 
