@@ -592,8 +592,10 @@ If the payment hash is unknown, the final node MUST fail the HTLC:
 1. type: PERM|15 (`unknown_payment_hash`)
 
 If the amount paid is less than the amount expected, the final node
-MUST fail the HTLC.  If the amount paid is more than the amount
-expected, the final node SHOULD fail the HTLC:
+MUST fail the HTLC.  If the amount paid is more than twice the amount
+expected, the final node SHOULD fail the HTLC.  This allows the sender
+to reduce information leakage by altering the amount, without allowing
+accidental gross overpayment:
 
 1. type: PERM|16 (`incorrect_payment_amount`)
 
