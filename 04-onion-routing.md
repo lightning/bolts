@@ -164,7 +164,8 @@ Field Description:
         incoming_htlc_amt - fee >= amt_to_forward
 
      Where `fee` is calculated according to the receving node's advertised fee
-     schema as described in [BOLT 7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#htlc-fees).
+     schema as described in [BOLT 7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#htlc-fees), or 0 if this node is the
+	 final hop.
 
    * `outgoing_cltv_value` - The CLTV value that the _outgoing_ HTLC carrying
      the packet should have. 
@@ -611,6 +612,13 @@ HTLC at the final hop:
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
    * [4:cltv-expiry]
+
+If the `amt_to_forward` does not match the `incoming_htlc_amt` of
+the HTLC at the final hop:
+
+1. type: 19 (`final_incorrect_htlc_amount`)
+2. data:
+   * [4:incoming-htlc-amt]
 
 ### Receiving Failure Codes
 
