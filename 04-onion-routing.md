@@ -174,9 +174,13 @@ Field Description:
      Inclusion of this field allows a node to both authenticate the information
      specified by the original sender and the paramaters of the HTLC forwarded,
 	 and ensure the original sender is using the current `cltv-expiry-delta` value.
+     If there is no next hop, `cltv-expiry-delta` is zero.
      If the values don't correspond, then the HTLC should be failed+rejected as
      this indicates the incoming node has tampered with the intended HTLC
      values, or the origin has an obsolete `cltv-expiry-delta` value.
+     The node MUST be consistent in responding to an unexpected
+     `outgoing_cltv_value` whether it is the final hop or not, to avoid
+     leaking that information.
 
 
 Nodes forwarding HTLC's MUST construct the outgoing HTLC as specified within
@@ -600,6 +604,13 @@ expected, the final node SHOULD fail the HTLC:
 If the `cltv-expiry` is too low, the final node MUST fail the HTLC:
 
 1. type: 17 (`final_expiry_too_soon`)
+
+If the `outgoing_cltv_value` does not match the `ctlv-expiry` of the
+HTLC at the final hop:
+
+1. type: 18 (`final_incorrect_cltv_expiry`)
+2. data:
+   * [4:cltv-expiry]
 
 ### Receiving Failure Codes
 
