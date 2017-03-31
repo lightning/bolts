@@ -75,7 +75,7 @@ parser.add_option("--message-fields",
 message = None
 havedata = None
 typeline = re.compile('1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[-A-Za-z_]+)`\)')
-dataline = re.compile('\s+\* \[(?P<size>[-a-z0-9*+]+):(?P<name>[-a-z0-9]+)\]')
+dataline = re.compile('\s+\* \[(?P<size>[-a-z0-9*+]+):(?P<name>[-a-z0-9_]+)\]')
 
 for i,line in enumerate(fileinput.input(args)):
     line = line.rstrip()
