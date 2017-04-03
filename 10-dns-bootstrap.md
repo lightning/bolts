@@ -6,14 +6,14 @@ Its purpose is twofold:
  - Bootstrap: the initial node discovery for nodes that have no known contacts in the network
  - Assisted Node Location: supporting nodes to discover the current network address previously known peers
 
-A domain name server implementing this specification is called a _DNS Seed_, and answers incoming DNS queries of type `A`, `AAAA` or `SRV` as specified in RFCs 1035<sub>[1](#ref-1)</sup>, 3596<sub>[2](#ref-2)</sup> and 2782<sub>[3](#ref-3)</sup> respectively.
+A domain name server implementing this specification is called a _DNS Seed_, and answers incoming DNS queries of type `A`, `AAAA` or `SRV` as specified in RFCs 1035<sup>[1](#ref-1)</sup>, 3596<sup>[2](#ref-2)</sup> and 2782<sup>[3](#ref-3)</sup> respectively.
 The DNS server is authoritative for a subdomain, called a _seed root domain_, and clients may query either the seed root domain or subdomains thereunder.
 
 ## Subdomain Structure
 
 A client MAY query the seed root domain for either `A`, `AAAA` or `SRV` records.
 Upon receiving `A` and `AAAA` queries the DNS seed MUST return a random subset of up to 25 IPv4 or IPv6 addresses of nodes that are listening for incoming connections on the default port 9735 as defined in [BOLT 01](01-messaging.md).
-In accordance with the Bitcoin DNS Seed policy<sub>[4](#ref-4)</sup> the DNS seed operator MAY NOT bias the result in any form, apart from filtering non-functioning or malicious nodes from the result.
+In accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup> the DNS seed operator MAY NOT bias the result in any form, apart from filtering non-functioning or malicious nodes from the result.
 The domain name associated with the addresses returned to `A` and `AAAA` queries MUST match the domain name in the query in order not to be filtered by intermediate resolvers.
 
 Upon receiving `SRV` queries the DNS seed MUST return a random subset of up to 5 (_virtual hostnames_, port)-tuples.
@@ -22,7 +22,7 @@ It is constructed by splitting the hex encoded `node_id` of the node into two pa
 The DNS seed MAY additionally return the corresponding `A` and `AAAA` indicating the IP address for the `SRV` entries in the Extra section of the reply.
 Due to the large size of the resulting reply it may happen that the reply is dropped by intermediate resolvers, hence the DNS seed MAY omit these additional records upon detecting a repeated query.
 The DNS seed MUST also allow the `_nodes._tcp.` subdomain for `SRV` queries.
-This is the standard compliant version as specified in RFC 2782<sub>[3](#ref-3).
+This is the standard compliant version as specified in RFC 2782<sup>[3](#ref-3)</sup>.
 
 A client MAY ask directly for the `A` or `AAAA` record for a specific node by querying for the virtual hostname.
 This may either be due to a previous `SRV` reply that omitted the extra section, or because the client is attempting to locate a specific node it was connected to before.
