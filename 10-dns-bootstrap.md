@@ -32,6 +32,11 @@ In case of an IP class mismatch, e.g., the client asked for IPv4 addresses with 
 This MAY result in an empty reply, with the actual result in the extra section, and clients MUST handle it accordingly.
 The domain name returned in an `A` or `AAAA` reply MUST match the virtual hostname from the query in order not to be dropped by intermediate resolvers.
 
+## Policies
+
+The DNS seed MUST NOT return replies with a TTL lower than 60 seconds.
+The DNS seed MAY filter nodes from its local views for various reasons, including faulty nodes, flaky nodes, or spam prevention.
+Replies to random queries, i.e., queries to the seed root domain and the `_nodes._tcp.` alias for `SRV` queries, MUST be random samples from the set of all known good nodes and MUST NOT be biased.
 
 ## Examples
 
