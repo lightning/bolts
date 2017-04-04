@@ -210,7 +210,7 @@ the other side, and also to keep the established connection active.
 
 Additionally, the ability for a sender to request that the receiver send a
 response with a particular number of bytes enables nodes on the network to
-create _synthentic_ traffic. Such traffic can be used to partially defend
+create _synthetic_ traffic. Such traffic can be used to partially defend
 against packet and timing analysis as nodes can fake the traffic patterns of
 typical exchanges, without applying any true updates to their respective
 channels. 
