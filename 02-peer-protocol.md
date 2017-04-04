@@ -575,7 +575,7 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
    * [4:amount-msat]
    * [4:cltv-expiry]
    * [32:payment-hash]
-   * [1254:onion-routing-packet]
+   * [1366:onion-routing-packet]
 
 
 #### Requirements
