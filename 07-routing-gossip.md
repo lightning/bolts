@@ -276,11 +276,6 @@ it wants to change fees.
     * [4:fee-base-msat]
     * [4:fee-proportional-millionths]
 
-### Requirements
-
-The creating node MUST set `signature` to the signature of the
-double-SHA256 of the entire remaining packet after `signature` using its own `node-id`.
-
 The flags bitfield is used to indicate the direction of the channel this update concerns, i.e., it identifies the node that this update originated from, and signal various options concerning the channel.
 The following table specifies the meaning of the individual bits:
 
@@ -288,6 +283,11 @@ The following table specifies the meaning of the individual bits:
 | ------------- | ----------- | -------------------------------- |
 | 0             | `direction` | Direction this update refers to. |
 | 1             | `disable`   | Disable the channel.             |
+
+### Requirements
+
+The creating node MUST set `signature` to the signature of the
+double-SHA256 of the entire remaining packet after `signature` using its own `node-id`.
 
 The creating node MUST set `short-channel-id` to match those in the already-sent `channel_announcement` message, and MUST set the least-significant bit of `flags` to 0 if the creating node is `node-id-1` in that message, otherwise 1.
 Bits which are not assigned a meaning must be set to 0.
