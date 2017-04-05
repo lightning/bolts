@@ -192,13 +192,18 @@ and MAY terminate the network connection if it does not receive a corresponding
 
 A node receiving a `ping` message SHOULD fail the channels if it has received
 significantly in excess of one `ping` per 30 seconds, otherwise if
-`num_pong_bytes` is less than 65534 it MUST respond by sending a `pong` message
+`num_pong_bytes` is less than 65532 it MUST respond by sending a `pong` message
 with `byteslen` equal to `num_pong_bytes`, otherwise it MUST ignore the `ping`.
 
 A node receiving a `pong` message MAY fail the channels if `byteslen` does not
 correspond to any `ping` `num_pong_bytes` value it has sent.
 
 ### Rationale
+
+The largest possible message is 65535 bytes, thus maximum sensible `byteslen`
+is 65531 to account for the type field (`pong`) and `bytelen` itself.  This
+gives us a convenient cutoff for `num_pong_bytes` to indicate that no reply
+should be sent.
 
 Connections between nodes within the network may be very long lived as payment
 channels have an indefinite lifetime. However, it's likely that for a
