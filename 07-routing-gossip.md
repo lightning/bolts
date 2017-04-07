@@ -289,7 +289,7 @@ The following table specifies the meaning of the individual bits:
 The creating node MUST set `signature` to the signature of the
 double-SHA256 of the entire remaining packet after `signature` using its own `node-id`.
 
-The creating node MUST set `short-channel-id` to match those in the already-sent `channel_announcement` message, and MUST set the least-significant bit of `flags` to 0 if the creating node is `node-id-1` in that message, otherwise 1.
+The creating node MUST set `short-channel-id` to match those in the already-sent `channel_announcement` message, and MUST set the `direction` bit of `flags` to 0 if the creating node is `node-id-1` in that message, otherwise 1.
 Bits which are not assigned a meaning must be set to 0.
 
 A node MAY create and send a `channel_update` with the `disable` bit set to signal the temporary unavailability of a channel, e.g., due to loss of connectivity, or the permanent unavailability, e.g., ahead of an on-chain settlement.
