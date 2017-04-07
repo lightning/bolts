@@ -276,13 +276,24 @@ it wants to change fees.
     * [4:fee-base-msat]
     * [4:fee-proportional-millionths]
 
+The flags bitfield is used to indicate the direction of the channel this update concerns, i.e., it identifies the node that this update originated from, and signal various options concerning the channel.
+The following table specifies the meaning of the individual bits:
+
+| Bit Position  | Name        | Meaning                          |
+| ------------- | ----------- | -------------------------------- |
+| 0             | `direction` | Direction this update refers to. |
+| 1             | `disable`   | Disable the channel.             |
+
 ### Requirements
 
 The creating node MUST set `signature` to the signature of the
 double-SHA256 of the entire remaining packet after `signature` using its own `node-id`.
 
-The creating node MUST set `short-channel-id` to
-match those in the already-sent `channel_announcement` message, and MUST set the least-significant bit of `flags` to 0 if the creating node is `node-id-1` in that message, otherwise 1.  It MUST set other bits of `flags` to zero.
+The creating node MUST set `short-channel-id` to match those in the already-sent `channel_announcement` message, and MUST set the `direction` bit of `flags` to 0 if the creating node is `node-id-1` in that message, otherwise 1.
+Bits which are not assigned a meaning must be set to 0.
+
+A node MAY create and send a `channel_update` with the `disable` bit set to signal the temporary unavailability of a channel, e.g., due to loss of connectivity, or the permanent unavailability, e.g., ahead of an on-chain settlement.
+A subsequent `channel_update` with the `disable` bit unset MAY re-enable the channel.
 
 The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this channel.
 
