@@ -249,7 +249,7 @@ This message gives the funder the signature they need for the first
 commitment transaction, so they can broadcast it knowing they can
 redeem their funds if they need to.
 
-This message introduces the `channel-id` which identifies , which is derived from the funding transaction by combining the `funding-txid` and the `funding-output-index` using big-endian exclusive-OR (ie. `funding-output-index` alters the last two bytes).
+This message introduces the `channel-id` to identify the channel, which is derived from the funding transaction by combining the `funding-txid` and the `funding-output-index` using big-endian exclusive-OR (ie. `funding-output-index` alters the last two bytes).
 
 1. type: 35 (`funding_signed`)
 2. data:
