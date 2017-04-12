@@ -533,6 +533,9 @@ If an otherwise unspecified transient error occurs for the outgoing
 channel (eg. peer unresponsive, channel capacity reached):
 
 1. type: 7 (`temporary_channel_failure`)
+2. data:
+   * [2:len]
+   * [len:channel_update]
 
 If an otherwise unspecified permanent error occurs for the outgoing
 channel (eg. channel (recently) closed):
