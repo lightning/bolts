@@ -28,10 +28,11 @@ This details the exact format of on-chain transactions, which both sides need to
       * [Expected weight of the commitment transaction](#expected-weight-of-the-commitment-transaction)
       * [Expected weight of HTLC-Timeout and HTLC-Success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
   * [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
-  * [Appendix C: Per-commitment Secret Generation Test Vectors](#appendix-c-commitment-and-htlc-transaction-test-vectors)    
+  * [Appendix C: Commitment and HTLC Transaction Test Vectors](#appendix-c-commitment-and-htlc-transaction-test-vectors)    
     * [Generation tests](#generation-tests)
     * [Storage tests](#storage-tests)
-  * [Appendix D: Key Derivation Test Vectors](#appendix-d-per-commitment-secret-generation-test-vectors)
+  * [Appendix D: Per-commitment Secret Generation Test Vectors](#appendix-d-per-commitment-secret-generation-test-vectors)
+  * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
   * [References](#references)   
   * [Authors](#authors)   
   
