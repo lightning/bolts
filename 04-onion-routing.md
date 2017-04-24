@@ -211,76 +211,68 @@ The packet generation returns the serialized packet, consisting of the version b
 The following code implements the packet construction in Go:
 
 ```Go
-FIXME
-func ConstructPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey,
-	rawHopPayloads [][]byte) ([]byte) {
-	numHops := len(paymentPath)
-	
-	ephemeralpks := make([]*btcec.PublicKey, numHops)
-	sharedsecrets := make([][sha256.Size]byte, numHops)
-	blindingfactors := make([][sha256.Size]byte, numHops)
+func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey,
+	hopsData []HopData, assocData []byte) (*OnionPacket, error) {
 
-	ephemeralpks[0] = sessionKey.PubKey()
-	sharedsecrets[0] = sha256.Sum256(btcec.GenerateSharedSecret(sessionKey, paymentPath[0]))
-	blindingfactors[0] = computeBlindingFactor(ephemeralpks[0], sharedsecrets[0][:])
+	numHops := len(paymentPath)
+	hopEphemeralPubKeys := make([]*btcec.PublicKey, numHops)
+	hopSharedSecrets := make([][sha256.Size]byte, numHops)
+	hopBlindingFactors := make([][sha256.Size]byte, numHops)
+
+	hopEphemeralPubKeys[0] = sessionKey.PubKey()
+	hopSharedSecrets[0] = generateSharedSecret(paymentPath[0], sessionKey)
+	hopBlindingFactors[0] = computeBlindingFactor(hopEphemeralPubKeys[0], hopSharedSecrets[0][:])
 
 	for i := 1; i <= numHops-1; i++ {
-		ephemeralpks[i] = blindGroupElement(ephemeralpks[i-1], blindingfactors[i-1][:])
-		bpk := blindGroupElement(paymentPath[i], sessionKey.D.Bytes())
-		sharedsecrets[i] = sha256.Sum256(multiScalarMult(bpk, blindingfactors[:i]).X.Bytes())
-		blindingfactors[i] = computeBlindingFactor(ephemeralpks[i], sharedsecrets[i][:])
+		hopEphemeralPubKeys[i] = blindGroupElement(hopEphemeralPubKeys[i-1],
+			hopBlindingFactors[i-1][:])
+		yToX := blindGroupElement(paymentPath[i], sessionKey.D.Bytes())
+		hopSharedSecrets[i] = sha256.Sum256(multiScalarMult(yToX, hopBlindingFactors[:i]).SerializeCompressed())
+
+		hopBlindingFactors[i] = computeBlindingFactor(hopEphemeralPubKeys[i],
+			hopSharedSecrets[i][:])
 	}
 
-	filler := generate_filler("rho", numHops, 2*20, sharedsecrets)
-	hopfiller := generate_filler("gamma", numHops, 20, sharedsecrets)
+	// Generate the padding, called "filler strings" in the paper.
+	filler := generateHeaderPadding("rho", numHops, hopDataSize, hopSharedSecrets)
 
-	// Initialize all of these to 0x00-arrays
-	var header [20 * 40]byte
-	var hoppayloads [20 * 20]byte
-	var next_hmac [20]byte
-	var next_address [20]byte
+	// Allocate and initialize fields to zero-filled slices
+	var mixHeader [routingInfoSize]byte
+	var nextHmac [hmacSize]byte
 
-	// Compute header in reverse path order
+	// Now we compute the routing information for each hop, along with a
+	// MAC of the routing info using the shared key for that hop.
 	for i := numHops - 1; i >= 0; i-- {
-		rhoKey := generateKey("rho", sharedsecrets[i])
-		gammaKey := generateKey("gamma", sharedsecrets[i])
-		piKey := generateKey("pi", sharedsecrets[i])
-		muKey := generateKey("mu", sharedsecrets[i])
+		rhoKey := generateKey("rho", hopSharedSecrets[i])
+		muKey := generateKey("mu", hopSharedSecrets[i])
 
-		// Shift and obfuscate header
-		stream := generateStream(rhoKey, numStreamBytes)
-		rightShift(header[:], 2*20)
-		copy(header[:], next_address[:])
-		copy(header[20:], next_hmac[:])
-		xor(header[:], header[:], streamBytes[:routingInfoSize])
+		hopsData[i].HMAC = nextHmac
 
-		// Shift and obfuscate per-hop payload
-		stream = generateStream(gammaKey, uint(len(hoppayloads)))
-		rightShift(hoppayloads[:], 20)
-		copy(hoppayloads[:], rawHopPayloads[i])
-		xor(hoppayloads[:], hoppayloads[:], hopStreamBytes)
+		// Shift and obfuscate routing info
+		streamBytes := generateCipherStream(rhoKey, numStreamBytes)
 
-		// Add fillers if this is the last hop
+		rightShift(mixHeader[:], hopDataSize)
+		buf := &bytes.Buffer{}
+		hopsData[i].Encode(buf)
+		copy(mixHeader[:], buf.Bytes())
+		xor(mixHeader[:], mixHeader[:], streamBytes[:routingInfoSize])
+
+		// We need to overwrite these so every node generates a correct padding
 		if i == numHops-1 {
-			copy(header[len(header)-len(filler):], filler)
-			copy(hoppayloads[len(hoppayloads)-len(hopfiller):], hopfiller)
+			copy(mixHeader[len(mixHeader)-len(filler):], filler)
 		}
-		cipher, _ := chacha20.New(piKey[:], bytes.Repeat([]byte{0x00}, 8))
 
-		next_hmac = ComputeMac(muKey, append(append(header[:], hoppayloads[:]...), onion[:]...))
-		next_address = btcutil.Hash160(paymentPath[i].SerializeCompressed())
+		packet := append(mixHeader[:], assocData...)
+		nextHmac = calcMac(muKey, packet)
 	}
-	
-	// Assemble packet
-	var packet [2258]byte
-	version = []byte{0x00}
-	copy(packet[:], version)
-	copy(packet[1:], ephemeralpks[0].SerializeCompressed())
-	copy(packet[34:], next_hmac)
-	copy(packet[54:], header)
-	copy(packet[854:], hoppayloads)
-	
-	return packet
+
+	packet := &OnionPacket{
+		Version:      0x01,
+		EphemeralKey: hopEphemeralPubKeys[0],
+		RoutingInfo:  mixHeader,
+		HeaderMAC:    nextHmac,
+	}
+	return packet, nil
 }
 ```
 
