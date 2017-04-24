@@ -332,8 +332,8 @@ The node MUST check that the ephemeral public key is on the `secp256k1` curve.
 Should this not be the case the node MUST abort processing the packet and report a route failure to the sender.
 
 The node then computes the shared secret as described below, using the private key corresponding to its public key and the ephemeral key from the packet.
-The node MUST keep a log of previously used shared secrets.
-Should the shared secret already be in the log it MUST abort processing the packet and report a route failure, since this is likely a replay attack, otherwise the shared secret is added to the log.
+
+The node MUST detect a duplicated routing info which it has already forwarded or redeemed locally; it MAY immediately redeem the HTLC using the preimage (if known), otherwise it MUST abort processing and report a route failure.  This prevents a node on the route from retrying a payment multiple times and attempting to track its progress by traffic analysis.  Note that this could be done using a log of previous shared secrets or HMACs, which can be forgotten once that HTLC would not be accepted anyway (eg. once `outgoing_cltv_value` has passed).  Such a log may use a probabilistic data structure, but MUST rate-limit commitments as necessary to constrain the worst-case storage requirements or false positives of this log.
 
 The shared secret is used to compute a _mu_-key.  The node then computes the HMAC of the packet, starting from byte 54, which corresponds to the routing info, per-hop payloads and associated data, using the _mu_-key.
 The resulting HMAC is compared with the HMAC from the packet.
