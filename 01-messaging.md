@@ -44,7 +44,7 @@ The messages are grouped logically into 4 groups by their most significant set b
 
  - Setup & Control (types `0`-`31`): messages related to connection setup, control, supported features, and error reporting. These are described below.
  - Channel (types `32`-`127`): comprises messages used to setup and tear down micropayment channels. These are described in [BOLT #2](02-peer-protocol.md).
- - Commitment (types `128`-`255`: comprises messages related to updating the current commitment transaction, which includes adding, revoking, and settling HTLCs, as well as updating fees and exchanging signatures. These are described in [BOLT #2](02-peer-protocol.md).
+ - Commitment (types `128`-`255`): comprises messages related to updating the current commitment transaction, which includes adding, revoking, and settling HTLCs, as well as updating fees and exchanging signatures. These are described in [BOLT #2](02-peer-protocol.md).
  - Routing (types `256`-`511`): node and channel announcements, as well as any active route exploration. These are described in [BOLT #7](07-routing-gossip.md).
 
 The size of the message is required to fit into a 2 byte unsigned int by the transport layer, therefore the maximum possible size is 65535 bytes.
