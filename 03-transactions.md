@@ -210,7 +210,7 @@ MUST be generated as specified in
 These HTLC transactions are almost identical, except the HTLC-Timeout transaction is timelocked.  This is also the transaction which can be spent by a valid penalty transaction.
 
 * version: 2
-* locktime: `0` for HTLC-Success, `htlc-timeout` for HTLC-Timeout.
+* locktime: `0` for HTLC-Success, `cltv-expiry`(see [`update_add_htlc`](02-peer-protocol.md#adding-an-htlc-update_add_htlc)) for HTLC-Timeout.
 * txin count: 1
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
    * `txin[0]` sequence: `0`
