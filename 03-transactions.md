@@ -782,7 +782,8 @@ In the following:
  - transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256)
 
 We start by defining common basic parameters for each test vector: the
-HTLCs are not used for the first "simple commitment tx with no HTLCs" test.
+HTLCs are not used for the first "simple commitment tx with no HTLCs" test.  
+(note: *payment_preimage_hash* below value is ripemd of *preimage*.)
 
     funding_tx_id: 8984484a580b825b9972d7adb15050b3ab624ccd731946b3eeddb92f4e7ef6be
     funding_output_index: 0
