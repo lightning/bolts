@@ -80,9 +80,9 @@ The packet consists of 4 parts:
 The overall structure of the packet is depicted below. The network format of the packet consists of the individual parts being serialized into one continguous byte-stream and then transferred to the recipient of the packet. Due to the fixed size of the packet it does not need to be prefixed by its length when transferred over a connection.
 
 ~~~~
-+------------------+-----------------------+------------------------+-----------------+
++------------------+-----------------------+-------------------------+-----------------+
 | version (1 byte) | public key (33 bytes) | hops_data (20x65 bytes) | HMAC (32 bytes) |
-+------------------+-----------------------+------------------------+-----------------+
++------------------+-----------------------+-------------------------+-----------------+
 ~~~~
 
 For this specification the version byte has a constant value of `0x00`.
@@ -92,7 +92,7 @@ The `hops_data` field is a structure that holds obfuscated versions of the next 
 ~~~~
 +-----------+-------------+----------+-----------+-------------+----------+-----------+
 | n_1 realm | n_1 per-hop | n_1 HMAC | n_2 realm | n_2 per-hop | n_2 HMAC | ...filler |
-+-----------+-------------+----------+----------+--------------+----------+------------+
++-----------+-------------+----------+-----------+-------------+----------+-----------+
 ~~~~
 
 Where `per-hop` is 32 bytes whose contents depend on `realm`, and `filler` consists of obfuscated deterministically generated
