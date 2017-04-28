@@ -131,6 +131,8 @@ The 2-byte `len` field indicates the number of bytes in the immediately followin
 
 The channel is referred to by `channel-id` unless `channel-id` is zero (ie. all bytes zero), in which case it refers to all channels.
 
+The funding node MUST use `temporary-channel-id` in lieu of `channel-id` for all error messages sent before (and including) the `funding_created` message. The fundee node MUST use `temporary-channel-id` in lieu of `channel-id` for all error messages sent before (and not including) the `funding_signed` message.
+
 A node SHOULD send `error` for protocol violations or internal
 errors which make channels unusable or further communication unusable.
 A node MAY send an empty [data] field.  A node sending `error` MUST
