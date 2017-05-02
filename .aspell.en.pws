@@ -1,4 +1,4 @@
-personal_ws-1.1 en 258 
+personal_ws-1.1 en 259 
 secp
 sig
 unguessable
@@ -229,6 +229,7 @@ routingInfoSize
 hostname
 rgb
 ciphertexts
+wscript
 CHECKSIG
 pre
 numMaxHops
