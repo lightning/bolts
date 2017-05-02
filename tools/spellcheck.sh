@@ -41,5 +41,5 @@ homedir="$my_dir"/..
 
 for f
 do
- aspell --home-dir ${homedir} -c $f
+ aspell -l en_US --home-dir ${homedir} -c $f
 done
