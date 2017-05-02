@@ -1,4 +1,4 @@
-personal_ws-1.1 en 260 
+personal_ws-1.1 en 264 
 secp
 sig
 unguessable
@@ -87,8 +87,8 @@ ammag
 computeBlindingFactor
 wsh
 multiScalarMult
-OnionPacket
 onionpacket
+OnionPacket
 ikm
 fillerSize
 txinput
@@ -223,8 +223,8 @@ txout
 HTLCs
 retransmission
 decrypted
-sessionkey
 sessionKey
+sessionkey
 PRIVMSG
 routingInfoSize
 hostname
@@ -259,3 +259,18 @@ xFFFFFFFFFFF
 FIXME
 whitespace
 EphemeralKey
+bitcoin
+Bitcoin
+smartphone
+other's
+remote's
+multi
+bitcoin's
+IP
+aa
+df
+versa
+timestamp
+metadata
+Bitcoin's
+Versioning
