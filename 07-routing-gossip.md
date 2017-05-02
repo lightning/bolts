@@ -297,7 +297,7 @@ A subsequent `channel_update` with the `disable` bit unset MAY re-enable the cha
 
 The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this channel.
 
-It MUST set `cltv-expiry-delta` to the number of blocks it will subtract from an incoming HTLC's `cltv-expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
+It MUST set `cltv-expiry-delta` to the number of blocks it will subtract from an incoming HTLCs `cltv-expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
 
 The receiving node MUST ignore `flags` other than the least significant bit.
 The receiving node SHOULD ignore `ipv6`
