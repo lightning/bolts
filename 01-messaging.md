@@ -4,7 +4,7 @@
 This protocol assumes an underlying authenticated and ordered transport mechanism that takes care of framing individual messages.
 [BOLT #8](08-transport.md) specifies the canonical transport layer used in Lightning, though it can be replaced by any transport that fulfills the above guarantees.
 
-The default TCP port is 9735. This corresponds to hexadecimal `0x2607`, the unicode code point for LIGHTNING.<sup>[1](#reference-1)</sup>
+The default TCP port is 9735. This corresponds to hexadecimal `0x2607`, the Unicode code point for LIGHTNING.<sup>[1](#reference-1)</sup>
 
 All data fields are big-endian unless otherwise specified.
 
@@ -16,7 +16,7 @@ All data fields are big-endian unless otherwise specified.
     * [The `error` message](#the-error-message)
   * [Control Messages](#control-messages)
     * [The `ping` and `pong` messages](#the-ping-and-pong-messages)
-  * [Acknowledgements](#acknowledgements)
+  * [Acknowledgments](#acknowledgments)
   * [References](#references)
   * [Authors](#authors)
 
@@ -145,7 +145,7 @@ or if `channel-id` is zero, it MUST fail all channels and MUST close the connect
 `len` to the remainder of the packet if it is larger.
 
 A receiving node SHOULD only print out `data` verbatim if the string is composed solely of printable ASCII characters.
-For referece, the printable character set includes byte values 32 through 127 inclusive.
+For reference, the printable character set includes byte values 32 through 127 inclusive.
 
 #### Rationale
 
@@ -163,7 +163,7 @@ it leak information, thus the optional data field.
 
 In order to allow for the existence of very long-lived TCP connections, at
 times it may be required that both ends keep alive the TCP connection at the
-application level.  Such messages also allow obsfusation of traffic patterns.
+application level.  Such messages also allow obfuscation of traffic patterns.
 
 1. type: 18 (`ping`)
 2. data: 
@@ -236,7 +236,7 @@ Finally, the usage of periodic `ping` messages serves to promote frequent key
 rotations as specified within [BOLT #8](https://github.com/lightningnetwork/lightning-rfc/blob/master/08-transport.md).
 
 
-## Acknowledgements
+## Acknowledgments
 
 TODO(roasbeef); fin
 
