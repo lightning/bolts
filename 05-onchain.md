@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Lightning allows for two parties (A and B) to make transactions off-chain, by both holding a cross-signed *commitment transaction*, which describes the current state of the channel (basically the current balance). This *commitment transaction* is updated everytime a new payment is made, and is spendable at all times.
+Lightning allows for two parties (A and B) to make transactions off-chain, by both holding a cross-signed *commitment transaction*, which describes the current state of the channel (basically the current balance). This *commitment transaction* is updated every time a new payment is made, and is spendable at all times.
 
 There are three ways a channel can end:
 
@@ -118,7 +118,7 @@ When node A sees its own *commitment transaction*:
    output is spent (as recommended), the output is *resolved* by the spending
    transaction, otherwise it is considered *resolved* by the *commitment transaction* itself.
 2. _B's main output_: No action required, this output is considered *resolved*
-   by the *commitment transaction* utself.
+   by the *commitment transaction* itself.
 3. _A's offered HTLCs_: See "On-chain HTLC Output Handling: Our Offers" below.
 4. _B's offered HTLCs_: See "On-chain HTLC Output Handling: Their Offers" below.
 
@@ -183,7 +183,7 @@ as described in "On-chain HTLC Transaction Handling".
 If the commitment transaction is theirs, the only way to spend the
 HTLC output using a payment preimage is for them to use the
 HTLC-success transaction.  If the commitment transaction is ours, they
-could create any transaction using the primage.
+could create any transaction using the preimage.
 
 
 The payment preimage either serves to prove payment (if this node
@@ -338,7 +338,7 @@ The rest of the penalty transaction takes 4+3+1+8+1+34+4=55 bytes
 assuming it has a pay-to-witness-script-hash (the largest standard
 output script).
 
-In a worst case scenario, we have only incoming htlcs and the HTLC-timeout transactions are not published, forcing
+In a worst case scenario, we have only incoming HTLCs and the HTLC-timeout transactions are not published, forcing
 us to spend from the commitment transaction.
 
 With a maximum standard weight of 400000:
