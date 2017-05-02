@@ -77,7 +77,7 @@ The packet consists of 4 parts:
    as they forward the message.
  - A 32-byte `HMAC` used to verify the packet's integrity.
 
-The overall structure of the packet is depicted below. The network format of the packet consists of the individual parts being serialized into one continguous byte-stream and then transferred to the recipient of the packet. Due to the fixed size of the packet it does not need to be prefixed by its length when transferred over a connection.
+The overall structure of the packet is depicted below. The network format of the packet consists of the individual parts being serialized into one contiguous byte-stream and then transferred to the recipient of the packet. Due to the fixed size of the packet it does not need to be prefixed by its length when transferred over a connection.
 
 ~~~~
 +------------------+-----------------------+------------------------+-----------------+
@@ -110,7 +110,7 @@ only `realm` 0 is defined, and for that, the `per-hop` format is:
 ~~~~
 
 Using the `per-hop`, the sender is able to precisely specify the path and
-structure of the HTLC's forwarded at each hop. As the `per-hop` is
+structure of the HTLCs forwarded at each hop. As the `per-hop` is
 protected under the packet-wide HMAC, the information within 
 is fully authenticated with each pair-wise relationship between
 the HTLC sender, and each intermediate node in the path.  Using this end-to-end
@@ -157,7 +157,7 @@ Field Description:
    * `padding` - for future use, and also to ensure that future non-0-realm
      `per-hop` won't change the overall `hops_data` size.
 
-Nodes forwarding HTLC's MUST construct the outgoing HTLC as specified within
+Nodes forwarding HTLCs MUST construct the outgoing HTLC as specified within
 `per-hop`.  Otherwise, deviation from the specified HTLC parameters
 may lead to extraneous routing failure.
 
@@ -322,7 +322,7 @@ The sessionkey is a 32 byte EC private key.
 The shared secret creation receives a public key and a 32 byte secret as input and returns a 32 byte secret as output.
 
 In the packet generation phase the secret is the `sessionkey` and the public key is the node's public key, blinded with all previous blinding factors.
-In the pocessing phase the secret is the node's private key and the public key is the ephemeral public key from the packet, which has been incrementally blinded by the predecessors.
+In the processing phase the secret is the node's private key and the public key is the ephemeral public key from the packet, which has been incrementally blinded by the predecessors.
 
 The public key is multiplied by the secret, using to the `secp256k1` curve.
 The DER compressed representation of the multiplication result is serialized and hashed using `SHA256`.
@@ -523,7 +523,7 @@ channel:
    * [2:len]
    * [len:channel_update]
 
-If `outgoing_cltv_value` does not match the`update_add_htlc`'s
+If `outgoing_cltv_value` does not match the `update_add_htlc`'s
 `cltv-expiry` minus `cltv-expiry-delta` for the outgoing channel, we
 tell them the `cltv-expiry` and the current channel setting for the
 outgoing channel:
