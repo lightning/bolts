@@ -75,8 +75,9 @@ a buffer with 6 bytes of pre-padding.
 ### The `init` message
 
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
-Odd features are optional, even features are compulsory (_it's OK to be odd_).
-The meaning of these bits will be defined in the future.
+
+[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is represented in `globalfeatures` or `localfeatures` by 2 bits: first one indicates is it feature mandatory (`0b1`) or not(`0b0`), and second one indicates is it feature supported or not. Odd features are optional, even features are compulsory (_it's OK to be odd_).
+`globalfeatures` and `localfeatures` fields should be padded to ceil number of bytes.
 
 1. type: 16 (`init`)
 2. data:
