@@ -1,4 +1,4 @@
-personal_ws-1.1 en 260 
+personal_ws-1.1 en 258 
 secp
 sig
 unguessable
@@ -87,8 +87,8 @@ ammag
 computeBlindingFactor
 wsh
 multiScalarMult
-onionpacket
 OnionPacket
+onionpacket
 ikm
 fillerSize
 txinput
@@ -108,7 +108,7 @@ delayedsig
 hopDataSize
 I'th
 segwit
-HTLC
+htlc
 ChaCha
 len
 ciphertext
@@ -220,12 +220,10 @@ num
 numStreamBytes
 txout
 HTLCs
-htlcs
-HTLC's
 retransmission
 decrypted
-sessionKey
 sessionkey
+sessionKey
 PRIVMSG
 routingInfoSize
 hostname

@@ -173,7 +173,7 @@ The *channel reserve* is specified by the peer's `channel-reserve-satoshis`; 1% 
 
 The sender can unconditionally give initial funds to the receiver using a non-zero `push-msat`, and this is one case where the normal reserve mechanism doesn't apply.  However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (may be double-spent) and may require a separate method to prove payment via on-chain confirmation.
 
-The `feerate-per-kw` is generally only a concern to the sender (who pays the fees), but that is also the feerate paid by HTLC transactions; thus unresonably large fee rates can also penalize the reciepient.
+The `feerate-per-kw` is generally only a concern to the sender (who pays the fees), but that is also the feerate paid by HTLC transactions; thus unreasonably large fee rates can also penalize the recipient.
 
 #### Future
 
@@ -301,7 +301,7 @@ negotiation begins.
         |       |--(1)-----  shutdown  ------->|       |
         |       |<-(2)-----  shutdown  --------|       |
         |       |                              |       |
-        |       | <complete all pending htlcs> |       |
+        |       | <complete all pending HTLCs> |       |
         |   A   |                 ...          |   B   |
         |       |                              |       |
         |       |<-(3)-- closing_signed  F1----|       |
@@ -780,7 +780,7 @@ preimage for the previous commitment transaction in a `revoke_and_ack`
 message.
 
 
-This message also implicitly serves as an acknowledgement of receipt
+This message also implicitly serves as an acknowledgment of receipt
 of the `commitment_signed`, so it's a logical time for the `commitment_signed` sender
 to apply to its own commitment, any pending updates it sent before
 that `commitment_signed`.
@@ -882,7 +882,7 @@ retransmit any channel messages which may not have been.
 
 This is fairly straightforward in the case of channel establishment
 and close where messages have an explicit order, but in normal
-operation acknowlegements of updates are delayed until the
+operation acknowledgments of updates are delayed until the
 `commitment_signed` / `revoke_and_ack` exchange, so we cannot assume
 the updates have been received.  This also means that the receiving
 node only needs to store updates upon receipt of `commitment_signed`.
@@ -908,7 +908,7 @@ so the effects of `update_fulfill_htlc` is not completely reversed.
 On reconnection, a node MUST retransmit old messages which may not
 have been received, and MUST NOT retransmit old messages which have
 been explicitly or implicitly acknowledged.  The following table
-lists the acknowledgement conditions for each message:
+lists the acknowledgment conditions for each message:
 
 * `open_channel`: acknowledged by `accept_channel`.
 * `accept_channel`: acknowledged by `funding_created`.
@@ -921,7 +921,7 @@ lists the acknowledgement conditions for each message:
 * `shutdown`: acknowledged by `closing_signed`.
 
 The last `closing_signed` (if any) must always be retransmitted, as there
-is no explicit acknowledgement.
+is no explicit acknowledgment.
 
 Before retransmitting `commitment_signed`, the node MUST send
 appropriate `update_` messages (the other node will have forgotten
