@@ -1,4 +1,4 @@
-personal_ws-1.1 en 259 
+personal_ws-1.1 en 257
 secp
 sig
 unguessable
@@ -108,7 +108,7 @@ delayedsig
 hopDataSize
 I'th
 segwit
-htlc
+HTLC
 ChaCha
 len
 ciphertext
@@ -218,8 +218,6 @@ repo
 num
 numStreamBytes
 txout
-HTLC's
-htlcs
 HTLCs
 retransmission
 decrypted
