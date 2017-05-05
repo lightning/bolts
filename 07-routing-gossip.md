@@ -96,7 +96,7 @@ P2WSH as described in [BOLT #3](03-transactions.md#funding-transaction-output).
 
 The creating node MUST set `node-id-1` and `node-id-2` to the public
 keys of the two nodes who are operating the channel, such that
-`node-id-1` is the numerically-lesser of the two DER encoded keys.
+`node-id-1` is the numerically-lesser of the two DER encoded keys sorted in
 ascending numerical order, and MUST set `bitcoin-key-1` and
 `bitcoin-key-2` to `funding-pubkey`s of `node-id-1` and `node-id-2`
 respectively.
