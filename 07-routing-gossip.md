@@ -231,6 +231,9 @@ does not match the types defined above.  The receiving node SHOULD
 fail the connection if `addrlen` is insufficient to hold the address
 descriptors of the known types.
 
+The receiving node SHOULD ignore `ipv6-addr` or `ipv4-addr`
+if `port` is zero.
+
 The receiving node SHOULD ignore the message if `node-id` is not
 previously known from a `channel_announcement` message, or if
 `timestamp` is not greater than the last-received
@@ -300,8 +303,7 @@ The creating node MUST set `timestamp` to greater than zero, and MUST set it to 
 It MUST set `cltv-expiry-delta` to the number of blocks it will subtract from an incoming HTLCs `cltv-expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
 
 The receiving node MUST ignore `flags` other than the least significant bit.
-The receiving node SHOULD ignore `ipv6`
-if `port` is zero.  It SHOULD ignore the message if `short-channel-id` does
+It SHOULD ignore the message if `short-channel-id` does
 not correspond to a previously
 known, unspent channel from `channel_announcement`, otherwise the node-id
 is taken from the `channel_announcement` `node-id-1` if least-significant bit of flags is 0 or `node-id-2` otherwise.
