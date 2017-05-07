@@ -264,7 +264,8 @@ padding within `addresses` if they require certain alignment.
 
 After a channel has been initially announced, each side independently
 announces its fees and minimum expiry for HTLCs.  It uses the 8-byte
-channel shortid which matches the `channel_announcement` and one byte
+channel shortid which matches the `channel_announcement` and one bit
+in the `flags` field
 to indicate which end this is.  It can do this multiple times, if
 it wants to change fees.
 
