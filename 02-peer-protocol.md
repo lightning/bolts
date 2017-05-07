@@ -482,7 +482,7 @@ the blockchain.
 
 #### Requirements
 
-A node MUST NOT offer an HTLC (`update_htlc_add`) in response to an incoming HTLC until 
+A node MUST NOT offer an HTLC (`update_add_htlc`) in response to an incoming HTLC until 
 the incoming HTLC has been irrevocably committed.
 
 A node MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed 
