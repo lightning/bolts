@@ -130,8 +130,7 @@ channel id with the same peer.  The sender MUST set `funding-satoshis`
 to less than 2^24 satoshi.  The sender MUST set `push-msat` to
 equal or less than to 1000 * `funding-satoshis`.   The sender SHOULD set `to-self-delay` sufficient to ensure the sender
 can irreversibly spend a commitment transaction output in case of
-misbehavior by the receiver.  The sender SHOULD set `minimum-depth` to
-an amount where the sender considers reorganizations to be low risk.
+misbehavior by the receiver.
 `funding-pubkey`, `revocation-basepoint`, `payment-basepoint` and `delayed-payment-basepoint` MUST be valid DER-encoded
 compressed secp256k1 pubkeys. The sender SHOULD set `feerate-per-kw`
 to at least the rate it estimates would cause the transaction to be
