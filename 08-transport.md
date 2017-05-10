@@ -86,7 +86,7 @@ chosen as the hash function, `secp256k1` as the elliptic curve, and finally
 `ChaChaPoly-1305` as the `AEAD` construction. The composition of `ChaCha20`
 and `Poly1305` used MUST conform to `RFC 7539`<sup>[1](#reference-1)</sup>. With this laid out, the
 official Noise protocol name for our variant is:
-`Noise_XK_secp256k1_ChaChaPoly_SHA256`.  The ascii string representation of
+`Noise_XK_secp256k1_ChaChaPoly_SHA256`.  The ASCII string representation of
 this value is hashed into a digest used to initialize the starting handshake
 state. If the protocol names of two endpoints differ, then the handshake
 process fails immediately.
@@ -126,7 +126,7 @@ The following functions will also be referenced:
 
   * `ECDH(rk, k)`: Performs an Elliptic-Curve Diffie-Hellman operation using
     `rk` which is a `secp256k1` public key and `k` which is a valid private key
-    within the finite field as defined by the curve paramters.
+    within the finite field as defined by the curve parameters.
       * The returned value is the SHA256 of the DER compressed format of the
 	    generated point.
 
@@ -166,13 +166,13 @@ state as follows:
 
  1. `h = SHA-256(protocolName)`
     * where `protocolName = "Noise_XK_secp256k1_ChaChaPoly_SHA256"` encoded as
-      an ascii string.
+      an ASCII string.
 
  2. `ck = h`
 
 
  3. `h = SHA-256(h || prologue)`
-    * where `prologue` is the ascii string: `lightning`.
+    * where `prologue` is the ASCII string: `lightning`.
 
 
 As a concluding step, both sides mix the responder's public key into the
@@ -872,7 +872,7 @@ two key rotations):
     output 1000: 0x4a2f3cc3b5e78ddb83dcb426d9863d9d9a723b0337c89dd0b005d89f8d3c05c52b76b29b740f09
     output 1001: 0x2ecd8c8a5629d0d02ab457a0fdd0f7b90a192cd46be5ecb6ca570bfc5e268338b1a16cf4ef2d36
 
-# Acknowledgements
+# Acknowledgments
 
 TODO(roasbeef); fin
 

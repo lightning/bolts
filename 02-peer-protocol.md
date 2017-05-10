@@ -109,7 +109,7 @@ blockchains opened to the same peer (if they support the target chains).
 
 The `temporary-channel-id` is used to identify this channel until the funding transaction is established. `funding-satoshis` is the amount the sender is putting into the channel.  `dust-limit-satoshis` is the threshold below which output should be generated for this node's commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
 
-`max-htlc-value-in-inflight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node will accept.
+`max-htlc-value-in-flight-msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max-accepted-htlcs` limits the number of outstanding HTLCs the other node can offer. `channel-reserve-satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc-minimum-msat` indicates the smallest value HTLC this node will accept.
 
 `feerate-per-kw` indicates the initial fee rate by 1000-weight (ie. 4 times by the more normally-used 'feerate per kilobyte') which this side will pay for commitment and HTLC transactions as described in [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted later with an `update_fee` message).  `to-self-delay` is the number of blocks that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
 
@@ -130,8 +130,7 @@ channel id with the same peer.  The sender MUST set `funding-satoshis`
 to less than 2^24 satoshi.  The sender MUST set `push-msat` to
 equal or less than to 1000 * `funding-satoshis`.   The sender SHOULD set `to-self-delay` sufficient to ensure the sender
 can irreversibly spend a commitment transaction output in case of
-misbehavior by the receiver.  The sender SHOULD set `minimum-depth` to
-an amount where the sender considers reorganizations to be low risk.
+misbehavior by the receiver.
 `funding-pubkey`, `revocation-basepoint`, `payment-basepoint` and `delayed-payment-basepoint` MUST be valid DER-encoded
 compressed secp256k1 pubkeys. The sender SHOULD set `feerate-per-kw`
 to at least the rate it estimates would cause the transaction to be
@@ -173,7 +172,7 @@ The *channel reserve* is specified by the peer's `channel-reserve-satoshis`; 1% 
 
 The sender can unconditionally give initial funds to the receiver using a non-zero `push-msat`, and this is one case where the normal reserve mechanism doesn't apply.  However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (may be double-spent) and may require a separate method to prove payment via on-chain confirmation.
 
-The `feerate-per-kw` is generally only a concern to the sender (who pays the fees), but that is also the feerate paid by HTLC transactions; thus unresonably large fee rates can also penalize the reciepient.
+The `feerate-per-kw` is generally only a concern to the sender (who pays the fees), but that is also the feerate paid by HTLC transactions; thus unreasonably large fee rates can also penalize the recipient.
 
 #### Future
 
@@ -301,7 +300,7 @@ negotiation begins.
         |       |--(1)-----  shutdown  ------->|       |
         |       |<-(2)-----  shutdown  --------|       |
         |       |                              |       |
-        |       | <complete all pending htlcs> |       |
+        |       | <complete all pending HTLCs> |       |
         |   A   |                 ...          |   B   |
         |       |                              |       |
         |       |<-(3)-- closing_signed  F1----|       |
@@ -482,7 +481,7 @@ the blockchain.
 
 #### Requirements
 
-A node MUST NOT offer an HTLC (`update_htlc_add`) in response to an incoming HTLC until 
+A node MUST NOT offer an HTLC (`update_add_htlc`) in response to an incoming HTLC until 
 the incoming HTLC has been irrevocably committed.
 
 A node MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed 
@@ -780,7 +779,7 @@ preimage for the previous commitment transaction in a `revoke_and_ack`
 message.
 
 
-This message also implicitly serves as an acknowledgement of receipt
+This message also implicitly serves as an acknowledgment of receipt
 of the `commitment_signed`, so it's a logical time for the `commitment_signed` sender
 to apply to its own commitment, any pending updates it sent before
 that `commitment_signed`.
@@ -882,7 +881,7 @@ retransmit any channel messages which may not have been.
 
 This is fairly straightforward in the case of channel establishment
 and close where messages have an explicit order, but in normal
-operation acknowlegements of updates are delayed until the
+operation acknowledgments of updates are delayed until the
 `commitment_signed` / `revoke_and_ack` exchange, so we cannot assume
 the updates have been received.  This also means that the receiving
 node only needs to store updates upon receipt of `commitment_signed`.
@@ -908,7 +907,7 @@ so the effects of `update_fulfill_htlc` is not completely reversed.
 On reconnection, a node MUST retransmit old messages which may not
 have been received, and MUST NOT retransmit old messages which have
 been explicitly or implicitly acknowledged.  The following table
-lists the acknowledgement conditions for each message:
+lists the acknowledgment conditions for each message:
 
 * `open_channel`: acknowledged by `accept_channel`.
 * `accept_channel`: acknowledged by `funding_created`.
@@ -921,7 +920,7 @@ lists the acknowledgement conditions for each message:
 * `shutdown`: acknowledged by `closing_signed`.
 
 The last `closing_signed` (if any) must always be retransmitted, as there
-is no explicit acknowledgement.
+is no explicit acknowledgment.
 
 Before retransmitting `commitment_signed`, the node MUST send
 appropriate `update_` messages (the other node will have forgotten

@@ -96,7 +96,7 @@ P2WSH as described in [BOLT #3](03-transactions.md#funding-transaction-output).
 
 The creating node MUST set `node-id-1` and `node-id-2` to the public
 keys of the two nodes who are operating the channel, such that
-`node-id-1` is the numerically-lesser of the two DER encoded keys.
+`node-id-1` is the numerically-lesser of the two DER encoded keys sorted in
 ascending numerical order, and MUST set `bitcoin-key-1` and
 `bitcoin-key-2` to `funding-pubkey`s of `node-id-1` and `node-id-2`
 respectively.
@@ -231,6 +231,9 @@ does not match the types defined above.  The receiving node SHOULD
 fail the connection if `addrlen` is insufficient to hold the address
 descriptors of the known types.
 
+The receiving node SHOULD ignore `ipv6-addr` or `ipv4-addr`
+if `port` is zero.
+
 The receiving node SHOULD ignore the message if `node-id` is not
 previously known from a `channel_announcement` message, or if
 `timestamp` is not greater than the last-received
@@ -261,7 +264,8 @@ padding within `addresses` if they require certain alignment.
 
 After a channel has been initially announced, each side independently
 announces its fees and minimum expiry for HTLCs.  It uses the 8-byte
-channel shortid which matches the `channel_announcement` and one byte
+channel shortid which matches the `channel_announcement` and one bit
+in the `flags` field
 to indicate which end this is.  It can do this multiple times, if
 it wants to change fees.
 
@@ -297,11 +301,10 @@ A subsequent `channel_update` with the `disable` bit unset MAY re-enable the cha
 
 The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this channel.
 
-It MUST set `cltv-expiry-delta` to the number of blocks it will subtract from an incoming HTLC's `cltv-expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
+It MUST set `cltv-expiry-delta` to the number of blocks it will subtract from an incoming HTLCs `cltv-expiry`.  It MUST set `htlc-minimum-msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee-base-msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee-proportional-millionths` to the amount it will charge per millionth of a satoshi.
 
 The receiving node MUST ignore `flags` other than the least significant bit.
-The receiving node SHOULD ignore `ipv6`
-if `port` is zero.  It SHOULD ignore the message if `short-channel-id` does
+It SHOULD ignore the message if `short-channel-id` does
 not correspond to a previously
 known, unspent channel from `channel_announcement`, otherwise the node-id
 is taken from the `channel_announcement` `node-id-1` if least-significant bit of flags is 0 or `node-id-2` otherwise.

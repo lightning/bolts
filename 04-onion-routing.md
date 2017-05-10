@@ -77,7 +77,7 @@ The packet consists of 4 parts:
    as they forward the message.
  - A 32-byte `HMAC` used to verify the packet's integrity.
 
-The overall structure of the packet is depicted below. The network format of the packet consists of the individual parts being serialized into one continguous byte-stream and then transferred to the recipient of the packet. Due to the fixed size of the packet it does not need to be prefixed by its length when transferred over a connection.
+The overall structure of the packet is depicted below. The network format of the packet consists of the individual parts being serialized into one contiguous byte-stream and then transferred to the recipient of the packet. Due to the fixed size of the packet it does not need to be prefixed by its length when transferred over a connection.
 
 ~~~~
 +------------------+-----------------------+-------------------------+-----------------+
@@ -110,7 +110,7 @@ only `realm` 0 is defined, and for that, the `per-hop` format is:
 ~~~~
 
 Using the `per-hop`, the sender is able to precisely specify the path and
-structure of the HTLC's forwarded at each hop. As the `per-hop` is
+structure of the HTLCs forwarded at each hop. As the `per-hop` is
 protected under the packet-wide HMAC, the information within 
 is fully authenticated with each pair-wise relationship between
 the HTLC sender, and each intermediate node in the path.  Using this end-to-end
@@ -130,11 +130,11 @@ Field Description:
      processing an incoming Sphinx packet along with the HTLC message it's
      encapsulated within, if the following inequality doesn't hold, then the
      HTLC should be rejected as it indicates a prior node in the path has
-     deviated from the specified paramters:
+     deviated from the specified parameters:
 
         incoming_htlc_amt - fee >= amt_to_forward
 
-     Where `fee` is calculated according to the receving node's advertised fee
+     Where `fee` is calculated according to the receiving node's advertised fee
      schema as described in [BOLT 7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#htlc-fees), or 0 if this node is the
 	 final hop.
 
@@ -144,7 +144,7 @@ Field Description:
         cltv-expiry - cltv-expiry-delta = outgoing_cltv_value
 
      Inclusion of this field allows a node to both authenticate the information
-     specified by the original sender and the paramaters of the HTLC forwarded,
+     specified by the original sender and the parameters of the HTLC forwarded,
 	 and ensure the original sender is using the current `cltv-expiry-delta` value.
      If there is no next hop, `cltv-expiry-delta` is zero.
      If the values don't correspond, then the HTLC should be failed+rejected as
@@ -157,7 +157,7 @@ Field Description:
    * `padding` - for future use, and also to ensure that future non-0-realm
      `per-hop` won't change the overall `hops_data` size.
 
-Nodes forwarding HTLC's MUST construct the outgoing HTLC as specified within
+Nodes forwarding HTLCs MUST construct the outgoing HTLC as specified within
 `per-hop`.  Otherwise, deviation from the specified HTLC parameters
 may lead to extraneous routing failure.
 
@@ -322,7 +322,7 @@ The sessionkey is a 32 byte EC private key.
 The shared secret creation receives a public key and a 32 byte secret as input and returns a 32 byte secret as output.
 
 In the packet generation phase the secret is the `sessionkey` and the public key is the node's public key, blinded with all previous blinding factors.
-In the pocessing phase the secret is the node's private key and the public key is the ephemeral public key from the packet, which has been incrementally blinded by the predecessors.
+In the processing phase the secret is the node's private key and the public key is the ephemeral public key from the packet, which has been incrementally blinded by the predecessors.
 
 The public key is multiplied by the secret, using to the `secp256k1` curve.
 The DER compressed representation of the multiplication result is serialized and hashed using `SHA256`.
@@ -523,7 +523,7 @@ channel:
    * [2:len]
    * [len:channel_update]
 
-If `outgoing_cltv_value` does not match the`update_add_htlc`'s
+If `outgoing_cltv_value` does not match the `update_add_htlc`'s
 `cltv-expiry` minus `cltv-expiry-delta` for the outgoing channel, we
 tell them the `cltv-expiry` and the current channel setting for the
 outgoing channel:
@@ -712,32 +712,32 @@ We use the same parameters (node ids, shared secrets ,...) as above
 	shared_secret = b5756b9b542727dbafc6765a49488b023a725d631af688fc031217e90770c328
 	payload = 00022002007e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 	um_key = 4da7f2923edce6c2d85987d1d9fa6d88023e6c3a9c3d20f07d3b10b61a78d646
-	raw_error_packet = 807890139cc04c1fdea98b22ebda0a831d1beebe00022002007e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-	# forwaring error packet
+	raw_error_packet = 807890139cc04c1fdea98b22ebda0a831d1beebe9787d291f0d72c5877566d5700022002007e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+	# forwarding error packet
 	shared_secret = b5756b9b542727dbafc6765a49488b023a725d631af688fc031217e90770c328
-	ammag_key = 2f36bb8822e1f0d04c27b7d8bb7d7dd586e032a3218b8d414afbba6f169a4d68
-	stream = e9c975b07c9a374ba64fd9be3aae955e917d34d1fa33f2e90f53bbf4394713c6a8c9b16ab5f12fd45edd73c1b0c8b33002df376801ff58aaa94000bf8a86f92620f343baef38a580102395ae3abf9128d1047a0736ff9b83d456740ebbb4aeb3aa9737f18fb4afb4aa074fb26c4d702f42968888550a3bded8c05247e045b866baef0499f079fdaeef6538f31d44deafffdfd3afa2fb4ca9
-	error packet for node 4: 69b1e5a3e05a7b5478e6529cd1749fdd8c66da6ffa31d2eb0f2dbbf4394713c6a8c9b16ab5f12fd45edd73c1b0c8b33002df376801ff58aaa94000bf8a86f92620f343baef38a580102395ae3abf9128d1047a0736ff9b83d456740ebbb4aeb3aa9737f18fb4afb4aa074fb26c4d702f42968888550a3bded8c05247e045b866baef0499f079fdaeef6538f31d44deafffdfd3afa2fb4ca9
-	# forwaring error packet
+	 ammag_key = 2f36bb8822e1f0d04c27b7d8bb7d7dd586e032a3218b8d414afbba6f169a4d68
+	stream = e9c975b07c9a374ba64fd9be3aae955e917d34d1fa33f2e90f53bbf4394713c6a8c9b16ab5f12fd45edd73c1b0c8b33002df376801ff58aaa94000bf8a86f92620f343baef38a580102395ae3abf9128d1047a0736ff9b83d456740ebbb4aeb3aa9737f18fb4afb4aa074fb26c4d702f42968888550a3bded8c05247e045b866baef0499f079fdaeef6538f31d44deafffdfd3afa2fb4ca9082b8f1c465371a9894dd8c2
+	error packet for node 4: 69b1e5a3e05a7b5478e6529cd1749fdd8c66da6f6db42078ff8497ac4e117e91a8cb9168b58f2fd45edd73c1b0c8b33002df376801ff58aaa94000bf8a86f92620f343baef38a580102395ae3abf9128d1047a0736ff9b83d456740ebbb4aeb3aa9737f18fb4afb4aa074fb26c4d702f42968888550a3bded8c05247e045b866baef0499f079fdaeef6538f31d44deafffdfd3afa2fb4ca9082b8f1c465371a9894dd8c2
+	# forwarding error packet
 	shared_secret = 21e13c2d7cfe7e18836df50872466117a295783ab8aab0e7ecc8c725503ad02d
 	ammag_key = cd9ac0e09064f039fa43a31dea05f5fe5f6443d40a98be4071af4a9d704be5ad
-	stream = 617ca1e4624bc3f04fece3aa5a2b615110f421ec62408d16c48ea6c1b7c33fe7084a2bd9d4652fc5068e5052bf6d0acae2176018a3d8c75f37842712913900263cff92f39f3c18aa1f4b20a93e70fc429af7b2b1967ca81a761d40582daf0eb49cef66e3d6fbca0218d3022d32e994b41c884a27c28685ef1eb14603ea80a204b2f2f474b6ad5e71c6389843e3611ebeafc62390b717ca53
-	error packet for node 3: 08cd44478211b8a4370ab1368b5ffe8c9c92fb8398715ffdcba31d358e842c21a0839ab361940011585323930fa5b9fae0c85770a2279ff59ec427ad1bbff9001c0cd1497004bd2a0f68b50704cf6d6a4bf3c8b6a0833399a24b3456961ba00736785112594f65b6b2d44d9f5ea4e49b5e1ec2af978cbe31c67114440ac51a62081df0ed46d4a3df295da0b0fe25c0115019f03f15ec86fa
-	# forwaring error packet
+	stream = 617ca1e4624bc3f04fece3aa5a2b615110f421ec62408d16c48ea6c1b7c33fe7084a2bd9d4652fc5068e5052bf6d0acae2176018a3d8c75f37842712913900263cff92f39f3c18aa1f4b20a93e70fc429af7b2b1967ca81a761d40582daf0eb49cef66e3d6fbca0218d3022d32e994b41c884a27c28685ef1eb14603ea80a204b2f2f474b6ad5e71c6389843e3611ebeafc62390b717ca53b3670a33c517ef28a659c251
+	error packet for node 3: 08cd44478211b8a4370ab1368b5ffe8c9c92fb830ff4ad6e3b0a316df9d24176a081bab161ea0011585323930fa5b9fae0c85770a2279ff59ec427ad1bbff9001c0cd1497004bd2a0f68b50704cf6d6a4bf3c8b6a0833399a24b3456961ba00736785112594f65b6b2d44d9f5ea4e49b5e1ec2af978cbe31c67114440ac51a62081df0ed46d4a3df295da0b0fe25c0115019f03f15ec86fabb4c852f83449e812f141a93
+	forwarding error packet
 	shared_secret = 3a6b412548762f0dbccce5c7ae7bb8147d1caf9b5471c34120b30bc9c04891cc
 	ammag_key = 1bf08df8628d452141d56adfd1b25c1530d7921c23cecfc749ac03a9b694b0d3
-	stream = 6149f48b5a7e8f3d6f5d870b7a698e204cf64452aab4484ff1dee671fe63fd4b5f1b78ee2047dfa61e3d576b149bedaf83058f85f06a3172a3223ad6c4732d96b32955da7d2feb4140e58d86fc0f2eb5d9d1878e6f8a7f65ab9212030e8e915573ebbd7f35e1a430890be7e67c3fb4bbf2def662fa625421e7b411c29ebe81ec67b77355596b05cc155755664e59c16e21410aabe53e8040
-	# error packet for node 2: 6984b0ccd86f37995857363df13670acd064bfd132c517b23a7dfb4470e7d16aff98e25d41d3dfb7466e74f81b3e545563cdd8f5524dae873de61d7bdfccd496af2584930d2b566b4f8d3881f8c043df92224f38cf094cfc09d92655989531524593ec6d6caec1863bdfaa79229b5020acc034cd6deeea1021c50586947b9b8e6faa83b81fbfa6133c0af5d6b07c017f7158fa94f0d206ba
-	# forwaring error packet
+	stream = 6149f48b5a7e8f3d6f5d870b7a698e204cf64452aab4484ff1dee671fe63fd4b5f1b78ee2047dfa61e3d576b149bedaf83058f85f06a3172a3223ad6c4732d96b32955da7d2feb4140e58d86fc0f2eb5d9d1878e6f8a7f65ab9212030e8e915573ebbd7f35e1a430890be7e67c3fb4bbf2def662fa625421e7b411c29ebe81ec67b77355596b05cc155755664e59c16e21410aabe53e80404a615f44ebb31b365ca77a6e
+	error packet for node 2: 6984b0ccd86f37995857363df13670acd064bfd1a540e521cad4d71c07b1bc3dff9ac25f41addfb7466e74f81b3e545563cdd8f5524dae873de61d7bdfccd496af2584930d2b566b4f8d3881f8c043df92224f38cf094cfc09d92655989531524593ec6d6caec1863bdfaa79229b5020acc034cd6deeea1021c50586947b9b8e6faa83b81fbfa6133c0af5d6b07c017f7158fa94f0d206baf12dda6b68f785b773b360fd
+	# forwarding error packet
 	shared_secret = a6519e98832a0b179f62123b3567c106db99ee37bef036e783263602f3488fae
 	ammag_key = 59ee5867c5c151daa31e36ee42530f429c433836286e63744f2020b980302564
-	stream = 0f10c86f05968dd91188b998ee45dcddfbf89fe9a99aa6375c42ed5520a257e048456fe417c15219ce39d921555956ae2ff795177c63c819233f3bcb9b8b28e5ac6e33a3f9b87ca62dff43f4cc4a2755830a3b7e98c326b278e2bd31f4a9973ee99121c62873f5bfb2d159d3d48c5851e3b341f9f6634f51939188c3b9ff45feeb11160bb39ce3332168b8e744a92107db575ace7866e4b8
-	# error packet for node 1: 669478a3ddf9ba4049df8fa51f73ac712b9c20389b5fb185663f16115045868ab7dd8db956128dae8857add94e6702fb4c3a4de22e2e669e1ed926b04447fc73034bb730f4932acd62727b75348a648a1128744657ca6a4e713b9b646c3ca66cac02cdab44dd3439890ef3aaf61708714f7375349b8da541b2548d452d84de7084bb95b3ac2345201d624d31f4d52078aa0fa05a88b4e202
-	# forwaring error packet
+	stream = 0f10c86f05968dd91188b998ee45dcddfbf89fe9a99aa6375c42ed5520a257e048456fe417c15219ce39d921555956ae2ff795177c63c819233f3bcb9b8b28e5ac6e33a3f9b87ca62dff43f4cc4a2755830a3b7e98c326b278e2bd31f4a9973ee99121c62873f5bfb2d159d3d48c5851e3b341f9f6634f51939188c3b9ff45feeb11160bb39ce3332168b8e744a92107db575ace7866e4b8f390f1edc4acd726ed106555
+	error packet for node 1: 669478a3ddf9ba4049df8fa51f73ac712b9c20380cda431696963a492713ebddb7dfadbb566c8dae8857add94e6702fb4c3a4de22e2e669e1ed926b04447fc73034bb730f4932acd62727b75348a648a1128744657ca6a4e713b9b646c3ca66cac02cdab44dd3439890ef3aaf61708714f7375349b8da541b2548d452d84de7084bb95b3ac2345201d624d31f4d52078aa0fa05a88b4e20202bd2b86ac5b52919ea305a8
+	# forwarding error packet
 	shared_secret = 53eb63ea8a3fec3b3cd433b85cd62a4b145e1dda09391b348c4e1cd36a03ea66
 	ammag_key = 3761ba4d3e726d8abb16cba5950ee976b84937b61b7ad09e741724d7dee12eb5
-	stream = 3699fd352a948a05f604763c0bca2968d5eaca2b0118602e52e59121f050936c8dd90c24df7dc8cf8f1665e39a6c75e9e2c0900ea245c9ed3b0008148e0ae18bbfaea0c711d67eade980c6f5452e91a06b070bbde68b5494a92575c114660fb53cf04bf686e67ffa4a0f5ae41a59a39a8515cb686db553d25e71e7a97cc2febcac55df2711b6209c502b2f8827b13d3ad2f491c45a0cafe7
-	# error packet for node 0: 500d8596f76d3045bfdbf99914b98519fe76ea139a47d1ab34da8730a01515e63a04819d896f45610741c83ad40b7712aefaddec8c6baf7325d92ea4ca4d1df8bce517f7e54554608bf2bd8071a4f52a7a2f7ffbb1413edad81eeea5785aa9d990f2865dc23b4bc3c301a94eec4eabebca66be5cf638f693ec256aec514620cc28ee4a94bd9565bc4d4962b9d3641d4278fb319ed2b84de5
+	stream = 3699fd352a948a05f604763c0bca2968d5eaca2b0118602e52e59121f050936c8dd90c24df7dc8cf8f1665e39a6c75e9e2c0900ea245c9ed3b0008148e0ae18bbfaea0c711d67eade980c6f5452e91a06b070bbde68b5494a92575c114660fb53cf04bf686e67ffa4a0f5ae41a59a39a8515cb686db553d25e71e7a97cc2febcac55df2711b6209c502b2f8827b13d3ad2f491c45a0cafe7b4d8d8810e805dee25d676ce
+	error packet for node 0: 500d8596f76d3045bfdbf99914b98519fe76ea130dc22338c473ab68d74378b13a06a19f891145610741c83ad40b7712aefaddec8c6baf7325d92ea4ca4d1df8bce517f7e54554608bf2bd8071a4f52a7a2f7ffbb1413edad81eeea5785aa9d990f2865dc23b4bc3c301a94eec4eabebca66be5cf638f693ec256aec514620cc28ee4a94bd9565bc4d4962b9d3641d4278fb319ed2b84de5b665f307a2db0f7fbb757366
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
