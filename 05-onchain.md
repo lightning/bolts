@@ -92,7 +92,7 @@ A mutual close transaction *resolves* the funding transaction output.
 
 
 A node doesn't need to do anything else as it has already agreed to the
-output, which is sent to its specified scriptpubkey (see BOLT #2 "Closing initiation: `shutdown`").
+output, which is sent to its specified `scriptpubkey` (see [BOLT #2: Closing initiation: `shutdown`](02-peer-protocol.md#closing-initiation-shutdown)).
 
 
 # Unilateral Close Handling
@@ -114,7 +114,7 @@ When node A sees its own *commitment transaction*:
 
 1. _A's main output_: A node SHOULD spend this output to a convenient address.
    A node MUST wait until the `OP_CHECKSEQUENCEVERIFY` delay has passed (as specified by the other
-   node's `to-self-delay` field) before spending the output.  If the
+   node's `to_self_delay` field) before spending the output.  If the
    output is spent (as recommended), the output is *resolved* by the spending
    transaction, otherwise it is considered *resolved* by the *commitment transaction* itself.
 2. _B's main output_: No action required, this output is considered *resolved*
@@ -148,7 +148,7 @@ spending.
 
 Note that there can be more than one valid, unrevoked *commitment
 transaction* after a signature has been received via `commitment_signed` and
-before the corresponding `revocation`.  Either commitment can serve as
+before the corresponding `revoke_and_ack`.  Either commitment can serve as
 B's *commitment transaction*, hence the requirement to handle both.
 
 
@@ -160,7 +160,7 @@ or them if they have the payment preimage.
 
 
 The HTLC has *timed out* once the depth of the latest block is equal
-or greater than the HTLC `ctlv-expiry`.
+or greater than the HTLC `cltv_expiry`.
 
 
 ## Requirements
@@ -225,7 +225,7 @@ Otherwise, if the HTLC output has expired, it is considered
 
 If this is our commitment transaction, we can only use a payment
 preimage with the HTLC-success transaction (which preserves the
-`to-self` delay).  Otherwise we can create any transaction we want to
+`to_self_delay` requirement).  Otherwise we can create any transaction we want to
 resolve it.
 
 
@@ -248,7 +248,7 @@ HTLC-success transaction, which include that delay.
 A node SHOULD resolve its own HTLC transaction output by spending it
 to a convenient address.  A node MUST wait until the
 `OP_CHECKSEQUENCEVERIFY` delay has passed (as specified by the other
-node's `open_channel` `to-self-delay` field) before spending the
+node's `open_channel` `to_self_delay` field) before spending the
 output.
 
 
