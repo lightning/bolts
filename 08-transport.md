@@ -566,7 +566,7 @@ done:
   * Let the encrypted length prefix be known as `lc`
 
 
-  * Decrypt `lc` using `ChaCha20-Poy1305`, `rn`, and `rk` to obtain size of
+  * Decrypt `lc` using `ChaCha20-Poly1305`, `rn`, and `rk` to obtain size of
     the encrypted packet `l`.
     * A zero-length byte slice is to be passed as the AD (associated data).
     * The nonce `rn` MUST be incremented after this step.
@@ -886,4 +886,6 @@ TODO(roasbeef); fin
 
 FIXME
 
+![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+<br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).

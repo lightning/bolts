@@ -6,15 +6,27 @@ Lightning allows for two parties (A and B) to make transactions off-chain, by bo
 
 There are three ways a channel can end:
 
-1. The good way (*mutual close*): at some point A and B agree on closing the channel, they generate a *closing transaction* (which is similar to a *commitment transaction* without any pending payments), and publish it on the blockchain (see "BOLT #2: Channel close").
+1. The good way (*mutual close*): at some point A and B agree on closing the channel, they generate a *closing transaction* (which is similar to a *commitment transaction* without any pending payments), and publish it on the blockchain (see [BOLT #2: Channel Close](02-peer-protocol.md#channel-close)).
 2. The bad way (*unilateral close*): something goes wrong, without necessarily any evil intent on either side (maybe one party crashed, for instance). Anyway, one side publishes its latest *commitment transaction*.
 3. The ugly way (*revoked transaction close*): one of the parties deliberately tries to cheat by publishing an outdated version of its *commitment transaction* (presumably one that was more in her favor).
 
 Because Lightning is designed to be trustless, there is no risk of loss of funds in any of these 3 cases, provided that the situation is properly handled. The goal of this document is to explain exactly how node A should react to seeing any of these on-chain.
 
-## Table of Contents
-
-TODO
+# Table of Contents
+  * [General Nomenclature](#general-nomenclature)
+  * [Commitment Transaction](#commitment-transaction)
+  * [Mutual Close Handling](#mutual-close-handling)
+  * [Unilateral Close Handling](#unilateral-close-handling)
+  * [On-chain HTLC Output Handling: Our Offers](#on-chain-htlc-output-handling-our-offers)
+  * [On-chain HTLC Output Handling: Their Offers](#on-chain-htlc-output-handling-their-offers)
+  * [On-chain HTLC Transaction Handling](#on-chain-htlc-transaction-handling)
+  * [Revoked Transaction Close Handling](#revoked-transaction-close-handling)
+	  * [Penalty Transactions Weight Calculation](#penalty-transactions-weight-calculation)
+  * [General Requirements](#general-requirements)
+  * [Appendix A: Expected weights](#appendix-a-expected-weights)
+	* [Expected weight of the to-local penalty transaction witness](#expected-weight-of-the-to-local-penalty-transaction-witness)
+	* [Expected weight of the received-htlc penalty transaction witness](#expected-weight-of-the-received-htlc-penalty-transaction-witness)
+  * [Authors](#authors)
 
 # General Nomenclature
 
@@ -82,7 +94,7 @@ A and B each hold a *commitment transaction*, which has 4 types of outputs:
 As an incentive for A and B to cooperate, an `OP_CHECKSEQUENCEVERIFY` relative timeout encumbers A's outputs in A's *commitment transaction*, and B's outputs in B's *commitment transaction*. If A publishes its commitment transaction, she won't be able to get her funds immediately but B will. As a consequence, A and B's *commitment transactions* are not identical, they are (usually) symmetrical.
 
 
-See "BOLT #3: Bitcoin Transaction and Script Formats" for more details.
+See [BOLT #3: Commitment Transaction](03-transactions.md#commitment-transaction) for more details.
 
 
 # Mutual Close Handling
@@ -92,7 +104,7 @@ A mutual close transaction *resolves* the funding transaction output.
 
 
 A node doesn't need to do anything else as it has already agreed to the
-output, which is sent to its specified scriptpubkey (see BOLT #2 "Closing initiation: `shutdown`").
+output, which is sent to its specified `scriptpubkey` (see [BOLT #2: Closing initiation: `shutdown`](02-peer-protocol.md#closing-initiation-shutdown)).
 
 
 # Unilateral Close Handling
@@ -114,7 +126,7 @@ When node A sees its own *commitment transaction*:
 
 1. _A's main output_: A node SHOULD spend this output to a convenient address.
    A node MUST wait until the `OP_CHECKSEQUENCEVERIFY` delay has passed (as specified by the other
-   node's `to-self-delay` field) before spending the output.  If the
+   node's `to_self_delay` field) before spending the output.  If the
    output is spent (as recommended), the output is *resolved* by the spending
    transaction, otherwise it is considered *resolved* by the *commitment transaction* itself.
 2. _B's main output_: No action required, this output is considered *resolved*
@@ -148,7 +160,7 @@ spending.
 
 Note that there can be more than one valid, unrevoked *commitment
 transaction* after a signature has been received via `commitment_signed` and
-before the corresponding `revocation`.  Either commitment can serve as
+before the corresponding `revoke_and_ack`.  Either commitment can serve as
 B's *commitment transaction*, hence the requirement to handle both.
 
 
@@ -160,7 +172,7 @@ or them if they have the payment preimage.
 
 
 The HTLC has *timed out* once the depth of the latest block is equal
-or greater than the HTLC `ctlv-expiry`.
+or greater than the HTLC `cltv_expiry`.
 
 
 ## Requirements
@@ -225,7 +237,7 @@ Otherwise, if the HTLC output has expired, it is considered
 
 If this is our commitment transaction, we can only use a payment
 preimage with the HTLC-success transaction (which preserves the
-`to-self` delay).  Otherwise we can create any transaction we want to
+`to_self_delay` requirement).  Otherwise we can create any transaction we want to
 resolve it.
 
 
@@ -248,7 +260,7 @@ HTLC-success transaction, which include that delay.
 A node SHOULD resolve its own HTLC transaction output by spending it
 to a convenient address.  A node MUST wait until the
 `OP_CHECKSEQUENCEVERIFY` delay has passed (as specified by the other
-node's `open_channel` `to-self-delay` field) before spending the
+node's `open_channel` `to_self_delay` field) before spending the
 output.
 
 
@@ -429,6 +441,9 @@ The *expected weight* is calculated as follows (some calculations have already b
         - witness_script_length: 1 byte
         - witness_script (accepted_htlc_script)
             
+# Authors
+
+FIXME
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>

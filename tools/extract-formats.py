@@ -67,15 +67,15 @@ parser.add_option("--message-fields",
 # Example inputs:
 # 1. type: 17 (`error`)
 # 2. data:
-#    * [8:channel-id]
-#    * [4:len]
-#    * [len:data]
+#    * [`8`:`channel_id`]
+#    * [`4`:`len`]
+#    * [`len`:`data`]
 #
 # 1. type: PERM|NODE|3 (`required_node_feature_missing`)
 message = None
 havedata = None
-typeline = re.compile('1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[-A-Za-z_]+)`\)')
-dataline = re.compile('\s+\* \[(?P<size>[-a-z0-9*+]+):(?P<name>[-a-z0-9_]+)\]')
+typeline = re.compile('1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z_]+)`\)')
+dataline = re.compile('\s+\* \[`(?P<size>[_a-z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]')
 
 for i,line in enumerate(fileinput.input(args)):
     line = line.rstrip()

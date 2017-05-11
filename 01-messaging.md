@@ -80,10 +80,10 @@ The meaning of these bits will be defined in the future.
 
 1. type: 16 (`init`)
 2. data:
-   * [2:gflen]
-   * [gflen:globalfeatures]
-   * [2:lflen]
-   * [lflen:localfeatures]
+   * [`2`:`gflen`]
+   * [`gflen`:`globalfeatures`]
+   * [`2`:`lflen`]
+   * [`lflen`:`localfeatures`]
 
 The 2 byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
 
@@ -121,27 +121,27 @@ For simplicity of diagnosis, it is often useful to tell the peer that something 
 
 1. type: 17 (`error`)
 2. data:
-   * [32:channel-id]
-   * [2:len]
-   * [len:data]
+   * [`32`:`channel_id`]
+   * [`2`:`len`]
+   * [`len`:`data`]
 
 The 2-byte `len` field indicates the number of bytes in the immediately following field.
 
 #### Requirements
 
-The channel is referred to by `channel-id` unless `channel-id` is zero (ie. all bytes zero), in which case it refers to all channels.
+The channel is referred to by `channel_id` unless `channel_id` is zero (ie. all bytes zero), in which case it refers to all channels.
 
-The funding node MUST use `temporary-channel-id` in lieu of `channel-id` for all error messages sent before (and including) the `funding_created` message. The fundee node MUST use `temporary-channel-id` in lieu of `channel-id` for all error messages sent before (and not including) the `funding_signed` message.
+The funding node MUST use `temporary_channel_id` in lieu of `channel_id` for all error messages sent before (and including) the `funding_created` message. The fundee node MUST use `temporary_channel_id` in lieu of `channel_id` for all error messages sent before (and not including) the `funding_signed` message.
 
 A node SHOULD send `error` for protocol violations or internal
 errors which make channels unusable or further communication unusable.
-A node MAY send an empty [data] field.  A node sending `error` MUST
-fail the channel referred to by the error message, or if `channel-id` is zero, it MUST
+A node MAY send an empty `data` field.  A node sending `error` MUST
+fail the channel referred to by the error message, or if `channel_id` is zero, it MUST
 fail all channels and MUST close the connection.
 A node MUST set `len` equal to the length of `data`.  A node SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed` or `commitment_signed` message when failure was caused by an invalid signature check.
 
 A node receiving `error` MUST fail the channel referred to by the message,
-or if `channel-id` is zero, it MUST fail all channels and MUST close the connection.  If no existing channel is referred to by the message, the receiver MUST ignore the message. A receiving node MUST truncate
+or if `channel_id` is zero, it MUST fail all channels and MUST close the connection.  If no existing channel is referred to by the message, the receiver MUST ignore the message. A receiving node MUST truncate
 `len` to the remainder of the packet if it is larger.
 
 A receiving node SHOULD only print out `data` verbatim if the string is composed solely of printable ASCII characters.
@@ -155,7 +155,7 @@ connection.  It's also useful to describe protocol violations for
 diagnosis, as it indicates that one peer has a bug.
 
 It may be wise not to distinguish errors in production settings, lest
-it leak information, thus the optional data field.
+it leak information, thus the optional `data` field.
 
 ## Control Messages
 
@@ -167,9 +167,9 @@ application level.  Such messages also allow obfuscation of traffic patterns.
 
 1. type: 18 (`ping`)
 2. data: 
-    * [2:num_pong_bytes]
-    * [2:byteslen]
-    * [byteslen:ignored]
+    * [`2`:`num_pong_bytes`]
+    * [`2`:`byteslen`]
+    * [`byteslen`:`ignored`]
 
 The `pong` message is to be sent whenever a `ping` message is received. It
 serves as a reply, and also serves to keep the connection alive while
@@ -179,8 +179,8 @@ included within the data payload of the `pong` message
 
 1. type: 19 (`pong`)
 2. data:
-    * [2:byteslen]
-    * [byteslen:ignored]
+    * [`2`:`byteslen`]
+    * [`byteslen`:`ignored`]
 
 #### Requirements
 
@@ -203,7 +203,7 @@ correspond to any `ping` `num_pong_bytes` value it has sent.
 ### Rationale
 
 The largest possible message is 65535 bytes, thus maximum sensible `byteslen`
-is 65531 to account for the type field (`pong`) and `bytelen` itself.  This
+is 65531 to account for the type field (`pong`) and `byteslen` itself.  This
 gives us a convenient cutoff for `num_pong_bytes` to indicate that no reply
 should be sent.
 
