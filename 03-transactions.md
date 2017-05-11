@@ -39,7 +39,7 @@ This details the exact format of on-chain transactions, which both sides need to
 
 ## Transaction input and output ordering
 
-Lexicographic ordering as per BIP 69.
+Lexicographic ordering as per [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).
 
 ## Use of segwit
 
