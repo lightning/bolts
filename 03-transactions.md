@@ -152,7 +152,7 @@ This output sends funds to the remote peer after the HTLC timeout or using the r
             2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
         OP_ELSE
             # To you after timeout.
-            OP_DROP <locktime> OP_CHECKLOCKTIMEVERIFY OP_DROP
+            OP_DROP <cltv_expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
             OP_CHECKSIG
         OP_ENDIF
     OP_ENDIF
@@ -209,7 +209,7 @@ MUST be generated as specified in
 These HTLC transactions are almost identical, except the HTLC-Timeout transaction is timelocked.  This is also the transaction which can be spent by a valid penalty transaction.
 
 * version: 2
-* locktime: `0` for HTLC-Success, `htlc-timeout` for HTLC-Timeout.
+* locktime: `0` for HTLC-Success, `cltv_expiry` for HTLC-Timeout.
 * txin count: 1
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
    * `txin[0]` sequence: `0`
@@ -635,8 +635,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_CHECKMULTISIG: 1 byte
         - OP_ELSE: 1 byte
         - OP_DROP: 1 byte
-		- OP_DATA: 1 byte (locktime length)
-		- locktime: 3 bytes
+		- OP_DATA: 1 byte (cltv_expiry length)
+		- cltv_expiry: 3 bytes
         - OP_CHECKLOCKTIMEVERIFY: 1 byte
         - OP_DROP: 1 byte
         - OP_CHECKSIG: 1 byte
