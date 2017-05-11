@@ -76,7 +76,7 @@ To allow an opportunity for penalty transactions in case of a revoked commitment
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can time out or be fulfilled even though they are within the `to-self-delay` delay.
 Otherwise the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
-The amounts for each output MUST BE rounded down to whole satoshis.  If this amount, minus the fees for the HTLC transaction is less than the `dust-limit-satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
+The amounts for each output MUST BE rounded down to whole satoshis.  If this amount, minus the fees for the HTLC transaction is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
 
 #### To-Local Output
 
@@ -169,7 +169,7 @@ To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
 ### Trimmed Outputs
 
-Each peer specifies `dust-limit-satoshis` below which outputs should
+Each peer specifies `dust_limit_satoshis` below which outputs should
 not be produced; we term these outputs "trimmed".  A trimmed output is
 considered too small to be worth creating, and thus that amount adds
 to the commitment transaction fee.  For HTLCs, we need to take into
@@ -183,23 +183,23 @@ outputs as specified in [Fee Calculation](#fee-calculation) before the
 commitment transaction outputs are determined.
 
 If the amount of the commitment transaction `to-local` output would be
-less than `dust-limit-satoshis` set by the transaction owner, the
+less than `dust_limit_satoshis` set by the transaction owner, the
 commitment transaction MUST NOT contain that output, otherwise it MUST
 be generated as specified in [To-Local Output](#to-local-output).
 
 If the amount of the commitment transaction `to-remote` output would be
-less than `dust-limit-satoshis` set by the transaction owner, the
+less than `dust_limit_satoshis` set by the transaction owner, the
 commitment transaction MUST NOT contain that output, otherwise it MUST
 be generated as specified in [To-Remote Output](#to-remote-output).
 
 For every offered HTLC, if the HTLC amount minus the HTLC-timeout fee
-would be less than `dust-limit-satoshis` set by the transaction owner,
+would be less than `dust_limit_satoshis` set by the transaction owner,
 the commitment transaction MUST NOT contain that output, otherwise it
 MUST be generated as specified in
 [Offered HTLC Outputs](#offered-htlc-outputs).
 
 For every received HTLC, if the HTLC amount minus the HTLC-success fee
-would be less than `dust-limit-satoshis` set by the transaction owner,
+would be less than `dust_limit_satoshis` set by the transaction owner,
 the commitment transaction MUST NOT contain that output, otherwise it
 MUST be generated as specified in
 [Received HTLC Outputs](#received-htlc-outputs).
@@ -239,7 +239,7 @@ To spend this via penalty, the remote node uses a witness stack `<revocationsig>
 ### Fee Calculation
 
 The fee calculation for both commitment transactions and HTLC
-transactions is based on the current `feerate-per-kw` and the
+transactions is based on the current `feerate_per_kw` and the
 *expected weight* of the transaction.
 
 The actual and expected weight vary for several reasons:
@@ -267,11 +267,11 @@ Note that we refer to the "base fee" for a commitment transaction in the require
 
 The fee for an HTLC-timeout transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 663 and divide by 1000 (rounding down).
+1. Multiply `feerate_per_kw` by 663 and divide by 1000 (rounding down).
 
 The fee for an HTLC-success transaction MUST BE calculated to match:
 
-1. Multiply `feerate-per-kw` by 703 and divide by 1000 (rounding down).
+1. Multiply `feerate_per_kw` by 703 and divide by 1000 (rounding down).
 
 The base fee for a commitment transaction MUST BE calculated to match:
 
@@ -280,11 +280,11 @@ The base fee for a commitment transaction MUST BE calculated to match:
 2. For each committed HTLC, if that output is not trimmed as specified in
    [Trimmed Outputs](#trimmed-outputs), add 172 to `weight`.
 
-3. Multiply `feerate-per-kw` by `weight`, divide by 1000 (rounding down).
+3. Multiply `feerate_per_kw` by `weight`, divide by 1000 (rounding down).
 
 #### Example
 
-For example, suppose that we have a `feerate-per-kw` of 5000, a `dust-limit-satoshis` of 546 satoshis, and commitment transaction with:
+For example, suppose that we have a `feerate_per_kw` of 5000, a `dust_limit_satoshis` of 546 satoshis, and commitment transaction with:
 * 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
 * 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
 
@@ -312,14 +312,14 @@ The commitment transaction weight would be calculated as follows:
 The base commitment transaction fee would be 5340 satoshi; the actual
 fee (adding the 1000 and 800 satoshi HTLCs which would have made dust
 outputs) is 7140 satoshi.  The final fee may even be more if the
-`to-local` or `to-remote` outputs fall below `dust-limit-satoshis`.
+`to-local` or `to-remote` outputs fall below `dust_limit_satoshis`.
 
 ### Fee Payment
 
 Base commitment transaction fees will be extracted from the funder's amount, or if that is insufficient, will use the entire amount of the funder's output.
 
 Note that if once fee amount is subtracted from the to-funder output,
-that output may be below `dust-limit-satoshis` and thus also
+that output may be below `dust_limit_satoshis` and thus also
 contributes to fees.
 
 A node MAY fail the channel if the resulting fee rate is too low.
@@ -328,7 +328,7 @@ A node MAY fail the channel if the resulting fee rate is too low.
 
 This section ties the previous sections together to spell out the
 algorithm for constructing the commitment transaction for one peer,
-given that peer's `dust-limit-satoshis`, the current `feerate-per-kw`,
+given that peer's `dust_limit_satoshis`, the current `feerate_per_kw`,
 amounts due to each peer (`to-local` and `to-remote`), and all
 committed HTLCs:
 
@@ -342,9 +342,9 @@ committed HTLCs:
    [offered HTLC output](#offered-htlc-outputs).
 4. For every received HTLC, if it is not trimmed, add an
    [received HTLC output](#received-htlc-outputs).
-5. If the `to-local` amount is greater or equal to `dust-limit-satoshis`,
+5. If the `to-local` amount is greater or equal to `dust_limit_satoshis`,
    add a [To-Local Output](#to-local-output).
-6. If the `to-remote` amount is greater or equal to `dust-limit-satoshis`,
+6. If the `to-remote` amount is greater or equal to `dust_limit_satoshis`,
    add a [To-Remote Output](#to-remote-output).
 7. Sort the outputs into [BIP 69 order](#transaction-input-and-output-ordering)
 
