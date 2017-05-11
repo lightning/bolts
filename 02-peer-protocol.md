@@ -261,7 +261,7 @@ The sender MUST set `channel_id` by exclusive-OR of the `funding_txid` and the `
 
 The recipient MUST fail the channel if `signature` is incorrect.
 
-The recipient it SHOULD broadcast the funding transaction on receipt of a valid `funding_signed` and MUST NOT broadcast the funding transaction earlier.
+The recipient SHOULD broadcast the funding transaction on receipt of a valid `funding_signed` and MUST NOT broadcast the funding transaction earlier.
 
 ### The `funding_locked` message
 
@@ -284,15 +284,20 @@ transaction, derived as specified in
 
 A funder SHOULD perform unilateral close if it does not receive
 `funding_locked` after a reasonable timeout.
-
-A non-funding node MAY forget the channel if it does not receive
-`funding_locked` after a reasonable timeout.
+ 
+A non-funding node SHOULD forget the channel if it does not see the
+funding transaction after a reasonable timeout.
 
 #### Rationale
 
-The funder needs to unilateral close to get its funds back if the
-other node doesn't respond; the non-funder can simply forget the
-channel ever existed, since no funds are at risk.
+The funder normally needs to unilateral close to get its funds back if
+the other node doesn't respond, though a large `push_msat` may make
+this uneconomical.
+
+The non-funder can simply forget the channel ever existed, since no
+funds are at risk; even if `push_msat` is significant, if it remembers
+the channel forever on the promise of the funding transaction finally
+appearing, there is a denial of service risk.
 
 #### Future
 
