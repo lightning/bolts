@@ -18,3 +18,8 @@ Flags begin at bit 0 (ie. 0x1), and odd-numbered flags (eg. 0x2) are optional.
 | 2/3  | `initial_routing_sync` | The sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
 
 ## Assigned `globalfeatures` flags
+
+
+![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+<br>
+This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
