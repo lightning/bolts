@@ -51,15 +51,15 @@ do
     if [ -n "$CHECK" ]; then
 	# Eliminate the following:
 	# #-references eg. [Use of segwit](#use-of-segwit)
-	# quoted identifers eg. `htlc-id`
-	# field descriptions, eg. `* [num-htlcs*64:htlc-signature]'
-	# indented field names, eg. '    num_htlcs: 0'
+	# quoted identifers eg. `htlc_id`
+	# field descriptions, eg. `* [`num_htlcs*64`:`htlc_signature]'
+	# indented field names, eg. '    `num_htlcs`: 0'
 	# Short hex strings, eg '0x2bb038521914'
 	# long hex strings
 	# long base58 strings
 	WORDS=$(sed -e 's/\](#[-a-zA-Z0-9_]*)//g' \
-	    -e 's/`[-a-zA-Z0-9_]*`//g' \
-	    -e 's/\* \[[-_a-z0-9*]\+:[-_a-z0-9]\+\]//g' \
+	    -e 's/`[a-zA-Z0-9_]*`//g' \
+	    -e 's/\* \[`[_a-z0-9*]\+`://g' \
 	    -e 's/0x[a-fA-F0-9]\+//g' \
 	    -e 's/[a-fA-F0-9]\{20,\}//g' \
 	    -e 's/^    .*_htlcs//g' \
