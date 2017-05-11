@@ -231,7 +231,7 @@ does not match the types defined above.  The receiving node SHOULD
 fail the connection if `addrlen` is insufficient to hold the address
 descriptors of the known types.
 
-The receiving node SHOULD ignore `ipv6-addr` or `ipv4-addr`
+The receiving node SHOULD ignore `ipv6_addr` or `ipv4_addr`
 if `port` is zero.
 
 The receiving node SHOULD ignore the message if `node_id` is not
@@ -366,7 +366,7 @@ have been offline for some time.
 
 The node creating `channel_update` SHOULD accept HTLCs which pay a fee equal or greater than:
 
-    fee-base-msat + htlc-amount-msat * fee-proportional-millionths / 1000000
+    fee_base_msat + amount_msat * fee_proportional_millionths / 1000000
 
 The node creating `channel_update` SHOULD accept HTLCs which pay an
 older fee for some time after sending `channel_update` to allow for
