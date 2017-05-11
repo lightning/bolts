@@ -49,7 +49,7 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
 
 * The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
    * `2 <key1> <key2> 2 OP_CHECKMULTISIG`
-* Where `key1` is the numerically lesser of the two DER-encoded `funding-pubkey` and `key2` is the greater.
+* Where `key1` is the numerically lesser of the two DER-encoded `funding_pubkey` and `key2` is the greater.
 
 ## Commitment Transaction
 * version: 2
@@ -62,7 +62,7 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
 
 The 48-bit commitment transaction number is obscured by `XOR` with the lower 48 bits of:
 
-    SHA256(payment-basepoint from open_channel || payment-basepoint from accept_channel)
+    SHA256(payment_basepoint from open_channel || payment_basepoint from accept_channel)
 
 This obscures the number of commitments made on the channel in the
 case of unilateral close, yet still provides a useful index for both
@@ -71,9 +71,9 @@ commitment transaction.
 
 ### Commitment Transaction Outputs
 
-To allow an opportunity for penalty transactions in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to-self-delay` blocks.  This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
+To allow an opportunity for penalty transactions in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to_self_delay` blocks.  This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
-The reason for the separate transaction stage for HTLC outputs is so that HTLCs can time out or be fulfilled even though they are within the `to-self-delay` delay.
+The reason for the separate transaction stage for HTLC outputs is so that HTLCs can time out or be fulfilled even though they are within the `to_self_delay` delay.
 Otherwise the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
 The amounts for each output MUST BE rounded down to whole satoshis.  If this amount, minus the fees for the HTLC transaction is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
@@ -86,14 +86,14 @@ This output sends funds back to the owner of this commitment transaction, thus m
         # Penalty transaction
         <revocation-pubkey>
     OP_ELSE
-        `to-self-delay`
+        `to_self_delay`
         OP_CSV
         OP_DROP
         <local-delayedkey>
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with `nSequence` field set to `to-self-delay` (which can only be valid after that duration has passed), and witness:
+It is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed), and witness:
 
 	<local-delayedsig> 0
 
@@ -120,14 +120,14 @@ This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or
             OP_DROP 2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
         OP_ELSE
             # To you with preimage.
-            OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
+            OP_HASH160 <ripemd-of-payment_hash> OP_EQUALVERIFY
             OP_CHECKSIG
         OP_ENDIF
     OP_ENDIF
 
 The remote node can redeem the HTLC with the witness:
 
-    <remotesig> <payment-preimage>
+    <remotesig> <payment_preimage>
 
 If a revoked commitment transaction is published, the remote node can spend this output immediately with the following witness:
 
@@ -148,7 +148,7 @@ This output sends funds to the remote peer after the HTLC timeout or using the r
             OP_SIZE 32 OP_EQUAL
         OP_IF
             # To me via HTLC-success transaction.
-            OP_HASH160 <ripemd-of-payment-hash> OP_EQUALVERIFY
+            OP_HASH160 <ripemd-of-payment_hash> OP_EQUALVERIFY
             2 OP_SWAP <localkey> 2 OP_CHECKMULTISIG
         OP_ELSE
             # To you after timeout.
@@ -214,7 +214,7 @@ These HTLC transactions are almost identical, except the HTLC-Timeout transactio
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
    * `txin[0]` sequence: `0`
    * `txin[0]` script bytes: `0`
-   * `txin[0]` witness stack: `0 <remotesig> <localsig>  <payment-preimage>` for HTLC-Success, `0 <remotesig> <localsig> 0` for HTLC-Timeout.
+   * `txin[0]` witness stack: `0 <remotesig> <localsig>  <payment_preimage>` for HTLC-Success, `0 <remotesig> <localsig> 0` for HTLC-Timeout.
 * txout count: 1
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
    * `txout[0]` script: version 0 P2WSH with witness script as shown below.
@@ -225,14 +225,14 @@ The witness script for the output is:
         # Penalty transaction
         <revocation-pubkey>
     OP_ELSE
-        `to-self-delay`
+        `to_self_delay`
         OP_CSV
         OP_DROP
         <local-delayedkey>
     OP_ENDIF
     OP_CHECKSIG
 
-To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to-self-delay` and a witness stack `<local-delayedsig> 0`
+To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to_self_delay` and a witness stack `<local-delayedsig> 0`
 
 ## Fees
 
@@ -353,7 +353,7 @@ committed HTLCs:
 ## Key Derivation
 
 Each commitment transaction uses a unique set of keys; `localkey` and `remotekey`.  The HTLC-success and HTLC-timeout transactions use `local-delayedkey` and `revocationkey`.  These are changed every time depending on the
-`per-commitment-point`.
+`per_commitment_point`.
 
 Keys change because of the desire for trustless outsourcing of
 watching for revoked transactions; a _watcher_ should not be able to
@@ -361,8 +361,8 @@ determine what the contents of commitment transaction is, even if
 given the transaction ID to watch for and can make a reasonable guess
 as to what HTLCs and balances might be included.  Nonetheless, to
 avoid storage for every commitment transaction, it can be given the
-`per-commitment-secret` values (which can be stored compactly) and the
-`revocation-basepoint` and `delayed-payment-basepoint` to regenerate
+`per_commitment_secret` values (which can be stored compactly) and the
+`revocation_basepoint` and `delayed_payment_basepoint` to regenerate
 the scripts required for the penalty transaction: it need only be
 given (and store) the signatures for each penalty input.
 
@@ -370,7 +370,7 @@ Changing the `localkey` and `remotekey` every time ensures that commitment trans
 
 Finally, even in the case of normal unilateral close, the HTLC-success
 and/or HTLC-timeout transactions do not reveal anything to the
-watcher, as it does not know the corresponding `per-commitment-secret` and
+watcher, as it does not know the corresponding `per_commitment_secret` and
 cannot relate the `local-delayedkey` or `revocationkey` with
 their bases.
 
@@ -380,18 +380,18 @@ For efficiency, keys are generated from a series of per-commitment secrets which
 
 These keys are simply generated by addition from their base points:
 
-	pubkey = basepoint + SHA256(per-commitment-point || basepoint)*G
+	pubkey = basepoint + SHA256(per_commitment_point || basepoint)*G
 
-The `localkey` uses the local node's `payment-basepoint`, `remotekey`
-uses the remote node's `payment-basepoint`, the `local-delayedkey`
-uses the local node's `delayed-payment-basepoint`, and the
+The `localkey` uses the local node's `payment_basepoint`, `remotekey`
+uses the remote node's `payment_basepoint`, the `local-delayedkey`
+uses the local node's `delayed_payment_basepoint`, and the
 `remote-delayedkey` uses the remote node's
-`delayed-payment-basepoint`.
+`delayed_payment_basepoint`.
 
 The corresponding private keys can be derived similarly if the basepoint
 secrets are known (i.e., `localkey` and `local-delayedkey` only):
 
-    secretkey = basepoint-secret + SHA256(per-commitment-point || basepoint)
+    secretkey = basepoint_secret + SHA256(per_commitment_point || basepoint)
 
 ### `revocationkey` Derivation
 
@@ -400,23 +400,23 @@ and the local node provides the blinding factor which it later
 reveals, so the remote node can use the secret revocationkey for a
 penalty transaction.
 
-The `per-commitment-point` is generated using EC multiplication:
+The `per_commitment_point` is generated using EC multiplication:
 
-	per-commitment-point = per-commitment-secret * G
+	per_commitment_point = per_commitment_secret * G
 
 And this is used to derive the revocation key from the remote node's
-`revocation-basepoint`:
+`revocation_basepoint`:
 
-	revocationkey = revocation-basepoint * SHA256(revocation-basepoint || per-commitment-point) + per-commitment-point*SHA256(per-commitment-point || revocation-basepoint)
+	revocationkey = revocation_basepoint * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_point*SHA256(per_commitment_point || revocation_basepoint)
 
 This construction ensures that neither the node providing the
-basepoint nor the node providing the `per-commitment-point` can know the
+basepoint nor the node providing the `per_commitment_point` can know the
 private key without the other node's secret.
 
-The corresponding private key can be derived once the `per-commitment-secret`
+The corresponding private key can be derived once the `per_commitment_secret`
 is known:
 
-    revocationsecretkey = revocation-basepoint-secret * SHA256(revocation-basepoint || per-commitment-point) + per-commitment-secret*SHA256(per-commitment-point || revocation-basepoint)
+    revocationsecretkey = revocation_basepoint_secret * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_secret*SHA256(per_commitment_point || revocation_basepoint)
 
 ### Per-commitment Secret Requirements
 
@@ -1433,43 +1433,43 @@ All of them use the following secrets (and thus the derived points):
     base_point: 0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2
     per_commitment_point: 0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486
 
-    name: derivation of key from basepoint and per-commitment-point
-    # SHA256(per-commitment-point || basepoint)
+    name: derivation of key from basepoint and per_commitment_point
+    # SHA256(per_commitment_point || basepoint)
     # => SHA256(0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486 || 0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2)
     # = 0xcbcdd70fcfad15ea8e9e5c5a12365cf00912504f08ce01593689dd426bca9ff0
     # + basepoint (0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2)
     # = 0x0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5
     localkey: 0x0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5
 
-    name: derivation of secret key from basepoint secret and per-commitment-secret
-	# SHA256(per-commitment-point || basepoint)
+    name: derivation of secret key from basepoint secret and per_commitment_secret
+	# SHA256(per_commitment_point || basepoint)
     # => SHA256(0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486 || 0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2)
     # = 0xcbcdd70fcfad15ea8e9e5c5a12365cf00912504f08ce01593689dd426bca9ff0
     # + basepoint_secret (0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f)
     # = 0xcbced912d3b21bf196a766651e436aff192362621ce317704ea2f75d87e7be0f
     localprivkey: 0xcbced912d3b21bf196a766651e436aff192362621ce317704ea2f75d87e7be0f
 
-    name: derivation of revocation key from basepoint and per-commitment-point
-    # SHA256(revocation-basepoint || per-commitment-point)
+    name: derivation of revocation key from basepoint and per_commitment_point
+    # SHA256(revocation_basepoint || per_commitment_point)
     # => SHA256(0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2 || 0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486)
     # = 0xefbf7ba5a074276701798376950a64a90f698997cce0dff4d24a6d2785d20963
-    # x revocation-basepoint = 0x02c00c4aadc536290422a807250824a8d87f19d18da9d610d45621df22510db8ce
-    # SHA256(per-commitment-point || revocation-basepoint)
+    # x revocation_basepoint = 0x02c00c4aadc536290422a807250824a8d87f19d18da9d610d45621df22510db8ce
+    # SHA256(per_commitment_point || revocation_basepoint)
     # => SHA256(0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486 || 0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2)
     # = 0xcbcdd70fcfad15ea8e9e5c5a12365cf00912504f08ce01593689dd426bca9ff0
-    # x per-commitment-point = 0x0325ee7d3323ce52c4b33d4e0a73ab637711057dd8866e3b51202a04112f054c43
+    # x per_commitment_point = 0x0325ee7d3323ce52c4b33d4e0a73ab637711057dd8866e3b51202a04112f054c43
     # 0x02c00c4aadc536290422a807250824a8d87f19d18da9d610d45621df22510db8ce + 0x0325ee7d3323ce52c4b33d4e0a73ab637711057dd8866e3b51202a04112f054c43 => 0x02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0
     revocationkey: 0x02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0
 
-    name: derivation of revocation secret from basepoint-secret and per-commitment-secret
-    # SHA256(revocation-basepoint || per-commitment-point)
+    name: derivation of revocation secret from basepoint_secret and per_commitment_secret
+    # SHA256(revocation_basepoint || per_commitment_point)
     # => SHA256(0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2 || 0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486)
     # = 0xefbf7ba5a074276701798376950a64a90f698997cce0dff4d24a6d2785d20963
-    # * revocation-basepoint-secret (0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f)# = 0x44bfd55f845f885b8e60b2dca4b30272d5343be048d79ce87879d9863dedc842
-    # SHA256(per-commitment-point || revocation-basepoint)
+    # * revocation_basepoint_secret (0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f)# = 0x44bfd55f845f885b8e60b2dca4b30272d5343be048d79ce87879d9863dedc842
+    # SHA256(per_commitment_point || revocation_basepoint)
     # => SHA256(0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486 || 0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2)
     # = 0xcbcdd70fcfad15ea8e9e5c5a12365cf00912504f08ce01593689dd426bca9ff0
-    # * per-commitment-secret (0x1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100)# = 0x8be02a96a97b9a3c1c9f59ebb718401128b72ec009d85ee1656319b52319b8ce
+    # * per_commitment_secret (0x1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100)# = 0x8be02a96a97b9a3c1c9f59ebb718401128b72ec009d85ee1656319b52319b8ce
     # => 0xd09ffff62ddb2297ab000cc85bcb4283fdeb6aa052affbc9dddcf33b61078110
     revocationprivkey: 0xd09ffff62ddb2297ab000cc85bcb4283fdeb6aa052affbc9dddcf33b61078110
 
