@@ -72,51 +72,56 @@ The use of a fixed nonce is safe since the keys are never reused.
 The packet consists of 4 parts:
  
  - A `version` byte
- - A 33-byte compressed `secp256k1` `public key`, used during the shared secret generation
+ - A 33-byte compressed `secp256k1` `public_key`, used during the shared secret generation
  - A 1300-byte `hops_data` consisting of twenty fixed size packets containing information for each hop
    as they forward the message.
  - A 32-byte `HMAC` used to verify the packet's integrity.
 
 The overall structure of the packet is depicted below. The network format of the packet consists of the individual parts being serialized into one contiguous byte-stream and then transferred to the recipient of the packet. Due to the fixed size of the packet it does not need to be prefixed by its length when transferred over a connection.
 
-~~~~
-+------------------+-----------------------+------------------------+-----------------+
-| version (1 byte) | public key (33 bytes) | hops_data (20x65 bytes) | HMAC (32 bytes) |
-+------------------+-----------------------+------------------------+-----------------+
-~~~~
+1. type: `onion_packet`
+2. data:
+   * [`1`:`version`]
+   * [`33`:`public_key`]
+   * [`20*65`:`hops_data`]
+   * [`32`:`hmac`]
 
-For this specification the version byte has a constant value of `0x00`.
+For this specification `version` has a constant value of `0x00`.
 
 The `hops_data` field is a structure that holds obfuscated versions of the next hop's address, transfer information and the associated HMAC.  It is 1300 bytes long, and has the following structure:
 
-~~~~
-+-----------+-------------+----------+-----------+-------------+----------+-----------+
-| n_1 realm | n_1 per-hop | n_1 HMAC | n_2 realm | n_2 per-hop | n_2 HMAC | ...filler |
-+-----------+-------------+----------+----------+--------------+----------+------------+
-~~~~
+1. type: `hops_data`
+2. data:
+   * [`1`:`realm`]
+   * [`32`:`per_hop`]
+   * [`32`:`HMAC`]
+   * ...
+   * `filler`
 
-Where `per-hop` is 32 bytes whose contents depend on `realm`, and `filler` consists of obfuscated deterministically generated
+Where the `realm`, `HMAC` and `per_hop` (whose contents depend on `realm`) are
+repeated for each hop, and `filler` consists of obfuscated deterministically generated
 padding. For details about how the `filler` is generated please see
-below. In addition, every _(address, HMAC)_-pair is incrementally
+below. In addition, `hops_data` is incrementally
 obfuscated at each hop.
 
-The `realm` byte determines the format of the `per-hop`; so far
-only `realm` 0 is defined, and for that, the `per-hop` format is:
+The `realm` byte determines the format of the `per_hop`; so far
+only `realm` 0 is defined, and for that, the `per_hop` format is:
 
-~~~~
-+----------------------+--------------------------+-------------------------------+--------------------+
-| channel_id (8 bytes) | amt_to_forward (4 bytes) | outgoing_cltv_value (4 bytes) | padding (16 bytes) |
-+----------------------+--------------------------+-------------------------------+--------------------+
-~~~~
+1. type: `per_hop` (for `realm` 0)
+2. data:
+   * [`8`:`channel_id`]
+   * [`4`:`amt_to_forward`]
+   * [`4`:`outgoing_cltv_value`]
+   * [`16`:`padding`]
 
-Using the `per-hop`, the sender is able to precisely specify the path and
-structure of the HTLCs forwarded at each hop. As the `per-hop` is
+Using the `per_hop`, the sender is able to precisely specify the path and
+structure of the HTLCs forwarded at each hop. As the `per_hop` is
 protected under the packet-wide HMAC, the information within 
 is fully authenticated with each pair-wise relationship between
 the HTLC sender, and each intermediate node in the path.  Using this end-to-end
 authentication, forwarding nodes are able to ensure that the incoming node
 didn't forward an ill-crafted HTLC by cross-checking the HTLC parameters with
-the values as specified within the `per-hop`.
+the values as specified within the `per_hop`.
 
 Field Description: 
 
@@ -141,24 +146,24 @@ Field Description:
    * `outgoing_cltv_value` - The CLTV value that the _outgoing_ HTLC carrying
      the packet should have. 
 
-        cltv-expiry - cltv-expiry-delta = outgoing_cltv_value
+        cltv_expiry - cltv_expiry_delta = outgoing_cltv_value
 
      Inclusion of this field allows a node to both authenticate the information
      specified by the original sender and the parameters of the HTLC forwarded,
-	 and ensure the original sender is using the current `cltv-expiry-delta` value.
-     If there is no next hop, `cltv-expiry-delta` is zero.
+	 and ensure the original sender is using the current `cltv_expiry_delta` value.
+     If there is no next hop, `cltv_expiry_delta` is zero.
      If the values don't correspond, then the HTLC should be failed+rejected as
      this indicates the incoming node has tampered with the intended HTLC
-     values, or the origin has an obsolete `cltv-expiry-delta` value.
+     values, or the origin has an obsolete `cltv_expiry_delta` value.
      The node MUST be consistent in responding to an unexpected
      `outgoing_cltv_value` whether it is the final hop or not, to avoid
      leaking that information.
 
-   * `padding` - for future use, and also to ensure that future non-0-realm
-     `per-hop` won't change the overall `hops_data` size.
+   * `padding` - for future use, and also to ensure that future non-0-`realm`
+     `per_hop` won't change the overall `hops_data` size.
 
 Nodes forwarding HTLCs MUST construct the outgoing HTLC as specified within
-`per-hop`.  Otherwise, deviation from the specified HTLC parameters
+`per_hop`.  Otherwise, deviation from the specified HTLC parameters
 may lead to extraneous routing failure.
 
 ## Packet Construction
@@ -188,7 +193,7 @@ This recursive algorithm is initialized by setting the first hop's (`k=1`) ephem
 The sender then iteratively computes the ephemeral public keys, shared secrets and blinding factors for nodes `{n_2, ..., n_r}`.
 
 Once the sender has all the required information it can construct the packet.
-Constructing a packet routed over `r` hops requires `r` 32 byte ephemeral public keys, `r` 32 byte shared secrets, `r` 32 byte blinding factors and `r` 65 byte `per-hop` payloads.
+Constructing a packet routed over `r` hops requires `r` 32 byte ephemeral public keys, `r` 32 byte shared secrets, `r` 32 byte blinding factors and `r` 65 byte `per_hop` payloads.
 The construction returns one 1366 byte packet and the first hop's address.
 
 The packet construction is performed in reverse order of the route, i.e., the last hop's operations are applied first.
@@ -211,7 +216,7 @@ following operations:
 
 The final value for the HMAC is the HMAC as it should be sent to the first hop.
 
-The packet generation returns the serialized packet, consisting of the version byte, the ephemeral pubkey for the first hop, the HMAC for the first hop, the obfuscated `hops_data`.
+The packet generation returns the serialized packet, consisting of the `version` byte, the ephemeral pubkey for the first hop, the HMAC for the first hop, the obfuscated `hops_data`.
 
 The following code implements the packet construction in Go:
 
@@ -284,7 +289,7 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 ## Packet Forwarding
 
 Upon receiving a packet, a node compares the version byte of the packet with its supported versions and aborts otherwise.
-This specification is limited to version `0` packets and the structure of future versions may change.
+This specification is limited to `version` `0` packets and the structure of future versions may change.
 The receiving node then splits the packet into its fields.
 
 The node MUST check that the ephemeral public key is on the `secp256k1` curve.
@@ -303,11 +308,11 @@ At this point the node can generate a _rho_-key and a _gamma_-key.
 
 The routing info is deobfuscated and the information about the next hop is extracted.
 In order to do so the node copies the `hops_data` field, appends 65 `0x00` bytes and generates 1365 pseudo-random bytes using the _rho_-key and applies it using `XOR` to the copy of the `hops_data`
-The first 65 bytes of the resulting routing info are `per-hop` field for the next hop.  The next 1300 bytes is the `hops_data` for the outgoing packet.
+The first 65 bytes of the resulting routing info are `per_hop` field for the next hop.  The next 1300 bytes is the `hops_data` for the outgoing packet.
 
 If the `realm` is unknown, then the node MUST drop the packet and signal a route failure.
 
-A special `per-hop` `HMAC` value of 32 `0x00` bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
+A special `per_hop` `HMAC` value of 32 `0x00` bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
 
 Should the HMAC not indicate route termination and the next hop be a peer of the current node, then the new packet is assembled by blinding the ephemeral key with the current node's public key and shared secret, and serializing the `hops_data`.
 The resulting packet is then forwarded to the addressed peer.
@@ -345,7 +350,7 @@ This deobfuscates the information destined for it, and simultaneously obfuscates
 
 In order to compute the correct HMAC, the sender has to generate the `hops_data` at the hop.
 This also includes the incrementally obfuscated padding added by each hop.
-The incrementally obfuscated padding is called the _filler_.
+The incrementally obfuscated padding is called the `filler`.
 
 The following code shows how the filler is generated:
 
@@ -400,15 +405,15 @@ In addition each node locally stores the previous hop it received the forward pa
 The node returning the message builds a return packet consisting of the following fields:
 
 1. data:
-   * [32:hmac]
-   * [2:failure-len]
-   * [failure-len:failuremsg]
-   * [2:pad-len]
-   * [pad-len:pad]
+   * [`32`:`hmac`]
+   * [`2`:`failure_len`]
+   * [`failure_len`:`failuremsg`]
+   * [`2`:`pad_len`]
+   * [`pad_len`:`pad`]
 
 Where `hmac` is an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type "_um_", `failuremsg` is defined below, and `pad` as extra bytes to conceal length.
 
-The node SHOULD set `pad` such that the `failure-len` plus `pad-len` is equal to 128.
+The node SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to 128.
 This is 28 bytes longer than then the longest currently-defined message.
 
 The node then generates a new key, using the key type `ammag`.
@@ -425,15 +430,15 @@ The association between forward and return packet is handled outside of the prot
 ### Failure Messages
 
 The failure message encapsulated in `failuremsg` has identical format to
-a normal message: two byte type (`failure-code`) followed by data suitable
-for that type. The following `failure-code` values are supported.  A node MUST select one of
+a normal message: two byte type (`failure_code`) followed by data suitable
+for that type. The following `failure_code` values are supported.  A node MUST select one of
 these codes when creating an error message, and MUST include the
 appropriate data.
 
 In the case of more than one error, a node SHOULD select the first one
 listed.
 
-The top byte of `failure-code` can be read as a set of flags:
+The top byte of `failure_code` can be read as a set of flags:
 * 0x8000 (BADONION): unparsable onion, encrypted by previous node.
 * 0x4000 (PERM): permanent failure (otherwise transient)
 * 0x2000 (NODE): node failure (otherwise channel)
@@ -441,7 +446,7 @@ The top byte of `failure-code` can be read as a set of flags:
 
 Any node MAY return one of the following errors:
 
-If the realm byte is unknown:
+If the `realm` byte is unknown:
 
 1. type: PERM|1 (`invalid_realm`)
 
@@ -463,31 +468,31 @@ If a node has requirement advertised in its `node_announcement`
 A forwarding node MAY return one of the following errors, the final
 node MUST NOT:
 
-If the onion version byte is unknown:
+If the onion `version` byte is unknown:
 
 1. type: BADONION|PERM|4 (`invalid_onion_version`)
 2. data:
-   * [32:sha256-of-onion]
+   * [`32`:`sha256_of_onion`]
 
 If the onion HMAC is incorrect:
 
 1. type: BADONION|PERM|5 (`invalid_onion_hmac`)
 2. data:
-   * [32:sha256-of-onion]
+   * [`32`:`sha256_of_onion`]
 
 If the ephemeral key in the onion is unparsable:
 
 1. type: BADONION|PERM|6 (`invalid_onion_key`)
 2. data:
-   * [32:sha256-of-onion]
+   * [`32`:`sha256_of_onion`]
 
 If an otherwise unspecified transient error occurs for the outgoing
 channel (eg. peer unresponsive, channel capacity reached):
 
 1. type: 7 (`temporary_channel_failure`)
 2. data:
-   * [2:len]
-   * [len:channel_update]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
 
 If an otherwise unspecified permanent error occurs for the outgoing
 channel (eg. channel (recently) closed):
@@ -499,7 +504,7 @@ If the outgoing channel has requirement advertised in its
 
 1. type: PERM|9 (`required_channel_feature_missing`)
 
-If the next peer specified by the onion is not known:
+	If the next peer specified by the onion is not known:
 
 1. type: PERM|10 (`unknown_next_peer`)
 
@@ -509,9 +514,9 @@ the outgoing channel:
 
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
-   * [4:htlc-msat]
-   * [2:len]
-   * [len:channel_update]
+   * [`4`:`htlc_msat`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
 
 If the HTLC does not pay sufficient fee, we tell them the amount of
 the incoming HTLC and the current channel setting for the outgoing
@@ -519,28 +524,28 @@ channel:
 
 1. type: UPDATE|12 (`fee_insufficient`)
 2. data:
-   * [4:htlc-msat]
-   * [2:len]
-   * [len:channel_update]
+   * [`4`:`htlc_msat`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
 
 If `outgoing_cltv_value` does not match the `update_add_htlc`'s
-`cltv-expiry` minus `cltv-expiry-delta` for the outgoing channel, we
-tell them the `cltv-expiry` and the current channel setting for the
+`cltv_expiry` minus `cltv_expiry_delta` for the outgoing channel, we
+tell them the `cltv_expiry` and the current channel setting for the
 outgoing channel:
 
 1. type: UPDATE|13 (`incorrect_cltv_expiry`)
 2. data:
-   * [4:cltv-expiry]
-   * [2:len]
-   * [len:channel_update]
+   * [`4`:`cltv_expiry`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
 
 If the ctlv-expiry is too near, we tell them the the current channel
 setting for the outgoing channel:
 
 1. type: UPDATE|14 (`expiry_too_soon`)
 2. data:
-   * [2:len]
-   * [len:channel_update]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
 
 The final node may return one of the following errors, intermediate
 nodes MUST NOT:
@@ -559,23 +564,23 @@ accidental gross overpayment:
 
 1. type: PERM|16 (`incorrect_payment_amount`)
 
-If the `cltv-expiry` is too low, the final node MUST fail the HTLC:
+If the `cltv_expiry` is too low, the final node MUST fail the HTLC:
 
 1. type: 17 (`final_expiry_too_soon`)
 
-If the `outgoing_cltv_value` does not match the `ctlv-expiry` of the
+If the `outgoing_cltv_value` does not match the `ctlv_expiry` of the
 HTLC at the final hop:
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
-   * [4:cltv-expiry]
+   * [`4`:`cltv_expiry`]
 
 If the `amt_to_forward` does not match the `incoming_htlc_amt` of
 the HTLC at the final hop:
 
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
-   * [4:incoming-htlc-amt]
+   * [`4`:`incoming_htlc_amt`]
 
 ### Receiving Failure Codes
 
@@ -627,7 +632,7 @@ The following is an in-depth trace of the packet creation, including intermediat
 	sessionkey = 0x4141414141414141414141414141414141414141414141414141414141414141
 	associated data = 0x4242424242424242424242424242424242424242424242424242424242424242
 
-The HMAC is omitted in the following `hop_data` since it is likely filled by the onion construction. Hence the values below are the `realm`, the `short_channel_id`, the `amt_to_forward`, the `outgoing_cltv` and the 16 bytes padding. These were initialized by byte-filling the `short_channel_id` to the respective position in the route, and by settings `amt_to_forward` and `outgoing_cltv` to the position in the route, starting with 0.
+The HMAC is omitted in the following `hop_data` since it is likely filled by the onion construction. Hence the values below are the `realm`, the `short_channel_id`, the `amt_to_forward`, the `outgoing_cltv` and the 16 bytes `padding`. These were initialized by byte-filling the `short_channel_id` to the respective position in the route, and by settings `amt_to_forward` and `outgoing_cltv` to the position in the route, starting with 0.
 
 	hop_payload[0] = 0x000000000000000000000000000000000000000000000000000000000000000000
 	hop_payload[1] = 0x000101010101010101000000010000000100000000000000000000000000000000
