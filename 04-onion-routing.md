@@ -489,7 +489,7 @@ If the ephemeral key in the onion is unparsable:
 If an otherwise unspecified transient error occurs for the outgoing
 channel (eg. peer unresponsive, channel capacity reached):
 
-1. type: 7 (`temporary_channel_failure`)
+1. type: UPDATE|7 (`temporary_channel_failure`)
 2. data:
    * [`2`:`len`]
    * [`len`:`channel_update`]
