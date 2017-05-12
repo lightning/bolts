@@ -948,11 +948,9 @@ lists the acknowledgment conditions for each message:
 * `revoke_and_ack`: acknowledged by `commitment_signed` or `closing_signed`
 * `shutdown`: acknowledged by `closing_signed`.
 
-Before retransmitting `commitment_signed`, the node MUST retransmit
-all `update_` messages (the other node will have forgotten
-them, as required above), with the exception that `update_fee` messages
-MAY be retransmitted with different values.  The node MAY
-transmit additional updates before `commitment_signed`.
+On reconnection, the node MUST retransmit all `update_` messages, and
+MAY transmit additional updates before `commitment_signed`, with the
+exception that `update_fee` MAY be retransmitted with a different value.
 
 A node MUST not assume that
 previously-transmitted messages were lost: in particular, if it has
@@ -974,21 +972,19 @@ this case, the funder will forget the channel and presumably open
 a new one on reconnect; the other node will eventually forget the
 original channel due to never receiving `funding_locked`.
 
-For normal operation and during shutdown, the updates are similarly
-forgotten, though in this case the loss of `revoke_and_ack` can cause
+For normal operation and during shutdown, the loss of `revoke_and_ack` can cause
 an entire retransmission of the previous updates and commitment:
 this is OK, as the recipient will simply ignore duplicates (as
 documented in the requirements for [`update_add_htlc`](#adding-an-htlc-update_add_htlc) and [Removing an HTLC](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc).
 
-This retransmission is required to generally be a super-set of the
-original, to give the same result whether the first transmission was
-committed or not.  The exception for `update_fee` applies because
-`update_fee` simply overrides previous `update_fee` messages, though a
-retransmission has to send at least one `update_fee` message if one was
-sent originally.
+Retransmission is required to be a super-set of the original, to give
+the same result whether the first transmission was committed or
+not. But note that technically `update_fee` is always a super-set of
+any previous `update_fee` because it simply replaces it.
 
-Note that if no `commitment_signed` was sent in the first place,
-there's no requirement to retransmit those (uncommitted) updates.
+This means that the receiving node may or may not forget `update_`
+until it sends out `revoke_and_ack`; it does not have to commit them
+to permanent storage.
 
 Once an acceptable `closing_signed` has been received, the protocol
 guarantees that it will be better to use than any previous
