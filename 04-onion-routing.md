@@ -487,7 +487,7 @@ If the ephemeral key in the onion is unparsable:
    * [`32`:`sha256_of_onion`]
 
 If an otherwise unspecified transient error occurs for the outgoing
-channel (eg. peer unresponsive, channel capacity reached):
+channel (eg. channel capacity reached, too many in-flight htlc):
 
 1. type: UPDATE|7 (`temporary_channel_failure`)
 2. data:
@@ -544,6 +544,15 @@ setting for the outgoing channel:
 
 1. type: UPDATE|14 (`expiry_too_soon`)
 2. data:
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
+   
+If the channel is disabled, we tell them the the current channel
+setting for the outgoing channel:
+   
+1. type: UPDATE|20 (`channel_disabled`)
+2. data:
+   * [`2`: `flags`]
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
