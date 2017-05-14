@@ -81,10 +81,10 @@ Once authentication is complete, the first message reveals the features supporte
 |---|---|
 |`0b11` | Party emitted message supports this feature but doesn't require it|
 |`0b10` | Party emitted message supports this feature and requires it|
-|`0b01` | Party emitted message doesn't suppot this feature and doesn't require it|
+|`0b01` | Party emitted message doesn't support this feature and doesn't require it|
 |`0b00` | Ignore: it is padding.|
 
-Both fields `globalfeatures` and `localfeatures` should be padded to ceil number of bytes.
+Both fields `globalfeatures` and `localfeatures` should be padded to bytes.
 
 1. type: 16 (`init`)
 2. data:
