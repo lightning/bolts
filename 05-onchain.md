@@ -153,7 +153,7 @@ from B in this way.
 ## Rationale
 
 
-Spending the to-self output avoids having to remember the complicated
+Spending the `to_local` output avoids having to remember the complicated
 witness script associated with that particular channel for later
 spending.
 
@@ -272,7 +272,7 @@ the spending transaction, otherwise it is considered *resolved* by the
 ## Rationale
 
 
-Spending the to-self output avoids having to remember the complicated
+Spending the `to_local` output avoids having to remember the complicated
 witness script associated with that particular channel for later
 spending.
 
@@ -357,7 +357,7 @@ With a maximum standard weight of 400000:
  
     max_num_htlcs = (400000 - 318 - 55) / 413  = 967
  
-Thus we could allow 483 HTLCs in each direction (with one output to-self) and still resolve it with a single penalty
+Thus we could allow 483 HTLCs in each direction (with one `to_local` output) and still resolve it with a single penalty
 transaction.
 
 # General Requirements
