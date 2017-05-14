@@ -24,7 +24,7 @@ Because Lightning is designed to be trustless, there is no risk of loss of funds
 	  * [Penalty Transactions Weight Calculation](#penalty-transactions-weight-calculation)
   * [General Requirements](#general-requirements)
   * [Appendix A: Expected weights](#appendix-a-expected-weights)
-	* [Expected weight of the to-local penalty transaction witness](#expected-weight-of-the-to-local-penalty-transaction-witness)
+	* [Expected weight of the `to_local` penalty transaction witness](#expected-weight-of-the-to-local-penalty-transaction-witness)
 	* [Expected weight of the received-htlc penalty transaction witness](#expected-weight-of-the-received-htlc-penalty-transaction-witness)
   * [Authors](#authors)
 
@@ -378,12 +378,12 @@ that speed cannot be considered critical.
 
 # Appendix A: Expected weights
 
-## Expected weight of the to-local penalty transaction witness
+## Expected weight of the `to_local` penalty transaction witness
 
 As described in [BOLT #3](03-transactions.md), the witness for
 this transaction is:
 
-    <sig> 1 { OP_IF <key> OP_ELSE to-self-delay OP_CSV OP_DROP <key> OP_ENDIF OP_CHECKSIG }
+    <sig> 1 { OP_IF <key> OP_ELSE to_self_delay OP_CSV OP_DROP <key> OP_ENDIF OP_CHECKSIG }
 
 The *expected weight* is calculated as follows:
 
