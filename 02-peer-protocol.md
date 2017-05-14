@@ -238,7 +238,7 @@ The recipient MUST fail the channel if `signature` is incorrect.
 
 #### Rationale
 
-The `funding_output_index` can only be 2 bytes, since that's how we'll pack it into the channel-id used throughout the gossip protocol.  The limit of 65535 outputs should not be overly burdensome.
+The `funding_output_index` can only be 2 bytes, since that's how we'll pack it into the `channel_id` used throughout the gossip protocol.  The limit of 65535 outputs should not be overly burdensome.
 
 A transaction with all Segregated Witness inputs is not malleable, hence the recommendation for the funding transaction.
 
