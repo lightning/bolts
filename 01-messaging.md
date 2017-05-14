@@ -75,8 +75,16 @@ a buffer with 6 bytes of pre-padding.
 ### The `init` message
 
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
-Odd features are optional, even features are compulsory (_it's OK to be odd_).
-The meaning of these bits will be defined in the future.
+[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is represented in `globalfeatures` or `localfeatures` by 2 bits. First bit (Most Significant Bit First notation) indicates if the feature is supported or not, second one indicates if the feature is required by party emitted message or not. Thus 2-bits field can indicate:
+
+| | |
+|---|---|
+|`0b11` | Party emitted message supports this feature but doesn't require it|
+|`0b10` | Party emitted message supports this feature and requires it|
+|`0b01` | Party emitted message doesn't suppot this feature and doesn't require it|
+|`0b00` | Ignore: it is padding.|
+
+Both fields `globalfeatures` and `localfeatures` should be padded to ceil number of bytes.
 
 1. type: 16 (`init`)
 2. data:
@@ -89,16 +97,18 @@ The 2 byte `gflen` and `lflen` fields indicate the number of bytes in the immedi
 
 #### Requirements
 
-The sending node MUST send `init` as the first lightning message for any
+Each node MUST send `init` as the first lightning message for any
 connection.
 The sending node SHOULD use the minimum lengths required to represent
-the feature fields.  The sending node MUST set feature bits
-corresponding to features it requires the peer to support, and SHOULD
-set feature bits corresponding to features it optionally supports.
+the feature fields.  
 
-The receiving node MUST fail the channels if it receives a
-`globalfeatures` or `localfeatures` with an even bit set which it does
-not understand.
+The sending node SHOULD set first feature bit to `0b1` for supported features, and MUST set second feature bit to `0b1` for required features.
+
+The receiving node MUST fail the connection if it receives a message in which unsupported or unknown feature has second bit set to `0b0`.
+
+The receiving node MUST fail the connection if it receives a message in which required (by receiving node) feature has first bit set to `0b0`.
+
+The receiving node MUST NOT use feature during session if it receives a message in which this feature has first bit set to `0b0`.
 
 Each node MUST wait to receive `init` before sending any other messages.
 
