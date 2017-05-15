@@ -79,7 +79,7 @@ Once authentication is complete, the first message reveals the features supporte
 
 | | |
 |---|---|
-|`0b11` | Ignore: Undefined behviour |
+|`0b11` | Ignore: Undefined behavior |
 |`0b10` | Party emitted message supports this feature but it is optional|
 |`0b01` | Party emitted message requires this feature|
 |`0b00` | Ignore: it is padding.|
