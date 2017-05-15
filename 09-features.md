@@ -12,10 +12,10 @@ These flags may only be used in the `init` message, and are generally assigned i
 Flags begin at bit 0 (ie. 0x1), and odd-numbered flags (eg. 0x2) are optional.
 
 
-| Bits | Name             |Description                                     | Link                                                                |
-|------|------------------|------------------------------------------------|---------------------------------------------------------------------|
-| 0/1  | `channels_public` | The sending node wishes to announce channels | [BOLT #7](07-routing-gossip.md#the-announcement_signatures-message) |
-| 2/3  | `initial_routing_sync` | The sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
+| Bits | Name             |Description                                     | Link                                                                |  Feature bits semantic |
+|------|------------------|------------------------------------------------|---------------------------------------------------------------------|---|
+| 0/1  | `channels_public` | The sending node wishes to announce channels | [BOLT #7](07-routing-gossip.md#the-announcement_signatures-message) | Default |
+| 2/3  | `initial_routing_sync` | The sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) | Default |
 
 ## Assigned `globalfeatures` flags
 
