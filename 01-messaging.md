@@ -84,7 +84,7 @@ Once authentication is complete, the first message reveals the features supporte
 |`0b01` | Party emitted message requires this feature|
 |`0b00` | Ignore: it is padding.|
 
-However each known feature can define it's own semantic for bits (see [BOLT #9](09-features.md)). ⚠️ Note, this part of specification is under development yet.
+However each known feature can define it's own semantic for bits (see [BOLT #9](09-features.md)). Note, this part of specification is under development yet.
 
 Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with zeros.
 
