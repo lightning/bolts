@@ -395,10 +395,14 @@ secrets are known (i.e., `localkey` and `local-delayedkey` only):
 
 ### `revocationkey` Derivation
 
-The revocationkey is a blinded key: the remote node provides the base,
-and the local node provides the blinding factor which it later
-reveals, so the remote node can use the secret revocationkey for a
-penalty transaction.
+The `revocationkey` is a blinded key: when a node wishes to create a new
+commitment for a remote node, it uses its `revocation-basepoint` and the remote
+node's `per_commitment_point` to derive a new `revocationkey` for the
+commitment. Once the remote node reveals (thereby revoking that commitment) the
+`per_commitment_secret` used, they using their `revocation_basepoint`, the node
+can now derive the `revocationsecretkey` as they now know the two-secrets
+necessary to derive the key (`revocation_basepoint_secret` and
+`per_commitment_secret`).
 
 The `per-commitment-point` is generated using EC multiplication:
 
