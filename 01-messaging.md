@@ -75,16 +75,18 @@ a buffer with 6 bytes of pre-padding.
 ### The `init` message
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is represented in `globalfeatures` or `localfeatures` by 2 bits. First bit (Most Significant Bit First notation) indicates if the feature is supported or not, second one indicates if the feature is required by party emitted message or not. Thus 2-bits field can indicate:
+[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is represented in `globalfeatures` or `localfeatures` by 2 bits. Default meaning for bits:
 
 | | |
 |---|---|
-|`0b11` | Party emitted message supports this feature but doesn't require it|
-|`0b10` | Party emitted message supports this feature and requires it|
-|`0b01` | Party emitted message doesn't support this feature and doesn't require it|
+|`0b11` | Ignore: Undefined behviour |
+|`0b10` | Party emitted message supports this feature but it is optional|
+|`0b01` | Party emitted message requires this feature|
 |`0b00` | Ignore: it is padding.|
 
-Both fields `globalfeatures` and `localfeatures` should be padded to bytes.
+However each known feature can define it's own semantic for bits (see [BOLT #9](09-features.md)). ⚠️ Note, this part of specification is under development yet.
+
+Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with zeros.
 
 1. type: 16 (`init`)
 2. data:
@@ -102,19 +104,24 @@ connection.
 The sending node SHOULD use the minimum lengths required to represent
 the feature fields.  
 
-The sending node SHOULD set first feature bit to `0b1` for supported features, and MUST set second feature bit to `0b1` for required features.
+For known features node should follow this feature rules.
 
-The receiving node MUST fail the connection if it receives a message in which unsupported or unknown feature has second bit set to `0b0`.
+For unknown features and features without it's own semantic, node should follow default set of rules:
 
-The receiving node MUST fail the connection if it receives a message in which required (by receiving node) feature has first bit set to `0b0`.
+1. The sending node SHOULD set feature bits to `0b10` for optional features, and MUST set feature bits to `0b01` for required features.
 
-The receiving node MUST NOT use feature during session if it receives a message in which this feature has first bit set to `0b0`.
+2. The receiving node MUST fail the connection if it receives an `init` message in which unsupported or unknown feature has bits set to `0b01`.
+
+3. The receiving node MUST fail the connection if it receives a message in which required (by receiving node) feature has bits set to `0b00`.
+
+4. The receiving node MUST NOT use feature during session if it receives a message in which this feature has bits set to `0b00`.
+
 
 Each node MUST wait to receive `init` before sending any other messages.
 
 #### Rationale
 
-The even/odd semantic allows future incompatible changes, or backward
+This semantic allows future incompatible changes, or backward
 compatible changes.  Bits should generally be assigned in pairs, so
 that optional features can later become compulsory.
 
