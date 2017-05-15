@@ -286,7 +286,9 @@ A funder SHOULD perform unilateral close if it does not receive
 `funding_locked` after a reasonable timeout.
  
 A non-funding node SHOULD forget the channel if it does not see the
-funding transaction after a reasonable timeout.
+funding transaction after a reasonable timeout, and MAY forget the
+channel or perform unilateral close if it does not receive
+`funding_locked` after a reasonable timeout.
 
 #### Rationale
 
