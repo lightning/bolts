@@ -191,9 +191,9 @@ address type, followed by the appropriate number of bytes for that type.
 
 The following `address descriptor` types are defined:
 
-1. `0`: padding.  data = none (length 0).
-1. `1`: IPv4. data = `[4:ipv4_addr][2:port]` (length 6)
-2. `2`: IPv6. data = `[16:ipv6_addr][2:port]` (length 18)
+   * `0`: padding.  data = none (length 0).
+   * `1`: ipv4. data = `[4:ipv4_addr][2:port]` (length 6)
+   * `2`: ipv6. data = `[16:ipv6_addr][2:port]` (length 18)
 
 ### Requirements
 
