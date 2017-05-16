@@ -282,13 +282,12 @@ per-commitment point to be used for the following commitment
 transaction, derived as specified in
 [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
-A funder SHOULD perform unilateral close if it does not receive
-`funding_locked` after a reasonable timeout.
- 
 A non-funding node SHOULD forget the channel if it does not see the
-funding transaction after a reasonable timeout, and MAY forget the
-channel or perform unilateral close if it does not receive
-`funding_locked` after a reasonable timeout.
+funding transaction after a reasonable timeout.
+
+From the point of waiting for `funding_locked` onwards, a node MAY
+fail the channel if it does not receive a required response from the
+other node after a reasonable timeout.
 
 #### Rationale
 
