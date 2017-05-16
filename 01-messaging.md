@@ -75,16 +75,7 @@ a buffer with 6 bytes of pre-padding.
 ### The `init` message
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is represented in `globalfeatures` or `localfeatures` by 2 bits. Default meaning for bits:
-
-| | |
-|---|---|
-|`0b11` | Ignore: Undefined behavior |
-|`0b10` | Party emitted message supports this feature but it is optional|
-|`0b01` | Party emitted message requires this feature|
-|`0b00` | Ignore: it is padding.|
-
-However each known feature can define it's own semantic for bits (see [BOLT #9](09-features.md)). Note, this part of specification is under development yet.
+[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits.  The least-significant bit is numbered 0, which is even, and the next most significant bit is numbered 1, which is odd.
 
 Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with zeros.
 
@@ -104,18 +95,13 @@ connection.
 The sending node SHOULD use the minimum lengths required to represent
 the feature fields.  
 
-For known features node should follow this feature rules.
+The sender MUST set feature bits as defined in [BOLT #9](09-features.md),
+and MUST set to zero any feature bits that are not defined.
 
-For unknown features and features without it's own semantic, node should follow default set of rules:
-
-1. The sending node SHOULD set feature bits to `0b10` for optional features, and MUST set feature bits to `0b01` for required features.
-
-2. The receiving node MUST fail the connection if it receives an `init` message in which unsupported or unknown feature has bits set to `0b01`.
-
-3. The receiving node MUST fail the connection if it receives a message in which required (by receiving node) feature has bits set to `0b00`.
-
-4. The receiving node MUST NOT use feature during session if it receives a message in which this feature has bits set to `0b00`.
-
+The receiver MUST respond to known feature bits as specified in
+[BOLT #9](09-features.md).  For unknown feature bits which are
+non-zero, the receiver MUST ignore the bit if the bit number is odd,
+and MUST fail the connection if the bit number is even.
 
 Each node MUST wait to receive `init` before sending any other messages.
 
