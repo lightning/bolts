@@ -276,7 +276,7 @@ it wants to change fees.
     * [`4`:`timestamp`]
     * [`2`:`flags`]
     * [`2`:`cltv_expiry_delta`]
-    * [`4`:`htlc_minimum_msat`]
+    * [`8`:`htlc_minimum_msat`]
     * [`4`:`fee_base_msat`]
     * [`4`:`fee_proportional_millionths`]
 

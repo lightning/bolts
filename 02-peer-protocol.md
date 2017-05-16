@@ -90,7 +90,7 @@ desire to set up a new channel.
    * [`8`:`dust_limit_satoshis`]
    * [`8`:`max_htlc_value_in_flight_msat`]
    * [`8`:`channel_reserve_satoshis`]
-   * [`4`:`htlc_minimum_msat`]
+   * [`8`:`htlc_minimum_msat`]
    * [`4`:`feerate_per_kw`]
    * [`2`:`to_self_delay`]
    * [`2`:`max_accepted_htlcs`]
@@ -195,8 +195,8 @@ acceptance of the new channel.
    * [`8`:`dust_limit_satoshis`]
    * [`8`:`max_htlc_value_in_flight_msat`]
    * [`8`:`channel_reserve_satoshis`]
+   * [`8`:`htlc_minimum_msat`]
    * [`4`:`minimum_depth`]
-   * [`4`:`htlc_minimum_msat`]
    * [`2`:`to_self_delay`]
    * [`2`:`max_accepted_htlcs`]
    * [`33`:`funding_pubkey`]
@@ -571,7 +571,7 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 2. data:
    * [`32`:`channel_id`]
    * [`8`:`id`]
-   * [`4`:`amount_msat`]
+   * [`8`:`amount_msat`]
    * [`4`:`cltv_expiry`]
    * [`32`:`payment_hash`]
    * [`1366`:`onion_routing_packet`]
@@ -585,6 +585,10 @@ Fees") while maintaining its channel reserve, MUST offer
 `amount_msat` greater than 0, MUST NOT offer `amount_msat` below
 the receiving node's `htlc_minimum_msat`, and MUST set `cltv_expiry` less
 than 500000000.
+
+For channels with `chain_hash` identifying the Bitcoin blockchain, the
+sending node MUST set the 4 most significant bytes of `amount_msat` to
+zero.
 
 A sending node MUST NOT add an HTLC if it would result in it offering
 more than the remote's `max_accepted_htlcs` HTLCs in the remote commitment
@@ -601,6 +605,10 @@ maintaining its channel reserve.  A receiving node SHOULD fail the
 channel if a sending node adds more than its `max_accepted_htlcs` HTLCs to
 its local commitment transaction, or adds more than its `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction, or
 sets `cltv_expiry` to greater or equal to 500000000.
+
+For channels with `chain_hash` identifying the Bitcoin blockchain, the
+receiving node MUST fail the channel if the 4 most significant bytes
+of `amount_msat` are not zero.
 
 A receiving node MUST allow multiple HTLCs with the same payment hash.
 
@@ -638,6 +646,10 @@ as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation)
 
 `cltv_expiry` values equal or above 500000000 would indicate a time in
 seconds, and the protocol only supports an expiry in blocks.
+
+`amount_msat` is deliberately limited for this version of the
+specification; larger amounts are not necessary nor wise during the
+bootstrap phase of the network.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc` and `update_fail_malformed_htlc`
 
