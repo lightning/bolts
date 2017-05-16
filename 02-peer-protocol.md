@@ -238,7 +238,7 @@ The recipient MUST fail the channel if `signature` is incorrect.
 
 #### Rationale
 
-The `funding_output_index` can only be 2 bytes, since that's how we'll pack it into the channel-id used throughout the gossip protocol.  The limit of 65535 outputs should not be overly burdensome.
+The `funding_output_index` can only be 2 bytes, since that's how we'll pack it into the `channel_id` used throughout the gossip protocol.  The limit of 65535 outputs should not be overly burdensome.
 
 A transaction with all Segregated Witness inputs is not malleable, hence the recommendation for the funding transaction.
 
@@ -694,7 +694,7 @@ A receiving node MUST check that the `payment_preimage` value in
 A receiving node MUST fail the channel if the `BADONION` bit in
 `failure_code` is not set for `update_fail_malformed_htlc`.
 
-A receiving node MAY check the `sha256-of-onion` in
+A receiving node MAY check the `sha256_of_onion` in
 `update_fail_malformed_htlc` and MAY retry or choose an alternate
 error response if it does not match the onion it sent.
 
@@ -702,7 +702,7 @@ Otherwise, a receiving node which has an outgoing HTLC canceled by
 `update_fail_malformed_htlc` MUST return an error in the
 `update_fail_htlc` sent to the link which originally sent the HTLC
 using the `failure_code` given and setting the data to
-`sha256-of-onion`.
+`sha256_of_onion`.
 
 #### Rationale
 
