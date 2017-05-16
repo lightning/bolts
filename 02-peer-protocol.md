@@ -261,6 +261,8 @@ The sender MUST set `channel_id` by exclusive-OR of the `funding_txid` and the `
 
 The recipient MUST fail the channel if `signature` is incorrect.
 
+The recipient SHOULD broadcast the funding transaction on receipt of a valid `funding_signed` and MUST NOT broadcast the funding transaction earlier.
+
 ### The `funding_locked` message
 
 This message indicates that the funding transaction has reached the `minimum_depth` asked for in `accept_channel`.  Once both nodes have sent this, the channel enters normal operating mode.
@@ -279,6 +281,24 @@ The sender MUST set `next_per_commitment_point` to the
 per-commitment point to be used for the following commitment
 transaction, derived as specified in
 [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+
+A non-funding node SHOULD forget the channel if it does not see the
+funding transaction after a reasonable timeout.
+
+From the point of waiting for `funding_locked` onwards, a node MAY
+fail the channel if it does not receive a required response from the
+other node after a reasonable timeout.
+
+#### Rationale
+
+The funder normally needs to unilateral close to get its funds back if
+the other node doesn't respond, though a large `push_msat` may make
+this uneconomical.
+
+The non-funder can simply forget the channel ever existed, since no
+funds are at risk; even if `push_msat` is significant, if it remembers
+the channel forever on the promise of the funding transaction finally
+appearing, there is a denial of service risk.
 
 #### Future
 
@@ -683,8 +703,11 @@ SHOULD fail an HTLC which has timed out.
 A node MUST NOT send `update_fulfill_htlc` until an HTLC is
 irrevocably committed in both sides' commitment transactions.
 
-A receiving node MUST check that `id` corresponds to an HTLC in its
-current commitment transaction, and MUST fail the channel if it does
+A receiving node MUST ignore a repeated `id` after a
+reconnection if the sender did not previously acknowledge the
+commitment of that HTLC, otherwise
+a receiving node SHOULD check that `id` corresponds to an HTLC in its
+current commitment transaction, and SHOULD fail the channel if it does
 not.
 
 A receiving node MUST check that the `payment_preimage` value in
@@ -894,9 +917,15 @@ any message), they are independent of requirements here.
 ### Requirements
 
 A node MUST handle continuing a previous channel on a new encrypted
-transport.  On disconnection, a node MAY forget nodes which have not
-sent or received an `accept_channel` message, and MAY forget nodes
-which have not sent `funding_locked` after a reasonable timeout.
+transport.
+
+On disconnection, the funder MUST remember the channel for
+reconnection if it has broadcast the funding transaction, otherwise it
+MUST NOT.
+
+On disconnection, the non-funding node MUST remember the channel for
+reconnection if it has sent the `funding_signed` message, otherwise
+it MUST NOT.
 
 On disconnection, a node MUST reverse any uncommitted updates sent by
 the other side (ie. all messages beginning with `update_` for which no
@@ -904,30 +933,27 @@ the other side (ie. all messages beginning with `update_` for which no
 already use the `payment_preimage` value from the `update_fulfill_htlc`,
 so the effects of `update_fulfill_htlc` is not completely reversed.
 
-On reconnection, a node MUST retransmit old messages which may not
+On reconnection, if a channel is in an error state, the node SHOULD
+retransmit the error packet and ignore any other packets for that
+channel, or if the channel has entered closing negotiation, the node
+MUST retransmit the last `closing_signed`.
+
+Otherwise, a node MUST retransmit old messages after `funding_signed` which may not
 have been received, and MUST NOT retransmit old messages which have
 been explicitly or implicitly acknowledged.  The following table
 lists the acknowledgment conditions for each message:
 
-* `open_channel`: acknowledged by `accept_channel`.
-* `accept_channel`: acknowledged by `funding_created`.
-* `funding_created`: acknowledged by `funding_signed`.
-* `funding_signed`: acknowledged by `funding_locked`.
 * `funding_locked`: acknowledged by `update_` messages, `commitment_signed`, `revoke_and_ack` or `shutdown` messages.
 * `update_` messages: acknowledged by `revoke_and_ack`.
 * `commitment_signed`: acknowledged by `revoke_and_ack`.
 * `revoke_and_ack`: acknowledged by `commitment_signed` or `closing_signed`
 * `shutdown`: acknowledged by `closing_signed`.
 
-The last `closing_signed` (if any) must always be retransmitted, as there
-is no explicit acknowledgment.
+On reconnection, the node MUST retransmit all `update_` messages, and
+MAY transmit additional updates before `commitment_signed`, with the
+exception that `update_fee` MAY be retransmitted with a different value.
 
-Before retransmitting `commitment_signed`, the node MUST send
-appropriate `update_` messages (the other node will have forgotten
-them, as required above).
-
-A node MAY simply retransmit messages which are identical to the
-previous transmission.  A node MUST not assume that
+A node MUST not assume that
 previously-transmitted messages were lost: in particular, if it has
 sent a previous `commitment_signed` message, a node MUST handle the
 case where the corresponding commitment transaction is broadcast by
@@ -937,6 +963,36 @@ previously sent.
 
 A receiving node MAY ignore spurious message retransmission, or MAY
 fail the channel if they occur.
+
+### Rationale
+
+The effect of requirements above are that the opening phase is almost
+atomic: if it doesn't complete, it starts again.  The only exception
+is where the `funding_signed` message is sent and not received: in
+this case, the funder will forget the channel and presumably open
+a new one on reconnect; the other node will eventually forget the
+original channel due to never receiving `funding_locked`.
+
+For normal operation and during shutdown, the loss of `revoke_and_ack` can cause
+an entire retransmission of the previous updates and commitment:
+this is OK, as the recipient will simply ignore duplicates (as
+documented in the requirements for [`update_add_htlc`](#adding-an-htlc-update_add_htlc) and [Removing an HTLC](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc).
+
+Retransmission is required to be a super-set of the original, to give
+the same result whether the first transmission was committed or
+not. But note that technically `update_fee` is always a super-set of
+any previous `update_fee` because it simply replaces it.
+
+This means that the receiving node may or may not forget `update_`
+until it sends out `revoke_and_ack`; it does not have to commit them
+to permanent storage.
+
+Once an acceptable `closing_signed` has been received, the protocol
+guarantees that it will be better to use than any previous
+`closing_signed` or commitment transaction, so only the latest
+`closing_signed` need be kept.  However, as there is no explicit
+acknowledgment message, the last `closing_signed` is always
+retransmitted.
 
 # Authors
 
