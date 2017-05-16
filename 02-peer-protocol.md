@@ -904,7 +904,12 @@ the other side (ie. all messages beginning with `update_` for which no
 already use the `payment_preimage` value from the `update_fulfill_htlc`,
 so the effects of `update_fulfill_htlc` is not completely reversed.
 
-On reconnection, a node MUST retransmit old messages which may not
+On reconnection, if a channel is in an error state, the node SHOULD
+retransmit the error packet and ignore any other packets for that
+channel, or if the channel has entered closing negotiation, the node
+MUST retransmit the last `closing_signed`.
+
+Otherwise, on reconnection, a node MUST retransmit old messages which may not
 have been received, and MUST NOT retransmit old messages which have
 been explicitly or implicitly acknowledged.  The following table
 lists the acknowledgment conditions for each message:
@@ -918,9 +923,6 @@ lists the acknowledgment conditions for each message:
 * `commitment_signed`: acknowledged by `revoke_and_ack`.
 * `revoke_and_ack`: acknowledged by `commitment_signed` or `closing_signed`
 * `shutdown`: acknowledged by `closing_signed`.
-
-The last `closing_signed` (if any) must always be retransmitted, as there
-is no explicit acknowledgment.
 
 Before retransmitting `commitment_signed`, the node MUST send
 appropriate `update_` messages (the other node will have forgotten
@@ -937,6 +939,16 @@ previously sent.
 
 A receiving node MAY ignore spurious message retransmission, or MAY
 fail the channel if they occur.
+
+### Rationale
+
+There's no acknowledgment for `error`, so if a reconnect occurs it's
+polite to retransmit before disconnecting again, but it's not a MUST
+because there are also occasions where a node can simply forget the
+channel altogether.
+
+There is similarly no acknowledgment for `closing_signed`, so it
+is also retransmitted on reconnection.
 
 # Authors
 
