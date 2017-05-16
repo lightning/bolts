@@ -111,7 +111,7 @@ This output sends funds to the other peer, thus is a simple P2WPKH to `remotekey
 This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or to the remote peer using the payment preimage or the revocation key.  The output is a P2WSH, with a witness script:
 
     # To you with revocation key
-    OP_DUP OP_HASH160 <RIPEMD160(revocationkey)> OP_EQUAL
+    OP_DUP OP_HASH160 <HASH160(revocationkey)> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
@@ -141,7 +141,7 @@ The sending node can use the HTLC-timeout transaction to time out the HTLC once 
 This output sends funds to the remote peer after the HTLC timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
 
     # To you with revocation key
-    OP_DUP OP_HASH160 <RIPEMD160(revocationkey)> OP_EQUAL
+    OP_DUP OP_HASH160 <HASH160(revocationkey)> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
