@@ -261,6 +261,8 @@ The sender MUST set `channel_id` by exclusive-OR of the `funding_txid` and the `
 
 The recipient MUST fail the channel if `signature` is incorrect.
 
+The recipient SHOULD broadcast the funding transaction on receipt of a valid `funding_signed` and MUST NOT broadcast the funding transaction earlier.
+
 ### The `funding_locked` message
 
 This message indicates that the funding transaction has reached the `minimum_depth` asked for in `accept_channel`.  Once both nodes have sent this, the channel enters normal operating mode.
@@ -279,6 +281,20 @@ The sender MUST set `next_per_commitment_point` to the
 per-commitment point to be used for the following commitment
 transaction, derived as specified in
 [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+
+A non-funding node SHOULD forget the channel if it does not see the
+funding transaction after a reasonable timeout.
+
+From the point of waiting for `funding_locked` onward, a node MAY
+fail the channel if it does not receive a required response from the
+other node after a reasonable timeout.
+
+#### Rationale
+
+The non-funder can simply forget the channel ever existed, since no
+funds are at risk; even if `push_msat` is significant, if it remembers
+the channel forever on the promise of the funding transaction finally
+appearing, there is a denial of service risk.
 
 #### Future
 
@@ -894,9 +910,15 @@ any message), they are independent of requirements here.
 ### Requirements
 
 A node MUST handle continuing a previous channel on a new encrypted
-transport.  On disconnection, a node MAY forget nodes which have not
-sent or received an `accept_channel` message, and MAY forget nodes
-which have not sent `funding_locked` after a reasonable timeout.
+transport.
+
+On disconnection, the funder MUST remember the channel for
+reconnection if it has broadcast the funding transaction, otherwise it
+MUST NOT.
+
+On disconnection, the non-funding node MUST remember the channel for
+reconnection if it has sent the `funding_signed` message, otherwise
+it MUST NOT.
 
 On disconnection, a node MUST reverse any uncommitted updates sent by
 the other side (ie. all messages beginning with `update_` for which no
@@ -909,15 +931,11 @@ retransmit the error packet and ignore any other packets for that
 channel, or if the channel has entered closing negotiation, the node
 MUST retransmit the last `closing_signed`.
 
-Otherwise, on reconnection, a node MUST retransmit old messages which may not
+Otherwise, on reconnection, a node MUST retransmit old messages after `funding_signed` which may not
 have been received, and MUST NOT retransmit old messages which have
 been explicitly or implicitly acknowledged.  The following table
 lists the acknowledgment conditions for each message:
 
-* `open_channel`: acknowledged by `accept_channel`.
-* `accept_channel`: acknowledged by `funding_created`.
-* `funding_created`: acknowledged by `funding_signed`.
-* `funding_signed`: acknowledged by `funding_locked`.
 * `funding_locked`: acknowledged by `update_` messages, `commitment_signed`, `revoke_and_ack` or `shutdown` messages.
 * `update_` messages: acknowledged by `revoke_and_ack`.
 * `commitment_signed`: acknowledged by `revoke_and_ack`.
@@ -941,6 +959,14 @@ A receiving node MAY ignore spurious message retransmission, or MAY
 fail the channel if they occur.
 
 ### Rationale
+
+The effect of requirements above are that the opening phase is almost
+atomic: if it doesn't complete, it starts again.  The only exception
+is where the `funding_signed` message is sent and not received: in
+this case, the funder will forget the channel and presumably open
+a new one on reconnect; the other node will eventually forget the
+original channel due to never receiving `funding_locked` or seeing
+the funding transaction on-chain.
 
 There's no acknowledgment for `error`, so if a reconnect occurs it's
 polite to retransmit before disconnecting again, but it's not a MUST
