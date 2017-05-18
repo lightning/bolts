@@ -15,6 +15,7 @@ Because Lightning is designed to be trustless, there is no risk of loss of funds
 # Table of Contents
   * [General Nomenclature](#general-nomenclature)
   * [Commitment Transaction](#commitment-transaction)
+  * [Failing A Channel](#failing-a-channel)
   * [Mutual Close Handling](#mutual-close-handling)
   * [Unilateral Close Handling](#unilateral-close-handling)
   * [On-chain HTLC Output Handling: Our Offers](#on-chain-htlc-output-handling-our-offers)
@@ -95,6 +96,43 @@ As an incentive for A and B to cooperate, an `OP_CHECKSEQUENCEVERIFY` relative t
 
 
 See [BOLT #3: Commitment Transaction](03-transactions.md#commitment-transaction) for more details.
+
+
+# Failing A Channel
+
+Various error cases involve closing a channel, and this can be done in
+several ways; the most efficient is preferred.  Note that there are
+requirements around sending the error message to the peer in
+[BOLT #1: The `error` message](01-messaging.md#the-error-message).
+
+## Requirements
+
+- If no local commitment transaction ever contained a `to_local`
+  or HTLC output, the node MAY simply forget the channel.
+- Otherwise, if the current commitment transaction does not contain
+  `to_local` or HTLC outputs, a node MAY simply wait and rely on the
+  other node to close, but MUST not forget the channel.
+- Otherwise, if the node has received a valid `closing_signed` message
+  with high enough fee level, it SHOULD use that to perform a mutual
+  close.
+- Otherwise, it MUST use the last commitment transaction for which it
+  has a signature to perform unilateral close.
+
+## Rationale
+
+Since `dust_limit_satoshis` is supposed to prevent uneconomic output
+creation (which would be left unspent forever in the blockchain), we
+insist on spending the commitment transaction outputs.
+
+In the early stages of a channel, it's common for one side to have
+little or no money in the channel; with nothing to lose, there's no
+reason to consume resources monitoring the channel state.
+
+There's a bias towards using mutual close over unilateral because
+outputs are unencumbered by delay, directly spendable by wallets, and
+because fees tend to be less exaggerated than commitment transactions:
+thus the only reason not to use the signature from `closing_signed`
+would be if the fee offered was too small for it to be processed.
 
 
 # Mutual Close Handling
