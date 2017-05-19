@@ -166,6 +166,19 @@ Nodes forwarding HTLCs MUST construct the outgoing HTLC as specified within
 `per_hop`.  Otherwise, deviation from the specified HTLC parameters
 may lead to extraneous routing failure.
 
+### Payload for the last node
+
+The last node in the route could just discard its payload since it will not forward payments. However, when building the route, the original
+sender must use a payload for the last node with the following values:
+* `outgoing_cltv_value` is set to the final expiry specified by the recipient
+* `amt_to_forward` is set to the final amount specified by the recipient
+
+This way, the final node can check these values and return errors if needed, which will defeat probing attacks by the next to last node which could
+try to find out if the next node is the last one (by re-sending HTLCs with different amounts/expiries):
+
+The last node will extract its onion payload from the HTLC it has received and compare its values to the HTLC values.
+See the [Returning Errors](#returning-errors) section below for more details.
+
 ## Packet Construction
 
 Assuming a _sender node_ `n_0` wants to route a packet to a _final recipient_ `n_r`.
@@ -487,9 +500,9 @@ If the ephemeral key in the onion is unparsable:
    * [`32`:`sha256_of_onion`]
 
 If an otherwise unspecified transient error occurs for the outgoing
-channel (eg. peer unresponsive, channel capacity reached):
+channel (eg. channel capacity reached, too many in-flight htlc):
 
-1. type: 7 (`temporary_channel_failure`)
+1. type: UPDATE|7 (`temporary_channel_failure`)
 2. data:
    * [`2`:`len`]
    * [`len`:`channel_update`]
@@ -546,6 +559,15 @@ setting for the outgoing channel:
 2. data:
    * [`2`:`len`]
    * [`len`:`channel_update`]
+   
+If the channel is disabled, we tell them the the current channel
+setting for the outgoing channel:
+   
+1. type: UPDATE|20 (`channel_disabled`)
+2. data:
+   * [`2`: `flags`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
 
 The final node may return one of the following errors, intermediate
 nodes MUST NOT:
@@ -575,7 +597,7 @@ HTLC at the final hop:
 2. data:
    * [`4`:`cltv_expiry`]
 
-If the `amt_to_forward` does not match the `incoming_htlc_amt` of
+If the `amt_to_forward` is higher than `incoming_htlc_amt` of
 the HTLC at the final hop:
 
 1. type: 19 (`final_incorrect_htlc_amount`)
