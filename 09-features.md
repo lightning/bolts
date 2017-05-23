@@ -31,7 +31,7 @@ Additional requirements:
 
 * `channels_public`: the sender MUST set exactly one of these bits if
    it wants to announce the channel publicly, otherwise it MUST set
-   neither.  If it sets one it MUST set the even bit if will fail the
+   neither.  If it sets one it MUST set the even bit if it will fail the
    connection if the other node does not also set one of the
    `channels_public` bits, otherwise it MUST set the odd bit.  The
    receiver MUST terminate the connection if neither `channels_public`
