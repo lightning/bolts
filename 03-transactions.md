@@ -110,7 +110,7 @@ This output sends funds to the other peer, thus is a simple P2WPKH to `remotekey
 This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or to the remote peer using the payment preimage or the revocation key.  The output is a P2WSH, with a witness script:
 
     # To you with revocation key
-    OP_DUP OP_HASH160 <RIPEMD160(revocationkey)> OP_EQUAL
+    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationkey))> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
@@ -140,7 +140,7 @@ The sending node can use the HTLC-timeout transaction to time out the HTLC once 
 This output sends funds to the remote peer after the HTLC timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
 
     # To you with revocation key
-    OP_DUP OP_HASH160 <RIPEMD160(revocationkey)> OP_EQUAL
+    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationkey))> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
@@ -614,8 +614,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
     accepted_htlc_script: 139 bytes
         - OP_DUP: 1 byte
         - OP_HASH160: 1 byte
-        - OP_DATA: 1 byte (RIPEMD160(revocationkey) length)
-        - revocationkey-hash: 20 bytes
+        - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationkey)) length)
+        - RIPEMD160(SHA256(revocationkey)): 20 bytes
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_CHECKSIG: 1 byte
@@ -650,8 +650,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
     offered_htlc_script: 133 bytes
         - OP_DUP: 1 byte
         - OP_HASH160: 1 byte
-        - OP_DATA: 1 byte (RIPEMD160(revocationkey) length)
-        - revocationkey-hash: 20 bytes
+        - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationkey)) length)
+        - RIPEMD160(SHA256(revocationkey)): 20 bytes
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_CHECKSIG: 1 byte
