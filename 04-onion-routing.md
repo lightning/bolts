@@ -110,9 +110,9 @@ only `realm` 0 is defined, and for that, the `per_hop` format is:
 1. type: `per_hop` (for `realm` 0)
 2. data:
    * [`8`:`channel_id`]
-   * [`4`:`amt_to_forward`]
+   * [`8`:`amt_to_forward`]
    * [`4`:`outgoing_cltv_value`]
-   * [`16`:`padding`]
+   * [`12`:`padding`]
 
 Using the `per_hop`, the sender is able to precisely specify the path and
 structure of the HTLCs forwarded at each hop. As the `per_hop` is
@@ -527,7 +527,7 @@ the outgoing channel:
 
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
-   * [`4`:`htlc_msat`]
+   * [`8`:`htlc_msat`]
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
@@ -537,7 +537,7 @@ channel:
 
 1. type: UPDATE|12 (`fee_insufficient`)
 2. data:
-   * [`4`:`htlc_msat`]
+   * [`8`:`htlc_msat`]
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
