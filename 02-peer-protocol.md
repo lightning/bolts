@@ -937,11 +937,11 @@ transport.
 
 On disconnection, the funder MUST remember the channel for
 reconnection if it has broadcast the funding transaction, otherwise it
-MUST NOT.
+SHOULD NOT.
 
 On disconnection, the non-funding node MUST remember the channel for
 reconnection if it has sent the `funding_signed` message, otherwise
-it MUST NOT.
+it SHOULD NOT.
 
 On disconnection, a node MUST reverse any uncommitted updates sent by
 the other side (ie. all messages beginning with `update_` for which no
@@ -998,6 +998,16 @@ channel altogether.
 
 There is similarly no acknowledgment for `closing_signed`, so it
 is also retransmitted on reconnection.
+
+A previous draft insisted that the funder "MUST remember ...if it has
+broadcast the funding transaction, otherwise it MUST NOT": this was in
+fact an impossible requirement, as a node must either first commit to
+disk then broadcast the transaction, or the other way around.  The new
+language reflects this reality: it's surely better to remember a
+channel which hasn't been broadcast than forget one which has!
+Similarly, for the fundee's `funding_signed` message; better to
+remember a channel which never opens (and time out) than let the
+funder open it with the funder having forgotten it.
 
 # Authors
 
