@@ -44,14 +44,6 @@ The recipient SHOULD queue the `channel_announcement` message for its peers if i
 
 On reconnection, a node SHOULD retransmit the `announcement_signatures` message if it has not received an `announcement_signatures` message, and MUST respond to the first `announcement_signatures` message after reconnection with its own `announcement_signatures` message.
 
-#### メモ
-
-`announcement_signatures` は、lnd実装では `funding_locked` の送信直後に作成しているように見える。
-それだけでなく、`channel_announcement`, `update_channel`も同時に作成している。  
-`channel_announcement`には両nodeの署名が含まれるため単独で送信はできないし、`update_channel`は`channel_announcement`を送信していないと意味を持たない。  
-おそらく、`announcement_signatures`をノード間で交換し、パラメータの署名を`channel_announcement`に反映させてから送信するものと思われる。
-
-
 ## The `channel_announcement` message
 
 This message contains ownership information about a channel.  It ties
