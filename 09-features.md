@@ -8,7 +8,7 @@ The `features` flags in the routing messages are a subset of the `globalfeatures
 Flags are numbered from the least-significant bit at bit 0 (ie. 0x1,
 an even bit).  They are generally assigned in pairs, so that features
 can be introduced as optional (odd bits), and later upgraded to refuse
-old nodes (even bits).  See [BOLT #1: The `init` message](#the-init-message).
+old nodes (even bits).  See [BOLT #1: The `init` message](01-messaging.md#the-init-message).
 
 ## Assigned `localfeatures` flags
 
