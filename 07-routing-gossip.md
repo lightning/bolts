@@ -28,7 +28,7 @@ The willingness of the endpoints to announce the channel is signaled during the 
 
 ### Requirements
 
-If both endpoints have signaled that they'd like to publish the channel then the `announcement_signatures` message MUST be sent, otherwise they MUST NOT be sent.
+If the `open_channel` message had the `announce_channel` bit set, then both nodes must send the `announcement_signatures` message, otherwise they MUST NOT.
 
 If sent, `announcement_signatures` messages MUST NOT be sent until `funding_locked` has been sent, and the funding transaction is has at least 6 confirmations.
 
