@@ -11,8 +11,8 @@ The format for a lightning invoice uses
 [bech32 encoding](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki),
 which is already proposed for bitcoin Segregated Witness, and can be
 simply reused here even though its 6-character checksum is optimized
-for human errors, which are unlikely given the length of lightning
-invoices.
+for manual entry, which is unlikely to happen often given the length
+of lightning invoices.
 
 ## Requirements
 
@@ -98,7 +98,7 @@ Each Tagged Field is of format:
 
 Currently defined Tagged Fields are:
 
-* `d` (13): short description of purpose of payment,  e.g. '1 cup of coffee'
+* `d` (13): short description of purpose of payment (ASCII),  e.g. '1 cup of coffee'
 * `h` (23): 256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
 * `x` (6): `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
 * `f` (9): fallback on-chain address.  For bitcoin, this is 5 bits of
@@ -217,7 +217,7 @@ Breakdown:
 * `m7ghcn`: Bech32 checksum
 
 > ### Please send $3 for a cup of coffee to the same peer, within 1 minute
-> lnbc2500u1qpvj6chqqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqz8slk6hqew9z5kzxyk33ast248j3ykmu3wncvgtgk0ewf5c6qnhen45vr43fmtzsh02j6ns096tcpfga0yfykc79e5uw3gh5ltr96q00zqppy6lfy
+> lnbc2500u1qpvjlmewqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpue3cr0f2upddj0jf8nh7wesx5lf648kyhv57x5dgc6w5cxlwh4usr4z2sw947flahwrq7u7ps653fxfyvtswkqymu8vy6t3qsxyrmf2cpe23p7k
 
 Breakdown:
 
@@ -225,10 +225,16 @@ Breakdown:
 * `2500u`: amount (2500 micro-bitcoin)
 * `1`: Bech32 separator
 * `q`: version (0)
-* `pvj6chq`: timestamp (1496146656)
+* `qpvjlme`: timestamp (1496313646)
 * `qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq`: payment hash.
-* `dq5xysxxatsyp3k7enxv4jsxqz8slk6hqew9z5kzxyk33ast248j3ykmu3wncvgtgk0ewf5c6qnhen45vr43fmtzsh02j6ns096tcpfga0yfykc79e5uw3gh5ltr96q00zqp`: signature
-* `py6lfy`: Bech32 checksum
+* `d`: short description
+  * `q5`: field length (`q` = 0, `5` = 20. 0 * 32 + 20 == 20)
+  * `dq5xysxxatsyp3k7enxv4js`: '1 cup coffee'
+* `x`: expiry time
+  * `qz`: field length (`q` = 0, `z` = 2. 0 * 32 + 2 == 2)
+  * `pu`: 60 seconds (`p` = 1, `u` = 28.  1 * 32 + 28 == 60)
+* `e3cr0f2upddj0jf8nh7wesx5lf648kyhv57x5dgc6w5cxlwh4usr4z2sw947flahwrq7u7ps653fxfyvtswkqymu8vy6t3qsxyrmf2cp`: signature
+* `e23p7k`: Bech32 checksum
 
 > ### Now send $24 for an entire list of things (hashed)
 > lnbc20m1qpvj6chqqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqscpt2ld45dqewrllnmf6hj355nfeypurkr6a2d0neyq2e6g9u6ur9tl7e7drhglfrn9yxk2cdujutuqksx2agqv8mphl0mzjrwm6k59qq2mnedn
