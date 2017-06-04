@@ -88,16 +88,16 @@ implied.
 Each Tagged Field is of format:
 
 1. `type` (5 bits)
-1. `length` (10 bits, big-endian)
-1. `data` (length x 5 bits)
+1. `data_length` (10 bits, big-endian)
+1. `data` (`data_length` x 5 bits)
 
 Currently defined Tagged Fields are:
 
-* `p` (1): length 52.  256-bit SHA256 payment_hash: preimage of this provides proof of payment.
-* `d` (13): length variable.  short description of purpose of payment (ASCII),  e.g. '1 cup of coffee'
-* `h` (23): length 52.  256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
-* `x` (6): length variable.  `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
-* `f` (9): length variable, depending in version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or p2pkh or p2sh address.
+* `p` (1): `data_length` 52.  256-bit SHA256 payment_hash: preimage of this provides proof of payment.
+* `d` (13): `data_length` variable.  short description of purpose of payment (ASCII),  e.g. '1 cup of coffee'
+* `h` (23): `data_length` 52.  256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
+* `x` (6): `data_length` variable.  `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
+* `f` (9): `data_length` variable, depending in version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or p2pkh or p2sh address.
 * `r` (3): extra routing information.  This should be appended to the route
       to allow routing to non-public nodes; there may be more than one of these.
    * `pubkey` (264 bits)
@@ -112,7 +112,7 @@ the SHA-2 256-bit hash of the `payment_preimage` which will be given
 in return for payment.
 
 A writer MUST NOT include more than one `d`, `h`, or `x` fields, and
-MAY include more then one `f` field.
+MAY include more than one `f` field.
 
 A writer MUST include either a `d` or `h` field, and MUST NOT include
 both.  If included, a writer SHOULD make `d` a complete description of
@@ -120,7 +120,7 @@ the purpose of the payment.  If included, a writer MUST make the preimage
 of the hashed description in `h` available through some unspecified means,
 which SHOULD be a complete description of the purpose of the payment.
 
-A writer SHOULD use the minimum `x` field length possible.
+A writer SHOULD use the minimum `x` `data_length` possible.
 
 If a writer offers more than one of any field type, it MUST specify
 the most-preferred field first, followed by less-preferred fields in
@@ -139,10 +139,10 @@ currency units, and `cltv_expiry_delta` is the block delta required
 by the channel.  A writer MAY include more than one `r` field to
 indicate a sequence of non-public channels to traverse.
 
-A writer MUST pad fields to a multiple of 5 bits, using zeroes.
+A writer MUST pad field data to a multiple of 5 bits, using zeroes.
 
 A reader MUST skip over unknown fields, an `f` field with unknown
-`version`, or a `p`, `h` or `r` field which does not have length 52,
+`version`, or a `p`, `h` or `r` field which does not have ``data_length`` 52,
 52 or 79 respectively.
 
 A reader MUST check that the SHA-2 256 in the `h` field exactly
@@ -151,7 +151,7 @@ matches the hashed description.
 ### Rationale
 
 The type-and-length format allows future extensions to be backward
-compatible.  Lengths are always a multiple of 5 bits, for easy
+compatible.  `data_length` is always a multiple of 5 bits, for easy
 encoding and decoding.  For fields we expect may change, readers
 also ignore ones of different length.
 
@@ -178,7 +178,7 @@ preferred order help with transition, and `f` fields with versions 19-31
 will be ignored by readers.
 
 The `r` field allows limited routing assistance: as specified it only
-allows minimum information to use private fields, but it could also
+allows minimum information to use private channels, but it could also
 assist in future partial-knowledge routing.  Future formats are
 possible by altering the length, too.
 
@@ -225,7 +225,7 @@ Breakdown:
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage
-  * `p5`: field length (`p` = 1, `5` = 20. 1 * 32 + 20 == 52)
+  * `p5`: `data_length` (`p` = 1, `5` = 20. 1 * 32 + 20 == 52)
   * `qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq`: preimage 0001020304050607080900010203040506070809000102030405060708090102
 * `q7fshvguvjs864g4yj47aedw4y402hdl9g2tqqhyed3nuhr7c908g6uhq9llj7w3s58k3sej3tcg4weqxrxmp3cwxuvy9kfr0uzy8jgp`: signature
 * `y6uzal`: Bech32 checksum
@@ -241,10 +241,10 @@ Breakdown:
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage...
 * `d`: short description
-  * `q5`: field length (`q` = 0, `5` = 20. 0 * 32 + 20 == 20)
+  * `q5`: `data_length` (`q` = 0, `5` = 20. 0 * 32 + 20 == 20)
   * `dq5xysxxatsyp3k7enxv4js`: '1 cup coffee'
 * `x`: expiry time
-  * `qz`: field length (`q` = 0, `z` = 2. 0 * 32 + 2 == 2)
+  * `qz`: `data_length` (`q` = 0, `z` = 2. 0 * 32 + 2 == 2)
   * `pu`: 60 seconds (`p` = 1, `u` = 28.  1 * 32 + 28 == 60)
 * `azh8qt5w7qeewkmxtv55khqxvdfs9zzradsvj7rcej9knpzdwjykcq8gv4v2dl705pjadhpsc967zhzdpuwn5qzjm0s4hqm2u0vuhhqq`: signature
 * `7vc09u`: Bech32 checksum
@@ -260,7 +260,7 @@ Breakdown:
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage...
 * `h`: tagged field: hash of description
-  * `p5`: field length (`p` = 1, `5` = 20. 1 * 32 + 20 == 52)
+  * `p5`: `data_length` (`p` = 1, `5` = 20. 1 * 32 + 20 == 52)
   * `8yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs`: SHA256 of 'One piece of chocolate cake, one icecream cone, one pickle, one slice of swiss cheese, one slice of salami, one lollypop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon'
 * `vjfls3ljx9e93jkw0kw40yxn4pevgzflf83qh2852esjddv4xk4z70nehrdcxa4fk0t6hlcc6vrxywke6njenk7yzkzw0quqcwxphkcp`: signature
 * `vam37w`: Bech32 checksum
@@ -276,14 +276,14 @@ Breakdown:
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage...
 * `f`: tagged field: fallback address
-  * `pp`: field length (`p` = 1. 1 * 32 + 1 == 33)
+  * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `3x9et2e20v6pu37c5d9vax37wxq72un98`: `3` = 17, so P2PKH address
 * `h`: tagged field: hash of description...
 * `hp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsqh84fmvn2klvglsjxfy0vq2mz6t9kjfzlxfwgljj35w2kwa60qv49k7jlsgx43yhs9nuutllkhhnt090mmenuhp8ue33pv4klmrzlcqp`: signature
 * `us2s2r`: Bech32 checksum
 
 > ### On mainnet, with fallback address 1RustyRX2oai4EYYDpQGWvEL62BBGqN9T with extra routing info to get to node 029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255
-> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqrz0q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqq5qqqqqqcfpp3qjmp7lwpagxun9pygexvgpjdc4jdj85fhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsgynl5xtrzy2crkt7la2zmcqkk2avz3nsqkg7ceka43ayevm2f5ln4q9d0e2twcpmj957y8t5enxdqetemft2qjw8dta56g9xuctj43gq7wpjp9
+> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqrzjq20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqvfpp3qjmp7lwpagxun9pygexvgpjdc4jdj85fhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsjtf8rrkd7dujvdvrxhuk5a0tt9x9qh0t95jemn4tpen9y3nn7yt8jrmlyzffjh0hue8edkkq3090hruc8shpfu6wk4chfdvdusakycgpqtn4sp
 
 Breakdown:
 
@@ -293,12 +293,12 @@ Breakdown:
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage...
 * `r`: tagged field: route information
-  * `z0`: field length (`z` = 2, `0` = 15.  2 * 32 + 15 = 79)
-    `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqq5qqqqqqc`: pubkey `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `channel_id` 0102030405060708, `fee` 20 millisatoshi, `cltv_expiry_delta` 3.
+  * `zj`: `data_length` (`z` = 2, `j` = 18.  2 * 32 + 18 = 82)
+    `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqv`: pubkey `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `channel_id` 0102030405060708, `fee` 20 millisatoshi, `cltv_expiry_delta` 3.
 * `f`: tagged field: fallback address...
 * `h`: tagged field: hash of description...
-* `gynl5xtrzy2crkt7la2zmcqkk2avz3nsqkg7ceka43ayevm2f5ln4q9d0e2twcpmj957y8t5enxdqetemft2qjw8dta56g9xuctj43gq`: signature
-* `7wpjp9`: Bech32 checksum
+* `jtf8rrkd7dujvdvrxhuk5a0tt9x9qh0t95jemn4tpen9y3nn7yt8jrmlyzffjh0hue8edkkq3090hruc8shpfu6wk4chfdvdusakycgp`: signature
+* `qtn4sp`: Bech32 checksum
 
 > ### On mainnet, with fallback (p2sh) address 3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX
 > lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppj3a24vwu6r8ejrss3axul8rxldph2q7z93xufve9n04786ust96l3dj0cp22fw7wyvcjrdjtg57qws9u96n2kv4xf8x9yu2ja6f00vjgp5y4lvj30xxy0duwqgz8yfqypfmxgjksq00galp
@@ -311,7 +311,7 @@ Breakdown:
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage...
 * `f`: tagged field: fallback address.
-  * `pp`: field length (`p` = 1. 1 * 32 + 1 == 33)
+  * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `j3a24vwu6r8ejrss3axul8rxldph2q7z9`: `j` = 18, so P2SH address
 * `3xufve9n04786ust96l3dj0cp22fw7wyvcjrdjtg57qws9u96n2kv4xf8x9yu2ja6f00vjgp5y4lvj30xxy0duwqgz8yfqypfmxgjksq`: signature
 * `00galp`: Bech32 checksum
@@ -325,7 +325,7 @@ Breakdown:
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage...
 * `f`: tagged field: fallback address.
-  * `pp`: field length (`p` = 1. 1 * 32 + 1 == 33)
+  * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `q`: 0, so witness version 0.  
   * `qw508d6qejxtdg4y5r3zarvary0c5xw7k`: 160 bits = P2WPKH.
 * `2s057u6sfxswv5ysyvmzqemfnxew76stk45gfk0y0azxd8kglwrquhcxcvhww4f7zaxv8kpxwfvxnfdrzu20u56ajnxk3hj3r6p63jqp`: signature
@@ -340,7 +340,7 @@ Breakdown:
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage...
 * `f`: tagged field: fallback address.
-  * `p4`: field length (`p` = 1, `4` = 21. 1 * 32 + 21 == 53)
+  * `p4`: `data_length` (`p` = 1, `4` = 21. 1 * 32 + 21 == 53)
   * `q`: 0, so witness version 0.
   * `rp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q`: P2WPKH.
 * `hkm9qa8yszl8hqzaz9ctqagexxk2l0fyjcy0xhlsaggveqstwmz8rfc3afujc966fgjk47mzg0zzcrcg8zs89722vp2egxja0j3eucsq`: signature
