@@ -29,6 +29,9 @@ def guess_alignment(message, name, sizestr):
     if message == 'node_announcement' and name == 'alias':
         return 1
 
+    if message == 'accept_channel' and name == 'len':
+        return 1
+
     if 'signature' in name:
         return 1
 

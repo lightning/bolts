@@ -31,22 +31,17 @@ operation, and closing.
 
 
 Channel establishment begins immediately after authentication, and
-consists of the funding node sending an `open_channel` message,
-followed by the responding node sending `accept_channel`. With the
-channel parameters locked in, the funder is able to create the funding
-transaction and both versions of the commitment transaction as described in
-[BOLT
-03](https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#bolt-3-bitcoin-transaction-and-script-formats).
-The funder then sends the outpoint of the funding output along with a
-signature for the responder's version of the commitment transaction
-with the `funding_created` message. Once the responder learns the
-funding outpoint, she is able to generate the initiator's commitment
-for the commitment transaction, and send it over using the
-`funding_signed` message.
-
-Once the channel funder receives the `funding_signed` message, they
-must broadcast the funding transaction to the Bitcoin network. After
-the `funding_signed` message is sent/received, both sides should wait
+consists of the funding node sending an `open_channel` message, which
+includes a partial funding transaction.
+The responding node replies with `accept_channel` which may include additional 
+inputs for the funding transaction ("dual funding"), and a signature for the
+funder's first commitment transaction as described in [BOLT 03](https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#bolt-3-bitcoin-transaction-and-script-formats).
+The funding node then sends a `funding_created` message that includes a signature for the responder's first
+commitment transaction, and the responder replies with a `funding_signed` message that includes
+signatures for all the funding inputs that they added in their `accept_channel` message.
+Both nodes now have a signed commitment transaction, and the funding node has a fully signed funding transaction that
+they can broadcast.  
+After the `funding_signed` message is sent/received, both sides should wait
 for the funding transaction to enter the blockchain and reach their
 specified depth (number of confirmations). After both sides have sent
 the `funding_locked` message, the channel is established and can begin
@@ -100,6 +95,8 @@ desire to set up a new channel.
    * [`33`:`delayed_payment_basepoint`]
    * [`33`:`first_per_commitment_point`]
    * [`1`:`channel_flags`]
+   * [`2`: `len`]
+   * [`len`: `partial_funding_tx`]
 
 
 The `chain_hash` value denotes the exact blockchain the opened channel will
@@ -121,6 +118,8 @@ as detailed within
 [BOLT #7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
 
 The `funding_pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation_basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment_basepoint` and `delayed_payment_basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed_payment_basepoint` is used to for payments encumbered by a delay.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
+
+`funding_tx` is an unsigned, partial funding transaction that can be used by the receiver to add funds to the channel ("dual funding").
 
 FIXME: Describe Dangerous feature bit for larger channel amounts.
 
@@ -172,6 +171,13 @@ are not valid DER-encoded compressed secp256k1 pubkeys.
 
 The receiver MUST NOT consider funds received using `push_msat` to be received until the funding transaction has reached sufficient depth.
 
+The sender must set `len` to the length of the serialized, unsigned, partial funding transaction, which MUST be followed by the transaction itself.
+
+`partial_funding_tx` is an unsigned, partial funding transaction that includes:
+ * inputs that the sender wants to use to fund the channel. These inputs MUST be either P2WPKH or P2WSH and must include the witness script in their signature script field.
+ * an optional change output
+ 
+Please note that this partial transaction does not include the multisig funding output, since the sender does not know the receiver's public key yet.
 
 #### Rationale
 
@@ -213,6 +219,9 @@ acceptance of the new channel.
    * [`33`:`payment_basepoint`]
    * [`33`:`delayed_payment_basepoint`]
    * [`33`:`first_per_commitment_point`]
+   * [`2`:`len`]
+   * [`len`:`funding_tx`]
+   * [`64`:`signature`]
 
 #### Requirements
 
@@ -225,31 +234,50 @@ The `temporary_channel_id` MUST be the same as the `temporary_channel_id` in the
 The receiver MAY reject the `minimum_depth` if it considers it unreasonably large.
 Other fields have the same requirements as their counterparts in `open_channel`.
 
+The sender can choose to also fund the channel, so that they can start with a positive balance and can use the channel to pay right away.
+
+The sender MUST set `len` to the length of an unsigned funding transaction, followed by the serialized funding transaction.
+`funding_tx` is an unsigned funding transaction which includes:
+ * optional additional inputs that the sender wants to use to fund the channel. These inputs MUST be either P2WPKH or P2WSH and must include the witness script in their signature script field.
+ * an optional change output
+ * a funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output)
+The sender MUST then set `signature` to the valid signature using its funding_pubkey for the initial commitment transaction as defined in BOLT #3
+ 
+The amount that the sender will start with, i.e. that will be included in his first commit transaction, is the difference between the additional inputs
+and the change output.
+
+If the sender does not wish to fund the channel, they MAY set `len` to 0 and not include the funding transaction since the
+receiver will have both public keys and will be able to build it.
+
+#### Rationale
+
+Once `accept_channel` has been received, both nodes have an unsigned funding transaction that cannot be malleated (all 
+inputs are segwit inputs) and can be used to create commitment transactions.
+They can easily compute the `funding txid` and find the `funding output index` (they just need to find a match for the funding 
+transaction output defined in [BOLT #3](03-transactions.md#funding-transaction-output) which they can both compute since 
+they know both public keys).
 
 ### The `funding_created` message
 
-This message describes the outpoint which the funder has created for
+This message describes the funding transaction that the funder has created for
 the initial commitment transactions.  After receiving the peer's
 signature, it will broadcast the funding transaction.
 
 1. type: 34 (`funding_created`)
 2. data:
     * [`32`:`temporary_channel_id`]
-    * [`32`:`funding_txid`]
-    * [`2`:`funding_output_index`]
     * [`64`:`signature`]
 
 #### Requirements
 
-The sender MUST set `temporary_channel_id` the same as the `temporary_channel_id` in the `open_channel` message.  The sender MUST set `funding_txid` to the transaction ID of a non-malleable transaction, which it MUST NOT broadcast, and MUST set `funding_output_index` to the output number of that transaction which corresponds the funding transaction output as defined in [BOLT #3](03-transactions.md#funding-transaction-output), and MUST set `signature` to the valid signature using its `funding_pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).  The sender SHOULD use only BIP141 (Segregated Witness) inputs when creating the funding transaction.
+The sender MUST set `temporary_channel_id` the same as the `temporary_channel_id` in the `open_channel` message.  
+The sender MUST set `signature` to the valid signature using its `funding_pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).  
 
 The recipient MUST fail the channel if `signature` is incorrect.
 
 #### Rationale
 
-The `funding_output_index` can only be 2 bytes, since that's how we'll pack it into the `channel_id` used throughout the gossip protocol.  The limit of 65535 outputs should not be overly burdensome.
-
-A transaction with all Segregated Witness inputs is not malleable, hence the recommendation for the funding transaction.
+Once this message has been received, both nodes will have a signed commitment transaction, and an unsigned funding transaction.
 
 ### The `funding_signed` message
 
@@ -257,20 +285,30 @@ This message gives the funder the signature they need for the first
 commitment transaction, so they can broadcast it knowing they can
 redeem their funds if they need to.
 
-This message introduces the `channel_id` to identify the channel, which is derived from the funding transaction by combining the `funding_txid` and the `funding_output_index` using big-endian exclusive-OR (ie. `funding_output_index` alters the last two bytes).
+This message introduces the `channel_id` to identify the channel, which is derived from the funding transaction by combining 
+the `funding txid` and the `funding output index` using big-endian exclusive-OR (ie. `funding output index` alters 
+the last two bytes).
 
 1. type: 35 (`funding_signed`)
 2. data:
     * [`32`:`channel_id`]
-    * [`64`:`signature`]
+    * [`2`:`len`]
+    * [`len`:`funding_tx`]
 
 #### Requirements
 
-The sender MUST set `channel_id` by exclusive-OR of the `funding_txid` and the `funding_output_index` from the `funding_created` message, and MUST set `signature` to the valid signature using its `funding_pubkey` for the initial commitment transaction as defined in [BOLT #3](03-transactions.md#commitment-transaction).
+The sender MUST set `channel_id` by exclusive-OR of `funding_txid` and `funding_output_index`.
+The sender MUST set `len` to the length of the partially signed funding transaction, followed by the serialized funding transaction.
+The sender MUST include valid witnesses for all inputs added by their `accept_channel` message
 
-The recipient MUST fail the channel if `signature` is incorrect.
+The recipient MUST fail the channel if any of these witnesses are missing or incorrect.
 
 The recipient SHOULD broadcast the funding transaction on receipt of a valid `funding_signed` and MUST NOT broadcast the funding transaction earlier.
+
+#### Rationale
+
+Once they have received and checked `funding_signed`, the receiving node will have a fully signed funding transaction, which 
+they can now broadcast since they already have a signed commit transaction. 
 
 ### The `funding_locked` message
 
