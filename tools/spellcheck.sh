@@ -55,7 +55,7 @@ do
 	# field descriptions, eg. `* [`num_htlcs*64`:`htlc_signature]'
 	# indented field names, eg. '    `num_htlcs`: 0'
 	# lightning addresses, eg. `lnbc1qpvj6chq...`
-	# BIP 174 addresses, eg. `bc1qpvj6chq...`
+	# BIP 173 addresses, eg. `bc1qpvj6chq...`
 	# Short hex strings, eg '0x2bb038521914'
 	# long hex strings
 	# long base58 strings
