@@ -204,8 +204,8 @@ A payer SHOULD NOT attempt a payment after the `timestamp` plus
 `expiry` has passed.  Otherwise, if a lightning payment fails, a payer
 MAY attempt to use the address given the first `f` field it
 understands for payment.  A payer MAY use the sequence of channels
-specified by `r` to route to the payee.  A payee SHOULD consider the
-fee amount and payment timeout before initiating payment.  A payee
+specified by `r` to route to the payee.  A payer SHOULD consider the
+fee amount and payment timeout before initiating payment.  A payer
 SHOULD use the first `p` field did not skip as the payment hash.
 
 A payee SHOULD NOT accept a payment after `timestamp` plus `expiry`.
