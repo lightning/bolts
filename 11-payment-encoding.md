@@ -72,9 +72,9 @@ A writer MUST set `timestamp` to the time to
 the number of seconds since Midnight 1 January 1970, UTC in
 big-endian.  A writer MUST set `signature` to a valid
 512-bit secp256k1 signature of the double SHA2 256-bit hash of the
-Human Readable Part concatenated with a byte for each 5 bits of the
-Data Part, with a trailing byte containing the recovery ID (0, 1, 2 or
-3).
+Human Readable Part concatenated with the Data Part and zero bits
+appended to the next byte boundary, with a trailing byte containing
+the recovery ID (0, 1, 2 or 3).
 
 ## Rationale
 
