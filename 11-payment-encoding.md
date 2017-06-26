@@ -76,6 +76,9 @@ Human Readable Part concatenated with the Data Part and zero bits
 appended to the next byte boundary, with a trailing byte containing
 the recovery ID (0, 1, 2 or 3).
 
+A reader MUST check that the `signature` is valid (see the `n` tagged
+field specified below).
+
 ## Rationale
 
 `signature` covers an exact number of bytes because although the SHA-2
@@ -95,6 +98,7 @@ Currently defined Tagged Fields are:
 
 * `p` (1): `data_length` 52.  256-bit SHA256 payment_hash: preimage of this provides proof of payment.
 * `d` (13): `data_length` variable.  short description of purpose of payment (ASCII),  e.g. '1 cup of coffee'
+* `n` (19): `data_length` 53.  The 33-byte public key of the payee node.
 * `h` (23): `data_length` 52.  256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
 * `x` (6): `data_length` variable.  `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
 * `f` (9): `data_length` variable, depending in version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or P2PKH or P2SH address.
@@ -122,6 +126,9 @@ which SHOULD be a complete description of the purpose of the payment.
 
 A writer SHOULD use the minimum `x` `data_length` possible.
 
+A writer MAY include an `n` field, which MUST be set to the public key
+used to create the `signature`.
+
 If a writer offers more than one of any field type, it MUST specify
 the most-preferred field first, followed by less-preferred fields in
 order.
@@ -142,11 +149,14 @@ indicate a sequence of non-public channels to traverse.
 A writer MUST pad field data to a multiple of 5 bits, using zeroes.
 
 A reader MUST skip over unknown fields, an `f` field with unknown
-`version`, or a `p`, `h` or `r` field which does not have ``data_length`` 52,
-52 or 79 respectively.
+`version`, or a `p`, `h`, `n` or `r` field which does not have ``data_length`` 52,
+52, 53 or 79 respectively.
 
 A reader MUST check that the SHA-2 256 in the `h` field exactly
 matches the hashed description.
+
+A reader MUST use the `n` field to validate the signature instead of
+performing signature recovery if a valid `n` field is provided.
 
 ### Rationale
 
@@ -165,6 +175,9 @@ complex orders; thus the `h` field allows a summary, though the method
 by which the description is served is as-yet unspecified, and will
 probably be transport-dependent.  The `h` format could change in future
 by changing the length, so readers ignore it if not 256 bits.
+
+The `n` field can be used to explicitly specify the destination node ID,
+instead of requiring signature recovery.
 
 The `x` field gives advance warning as to when a payment will be
 refused; this is mainly to avoid confusion.  The default was chosen
