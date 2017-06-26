@@ -78,10 +78,10 @@ the recovery ID (0, 1, 2 or 3).
 
 ## Rationale
 
-`signature` covers the pre-base32 encoded data for simplicity,
-especially since the data part may not end on an 8-bit boundary.  It
-also allows public key recovery, so the identity of the payee node is
-implied.
+`signature` covers an exact number of bytes because although the SHA-2
+standard actually supports hashing in bit boundaries, it's not widely
+implemented.  The recovery ID allows public key recovery, so the
+identity of the payee node can be implied.
 
 ## Tagged Fields
 
