@@ -385,7 +385,7 @@ Nodes SHOULD monitor the funding transactions in the blockchain to identify chan
 If the funding output of a channel is being spent, then the channel is to be considered closed and SHOULD be removed from the local network view.
 
 Nodes MAY prune nodes added through `node_announcement` messages from their local view if the announced node no longer has any open channels associated.
-This is a direct result from the dependency of a `node_announcement` being preceeded by a `channel_announcement`,
+This is a direct result from the dependency of a `node_announcement` being preceded by a `channel_announcement`,
 
 Several scenarios may result in channels becoming unusable and the endpoints unable to send updates for these channels.
 This happens for example in case that both endpoints lose access to their private keys, and cannot sign a `channel_update` or close the channel on-chain.
