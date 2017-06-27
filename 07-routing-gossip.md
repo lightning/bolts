@@ -379,6 +379,20 @@ The node creating `channel_update` SHOULD accept HTLCs which pay an
 older fee for some time after sending `channel_update` to allow for
 propagation delay.
 
+## Pruning the Network View
+
+Nodes SHOULD monitor the funding transactions in the blockchain to identify channels that are being closed.
+If the funding output of a channel is being spent, then the channel is to be considered closed and SHOULD be removed from the local network view.
+
+Nodes MAY prune nodes added through `node_announcement` messages from their local view if the announced node no longer has any open channels associated.
+This is a direct result from the dependency of a `node_announcement` being preceeded by a `channel_announcement`,
+
+Several scenarios may result in channels becoming unusable and the endpoints unable to send updates for these channels.
+This happens for example in case that both endpoints lose access to their private keys, and cannot sign a `channel_update` or close the channel on-chain.
+These channels are unlikely to be part of a computed route since they would be partitioned off from the rest of the network, however they would remain in the local network view, and be forwarded to other nodes forever.
+For this reason nodes MAY prune channels should the timestamp of the latest `channel_update` be older than 2 weeks (1209600 seconds).
+In addition nodes MAY ignore channels with a timestamp older than 2 weeks.
+
 ## Recommendations for Routing
 
 As the fee is proportional, it must be calculated backwards from the
