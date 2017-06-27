@@ -80,13 +80,13 @@ announcement message; that is done by having a signature from each
     * [`64`:`node_signature_2`]
     * [`64`:`bitcoin_signature_1`]
     * [`64`:`bitcoin_signature_2`]
+    * [`2`:`len`]
+    * [`len`:`features`]
     * [`8`:`short_channel_id`]
     * [`33`:`node_id_1`]
     * [`33`:`node_id_2`]
     * [`33`:`bitcoin_key_1`]
     * [`33`:`bitcoin_key_2`]
-    * [`2`:`len`]
-    * [`len`:`features`]
 
 ### Requirements
 
@@ -108,6 +108,9 @@ Thus the hash skips the 4 signatures, but hashes the rest of the message, includ
 
 The creating node SHOULD set `len` to the minimum length required to
 hold the `features` bits it sets.
+
+The receiving node MUST verify the integrity and authenticity of the message by verifying the signatures.
+If there is an unknown even bit in the `features` field the receiving node MUST NOT parse the remainder of the message and MUST NOT add the channel to its local network view, and SHOULD NOT forward the announcement.
 
 The receiving node MUST ignore the message if the output specified
 by `short_channel_id` does not
@@ -132,9 +135,6 @@ previous message's `node_id_1` and `node_id_2` as well as this
 `node_id_1` and `node_id_2` and forget channels connected to them,
 otherwise it SHOULD store this `channel_announcement`.
 
-The receiving node SHOULD NOT route through a channel which has an
-unknown `features` bit set which is even.
-
 The receiving node SHOULD forget a channel once its funding output has
 been spent or reorganized out.
 
@@ -158,8 +158,8 @@ rebroadcasting (perhaps statistically).
 
 New channel features are possible in future; backwards compatible (or
 optional) ones will have odd feature bits, incompatible ones will have
-even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide).  These will be propagated by nodes even if they
-can't use the announcements themselves.
+even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide).
+Incompatible features will result in the announcement not being forwarded by nodes that don't understand them.
 
 ## The `node_announcement` message
 
@@ -170,12 +170,12 @@ nodes for which a channel is not already known are ignored.
 1. type: 257 (`node_announcement`)
 2. data:
    * [`64`:`signature`]
+   * [`2`:`flen`]
+   * [`flen`:`features`]
    * [`4`:`timestamp`]
    * [`33`:`node_id`]
    * [`3`:`rgb_color`]
    * [`32`:`alias`]
-   * [`2`:`flen`]
-   * [`flen`:`features`]
    * [`2`:`addrlen`]
    * [`addrlen`:`addresses`]
 
@@ -233,6 +233,9 @@ valid signature using `node_id` of the double-SHA256 of the entire
 message following the `signature` field (including unknown fields
 following `alias`), and MUST NOT further process the message.
 
+If the `features` field contains unknown even bits the receiving node MUST NOT parse the remainder of the message and MAY discard the message altogether.
+The node MAY forward `node_announcement`s that contain unknown `features` bit set, even though it hasn't parsed the announcement.
+
 The receiving node SHOULD ignore the first `address descriptor` which
 does not match the types defined above.  The receiving node SHOULD
 fail the connection if `addrlen` is insufficient to hold the address
@@ -259,7 +262,7 @@ The receiving node MAY use `rgb_color` and `alias` to reference nodes in interfa
 
 New node features are possible in future; backwards compatible (or
 optional) ones will have odd feature bits, incompatible ones will have
-even feature bits.  These will be propagated by nodes even if they
+even feature bits. These may be propagated by nodes even if they
 can't use the announcements themselves.
 
 New address types can be added in future; as address descriptors have
