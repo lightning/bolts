@@ -276,7 +276,7 @@ in the `flags` field
 to indicate which end this is.  It can do this multiple times, if
 it wants to change fees.
 
-A node MAY still create a `channel_update` to communicate the channel parameters to the other endpoint, even though the channel has not been announced, e.g., because the `channels_public` bit was not set.
+A node MAY still create a `channel_update` to communicate the channel parameters to the other endpoint, even though the channel has not been announced, e.g., because the `announce_channel` bit was not set.
 For further privacy such a `channel_update` MUST NOT be forwarded to other peers.
 Note that such a `channel_update` that is not preceded by a `channel_announcement` is invalid to any other peer and would be discarded.
 
