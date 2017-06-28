@@ -916,7 +916,7 @@ explicitly separated from the protocol.
 
 Nonetheless, we assume that our transport is ordered and reliable;
 reconnection introduces doubt as to what has been received, so we
-retransmit any channel messages which may not have been.
+have explicit acknowledgments at that point.
 
 This is fairly straightforward in the case of channel establishment
 and close where messages have an explicit order, but in normal
@@ -930,6 +930,12 @@ independent of particular channels; their transmission requirements
 are covered there, and other than being transmitted after `init` (like
 any message), they are independent of requirements here.
 
+1. type: 136 (`channel_reestablish`)
+2. data:
+   * [`32`:`channel_id`]
+   * [`8`:`next_local_commitment_number`]
+   * [`8`:`next_remote_revocation_number`]
+
 ### Requirements
 
 A node MUST handle continuing a previous channel on a new encrypted
@@ -937,11 +943,11 @@ transport.
 
 On disconnection, the funder MUST remember the channel for
 reconnection if it has broadcast the funding transaction, otherwise it
-MUST NOT.
+SHOULD NOT.
 
 On disconnection, the non-funding node MUST remember the channel for
 reconnection if it has sent the `funding_signed` message, otherwise
-it MUST NOT.
+it SHOULD NOT.
 
 On disconnection, a node MUST reverse any uncommitted updates sent by
 the other side (ie. all messages beginning with `update_` for which no
@@ -951,35 +957,44 @@ so the effects of `update_fulfill_htlc` is not completely reversed.
 
 On reconnection, if a channel is in an error state, the node SHOULD
 retransmit the error packet and ignore any other packets for that
-channel, or if the channel has entered closing negotiation, the node
-MUST retransmit the last `closing_signed`.
+channel, and the following requirements do not apply.
 
-Otherwise, on reconnection, a node MUST retransmit old messages after `funding_signed` which may not
-have been received, and MUST NOT retransmit old messages which have
-been explicitly or implicitly acknowledged.  The following table
-lists the acknowledgment conditions for each message:
+On reconnection, a node MUST transmit `channel_reestablish`
+for each channel, and MUST wait for to receive the other node's
+`channel_reestablish` message before sending any other messages for
+that channel.  The sending node MUST set `next_local_commitment_number` to the
+commitment number of the next `commitment_signed` it expects to receive, and
+MUST set `next_remote_revocation_number` to the commitment number of the
+next `revoke_and_ack` message it expects to receive.
 
-* `funding_locked`: acknowledged by `update_` messages, `commitment_signed`, `revoke_and_ack` or `shutdown` messages.
-* `update_` messages: acknowledged by `revoke_and_ack`.
-* `commitment_signed`: acknowledged by `revoke_and_ack`.
-* `revoke_and_ack`: acknowledged by `commitment_signed` or `closing_signed`
-* `shutdown`: acknowledged by `closing_signed`.
+If `next_local_commitment_number` is 1 in both the `channel_reestablish` it
+sent and received, then the node MUST retransmit `funding_locked`, otherwise
+it MUST NOT. On reconnection, a node MUST ignore a redundant `funding_locked`
+if it receives one.
 
-Before retransmitting `commitment_signed`, the node MUST send
-appropriate `update_` messages (the other node will have forgotten
-them, as required above).
+If `next_local_commitment_number` is equal to the commitment number of
+the last `commitment_signed` message the receiving node has sent, it
+MUST reuse the same commitment number for its next `commitment_signed`,
+otherwise if `next_local_commitment_number` is not one greater than the commitment number of the
+last `commitment_signed` message the receiving node has sent, it
+SHOULD fail the channel.
 
-A node MAY simply retransmit messages which are identical to the
-previous transmission.  A node MUST not assume that
-previously-transmitted messages were lost: in particular, if it has
-sent a previous `commitment_signed` message, a node MUST handle the
-case where the corresponding commitment transaction is broadcast by
-the other side at any time.  This is particularly important if a node
-does not simply retransmit the exact same `update_` messages as
-previously sent.
+If `next_remote_revocation_number` is equal to the commitment number of
+the last `revoke_and_ack` the receiving node has sent, it MUST re-send
+the `revoke_and_ack`, otherwise if `next_remote_revocation_number` is not
+equal to one greater than the commitment number of the last `revoke_and_ack` the
+receiving node has sent (or equal to zero if none have been sent), it SHOULD fail the channel.
 
-A receiving node MAY ignore spurious message retransmission, or MAY
-fail the channel if they occur.
+A node MUST not assume that previously-transmitted messages were lost:
+in particular, if it has sent a previous `commitment_signed` message,
+a node MUST handle the case where the corresponding commitment
+transaction is broadcast by the other side at any time.  This is
+particularly important if a node does not simply retransmit the exact
+same `update_` messages as previously sent.
+
+On reconnection if the node has sent a previous `shutdown` it MUST
+retransmit it, and if the node has sent a previous `closing_signed` it
+MUST then retransmit the last `closing_signed`.
 
 ### Rationale
 
@@ -996,8 +1011,38 @@ polite to retransmit before disconnecting again, but it's not a MUST
 because there are also occasions where a node can simply forget the
 channel altogether.
 
-There is similarly no acknowledgment for `closing_signed`, so it
-is also retransmitted on reconnection.
+There is similarly no acknowledgment for `closing_signed`, or
+`shutdown`, so they are also retransmitted on reconnection.
+
+The handling of updates is similarly atomic: if the commit is not
+acknowledged (or wasn't sent) the updates are re-sent.  However, we
+don't insist they be identical: they could be in a different order, or
+involve different fees, or even be missing HTLCs which are now too old
+to be added.  Requiring they be identical would effectively mean a
+write to disk by the sender upon each transmission, whereas the scheme
+here encourages a single persistent write to disk for each
+`commitment_signed` sent or received.
+
+Note that the `next_local_commitment_number` starts at 1 since
+commitment number 0 is created during opening.
+`next_remote_revocation_number` will be 0 until the
+`commitment_signed` for commitment number 1 is received, at which
+point the revocation for commitment number 0 is sent.
+
+`funding_locked` is implicitly acknowledged by the start of normal
+operation, which we know has begun once a `commitment_signed` has been
+received, thus the test for a `next_local_commitment_number` greater
+than 1.
+
+A previous draft insisted that the funder "MUST remember ...if it has
+broadcast the funding transaction, otherwise it MUST NOT": this was in
+fact an impossible requirement, as a node must either first commit to
+disk then broadcast the transaction, or the other way around.  The new
+language reflects this reality: it's surely better to remember a
+channel which hasn't been broadcast than forget one which has!
+Similarly, for the fundee's `funding_signed` message; better to
+remember a channel which never opens (and time out) than let the
+funder open it with the funder having forgotten it.
 
 # Authors
 
