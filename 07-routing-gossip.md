@@ -24,7 +24,7 @@ It contains the necessary signatures by the sender to construct the `channel_ann
     * [`64`:`node_signature`]
     * [`64`:`bitcoin_signature`]
 
-The willingness of the endpoints to announce the channel is signaled during the connection setup by setting a `channels_public` bit in the `localfeatures` field.
+The willingness of the initiating node to announce the channel is signaled during channel opening by setting the `announce_channel` bit in `channel_flags` (see [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
 
 ### Requirements
 
