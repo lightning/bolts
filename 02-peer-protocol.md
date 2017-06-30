@@ -408,7 +408,7 @@ Nodes SHOULD send a `closing_signed` message after `shutdown` has
 been received and no HTLCs remain in either commitment transaction.
 
 A sending node MUST set `fee_satoshis` lower than or equal to the
-fee of the final commitment transaction.
+base fee of the final commitment transaction as calculated in [BOLT #3](03-transactions.md#fee-calculation).
 
 The sender SHOULD set the initial `fee_satoshis` according to its
 estimate of cost of inclusion in a block.
