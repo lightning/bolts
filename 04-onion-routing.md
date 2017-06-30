@@ -109,7 +109,7 @@ only `realm` 0 is defined, and for that, the `per_hop` format is:
 
 1. type: `per_hop` (for `realm` 0)
 2. data:
-   * [`8`:`channel_id`]
+   * [`8`:`short_channel_id`]
    * [`8`:`amt_to_forward`]
    * [`4`:`outgoing_cltv_value`]
    * [`12`:`padding`]
@@ -125,7 +125,7 @@ the values as specified within the `per_hop`.
 
 Field Description: 
 
-   * `channel_id` - The channel used to route the message, which implies the
+   * `short_channel_id` - The channel used to route the message, which implies the
      next hop is the other end of the channel.
 
    * `amt_to_forward` - The amount in milli-satoshi to forward to the next
@@ -221,7 +221,7 @@ following operations:
 
  - It generates a _rho_-key and _mu_-key using the hop's shared secret.
  - The `hops_data` field is right-shifted by 65 bytes, discarding the last 65 bytes that exceed the 1300 bytes.
-   The `version`, `channel_id`, `amt_to_forward`, `outgoing_cltv_value`, `padding` and `HMAC` are copied into
+   The `version`, `short_channel_id`, `amt_to_forward`, `outgoing_cltv_value`, `padding` and `HMAC` are copied into
    the following 65 bytes.
    The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream and applied with `XOR` to the `hops_data` field.
    Should this be the last hop, i.e., the first iteration, then the tail of the `hops_data` field is overwritten with the routing info `filler`.
