@@ -89,6 +89,7 @@ for i,line in enumerate(fileinput.input(args)):
         if options.output_types:
             print("{},{}".format(match.group('name'), match.group('value')))
         havedata = None
+        alignoff = False
     elif message is not None and havedata is None:
         if line != '2. data:':
             message = None
@@ -101,7 +102,12 @@ for i,line in enumerate(fileinput.input(args)):
         if match:
             align = guess_alignment(message, match.group('name'), match.group('size'))
 
-            if options.check_alignment and dataoff % align != 0:
+            # Do not check alignment if we previously had a variable
+            # length field in the message
+            if off_extraterms != "":
+                alignoff = True
+
+            if not alignoff and options.check_alignment and dataoff % align != 0:
                 raise ValueError('{}:message {} field {} Offset {} not aligned on {} boundary:'.format(linenum, message, match.group('name'), dataoff, align))
 
             if options.output_fields:
