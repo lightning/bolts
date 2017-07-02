@@ -601,7 +601,8 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
    * [`8`:`amount_msat`]
    * [`32`:`payment_hash`]
    * [`4`:`cltv_expiry`]
-   * [`1366`:`onion_routing_packet`]
+   * [`2`:`len`]
+   * [`len`:`onion_routing_packet`]
 
 
 #### Requirements
