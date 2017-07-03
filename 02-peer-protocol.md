@@ -980,7 +980,7 @@ last `commitment_signed` message the receiving node has sent, it
 SHOULD fail the channel.
 
 If `next_remote_revocation_number` is equal to the commitment number of
-the last `revoke_and_ack` the receiving node has sent, it MUST re-send
+the last `revoke_and_ack` the receiving node has sent and the receiving node has not already received a `closing_signed`, it MUST re-send
 the `revoke_and_ack`, otherwise if `next_remote_revocation_number` is not
 equal to one greater than the commitment number of the last `revoke_and_ack` the
 receiving node has sent (or equal to zero if none have been sent), it SHOULD fail the channel.
@@ -1022,6 +1022,11 @@ to be added.  Requiring they be identical would effectively mean a
 write to disk by the sender upon each transmission, whereas the scheme
 here encourages a single persistent write to disk for each
 `commitment_signed` sent or received.
+
+We should never be asked to retransmit `revoke_and_ack` if we've
+received a `closing_signed`, since that implies we've completed
+shutdown which can only happen once the `revoke_and_ack` was received
+by the remote node.
 
 Note that the `next_local_commitment_number` starts at 1 since
 commitment number 0 is created during opening.
