@@ -118,8 +118,8 @@ in return for payment.
 A writer MUST NOT include more than one `d`, `h`, or `x` fields, and
 MAY include more than one `f` field.
 
-A writer MUST include either a `d` or `h` field, and MUST NOT include
-both.  If included, a writer SHOULD make `d` a complete description of
+A writer MUST NOT include both `d` or `h` fields.  If included, a writer 
+SHOULD make `d` a complete description of
 the purpose of the payment.  If included, a writer MUST make the preimage
 of the hashed description in `h` available through some unspecified means,
 which SHOULD be a complete description of the purpose of the payment.
