@@ -992,9 +992,9 @@ transaction is broadcast by the other side at any time.  This is
 particularly important if a node does not simply retransmit the exact
 same `update_` messages as previously sent.
 
-On reconnection if the node has sent a previous `shutdown` it MUST
-retransmit it, and if the node has sent a previous `closing_signed` it
-MUST then retransmit the last `closing_signed`.
+On reconnection if the node has sent a previous `closing_signed` it
+MUST then retransmit the last `closing_signed`, otherwise if the node
+has sent a previous `shutdown` it MUST retransmit it.
 
 ### Rationale
 
@@ -1011,8 +1011,8 @@ polite to retransmit before disconnecting again, but it's not a MUST
 because there are also occasions where a node can simply forget the
 channel altogether.
 
-There is similarly no acknowledgment for `closing_signed`, or
-`shutdown`, so they are also retransmitted on reconnection.
+`closing_signed` can only be sent after `shutdown`, so only one needs
+to be retransmitted on reconnection.
 
 The handling of updates is similarly atomic: if the commit is not
 acknowledged (or wasn't sent) the updates are re-sent.  However, we
