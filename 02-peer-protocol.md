@@ -414,38 +414,35 @@ The sender SHOULD set the initial `fee_satoshis` according to its
 estimate of cost of inclusion in a block.
 
 The sender MUST set `signature` to the Bitcoin signature of the close
-transaction with the node responsible for paying the bitcoin fee
-paying `fee_satoshis`, then removing any output which is below
-its own `dust_limit_satoshis`. The sender MAY then also eliminate its own
-output from the mutual close transaction.
+transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).
 
-The receiver MUST check `signature` is valid for either the close
-transaction with the given `fee_satoshis` as detailed above and its
-own `dust_limit_satoshis` OR that same transaction with the sender's
-output eliminated, and MUST fail the connection if it is not.
+The receiver MUST check `signature` is valid for either variant of close
+transaction specified in [BOLT #3](03-transactions.md#closing-transaction),
+and MUST fail the connection if it is not.
+
+If `fee_satoshis` is equal to its previously sent `fee_satoshis`, the receiver
+SHOULD close the connection and SHOULD sign and broadcast the final closing
+transaction.
+
+Otherwise, if this is the first `closing_signed` received, the
+recipient MUST fail the connection if `fee_satoshis` is greater than
+the base fee of the final commitment transaction as calculated in
+[BOLT #3](03-transactions.md#fee-calculation).  Otherwise the
+recipient SHOULD fail the connection if `fee_satoshis` is not strictly
+between its last-sent `fee_satoshis` and its previously-received
+`fee_satoshis`, unless it is equal to the previously-received
+`fee_satoshis` and it has reconnected since then.
 
 If the receiver agrees with the fee, it SHOULD reply with a
 `closing_signed` with the same `fee_satoshis` value, otherwise it
-SHOULD propose a value strictly between the received `fee_satoshis`
+MUST propose a value strictly between the received `fee_satoshis`
 and its previously-sent `fee_satoshis`.
-
-Once a node has sent or received a `closing_signed` with matching
-`fee_satoshis` it SHOULD close the connection and SHOULD sign and
-broadcast the final closing transaction.
 
 #### Rationale
 
-There is a possibility of irreparable differences on closing if one
-node considers the other's output too small to allow propagation on
-the bitcoin network (aka "dust"), and that other node instead
-considers that output to be too valuable to discard.  This is why each
-side uses its own `dust_limit_satoshis`, and the result can be a
-signature validation failure, if they disagree on what the closing
-transaction should look like.
-
-However, if one side chooses to eliminate its own output, there's no
-reason for the other side to fail the closing protocol, so this is
-explicitly allowed.
+The "strictly between" requirements ensure that we make forward
+progress, even if only by a single satoshi at a time, but we have
+to allow for retransmission on reconnection.
 
 Note that there is limited risk if the closing transaction is
 delayed, and it will be broadcast very soon, so there is usually no
