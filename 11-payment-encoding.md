@@ -228,7 +228,7 @@ https://github.com/rustyrussell/lightning-payencode
 # Examples
 
 > ### Please make a donation of any amount using payment_hash 0001020304050607080900010203040506070809000102030405060708090102 to me @03e7156ae33b0a208d0744199163177e909e80176e55d97a2f221ede0f934dd9ad
-> lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqq7fshvguvjs864g4yj47aedw4y402hdl9g2tqqhyed3nuhr7c908g6uhq9llj7w3s58k3sej3tcg4weqxrxmp3cwxuvy9kfr0uzy8jgpy6uzal
+> lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq32vjcgqxyuj7nqphl3xmmhls2rkl3t97uan4j0xa87gj5779czc8p0z58zf5wpt9ggem6adl64cvawcxlef9djqwp2jzzfvs272504sp0lkg3c
 
 Breakdown:
 
@@ -238,8 +238,11 @@ Breakdown:
 * `p`: payment preimage
   * `p5`: `data_length` (`p` = 1, `5` = 20. 1 * 32 + 20 == 52)
   * `qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq`: preimage 0001020304050607080900010203040506070809000102030405060708090102
-* `q7fshvguvjs864g4yj47aedw4y402hdl9g2tqqhyed3nuhr7c908g6uhq9llj7w3s58k3sej3tcg4weqxrxmp3cwxuvy9kfr0uzy8jgp`: signature
-* `y6uzal`: Bech32 checksum
+* `d`: short description
+  * `pl`: `data_length` (`p` = 1, `l` = 31. 1 * 32 + 31 == 63)
+  * `2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq`: 'Please consider supporting this project'
+* `32vjcgqxyuj7nqphl3xmmhls2rkl3t97uan4j0xa87gj5779czc8p0z58zf5wpt9ggem6adl64cvawcxlef9djqwp2jzzfvs272504sp`: signature
+* `0lkg3c`: Bech32 checksum
 
 > ### Please send $3 for a cup of coffee to the same peer, within 1 minute
 > lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuazh8qt5w7qeewkmxtv55khqxvdfs9zzradsvj7rcej9knpzdwjykcq8gv4v2dl705pjadhpsc967zhzdpuwn5qzjm0s4hqm2u0vuhhqq7vc09u
@@ -253,7 +256,7 @@ Breakdown:
 * `p`: payment preimage...
 * `d`: short description
   * `q5`: `data_length` (`q` = 0, `5` = 20. 0 * 32 + 20 == 20)
-  * `dq5xysxxatsyp3k7enxv4js`: '1 cup coffee'
+  * `xysxxatsyp3k7enxv4js`: '1 cup coffee'
 * `x`: expiry time
   * `qz`: `data_length` (`q` = 0, `z` = 2. 0 * 32 + 2 == 2)
   * `pu`: 60 seconds (`p` = 1, `u` = 28.  1 * 32 + 28 == 60)
@@ -290,7 +293,7 @@ Breakdown:
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `3x9et2e20v6pu37c5d9vax37wxq72un98`: `3` = 17, so P2PKH address
 * `h`: tagged field: hash of description...
-* `hp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsqh84fmvn2klvglsjxfy0vq2mz6t9kjfzlxfwgljj35w2kwa60qv49k7jlsgx43yhs9nuutllkhhnt090mmenuhp8ue33pv4klmrzlcqp`: signature
+* `qh84fmvn2klvglsjxfy0vq2mz6t9kjfzlxfwgljj35w2kwa60qv49k7jlsgx43yhs9nuutllkhhnt090mmenuhp8ue33pv4klmrzlcqp`: signature
 * `us2s2r`: Bech32 checksum
 
 > ### On mainnet, with fallback address 1RustyRX2oai4EYYDpQGWvEL62BBGqN9T with extra routing info to get to node 029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255
@@ -312,7 +315,7 @@ Breakdown:
 * `qtn4sp`: Bech32 checksum
 
 > ### On mainnet, with fallback (P2SH) address 3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX
-> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppj3a24vwu6r8ejrss3axul8rxldph2q7z93xufve9n04786ust96l3dj0cp22fw7wyvcjrdjtg57qws9u96n2kv4xf8x9yu2ja6f00vjgp5y4lvj30xxy0duwqgz8yfqypfmxgjksq00galp
+> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppj3a24vwu6r8ejrss3axul8rxldph2q7z9hp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs2jhz8j78lv2jynuzmz6g8ve53he7pheeype33zlja5azae957585uu7x59w0f2l3rugyva6zpu394y4rh093j6wxze0ldsvk757a9msqmf9swh
 
 Breakdown:
 
@@ -324,11 +327,12 @@ Breakdown:
 * `f`: tagged field: fallback address.
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `j3a24vwu6r8ejrss3axul8rxldph2q7z9`: `j` = 18, so P2SH address
-* `3xufve9n04786ust96l3dj0cp22fw7wyvcjrdjtg57qws9u96n2kv4xf8x9yu2ja6f00vjgp5y4lvj30xxy0duwqgz8yfqypfmxgjksq`: signature
-* `00galp`: Bech32 checksum
+* `h`: tagged field: hash of description...
+* `2jhz8j78lv2jynuzmz6g8ve53he7pheeype33zlja5azae957585uu7x59w0f2l3rugyva6zpu394y4rh093j6wxze0ldsvk757a9msq`: signature
+* `mf9swh`: Bech32 checksum
 
 > ### On mainnet, with fallback (P2WPKH) address bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
-> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppqw508d6qejxtdg4y5r3zarvary0c5xw7k2s057u6sfxswv5ysyvmzqemfnxew76stk45gfk0y0azxd8kglwrquhcxcvhww4f7zaxv8kpxwfvxnfdrzu20u56ajnxk3hj3r6p63jqpdsuvna
+> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppqw508d6qejxtdg4y5r3zarvary0c5xw7khp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsgw6tk8z0p0qdy9ulggx65lvfsg3nxxhqjxuf2fvmkhl9f4jc74gy44d5ua9us509prqz3e7vjxrftn3jnk7nrglvahxf7arye5llphgqqdtpa4
 
 * `lnbc`: prefix, lightning on bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
@@ -339,11 +343,12 @@ Breakdown:
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `q`: 0, so witness version 0.  
   * `qw508d6qejxtdg4y5r3zarvary0c5xw7k`: 160 bits = P2WPKH.
-* `2s057u6sfxswv5ysyvmzqemfnxew76stk45gfk0y0azxd8kglwrquhcxcvhww4f7zaxv8kpxwfvxnfdrzu20u56ajnxk3hj3r6p63jqp`: signature
-* `dsuvna`: Bech32 checksum
+* `h`: tagged field: hash of description...
+* `gw6tk8z0p0qdy9ulggx65lvfsg3nxxhqjxuf2fvmkhl9f4jc74gy44d5ua9us509prqz3e7vjxrftn3jnk7nrglvahxf7arye5llphgq`: signature
+* `qdtpa4`: Bech32 checksum
 
 > ### On mainnet, with fallback (P2WSH) address bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3
-> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfp4qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qhkm9qa8yszl8hqzaz9ctqagexxk2l0fyjcy0xhlsaggveqstwmz8rfc3afujc966fgjk47mzg0zzcrcg8zs89722vp2egxja0j3eucsq38r7dh
+> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfp4qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs5yps56lmsvgcrf476flet6js02m93kgasews8q3jhtp7d6cqckmh70650maq4u65tk53ypszy77v9ng9h2z3q3eqhtc3ewgmmv2graspakvd7y
 
 * `lnbc`: prefix, lightning on bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
@@ -354,8 +359,9 @@ Breakdown:
   * `p4`: `data_length` (`p` = 1, `4` = 21. 1 * 32 + 21 == 53)
   * `q`: 0, so witness version 0.
   * `rp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q`: 260 bits = P2WSH.
-* `hkm9qa8yszl8hqzaz9ctqagexxk2l0fyjcy0xhlsaggveqstwmz8rfc3afujc966fgjk47mzg0zzcrcg8zs89722vp2egxja0j3eucsq`: signature
-* `38r7dh`: Bech32 checksum
+* `h`: tagged field: hash of description...
+* `5yps56lmsvgcrf476flet6js02m93kgasews8q3jhtp7d6cqckmh70650maq4u65tk53ypszy77v9ng9h2z3q3eqhtc3ewgmmv2grasp`: signature
+* `akvd7y`: Bech32 checksum
 
 # Authors
 
