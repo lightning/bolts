@@ -115,25 +115,19 @@ A writer MUST include exactly one `p` field, and set `payment_hash` to
 the SHA-2 256-bit hash of the `payment_preimage` which will be given
 in return for payment.
 
-A writer MUST NOT include more than one `d`, `h`, or `x` fields, and
-MAY include more than one `f` field.
-
-A writer MUST NOT include both `d` or `h` fields.  If included, a writer 
-SHOULD make `d` a complete description of
+A writer MUST include either exactly one `d` or exactly one `h` field.  If included, a 
+writer SHOULD make `d` a complete description of
 the purpose of the payment.  If included, a writer MUST make the preimage
 of the hashed description in `h` available through some unspecified means,
 which SHOULD be a complete description of the purpose of the payment.
 
-A writer SHOULD use the minimum `x` `data_length` possible.
+A writer MAY include an `x` field, which SHOULD use the minimum `data_length` 
+possible.
 
 A writer MAY include an `n` field, which MUST be set to the public key
 used to create the `signature`.
 
-If a writer offers more than one of any field type, it MUST specify
-the most-preferred field first, followed by less-preferred fields in
-order.
-
-For bitcoin payments, a writer MUST set an
+A writer MAY include more than 1 `f` fields. For bitcoin payments, a writer MUST set an
 `f` field to a valid witness version and program, or `17` followed by
 a public key hash, or `18` followed by a script hash.
 
@@ -147,6 +141,10 @@ by the channel.  A writer MAY include more than one `r` field to
 indicate a sequence of non-public channels to traverse.
 
 A writer MUST pad field data to a multiple of 5 bits, using zeroes.
+
+If a writer offers more than one of any field type, it MUST specify
+the most-preferred field first, followed by less-preferred fields in
+order.
 
 A reader MUST skip over unknown fields, an `f` field with unknown
 `version`, or a `p`, `h`, `n` or `r` field which does not have ``data_length`` 52,
