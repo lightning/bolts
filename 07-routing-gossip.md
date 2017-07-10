@@ -82,6 +82,7 @@ announcement message; that is done by having a signature from each
     * [`64`:`bitcoin_signature_2`]
     * [`2`:`len`]
     * [`len`:`features`]
+    * [`32`:`chain_hash`]
     * [`8`:`short_channel_id`]
     * [`33`:`node_id_1`]
     * [`33`:`node_id_2`]
@@ -89,6 +90,11 @@ announcement message; that is done by having a signature from each
     * [`33`:`bitcoin_key_2`]
 
 ### Requirements
+
+The creating node MUST set `chain_hash` to the 32-byte hash that uniquely
+identifies the chain the channel was opened within.  For the Bitcoin
+blockchain, the `chain_hash` value MUST be (encoded in hex):
+`000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
 
 The creating node MUST set `short_channel_id` to refer to the confirmed
 funding transaction as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).  The corresponding output MUST be a
@@ -117,6 +123,9 @@ by `short_channel_id` does not
 correspond to a P2WSH using `bitcoin_key_1` and `bitcoin_key_2` as
 specified in [BOLT #3](03-transactions.md#funding-transaction-output).
 The receiving node MUST ignore the message if this output is spent.
+
+The receiving node MUST ignore the message if the specified `chain_hash`
+is unknown to the receiver.
 
 Otherwise, the receiving node SHOULD fail the connection if
 `bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` or
@@ -286,6 +295,7 @@ Note that such a `channel_update` that is not preceded by a `channel_announcemen
 1. type: 258 (`channel_update`)
 2. data:
     * [`64`:`signature`]
+    * [`32`:`chain_hash`]
     * [`8`:`short_channel_id`]
     * [`4`:`timestamp`]
     * [`2`:`flags`]
@@ -307,6 +317,12 @@ The following table specifies the meaning of the individual bits:
 The creating node MUST set `signature` to the signature of the
 double-SHA256 of the entire remaining packet after `signature` using its own `node_id`.
 
+For the Bitcoin blockchain, the `chain_hash` value MUST be (encoded in
+hex): `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
+The creating node MUST set `chain_hash` and `short_channel_id` to match the
+32-byte hash and 8-byte channel ID that uniquely identifies the channel within
+the `channel_announcement` message.  
+
 The creating node MUST set `short_channel_id` to match those in the already-sent `channel_announcement` message, and MUST set the `direction` bit of `flags` to 0 if the creating node is `node_id_1` in that message, otherwise 1.
 Bits which are not assigned a meaning must be set to 0.
 
@@ -325,6 +341,10 @@ The receiving node SHOULD fail the connection if `signature` is not a
 valid signature using `node_id` of the double-SHA256 of the entire
 message following the `signature` field (including unknown fields
 following `fee_proportional_millionths`), and MUST NOT further process the message.
+
+The receiving node MUST ignore the channel update if the specified
+`chain_hash` value is unknown, meaning it isn't active on the specified
+chain.
 
 The receiving node SHOULD ignore the message if `timestamp`
 is not greater than than the last-received `channel_announcement` for
