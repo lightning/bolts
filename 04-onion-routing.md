@@ -444,9 +444,10 @@ The association between forward and return packet is handled outside of the prot
 
 The failure message encapsulated in `failuremsg` has identical format to
 a normal message: two byte type (`failure_code`) followed by data suitable
-for that type. The following `failure_code` values are supported.  A node MUST select one of
-these codes when creating an error message, and MUST include the
-appropriate data.
+for that type. The following `failure_code` values are supported.
+A node MUST select one of these codes when creating an error message, and MUST include the appropriate data.
+Notice that the `failure_code` are not message types defined in other BOLTs, not being sent directly on the transport layer, but wrapped inside an return packet.
+The numeric values for the `failure_code` may therefore reuse values that are also assigned as message types, without causing collisions.
 
 In the case of more than one error, a node SHOULD select the first one
 listed.
