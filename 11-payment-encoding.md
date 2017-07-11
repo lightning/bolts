@@ -149,8 +149,8 @@ indicate a sequence of non-public channels to traverse.
 A writer MUST pad field data to a multiple of 5 bits, using zeroes.
 
 A reader MUST skip over unknown fields, an `f` field with unknown
-`version`, or a `p`, `h`, `n` or `r` field which does not have ``data_length`` 52,
-52, 53 or 79 respectively.
+`version`, or a `p`, `h`, `n` or `r` field which does not have `data_length` 52,
+52, 53 or 82 respectively.
 
 A reader MUST check that the SHA-2 256 in the `h` field exactly
 matches the hashed description.
