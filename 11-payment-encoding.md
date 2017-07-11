@@ -115,7 +115,7 @@ A writer MUST include exactly one `p` field, and set `payment_hash` to
 the SHA-2 256-bit hash of the `payment_preimage` which will be given
 in return for payment.
 
-A writer MUST NOT include more than one `d`, `h`, or `x` fields, and
+A writer MUST NOT include more than one `d`, `h`, `n` or `x` fields, and
 MAY include more than one `f` field.
 
 A writer MUST include either a `d` or `h` field, and MUST NOT include
