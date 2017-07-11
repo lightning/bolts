@@ -276,6 +276,10 @@ in the `flags` field
 to indicate which end this is.  It can do this multiple times, if
 it wants to change fees.
 
+A node MAY still create a `channel_update` to communicate the channel parameters to the other endpoint, even though the channel has not been announced, e.g., because the `announce_channel` bit was not set.
+For further privacy such a `channel_update` MUST NOT be forwarded to other peers.
+Note that such a `channel_update` that is not preceded by a `channel_announcement` is invalid to any other peer and would be discarded.
+
 1. type: 258 (`channel_update`)
 2. data:
     * [`64`:`signature`]
@@ -310,11 +314,10 @@ The creating node MUST set `timestamp` to greater than zero, and MUST set it to 
 
 It MUST set `cltv_expiry_delta` to the number of blocks it will subtract from an incoming HTLCs `cltv_expiry`.  It MUST set `htlc_minimum_msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee_base_msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee_proportional_millionths` to the amount it will charge per millionth of a satoshi.
 
-The receiving node MUST ignore `flags` other than the least significant bit.
-It SHOULD ignore the message if `short_channel_id` does
-not correspond to a previously
-known, unspent channel from `channel_announcement`, otherwise the `node_id`
-is taken from the `channel_announcement`: `node_id_1` if least-significant bit of flags is 0 or `node_id_2` otherwise.
+The receiving nodes MUST ignore the `channel_update` if it does not correspond to one of its own channels, if the `short_channel_id` does not match a previous `channel_announcement`, or the channel has been closed in the meantime.
+It SHOULD accept `channel_update`s for its own channels in order to learn the other end's forwarding parameters, even for non-public channels.
+
+The `node_id` for the signature verification is taken from the corresponding `channel_announcement`: `node_id_1` if least-significant bit of flags is 0 or `node_id_2` otherwise.
 The receiving node SHOULD fail the connection if `signature` is not a
 valid signature using `node_id` of the double-SHA256 of the entire
 message following the `signature` field (including unknown fields
@@ -378,6 +381,23 @@ The node creating `channel_update` SHOULD accept HTLCs which pay a fee equal or 
 The node creating `channel_update` SHOULD accept HTLCs which pay an
 older fee for some time after sending `channel_update` to allow for
 propagation delay.
+
+## Pruning the Network View
+
+Nodes SHOULD monitor the funding transactions in the blockchain to identify channels that are being closed.
+If the funding output of a channel is being spent, then the channel is to be considered closed and SHOULD be removed from the local network view.
+
+Nodes MAY prune nodes added through `node_announcement` messages from their local view if the announced node no longer has any open channels associated.
+This is a direct result from the dependency of a `node_announcement` being preceded by a `channel_announcement`.
+
+### Recommendation on pruning stale entries
+
+Several scenarios may result in channels becoming unusable and the endpoints unable to send updates for these channels.
+This happens for example in case that both endpoints lose access to their private keys, and cannot sign a `channel_update` or close the channel on-chain.
+These channels are unlikely to be part of a computed route since they would be partitioned off from the rest of the network, however they would remain in the local network view, and be forwarded to other nodes forever.
+For this reason nodes MAY prune channels should the timestamp of the latest `channel_update` be older than 2 weeks (1209600 seconds).
+In addition nodes MAY ignore channels with a timestamp older than 2 weeks.
+Notice that this is a node policy and MUST NOT be enforced by peers, e.g., by closing channels when receiving outdated gossip messages.
 
 ## Recommendations for Routing
 
