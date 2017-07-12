@@ -80,13 +80,13 @@ announcement message; that is done by having a signature from each
     * [`64`:`node_signature_2`]
     * [`64`:`bitcoin_signature_1`]
     * [`64`:`bitcoin_signature_2`]
+    * [`2`:`len`]
+    * [`len`:`features`]
     * [`8`:`short_channel_id`]
     * [`33`:`node_id_1`]
     * [`33`:`node_id_2`]
     * [`33`:`bitcoin_key_1`]
     * [`33`:`bitcoin_key_2`]
-    * [`2`:`len`]
-    * [`len`:`features`]
 
 ### Requirements
 
@@ -108,6 +108,9 @@ Thus the hash skips the 4 signatures, but hashes the rest of the message, includ
 
 The creating node SHOULD set `len` to the minimum length required to
 hold the `features` bits it sets.
+
+The receiving node MUST verify the integrity and authenticity of the message by verifying the signatures.
+If there is an unknown even bit in the `features` field the receiving node MUST NOT parse the remainder of the message and MUST NOT add the channel to its local network view, and SHOULD NOT forward the announcement.
 
 The receiving node MUST ignore the message if the output specified
 by `short_channel_id` does not
@@ -132,9 +135,6 @@ previous message's `node_id_1` and `node_id_2` as well as this
 `node_id_1` and `node_id_2` and forget channels connected to them,
 otherwise it SHOULD store this `channel_announcement`.
 
-The receiving node SHOULD NOT route through a channel which has an
-unknown `features` bit set which is even.
-
 The receiving node SHOULD forget a channel once its funding output has
 been spent or reorganized out.
 
@@ -158,8 +158,8 @@ rebroadcasting (perhaps statistically).
 
 New channel features are possible in future; backwards compatible (or
 optional) ones will have odd feature bits, incompatible ones will have
-even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide).  These will be propagated by nodes even if they
-can't use the announcements themselves.
+even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide).
+Incompatible features will result in the announcement not being forwarded by nodes that don't understand them.
 
 ## The `node_announcement` message
 
@@ -170,12 +170,12 @@ nodes for which a channel is not already known are ignored.
 1. type: 257 (`node_announcement`)
 2. data:
    * [`64`:`signature`]
+   * [`2`:`flen`]
+   * [`flen`:`features`]
    * [`4`:`timestamp`]
    * [`33`:`node_id`]
    * [`3`:`rgb_color`]
    * [`32`:`alias`]
-   * [`2`:`flen`]
-   * [`flen`:`features`]
    * [`2`:`addrlen`]
    * [`addrlen`:`addresses`]
 
@@ -233,6 +233,9 @@ valid signature using `node_id` of the double-SHA256 of the entire
 message following the `signature` field (including unknown fields
 following `alias`), and MUST NOT further process the message.
 
+If the `features` field contains unknown even bits the receiving node MUST NOT parse the remainder of the message and MAY discard the message altogether.
+The node MAY forward `node_announcement`s that contain unknown `features` bit set, even though it hasn't parsed the announcement.
+
 The receiving node SHOULD ignore the first `address descriptor` which
 does not match the types defined above.  The receiving node SHOULD
 fail the connection if `addrlen` is insufficient to hold the address
@@ -259,7 +262,7 @@ The receiving node MAY use `rgb_color` and `alias` to reference nodes in interfa
 
 New node features are possible in future; backwards compatible (or
 optional) ones will have odd feature bits, incompatible ones will have
-even feature bits.  These will be propagated by nodes even if they
+even feature bits. These may be propagated by nodes even if they
 can't use the announcements themselves.
 
 New address types can be added in future; as address descriptors have
@@ -275,6 +278,10 @@ channel shortid which matches the `channel_announcement` and one bit
 in the `flags` field
 to indicate which end this is.  It can do this multiple times, if
 it wants to change fees.
+
+A node MAY still create a `channel_update` to communicate the channel parameters to the other endpoint, even though the channel has not been announced, e.g., because the `announce_channel` bit was not set.
+For further privacy such a `channel_update` MUST NOT be forwarded to other peers.
+Note that such a `channel_update` that is not preceded by a `channel_announcement` is invalid to any other peer and would be discarded.
 
 1. type: 258 (`channel_update`)
 2. data:
@@ -310,11 +317,10 @@ The creating node MUST set `timestamp` to greater than zero, and MUST set it to 
 
 It MUST set `cltv_expiry_delta` to the number of blocks it will subtract from an incoming HTLCs `cltv_expiry`.  It MUST set `htlc_minimum_msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee_base_msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee_proportional_millionths` to the amount it will charge per millionth of a satoshi.
 
-The receiving node MUST ignore `flags` other than the least significant bit.
-It SHOULD ignore the message if `short_channel_id` does
-not correspond to a previously
-known, unspent channel from `channel_announcement`, otherwise the `node_id`
-is taken from the `channel_announcement`: `node_id_1` if least-significant bit of flags is 0 or `node_id_2` otherwise.
+The receiving nodes MUST ignore the `channel_update` if it does not correspond to one of its own channels, if the `short_channel_id` does not match a previous `channel_announcement`, or the channel has been closed in the meantime.
+It SHOULD accept `channel_update`s for its own channels in order to learn the other end's forwarding parameters, even for non-public channels.
+
+The `node_id` for the signature verification is taken from the corresponding `channel_announcement`: `node_id_1` if least-significant bit of flags is 0 or `node_id_2` otherwise.
 The receiving node SHOULD fail the connection if `signature` is not a
 valid signature using `node_id` of the double-SHA256 of the entire
 message following the `signature` field (including unknown fields
@@ -378,6 +384,23 @@ The node creating `channel_update` SHOULD accept HTLCs which pay a fee equal or 
 The node creating `channel_update` SHOULD accept HTLCs which pay an
 older fee for some time after sending `channel_update` to allow for
 propagation delay.
+
+## Pruning the Network View
+
+Nodes SHOULD monitor the funding transactions in the blockchain to identify channels that are being closed.
+If the funding output of a channel is being spent, then the channel is to be considered closed and SHOULD be removed from the local network view.
+
+Nodes MAY prune nodes added through `node_announcement` messages from their local view if the announced node no longer has any open channels associated.
+This is a direct result from the dependency of a `node_announcement` being preceded by a `channel_announcement`.
+
+### Recommendation on pruning stale entries
+
+Several scenarios may result in channels becoming unusable and the endpoints unable to send updates for these channels.
+This happens for example in case that both endpoints lose access to their private keys, and cannot sign a `channel_update` or close the channel on-chain.
+These channels are unlikely to be part of a computed route since they would be partitioned off from the rest of the network, however they would remain in the local network view, and be forwarded to other nodes forever.
+For this reason nodes MAY prune channels should the timestamp of the latest `channel_update` be older than 2 weeks (1209600 seconds).
+In addition nodes MAY ignore channels with a timestamp older than 2 weeks.
+Notice that this is a node policy and MUST NOT be enforced by peers, e.g., by closing channels when receiving outdated gossip messages.
 
 ## Recommendations for Routing
 
