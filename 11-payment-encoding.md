@@ -121,13 +121,13 @@ the purpose of the payment.  If included, a writer MUST make the preimage
 of the hashed description in `h` available through some unspecified means,
 which SHOULD be a complete description of the purpose of the payment.
 
-A writer MAY include an `x` field, which SHOULD use the minimum `data_length` 
+A writer MAY include one `x` field, which SHOULD use the minimum `data_length` 
 possible.
 
-A writer MAY include an `n` field, which MUST be set to the public key
+A writer MAY include one `n` field, which MUST be set to the public key
 used to create the `signature`.
 
-A writer MAY include more than 1 `f` fields. For bitcoin payments, a writer MUST set an
+A writer MAY include one or more `f` fields. For bitcoin payments, a writer MUST set an
 `f` field to a valid witness version and program, or `17` followed by
 a public key hash, or `18` followed by a script hash.
 
