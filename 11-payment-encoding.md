@@ -105,7 +105,7 @@ Currently defined Tagged Fields are:
 * `r` (3): extra routing information.  This should be appended to the route
       to allow routing to non-public nodes; there may be more than one of these.
    * `pubkey` (264 bits)
-   * `channel_id` (64 bits)
+   * `short_channel_id` (64 bits)
    * `fee` (64 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
 
@@ -133,7 +133,7 @@ a public key hash, or `18` followed by a script hash.
 
 A writer MUST include at least one `r` field if it does not have a
 public channel associated with its public key.  The `pubkey` is the
-node ID of the start of the channel, `channel_id` is the channel ID
+node ID of the start of the channel, `short_channel_id` is the short channel ID
 field to identify the channel, `fee` is the total fee required to use
 that channel to send `amount` to the final node, specified in 10^-11
 currency units, and `cltv_expiry_delta` is the block delta required
@@ -310,7 +310,7 @@ Breakdown:
 * `p`: payment preimage...
 * `r`: tagged field: route information
   * `zj`: `data_length` (`z` = 2, `j` = 18.  2 * 32 + 18 = 82)
-    `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqv`: pubkey `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `channel_id` 0102030405060708, `fee` 20 millisatoshi, `cltv_expiry_delta` 3.
+    `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqv`: pubkey `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `short_channel_id` 0102030405060708, `fee` 20 millisatoshi, `cltv_expiry_delta` 3.
 * `f`: tagged field: fallback address...
 * `h`: tagged field: hash of description...
 * `jtf8rrkd7dujvdvrxhuk5a0tt9x9qh0t95jemn4tpen9y3nn7yt8jrmlyzffjh0hue8edkkq3090hruc8shpfu6wk4chfdvdusakycgp`: signature
