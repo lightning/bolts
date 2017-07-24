@@ -15,9 +15,12 @@ old nodes (even bits).  See [BOLT #1: The `init` message](#the-init-message).
 These flags may only be used in the `init` message:
 
 
-| Bits | Name             |Description                                     | Link                                                                |
-|------|------------------|------------------------------------------------|---------------------------------------------------------------------|
-| 3  | `initial_routing_sync` | The sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
+| Bits  | Name                   |Description                                                 | Link                                         |
+|-------|------------------------|------------------------------------------------------------|----------------------------------------------|
+| 0x03  | `initial_routing_sync` | The sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
+
+The bits are expressed as a bitmask that can be used to check for the presence of a flag.
+For example bits `0x03` means that both bit 0 and bit 1 are used to signal, bit 0 indicates mandatory support, while bit 1 indicates optional support.
 
 ## Assigned `globalfeatures` flags
 
