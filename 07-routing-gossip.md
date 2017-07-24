@@ -317,8 +317,6 @@ The following table specifies the meaning of the individual bits:
 The creating node MUST set `signature` to the signature of the
 double-SHA256 of the entire remaining packet after `signature` using its own `node_id`.
 
-For the Bitcoin blockchain, the `chain_hash` value MUST be (encoded in
-hex): `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
 The creating node MUST set `chain_hash` and `short_channel_id` to match the
 32-byte hash and 8-byte channel ID that uniquely identifies the channel within
 the `channel_announcement` message.  

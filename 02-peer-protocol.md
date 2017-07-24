@@ -128,9 +128,7 @@ FIXME: Describe Dangerous feature bit for larger channel amounts.
 #### Requirements
 
 A sending node MUST ensure that the `chain_hash` value identifies the chain they
-they wish to open the channel within. For the Bitcoin blockchain, the
-`chain_hash` value MUST be (encoded in hex):
-`000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
+they wish to open the channel within.
 
 A sending node MUST ensure `temporary_channel_id` is unique from any other
 channel id with the same peer.  The sender MUST set `funding_satoshis`
