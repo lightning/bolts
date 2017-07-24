@@ -252,10 +252,8 @@ Note that there are two possible variants for each node.
 
 ### Requirements
 
-Each node offering MUST subtract the fee given by `fee_satoshis` from
-the output to the funder.  Each node MUST then remove any output below
-the `dust_limit_satoshis` of the node offering `closing_signed`, and
-MAY also eliminate its own output.
+Each node offering a signature MUST subtract the fee given by `fee_satoshis` from
+the output to the funder; it MUST then remove any output below its own `dust_limit_satoshis`, and MAY also eliminate its own output.
 
 ### Rationale
 
@@ -272,7 +270,8 @@ reason for the other side to fail the closing protocol, so this is
 explicitly allowed.  The signature will indicate which variant
 has been used.
 
-It is assumed that `dust_limit_satoshis` is greater than the funding
+There will be at least one output if `dust_limit_satoshis` is greater
+than twice the funding amount.
 
 ## Fees
 
