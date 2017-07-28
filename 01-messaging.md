@@ -124,7 +124,7 @@ For simplicity of diagnosis, it is often useful to tell the peer that something 
 
 1. type: 17 (`error`)
 2. data:
-   * [`32`:`channel_id`]
+   * [`8`:`channel_id`]
    * [`2`:`len`]
    * [`len`:`data`]
 
