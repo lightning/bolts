@@ -424,14 +424,13 @@ If `fee_satoshis` is equal to its previously sent `fee_satoshis`, the receiver
 SHOULD close the connection and SHOULD sign and broadcast the final closing
 transaction.
 
-Otherwise, if this is the first `closing_signed` received, the
+Otherwise, the
 recipient MUST fail the connection if `fee_satoshis` is greater than
 the base fee of the final commitment transaction as calculated in
-[BOLT #3](03-transactions.md#fee-calculation).  Otherwise the
+[BOLT #3](03-transactions.md#fee-calculation), and the
 recipient SHOULD fail the connection if `fee_satoshis` is not strictly
 between its last-sent `fee_satoshis` and its previously-received
-`fee_satoshis`, unless it is equal to the previously-received
-`fee_satoshis` and it has reconnected since then.
+`fee_satoshis`, unless it has reconnected since then.
 
 If the receiver agrees with the fee, it SHOULD reply with a
 `closing_signed` with the same `fee_satoshis` value, otherwise it
@@ -441,8 +440,9 @@ and its previously-sent `fee_satoshis`.
 #### Rationale
 
 The "strictly between" requirements ensure that we make forward
-progress, even if only by a single satoshi at a time, but we have
-to allow for retransmission on reconnection.
+progress, even if only by a single satoshi at a time.  To avoid
+keeping state and handle the corner case where fees have shifted
+between reconnections, negotiation restarts on reconnection.
 
 Note that there is limited risk if the closing transaction is
 delayed, and it will be broadcast very soon, so there is usually no
@@ -991,7 +991,7 @@ same `update_` messages as previously sent.
 
 On reconnection if the node has sent a previous `shutdown` it MUST
 retransmit it, and if the node has sent a previous `closing_signed` it
-MUST then retransmit the last `closing_signed`.
+MUST send another `closing_signed`.
 
 ### Rationale
 
@@ -1009,7 +1009,9 @@ because there are also occasions where a node can simply forget the
 channel altogether.
 
 There is similarly no acknowledgment for `closing_signed`, or
-`shutdown`, so they are also retransmitted on reconnection.
+`shutdown`, so they are also retransmitted on reconnection.  In the
+case of `closing_signed`, negotation restarts on reconnection, so it
+need not be an exact retransmission.
 
 The handling of updates is similarly atomic: if the commit is not
 acknowledged (or wasn't sent) the updates are re-sent.  However, we
