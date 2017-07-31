@@ -413,6 +413,12 @@ need to be considered: the `cltv_expiry_delta` contributes to the time that fund
 will be unavailable on worst-case failure.  The tradeoff between these
 two is unclear, as it depends on the reliability of nodes.
 
+If a route is computed by simply routing to the intended recipient, summing up the `cltv_expiry_delta`s, then nodes along the route may guess their position in the route.
+Knowing the CLTV of the HTLC and the surrounding topology with the `cltv_expiry_delta`s gives an attacker a way to guess the intended recipient.
+Therefore it is highly suggested to add a random offset to the CLTV that the intended recipient will receive, bumping all CLTVs along the route.
+In order to create a plausible offset the sender MAY start a limited random walk on the graph, starting from the intended recipient, sum the `cltv_expiry_delta`s, and then use the sum as the offset.
+This effectively creates a _shadow route extension_ to the actual route, providing better protection against this kind of attack than simply picking a random offset.
+
 Other more advanced considerations involve diversity of routes to
 avoid single points of failure and detection, and channel balance
 of local channels.

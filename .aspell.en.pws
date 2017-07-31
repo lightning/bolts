@@ -205,6 +205,8 @@ blindGroupElement
 tx
 pubkeys
 CHECKLOCKTIMEVERIFY
+CLTV
+CLTVs
 generateCipherStream
 XK
 lflen
