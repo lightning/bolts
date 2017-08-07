@@ -18,6 +18,7 @@ These flags may only be used in the `init` message:
 | Bits | Name             |Description                                     | Link                                                                |
 |------|------------------|------------------------------------------------|---------------------------------------------------------------------|
 | 3  | `initial_routing_sync` | The sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
+| 0xc  | `no_channel_updates` | The sending node doesn't wish to receive any `channel_update` messages  |  [BOLT #7](07-routing-gossip.md) |
 
 ## Assigned `globalfeatures` flags
 
