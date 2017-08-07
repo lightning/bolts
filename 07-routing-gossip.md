@@ -423,6 +423,25 @@ Other more advanced considerations involve diversity of routes to
 avoid single points of failure and detection, and channel balance
 of local channels.
 
+## Opting out of `channel_update` messages
+
+A peer may wish to update out of receiving any `channel_update` messages as a
+bandwidth and processing optimization. Note that opting out of `channel_update`
+messages doesn't entirely affect a node's ability to interact with the network.
+In the case of a node that wishes to send semi-frequent payments, if a payment
+fails due to using an outdated routing policy for a particular channel link,
+then the error response will contain the latest `channel_update` message for
+that link. For nodes which are primarily focused on payment forwarding, the
+extra traffic of `channel_update` messages are unnecessary.
+
+In order to opt-out of `channel_update` messages the `no_channel_updates` flag
+should be set within the `init` message that the node advertises to other peers
+upon initial connection. 
+
+If a node receives an `init` message with the `no_channel_updates` flag set,
+then the receiving not MUST NOT relay any channel update messages to the
+sending node.
+
 ## References
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
