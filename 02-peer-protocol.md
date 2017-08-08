@@ -980,7 +980,7 @@ last `commitment_signed` message the receiving node has sent, it
 SHOULD fail the channel.
 
 If `next_remote_revocation_number` is equal to the commitment number of
-the last `revoke_and_ack` the receiving node has sent, it MUST re-send
+the last `revoke_and_ack` the receiving node has sent and the receiving node has not already received a `closing_signed`, it MUST re-send
 the `revoke_and_ack`, otherwise if `next_remote_revocation_number` is not
 equal to one greater than the commitment number of the last `revoke_and_ack` the
 receiving node has sent (or equal to zero if none have been sent), it SHOULD fail the channel.
@@ -992,9 +992,9 @@ transaction is broadcast by the other side at any time.  This is
 particularly important if a node does not simply retransmit the exact
 same `update_` messages as previously sent.
 
-On reconnection if the node has sent a previous `shutdown` it MUST
-retransmit it, and if the node has sent a previous `closing_signed` it
-MUST then retransmit the last `closing_signed`.
+On reconnection if the node has sent a previous `closing_signed` it
+MUST then retransmit the last `closing_signed`, otherwise if the node
+has sent a previous `shutdown` it MUST retransmit it.
 
 ### Rationale
 
@@ -1011,8 +1011,8 @@ polite to retransmit before disconnecting again, but it's not a MUST
 because there are also occasions where a node can simply forget the
 channel altogether.
 
-There is similarly no acknowledgment for `closing_signed`, or
-`shutdown`, so they are also retransmitted on reconnection.
+`closing_signed` can only be sent after `shutdown`, so only one needs
+to be retransmitted on reconnection.
 
 The handling of updates is similarly atomic: if the commit is not
 acknowledged (or wasn't sent) the updates are re-sent.  However, we
@@ -1022,6 +1022,11 @@ to be added.  Requiring they be identical would effectively mean a
 write to disk by the sender upon each transmission, whereas the scheme
 here encourages a single persistent write to disk for each
 `commitment_signed` sent or received.
+
+We should never be asked to retransmit `revoke_and_ack` if we've
+received a `closing_signed`, since that implies we've completed
+shutdown which can only happen once the `revoke_and_ack` was received
+by the remote node.
 
 Note that the `next_local_commitment_number` starts at 1 since
 commitment number 0 is created during opening.
