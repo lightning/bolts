@@ -102,8 +102,7 @@ Currently defined Tagged Fields are:
 * `h` (23): `data_length` 52.  256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
 * `x` (6): `data_length` variable.  `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
 * `f` (9): `data_length` variable, depending in version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or P2PKH or P2SH address.
-* `r` (3): extra routing information.  This should be appended to the route
-      to allow routing to non-public nodes; there may be more than one of these.
+* `r` (3): `data_length` variable.  One or more entries containing extra routing information for a private route; there may be more than one `r` field, too.
    * `pubkey` (264 bits)
    * `short_channel_id` (64 bits)
    * `fee` (64 bits, big-endian)
@@ -132,13 +131,15 @@ A writer MAY include one or more `f` fields. For bitcoin payments, a writer MUST
 a public key hash, or `18` followed by a script hash.
 
 A writer MUST include at least one `r` field if it does not have a
-public channel associated with its public key.  The `pubkey` is the
+public channel associated with its public key.  The `r` field MUST contain
+one or more ordered entries, indicating the forward route from a
+public node to the final destination.  For each entry, the `pubkey` is the
 node ID of the start of the channel, `short_channel_id` is the short channel ID
 field to identify the channel, `fee` is the total fee required to use
 that channel to send `amount` to the final node, specified in 10^-11
 currency units, and `cltv_expiry_delta` is the block delta required
 by the channel.  A writer MAY include more than one `r` field to
-indicate a sequence of non-public channels to traverse.
+provide multiple routing options.
 
 A writer MUST pad field data to a multiple of 5 bits, using zeroes.
 
@@ -147,8 +148,8 @@ the most-preferred field first, followed by less-preferred fields in
 order.
 
 A reader MUST skip over unknown fields, an `f` field with unknown
-`version`, or a `p`, `h`, `n` or `r` field which does not have `data_length` 52,
-52, 53 or 82 respectively.
+`version`, or a `p`, `h`, or `n` field which does not have `data_length` 52,
+52, or 53 respectively.
 
 A reader MUST check that the SHA-2 256 in the `h` field exactly
 matches the hashed description.
@@ -190,8 +191,7 @@ will be ignored by readers.
 
 The `r` field allows limited routing assistance: as specified it only
 allows minimum information to use private channels, but it could also
-assist in future partial-knowledge routing.  Future formats are
-possible by altering the length, too.
+assist in future partial-knowledge routing.
 
 # Payer / Payee Interactions
 
@@ -298,8 +298,8 @@ Breakdown:
 * `qh84fmvn2klvglsjxfy0vq2mz6t9kjfzlxfwgljj35w2kwa60qv49k7jlsgx43yhs9nuutllkhhnt090mmenuhp8ue33pv4klmrzlcqp`: signature
 * `us2s2r`: Bech32 checksum
 
-> ### On mainnet, with fallback address 1RustyRX2oai4EYYDpQGWvEL62BBGqN9T with extra routing info to get to node 029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255
-> lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfpp3qjmp7lwpagxun9pygexvgpjdc4jdj85frzjq20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqvs2wmtfjy8myg3ha79lu9z9yv76sllvvpzpnp3xss3k62x2lw95u4hfm6ttg4vm647exd5k4ljrcqgazzh37x5unf6hgzkx8ayd5dg5cpta2dqs
+> ### On mainnet, with fallback address 1RustyRX2oai4EYYDpQGWvEL62BBGqN9T with extra routing info to go via nodes 029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255 then 039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255
+> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsfpp3qjmp7lwpagxun9pygexvgpjdc4jdj85fr9yq20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqqqqqqq7qqzqfnlkwydm8rg30gjku7wmxmk06sevjp53fmvrcfegvwy7d5443jvyhxsel0hulkstws7vqv400q4j3wgpk4crg49682hr4scqvmad43cqd5m7tf
 
 Breakdown:
 
@@ -308,13 +308,15 @@ Breakdown:
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment preimage...
-* `r`: tagged field: route information
-  * `zj`: `data_length` (`z` = 2, `j` = 18.  2 * 32 + 18 = 82)
-    `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqv`: pubkey `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `short_channel_id` 0102030405060708, `fee` 20 millisatoshi, `cltv_expiry_delta` 3.
-* `f`: tagged field: fallback address...
 * `h`: tagged field: hash of description...
-* `jtf8rrkd7dujvdvrxhuk5a0tt9x9qh0t95jemn4tpen9y3nn7yt8jrmlyzffjh0hue8edkkq3090hruc8shpfu6wk4chfdvdusakycgp`: signature
-* `qtn4sp`: Bech32 checksum
+* `f`: tagged field: fallback address
+  * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
+  * `3qjmp7lwpagxun9pygexvgpjdc4jdj85f`: `3` = 17, so P2PKH address
+* `r`: tagged field: route information
+  * `9y`: `data_length` (`9` = 5, `y` = 4.  5 * 32 + 4 = 164)
+    `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqqqqqqq7qqzq`: pubkey `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `short_channel_id` 0102030405060708, `fee` 20 millisatoshi, `cltv_expiry_delta` 3.  pubkey `039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `short_channel_id` 030405060708090a, `fee` 30 millisatoshi, `cltv_expiry_delta` 4.
+* `fnlkwydm8rg30gjku7wmxmk06sevjp53fmvrcfegvwy7d5443jvyhxsel0hulkstws7vqv400q4j3wgpk4crg49682hr4scqvmad43cq`: signature
+* `d5m7tf`: Bech32 checksum
 
 > ### On mainnet, with fallback (P2SH) address 3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX
 > lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppj3a24vwu6r8ejrss3axul8rxldph2q7z9kmrgvr7xlaqm47apw3d48zm203kzcq357a4ls9al2ea73r8jcceyjtya6fu5wzzpe50zrge6ulk4nvjcpxlekvmxl6qcs9j3tz0469gq5g658y
