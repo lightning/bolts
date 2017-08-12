@@ -62,7 +62,7 @@ In accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup>, replies to
 Querying for `AAAA` records:
 
 	$ dig lseed.bitcoinstats.com AAAA
-	lseed.bitcoinstats.com. 60      IN      AAAA    2a02:aa16:1105:4a80:aead:aad2:37ce:9ca
+	lseed.bitcoinstats.com. 60      IN      AAAA    2a02:aa16:1105:4a80:1234:1234:37c1:9c9
 
 Querying for `SRV` records:
 
