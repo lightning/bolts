@@ -374,29 +374,39 @@ should cover this. [FIXME: May have to divide and conquer here, since they may b
 
 There are three different scripts for penalty transactions, with the following witnesses weight (details of the computation in [Appendix A](#appendix-a-expected-weights)):
 
-    to_local_penalty_witness: 154 bytes
+    to_local_penalty_witness: 160 bytes
     offered_htlc_penalty_witness: 243 bytes
     accepted_htlc_penalty_witness: 249 bytes
 
 The penalty txinput itself takes 41 bytes, thus has a weight of 164, making the weight of each input:
 
-    to_local_penalty_input_weight: 318 bytes
+    to_local_penalty_input_weight: 324 bytes
     offered_htlc_penalty_input_weight: 407 bytes
     accepted_htlc_penalty_input_weight: 413 bytes
 
-The rest of the penalty transaction takes 4+3+1+8+1+34+4=55 bytes
-assuming it has a pay-to-witness-script-hash (the largest standard
-output script).
 
-In a worst case scenario, we have only incoming HTLCs and the HTLC-timeout transactions are not published, forcing
-us to spend from the commitment transaction.
+The rest of the penalty transaction takes 4+1+1+8+1+34+4=53 bytes of non-witness
+data, assuming it has a pay-to-witness-script-hash (the largest standard output
+script), in addition to a 2 byte witness header.
 
-With a maximum standard weight of 400000:
- 
-    max_num_htlcs = (400000 - 318 - 55) / 413  = 967
- 
-Thus we could allow 483 HTLCs in each direction (with one `to_local` output) and still resolve it with a single penalty
+In addition to outputs being swept under as penalty, the node MAY also sweep the
+`to_remote` output of the commitment transaction, e.g. to reduce the total
+amount paid in fees. Doing so requires the inclusion of a p2wpkh witness and
+additional txinput, resulting in an additional 108 + 164 = 272 bytes.
+
+In a worst case scenario, we have only incoming HTLCs and the HTLC-timeout
+transactions are not published, forcing us to spend from the commitment
 transaction.
+
+With a maximum standard weight of 400000, the maximum number of HTLCs that can
+be swept in a single transaction:
+ 
+    max_num_htlcs = (400000 - 324 - 272 - 4*53 - 2) / 413 = 966
+ 
+Thus we could allow 483 HTLCs in each direction (with both `to_local` and
+`to_remote` outputs) and still resolve it with a single penalty transaction.
+Note that even if the `to_remote` output is not swept, the resulting
+`max_num_htlcs` is 967, which yields the same unidirectional limit of 483 HTLCs.
 
 # General Requirements
 
@@ -425,29 +435,29 @@ this transaction is:
 
 The *expected weight* is calculated as follows:
 
-    to_local_script: 77 bytes
+    to_local_script: 83 bytes
         - OP_IF: 1 byte
-        - OP_DATA: 1 byte (revocationkey length)
-		- revocationkey: 33 bytes
-		- OP_ELSE: 1 byte
-		- OP_DATA: 1 byte (delay length)
-		- delay: 2 bytes
-		- OP_CSV: 1 byte
-		- OP_DROP: 1 byte
-		- OP_DATA: 1 byte (localkey length)
-		- localkey: 33 bytes
-		- OP_ENDIF: 1 byte
-		- OP_CHECKSIG: 1 byte
-		
-    to_local_penalty_witness: 154 bytes
+            - OP_DATA: 1 byte (revocationkey length)
+            - revocationkey: 33 bytes
+            - OP_CHECKSIG: 1 byte
+        - OP_ELSE: 1 byte
+            - OP_DATA: 1 byte (localkey length)
+            - localkey: 33 bytes
+            - OP_CHECKSIG_VERIFY: 1 byte
+            - OP_DATA: 1 byte (delay length)
+            - delay: 8 bytes
+            - OP_CHECKSEQUENCEVERIFY: 1 byte
+        - OP_ENDIF: 1 byte
+
+    to_local_penalty_witness: 160 bytes
         - number_of_witness_elements: 1 byte
         - revocation_sig_length: 1 byte
         - revocation_sig: 73 bytes
         - one_length: 1 byte
         - witness_script_length: 1 byte
         - witness_script (to_local_script)
-    
-    
+ 
+
 ## Expected weight of the offered-htlc penalty transaction witness
 
 The *expected weight* is calculated as follows (some calculations have already been made in [BOLT #3](03-transactions.md)):
