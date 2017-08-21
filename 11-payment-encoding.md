@@ -14,6 +14,12 @@ simply reused here even though its 6-character checksum is optimized
 for manual entry, which is unlikely to happen often given the length
 of lightning invoices.
 
+If a URI scheme is desired, the current recommendation is to either
+use 'lightning:' as a prefix before the BOLT-11 encoding (note: not
+'lightning://'), or for fallback for bitcoin payments, use 'bitcoin:'
+as per BIP-21, with key 'lightning' and value equal to the BOLT-11
+encoding.
+
 ## Requirements
 
 A writer MUST encode the the payment request in Bech32 as specified in
