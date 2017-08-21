@@ -512,10 +512,12 @@ A node MUST NOT offer an HTLC (`update_add_htlc`) in response to an incoming HTL
 the incoming HTLC has been irrevocably committed.
 
 A node MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed 
-to an outgoing HTLC, until the removal of the outgoing HTLC is irrevocably committed.
+to an outgoing HTLC, until the removal of the outgoing HTLC is irrevocably committed, or the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction with sufficient depth.
+
+A node MUST fail an incoming HTLC (`update_fail_htlc`) once its `cltv_expiry` has been reached.
  
-A node SHOULD fulfill an incoming HTLC for which it has committed to an outgoing HTLC, 
-as soon as it receives `update_fulfill_htlc` for the outgoing HTLC.
+A node MUST fulfill an incoming HTLC for which it has committed to an outgoing HTLC,
+as soon as it receives `update_fulfill_htlc` for the outgoing HTLC, or has discovered the `payment_preimage` from an on-chain HTLC spend.
 
 #### Rationale
 
