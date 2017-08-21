@@ -262,6 +262,14 @@ the commitment transaction is ours, we need to use the HTLC-timeout
 transaction.
 
 
+The fulfillment of an on-chain HTLC delivers the `payment_preimage`
+required to fulfill the incoming HTLC (if it, too, is on-chain) or use
+in the `update_fulfill_htlc` message for the incoming HTLC.
+Otherwise, it needs to send the `update_fail_htlc` (presumably with
+reason `permanent_channel_failure`) as detailed in [BOLT
+02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
+
+
 # On-chain HTLC Output Handling: Their Offers
 
 
