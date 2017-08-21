@@ -426,8 +426,8 @@ The node returning the message builds a return packet consisting of the followin
 
 Where `hmac` is an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type "_um_", `failuremsg` is defined below, and `pad` as extra bytes to conceal length.
 
-The node SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to 128.
-This is 28 bytes longer than then the longest currently-defined message.
+The node SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to 256.
+This is 128 bytes longer than then the longest currently-defined message.
 
 The node then generates a new key, using the key type `ammag`.
 This key is then used to generate a pseudo-random stream, which is then applied to the packet using `XOR`.
