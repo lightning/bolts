@@ -21,7 +21,7 @@ This details the exact format of on-chain transactions, which both sides need to
         * [Fee Payment](#fee-payment)
   * [Keys](#keys)
     * [Key Derivation](#key-derivation)
-        * [`localkey`, `remotekey`, `local_delayedkey` and `remote_delayedkey` Derivation](#localkey-remotekey-local-delayedkey-and-remote_delayedkey-derivation)
+        * [`localkey`, `remotekey`, `local_delayedkey` and `remote_delayedkey` Derivation](#localkey-remotekey-local_delayedkey-and-remote_delayedkey-derivation)
         * [`revocationkey` Derivation](#revocationkey-derivation) 
         * [Per-commitment Secret Requirements](#per-commitment-secret-requirements) 
     * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
