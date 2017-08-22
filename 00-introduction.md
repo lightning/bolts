@@ -21,6 +21,7 @@ This is version 0.
 7. [BOLT #7](07-routing-gossip.md): P2P Node and Channel Discovery
 8. [BOLT #8](08-transport.md): Encrypted and Authenticated Transport
 9. [BOLT #9](09-features.md): Assigned Feature Flags
+10. [BOLT #10](10-dns-bootstrap.md): DNS Bootstrap and Assisted Node Location
 11. [BOLT #11](11-payment-encoding.md): Invoice Protocol for Lightning Payments
 
 ## Glossary and Terminology Guide
@@ -109,6 +110,17 @@ This is version 0.
      compulsory support for features. Even numbers indicate that both endpoints
      MUST support the feature in question, while odd numbers indicate
      that the feature MAY be disregarded by the other endpoint.
+
+
+* `chain_hash`:
+   * Used in several of the BOLT documents, and denotes the genesis hash of a
+     target blockchain. This allows nodes to create and reference channels on
+     several blockchains. Nodes are to ignore any messages which reference a
+     `chain_hash` that are unknown to them.
+
+     For the main chain Bitcoin blockchain, the `chain_hash` value MUST be
+     (encoded in hex):
+     `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
 
 ## Theme Song
 

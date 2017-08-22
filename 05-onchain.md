@@ -212,6 +212,8 @@ or them if they have the payment preimage.
 The HTLC has *timed out* once the depth of the latest block is equal
 or greater than the HTLC `cltv_expiry`.
 
+The method by which we time out the HTLC output differs depending
+on whether it's our own commitment transaction, or theirs.
 
 ## Requirements
 
@@ -222,9 +224,12 @@ the payment preimage from the transaction input witness.
 
 
 If the HTLC output has *timed out* and not been *resolved*, the node
-MUST *resolve* the output by spending it using the HTLC-timeout
-transaction.  The HTLC-timeout transaction output MUST be *resolved*
-as described in "On-chain HTLC Transaction Handling".
+MUST *resolve* the output.  If the transaction is the node's own
+commitment transaction, it MUST *resolve* the output by spending it
+using the HTLC-timeout transaction, and the HTLC-timeout
+transaction output MUST be *resolved* as described in "On-chain HTLC
+Transaction Handling".  Otherwise it MUST resolve the
+output by spending it to a convenient address.
 
 
 ## Rationale
@@ -249,6 +254,22 @@ acceptable; it is the responsibility of the other node spend it
 before this occurs.
 
 
+If the commitment transaction is theirs, our signature alone is enough
+to spend the HTLC output (see
+[BOLT #3](03-transactions.md#received-htlc-outputs)), but we need to
+do so, otherwise they could fulfill the HTLC after the timeout.  If
+the commitment transaction is ours, we need to use the HTLC-timeout
+transaction.
+
+
+The fulfillment of an on-chain HTLC delivers the `payment_preimage`
+required to fulfill the incoming HTLC (if it, too, is on-chain) or use
+in the `update_fulfill_htlc` message for the incoming HTLC.
+Otherwise, it needs to send the `update_fail_htlc` (presumably with
+reason `permanent_channel_failure`) as detailed in [BOLT
+02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
+
+
 # On-chain HTLC Output Handling: Their Offers
 
 
@@ -261,9 +282,10 @@ preimage, or them if it has timed out.
 
 If the node receives (or already knows) a payment preimage for an
 unresolved HTLC output it was offered, it MUST *resolve* the output by
-spending it.  If this is done using the HTLC-success transaction, the
+spending it.  If the transaction is the nodes' own commitment transaction, then the it MUST use the HTLC-success transaction, and the
 HTLC-success transaction output MUST be *resolved* as described in
-"On-chain HTLC Transaction Handling".
+"On-chain HTLC Transaction Handling".  Otherwise, it MUST *resolve* the output 
+by spending it to a convenient address.
 
 
 Otherwise, if the HTLC output has expired, it is considered

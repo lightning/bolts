@@ -15,6 +15,7 @@ This details the exact format of on-chain transactions, which both sides need to
         * [Received HTLC Outputs](#received-htlc-outputs)
         * [Trimmed Outputs](#trimmed-outputs)
     * [HTLC-Timeout and HTLC-Success Transactions](#htlc-timeout-and-htlc-success-transactions)
+	* [Closing Transaction](#closing-transaction)
     * [Fees](#fees)
         * [Fee Calculation](#fee-calculation)   
         * [Fee Payment](#fee-payment)
@@ -234,6 +235,44 @@ The witness script for the output is:
     OP_CHECKSIG
 
 To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1` and to collect the output the local node uses an input with nSequence `to_self_delay` and a witness stack `<local_delayedsig> 0`
+
+## Closing Transaction
+
+Note that there are two possible variants for each node.
+
+* version: 1
+* locktime: 0
+* txin count: 1
+   * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
+   * `txin[0]` sequence: 0xFFFFFFFF
+   * `txin[0]` script bytes: 0
+   * `txin[0]` witness: `0 <signature_for_key1> <signature_for_key2>`
+* txout count: 0, 1 or 2
+   * `txout` amount: final balance to be paid to one node (minus `fee_satoshis` from `closing_signed` if this peer funded the channel)
+   * `txout` script: as specified in that node's `scriptpubkey` in its `shutdown` message.
+
+### Requirements
+
+Each node offering a signature MUST subtract the fee given by `fee_satoshis` from
+the output to the funder; it MUST then remove any output below its own `dust_limit_satoshis`, and MAY also eliminate its own output.
+
+### Rationale
+
+There is a possibility of irreparable differences on closing if one
+node considers the other's output too small to allow propagation on
+the bitcoin network (aka "dust"), and that other node instead
+considers that output to be too valuable to discard.  This is why each
+side uses its own `dust_limit_satoshis`, and the result can be a
+signature validation failure, if they disagree on what the closing
+transaction should look like.
+
+However, if one side chooses to eliminate its own output, there's no
+reason for the other side to fail the closing protocol, so this is
+explicitly allowed.  The signature will indicate which variant
+has been used.
+
+There will be at least one output if `dust_limit_satoshis` is greater
+than twice the funding amount.
 
 ## Fees
 
