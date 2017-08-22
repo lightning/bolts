@@ -21,6 +21,7 @@ This is version 0.
 7. [BOLT #7](07-routing-gossip.md): P2P Node and Channel Discovery
 8. [BOLT #8](08-transport.md): Encrypted and Authenticated Transport
 9. [BOLT #9](09-features.md): Assigned Feature Flags
+10. [BOLT #10](10-dns-bootstrap.md): DNS Bootstrap and Assisted Node Location
 11. [BOLT #11](11-payment-encoding.md): Invoice Protocol for Lightning Payments
 
 ## Glossary and Terminology Guide
