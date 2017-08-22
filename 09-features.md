@@ -24,7 +24,7 @@ These flags may only be used in the `init` message:
 ## Requirements
 
 (Note that the requirements for feature bits which are not defined
-above, can be found in [BOLT #1: The `init` message](#the-init-message)).  The requirements when receiving set bits are defined in the linked section in the table above).
+above, can be found in [BOLT #1: The `init` message](01-messaging.md#the-init-message)).  The requirements when receiving set bits are defined in the linked section in the table above).
 
 ## Rationale
 
