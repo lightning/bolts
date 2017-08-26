@@ -23,8 +23,10 @@ encoding.
 ## Requirements
 
 A writer MUST encode the the payment request in Bech32 as specified in
-BIP-0173.  A reader MUST parse the address as Bech32 as specified in
-BIP-0173, and MUST fail if the checksum is incorrect.
+BIP-0173, with the exception that the Bech32 string MAY be longer than
+the 90 characters specified there. A reader MUST parse the address as
+Bech32 as specified in BIP-0173 (also without the character limit),
+and MUST fail if the checksum is incorrect.
 
 # Human Readable Part
 
