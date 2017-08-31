@@ -208,6 +208,9 @@ B's *commitment transaction*, hence the requirement to handle both.
 Each HTLC output can only be spent by us after it's timed out,
 or them if they have the payment preimage.
 
+There can be HTLCs which are not represented by an output: either
+because they were trimmed as dust, or in the case where B has two
+valid commitment transactions, and the HTLCs differ in each.
 
 The HTLC has *timed out* once the depth of the latest block is equal
 or greater than the HTLC `cltv_expiry`.
@@ -230,6 +233,13 @@ using the HTLC-timeout transaction, and the HTLC-timeout
 transaction output MUST be *resolved* as described in "On-chain HTLC
 Transaction Handling".  Otherwise it MUST resolve the
 output by spending it to a convenient address.
+
+
+For any committed HTLC which does not have an output in this
+commitment transaction, the node MUST fail the corresponding incoming
+HTLC (if any) once the commitment transaction has reached reasonable
+depth, and MAY fail it sooner if no valid commitment transaction
+contains an output corresponding to the HTLC.
 
 
 ## Rationale
@@ -268,6 +278,16 @@ in the `update_fulfill_htlc` message for the incoming HTLC.
 Otherwise, it needs to send the `update_fail_htlc` (presumably with
 reason `permanent_channel_failure`) as detailed in [BOLT
 02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
+
+
+If an HTLC is too small to appear in *any* commitment transaction, it
+can be safely failed immediately and `update_fail_htlc` returned to
+the incoming HTLC (if any: it might be locally-generated).  Otherwise,
+if a HTLC isn't in the commitment transaction we need to make sure
+that a blockchain reorganization or race does not switch to a
+commitment transaction which does contain it, before we fail it, hence
+the wait.  The requirement that we fail the incoming HTLC before its
+own timeout still applies as an upper bound.
 
 
 # On-chain HTLC Output Handling: Their Offers
