@@ -290,7 +290,7 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 	}
 
 	packet := &OnionPacket{
-		Version:      0x01,
+		Version:      0x00,
 		EphemeralKey: hopEphemeralPubKeys[0],
 		RoutingInfo:  mixHeader,
 		HeaderMAC:    nextHmac,
