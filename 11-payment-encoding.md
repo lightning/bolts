@@ -23,8 +23,10 @@ encoding.
 ## Requirements
 
 A writer MUST encode the the payment request in Bech32 as specified in
-BIP-0173.  A reader MUST parse the address as Bech32 as specified in
-BIP-0173, and MUST fail if the checksum is incorrect.
+BIP-0173, with the exception that the Bech32 string MAY be longer than
+the 90 characters specified there. A reader MUST parse the address as
+Bech32 as specified in BIP-0173 (also without the character limit),
+and MUST fail if the checksum is incorrect.
 
 # Human Readable Part
 
@@ -243,9 +245,9 @@ Breakdown:
 * `lnbc`: prefix, lightning on bitcoin mainnet
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
-* `p`: payment preimage
+* `p`: payment hash
   * `p5`: `data_length` (`p` = 1, `5` = 20. 1 * 32 + 20 == 52)
-  * `qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq`: preimage 0001020304050607080900010203040506070809000102030405060708090102
+  * `qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq`: payment hash 0001020304050607080900010203040506070809000102030405060708090102
 * `d`: short description
   * `pl`: `data_length` (`p` = 1, `l` = 31. 1 * 32 + 31 == 63)
   * `2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq`: 'Please consider supporting this project'
@@ -261,7 +263,7 @@ Breakdown:
 * `2500u`: amount (2500 micro-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
-* `p`: payment preimage...
+* `p`: payment hash...
 * `d`: short description
   * `q5`: `data_length` (`q` = 0, `5` = 20. 0 * 32 + 20 == 20)
   * `xysxxatsyp3k7enxv4js`: '1 cup coffee'
@@ -280,7 +282,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
-* `p`: payment preimage...
+* `p`: payment hash...
 * `h`: tagged field: hash of description
   * `p5`: `data_length` (`p` = 1, `5` = 20. 1 * 32 + 20 == 52)
   * `8yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs`: SHA256 of 'One piece of chocolate cake, one icecream cone, one pickle, one slice of swiss cheese, one slice of salami, one lollypop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon'
@@ -296,7 +298,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
-* `p`: payment preimage...
+* `p`: payment hash...
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `3x9et2e20v6pu37c5d9vax37wxq72un98`: `3` = 17, so P2PKH address
@@ -313,7 +315,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
-* `p`: payment preimage...
+* `p`: payment hash...
 * `h`: tagged field: hash of description...
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
@@ -333,7 +335,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
-* `p`: payment preimage...
+* `p`: payment hash...
 * `f`: tagged field: fallback address.
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `j3a24vwu6r8ejrss3axul8rxldph2q7z9`: `j` = 18, so P2SH address
@@ -348,7 +350,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
-* `p`: payment preimage...
+* `p`: payment hash...
 * `f`: tagged field: fallback address.
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `q`: 0, so witness version 0.  
@@ -364,7 +366,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
-* `p`: payment preimage...
+* `p`: payment hash...
 * `f`: tagged field: fallback address.
   * `p4`: `data_length` (`p` = 1, `4` = 21. 1 * 32 + 21 == 53)
   * `q`: 0, so witness version 0.
