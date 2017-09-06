@@ -59,7 +59,7 @@ def main(options, args=None, output=sys.stdout, lines=None):
     # 2. data:
     #    * [`8`:`channel_id`]
     #    * [`4`:`len`]
-    #    * [`len`:`data`]
+    #    * [`len`:`data`] (optionXXX)
     #
     # 1. type: PERM|NODE|3 (`required_node_feature_missing`)
     message = None
@@ -67,7 +67,7 @@ def main(options, args=None, output=sys.stdout, lines=None):
     typeline = re.compile(
         '1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z_]+)`\)')
     dataline = re.compile(
-        '\s+\* \[`(?P<size>[_a-z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]')
+        '\s+\* \[`(?P<size>[_a-z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]( \((?P<option>[^)]*)\))?')
 
     if lines is None:
         lines = fileinput.input(args)
@@ -120,7 +120,11 @@ def main(options, args=None, output=sys.stdout, lines=None):
                         dataoff,
                         off_extraterms,
                         match.group('name'),
-                        match.group('size')), file=output)
+                        match.group('size')), file=output, end='')
+                    if match.group('option'):
+                        print(",{}".format(match.group('option')))
+                    else:
+                        print('')
 
                 # Size can be variable.
                 try:
