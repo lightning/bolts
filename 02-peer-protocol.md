@@ -989,6 +989,8 @@ any message), they are independent of requirements here.
    * [`32`:`channel_id`]
    * [`8`:`next_local_commitment_number`]
    * [`8`:`next_remote_revocation_number`]
+   * [`32`:`your_last_per_commitment_secret`] (option-data-loss-protect)
+   * [`33`:`my_current_per_commitment_point`] (option-data-loss-protect)
 
 ### Requirements
 
@@ -1012,6 +1014,12 @@ so the effects of `update_fulfill_htlc` is not completely reversed.
 On reconnection, if a channel is in an error state, the node SHOULD
 retransmit the error packet and ignore any other packets for that
 channel, and the following requirements do not apply.
+
+When sending a `channel_reestablish` message, if it supports
+`option-data-loss-protect` a node MUST set `your_last_per_commitment_secret` to the
+last-received `per_commitment_secret`, or all-zeroes if
+`next_remote_revocation_number` is 0, and MUST set `my_current_per_commitment_point`
+to the per-commitment point for its current commitment transaction.
 
 On reconnection, a node MUST transmit `channel_reestablish`
 for each channel, and MUST wait for to receive the other node's
@@ -1038,6 +1046,16 @@ the last `revoke_and_ack` the receiving node has sent and the receiving node has
 the `revoke_and_ack`, otherwise if `next_remote_revocation_number` is not
 equal to one greater than the commitment number of the last `revoke_and_ack` the
 receiving node has sent (or equal to zero if none have been sent), it SHOULD fail the channel.
+
+If the receiving node supports `option-data-loss-protect`, and the `option-data-loss-protect` fields are
+present: if `next_remote_revocation_number` is greater than expected
+above and `your_last_per_commitment_secret` is correct for that
+`next_remote_revocation_number` minus one, it MUST NOT broadcast its
+commitment transaction, SHOULD fail the channel, and SHOULD store
+`my_current_per_commitment_point` to retrieve funds should the sending node
+broadcast its commitment transaction onchain.  Otherwise, if either the
+`your_last_per_commitment_secret` or `my_current_per_commitment_point` do
+not match the expected values, the receiving node SHOULD fail the channel.
 
 A node MUST not assume that previously-transmitted messages were lost:
 in particular, if it has sent a previous `commitment_signed` message,
@@ -1105,6 +1123,20 @@ channel which hasn't been broadcast than forget one which has!
 Similarly, for the fundee's `funding_signed` message; better to
 remember a channel which never opens (and time out) than let the
 funder open it with the funder having forgotten it.
+
+`option-data-loss-protect` was added to allow a node which has somehow fallen behind
+(eg. restored from old backup) to detect it, and know that it cannot
+broadcast its current commitment transaction (which would lead to
+total loss of funds, as the remote node has proven it knows the
+revocation preimage).  The error returned by the fallen-behind node
+(or simply the invalid numbers in the `channel_reestablish` it has
+sent) should make the other node drop its current commitment
+transaction to the chain, which will at least allow the recovery on
+non-HTLC funds for the fallen-behind node if the `my_current_per_commitment_point`
+is valid.  On the other hand, it also
+means the fallen-behind node has revealed this fact (though not
+provably: it could be lying), and the other node could use this to
+broadcast a previous state.
 
 # Authors
 
