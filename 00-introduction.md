@@ -116,11 +116,12 @@ This is version 0.
    * Used in several of the BOLT documents, and denotes the genesis hash of a
      target blockchain. This allows nodes to create and reference channels on
      several blockchains. Nodes are to ignore any messages which reference a
-     `chain_hash` that are unknown to them.
+     `chain_hash` that are unknown to them. Unlike `bitcoin-cli` the hash is
+     not being reversed, and the hash is used directly.
 
      For the main chain Bitcoin blockchain, the `chain_hash` value MUST be
      (encoded in hex):
-     `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
+     `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
 
 ## Theme Song
 
