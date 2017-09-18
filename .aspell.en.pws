@@ -292,3 +292,6 @@ SRV
 TTL
 URI
 cli
+htlckey
+remotehtlcsig
+localhtlcsig
