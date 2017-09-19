@@ -276,19 +276,39 @@ reason `permanent_channel_failure`) as detailed in [BOLT
 Each HTLC output can only be spent by us if we have the payment
 preimage, or them if it has timed out.
 
+There are actually several possible cases for an offered HTLC:
+
+1. The other node is not irrevocably committed to it; this can only
+   happen if we have not received `revoke_and_ack` so that the other
+   node holds two valid commitment transactions, one with the HTLC and
+   one without.  We won't normally know the preimage here, unless it's
+   a payment to ourselves, and revealing that would be an information leak,
+   so it's best to allow the HTLC to time out in this case.
+2. The other node is irrevocably committed to it, but we haven't yet
+   committed to an outgoing HTLC.  In this case we can either forward
+   or timeout.
+3. We have committed to an outgoing HTLC for this incoming one.  In
+   this case we have to use the preimage if we receive it from the
+   outgoing HTLC, otherwise we will lose funds by making an outgoing
+   payment without redeeming the incoming one.
+
 
 ## Requirements
 
 
 If the node receives (or already knows) a payment preimage for an
-unresolved HTLC output it was offered, it MUST *resolve* the output by
-spending it.  If the transaction is the nodes' own commitment transaction, then the it MUST use the HTLC-success transaction, and the
+unresolved HTLC output it was offered for which it has committed to an
+outgoing HTLC, it MUST *resolve* the output by spending it.
+Otherwise, if the other node is not irrevocably committed to the HTLC,
+it MUST NOT *resolve* the output by spending it.
+
+
+To spend an offered HTLC output: if the transaction is the nodes' own commitment transaction, then it MUST use the HTLC-success transaction, and the
 HTLC-success transaction output MUST be *resolved* as described in
-"On-chain HTLC Transaction Handling".  Otherwise, it MUST *resolve* the output 
-by spending it to a convenient address.
+"On-chain HTLC Transaction Handling", otherwise, it MUST spending the output to a convenient address.
 
 
-Otherwise, if the HTLC output has expired, it is considered
+If not otherwise resolved, once the HTLC output has expired, it is considered
 *irrevocably resolved*.
 
 
