@@ -715,8 +715,9 @@ For a unparsable HTLC:
 A node SHOULD remove an HTLC as soon as it can; in particular, a node
 SHOULD fail an HTLC which has timed out.
 
-A node MUST NOT send `update_fulfill_htlc` until an HTLC is
-irrevocably committed in both sides' commitment transactions.
+A node MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc` or 
+`update_fail_malformed_htlc` until the corresponding HTLC is irrevocably 
+committed in both sides' commitment transactions.
 
 A receiving node MUST check that `id` corresponds to an HTLC in its
 current commitment transaction, and MUST fail the channel if it does
