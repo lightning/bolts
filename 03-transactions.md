@@ -472,7 +472,7 @@ The I'th secret P MUST match the output of this algorithm:
 
     generate_from_seed(seed, I):
         P = seed
-        for B in 0 to 47:
+        for B in 47 down to 0:
             if B set in I:
                 flip(B) in P
                 P = SHA256(P)
@@ -505,7 +505,7 @@ We do this using a slight generalization of `generate_from_seed` above:
     # Return I'th secret given base secret whose index has bits..47 the same.
     derive_secret(base, bits, I):
         P = base
-        for B in 0 to bits:
+        for B in bits-1 down to 0:
             if B set in I:
                 flip(B) in P
                 P = SHA256(P)
