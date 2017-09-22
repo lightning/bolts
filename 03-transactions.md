@@ -802,7 +802,7 @@ The funding transaction is paid to the following keys:
 The funding transaction has a single input, and a change output (order
 determined by BIP69 in this case):
 
-    input txid: adbb20ea41a8423ea937e76e8151636bf6093b70eaff942930d20576600521fd
+    input txid: fd2105607605d2302994ffea703b09f66b6351816ee737a93e42a841ea20bbad
     input index: 0
     input satoshis: 5000000000
     funding satoshis: 10000000
