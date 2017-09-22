@@ -4,7 +4,7 @@ This specification describes a node discovery mechanism based on the Domain Name
 Its purpose is twofold:
 
  - Bootstrap: the initial node discovery for nodes that have no known contacts in the network
- - Assisted Node Location: supporting nodes to discover the current network address previously known peers
+ - Assisted Node Location: supporting nodes to discover the current network address of previously known peers
 
 A domain name server implementing this specification is called a _DNS Seed_, and answers incoming DNS queries of type `A`, `AAAA` or `SRV` as specified in RFCs 1035<sup>[1](#ref-1)</sup>, 3596<sup>[2](#ref-2)</sup> and 2782<sup>[3](#ref-3)</sup> respectively.
 The DNS server is authoritative for a subdomain, called a _seed root domain_, and clients may query it for subdomains.
