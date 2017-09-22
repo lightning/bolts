@@ -323,7 +323,7 @@ Otherwise, if the other node is not irrevocably committed to the HTLC,
 it MUST NOT *resolve* the output by spending it.
 
 
-To spend an offered HTLC output: if the transaction is the nodes' own commitment transaction, then it MUST use the HTLC-success transaction, and the
+To spend an offered HTLC output: if the transaction is the node's own commitment transaction, then it MUST use the HTLC-success transaction, and the
 HTLC-success transaction output MUST be *resolved* as described in
 "On-chain HTLC Transaction Handling", otherwise, it MUST spend the output to a convenient address.
 
