@@ -28,11 +28,12 @@ This details the exact format of on-chain transactions, which both sides need to
   * [Appendix A: Expected weights](#appendix-a-expected-weights)    
       * [Expected weight of the commitment transaction](#expected-weight-of-the-commitment-transaction)
       * [Expected weight of HTLC-Timeout and HTLC-Success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
-  * [Appendix B: Transactions Test Vectors](#appendix-b-transactions-test-vectors)
-  * [Appendix C: Per-commitment Secret Generation Test Vectors](#appendix-c-per-commitment-secret-generation-test-vectors)    
+  * [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
+  * [Appendix C: Commitment and HTLC Transaction Test Vectors](#appendix-c-commitment-and-htlc-transaction-test-vectors)
+  * [Appendix D: Per-commitment Secret Generation Test Vectors](#appendix-d-per-commitment-secret-generation-test-vectors)
     * [Generation tests](#generation-tests)
     * [Storage tests](#storage-tests)
-  * [Appendix D: Key Derivation Test Vectors](#appendix-d-key-derivation-test-vectors)
+  * [Appendix E: Key Derivation Test Vectors](#appendix-d-key-derivation-test-vectors)
   * [References](#references)   
   * [Authors](#authors)   
   
@@ -590,7 +591,7 @@ The *expected weight* of a commitment transaction is calculated as follows:
 		- sig_bob: 73 bytes
 		- witness_script_length: 1 byte
 		- witness_script (multi_sig)
-		
+
 	funding_input: 41 bytes
 		- previous_out_point: 36 bytes
 			- hash: 32 bytes
@@ -774,7 +775,7 @@ HTLC-success) gives a weight of:
 	663 (HTLC-timeout)
 	703 (HTLC-success)
 
-# Appendix C: Funding Transaction Test Vectors
+# Appendix B: Funding Transaction Test Vectors
 
 In the following:
  - we assume that *local* is the funder
