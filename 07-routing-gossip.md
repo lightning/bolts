@@ -30,7 +30,7 @@ The willingness of the initiating node to announce the channel is signaled durin
 
 If the `open_channel` message had the `announce_channel` bit set, then both nodes must send the `announcement_signatures` message, otherwise they MUST NOT.
 
-If sent, `announcement_signatures` messages MUST NOT be sent until `funding_locked` has been sent, and the funding transaction is has at least 6 confirmations.
+If sent, `announcement_signatures` messages MUST NOT be sent until `funding_locked` has been sent and the funding transaction has at least 6 confirmations.
 
 The `short_channel_id` is the unique description of the funding transaction.
 It is constructed with the most significant 3 bytes as the block
@@ -167,7 +167,7 @@ rebroadcasting (perhaps statistically).
 
 New channel features are possible in future; backwards compatible (or
 optional) ones will have odd feature bits, incompatible ones will have
-even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide).
+even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
 Incompatible features will result in the announcement not being forwarded by nodes that don't understand them.
 
 ## The `node_announcement` message
@@ -414,8 +414,8 @@ This is a direct result from the dependency of a `node_announcement` being prece
 ### Recommendation on pruning stale entries
 
 Several scenarios may result in channels becoming unusable and the endpoints unable to send updates for these channels.
-This happens for example in case that both endpoints lose access to their private keys, and cannot sign a `channel_update` or close the channel on-chain.
-These channels are unlikely to be part of a computed route since they would be partitioned off from the rest of the network, however they would remain in the local network view, and be forwarded to other nodes forever.
+This happens for example in the case that both endpoints lose access to their private keys and cannot sign a `channel_update` nor close the channel on-chain.
+These channels are unlikely to be part of a computed route since they would be partitioned off from the rest of the network, however they would remain in the local network view and be forwarded to other nodes forever.
 For this reason nodes MAY prune channels should the timestamp of the latest `channel_update` be older than 2 weeks (1209600 seconds).
 In addition nodes MAY ignore channels with a timestamp older than 2 weeks.
 Notice that this is a node policy and MUST NOT be enforced by peers, e.g., by closing channels when receiving outdated gossip messages.
