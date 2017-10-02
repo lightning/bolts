@@ -146,7 +146,7 @@ Field Description:
    * `outgoing_cltv_value` - The CLTV value that the _outgoing_ HTLC carrying
      the packet should have. 
 
-        cltv_expiry - cltv_expiry_delta = outgoing_cltv_value
+        cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
 
      Inclusion of this field allows a node to both authenticate the information
      specified by the original sender and the parameters of the HTLC forwarded,
@@ -557,7 +557,7 @@ outgoing channel:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
-If the cltv-expiry is too near, we tell them the the current channel
+If the `cltv_expiry` is too near, we tell them the the current channel
 setting for the outgoing channel:
 
 1. type: UPDATE|14 (`expiry_too_soon`)
