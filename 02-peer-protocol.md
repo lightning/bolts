@@ -16,7 +16,7 @@ operation, and closing.
       * [Closing negotiation: `closing_signed`](#closing-negotiation-closing_signed)
     * [Normal Operation](#normal-operation)
       * [Forwarding HTLCs](#forwarding-htlcs)
-      * [Risks With HTLC Timeouts](#risks-with-htlc-timeouts)
+      * [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
       * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
       * [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc` and `update_fail_malformed_htlc`](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
@@ -508,7 +508,7 @@ the incoming HTLC has been irrevocably committed.
 A node MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed 
 to an outgoing HTLC, until the removal of the outgoing HTLC is irrevocably committed, or the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction with sufficient depth.
 
-A node MUST fail an incoming HTLC (`update_fail_htlc`) once its `cltv_expiry` has been reached.
+A node MUST fail an incoming HTLC (`update_fail_htlc`) once its `cltv_expiry` has been reached, or if `cltv_expiry` - `current_height` < `cltv_expiry_delta` for the outgoing channel.
  
 A node MUST fulfill an incoming HTLC for which it has committed to an outgoing HTLC,
 as soon as it receives `update_fulfill_htlc` for the outgoing HTLC, or has discovered the `payment_preimage` from an on-chain HTLC spend.
@@ -520,61 +520,113 @@ Fulfilling an HTLC is different: knowledge of the preimage is by definition irre
 so we should fulfill the incoming HTLC as soon as we can to reduce latency.
 
 
-### Risks With HTLC Timeouts
+### `cltv_expiry_delta` Selection
 
 
-Once an HTLC has timed out where it could either be fulfilled or timed-out;
+Once an HTLC has timed out it could either be fulfilled or timed-out;
 care must be taken around this transition both for offered and received HTLCs.
 
-As a result of forwarding an HTLC from node A to node C, B will end up having an incoming
-HTLC from A and an outgoing HTLC to C. B will make sure that the incoming HTLC has a greater 
-timeout than the outgoing HTLC, so that B can get refunded from C sooner than it has to refund
- A if the payment does not complete.
+Consider the following scenario, where A sends an HTLC to B, who
+forwards to C, who delivers the goods as soon as the payment is
+received.
 
-For example, node A might offer node B an HTLC with a timeout of 3 days, and node B might
-offer node C the same HTLC with a timeout of 2 days:
+1.  C needs to be sure that the HTLC from B cannot time out, even if B becomes
+    unresponsive; i.e. C can fulfill the incoming HTLC on-chain before B can
+    time it out on-chain.
 
-```
-    3 days timeout        2 days timeout
-A ------------------> B ------------------> C 
-```
+2.  B needs to be sure that if C fulfills the HTLC from B, it can fulfill the
+    incoming HTLC from A.  i.e. B can get the preimage from C and fulfill incoming the
+    HTLC on-chain before A can time it out on-chain.
 
-The difference in timeouts is called `cltv_expiry_delta` in 
-[BOLT #7](07-routing-gossip.md).
+The critical settings here are the `cltv_expiry_delta` in
+[BOLT #7](07-routing-gossip.md#the-channel_update-message), and the
+related
+[`min_final_cltv_expiry` in BOLT #11](11-payment-encoding.md#tagged-fields).
+`cltv_expiry_delta` is the minimum difference in HTLC CLTV timeouts in
+the forwarding case (B) and `min_final_ctlv_expiry` is the minimum difference
+between HTLC CLTV timeout and the current block height for the
+terminal case (C).
 
-This difference is important: after 2 days B can try to
-remove the offer to C even if C is unresponsive, by broadcasting the
-commitment transaction it has with C and spending the HTLC output.
-Even though C might race to try to use its payment preimage at that point to
-also spend the HTLC, it should be resolved well before the 3 day
-deadline so B can either redeem the HTLC off A or close it.
+Note that if this value is too low for a channel, the risk is only to
+the node *accepting* the HTLC, not the node offering it.  For this
+reason, the `cltv_expiry_delta` for the *outgoing* channel is used as
+the delta across a node.
 
+We can derive the worst-case number of blocks between outgoing and
+incoming HTLC resolution, given a few assumptions:
 
-If the timing is too close, there is a risk of "one-sided redemption",
-where the payment preimage received from an offered HTLC is too late
-to be used for an incoming HTLC, leaving the node with unexpected
-liability.
+* A worst-case reorganization depth `R` blocks
+* A grace-period `G` blocks after HTLC timeout before we give up on
+  an unresponsive peer and drop to chain.
+* A number of blocks `S` between transaction broadcast and the
+  transaction being included in a block.
 
+The worst case is for a forwarding node (B) which takes the longest
+possible time to spot the outgoing HTLC fulfillment, and then takes
+the longest possible time to redeem it on-chain:
 
-Thus the effective timeout of the HTLC is the `cltv_expiry`, plus some
-additional delay for the transaction which redeems the HTLC output to
-be irreversibly committed to the blockchain.
+1. The B->C HTLC times out at block `N`, and B waits `G` blocks until
+   it gives up waiting for C.  B or C commits to the blockchain,
+   and B spends HTLC, which takes `S` blocks to be included.
+2. Bad case: C wins the race (just) and fulfills the HTLC, B only sees
+   that transaction when it sees block `N+G+S+1`.
+3. Worst case: There's reorganization `R` deep in which C wins and
+   fulfills. B only sees transaction at `N+G+S+R`.
+4. B now needs to fulfill the incoming A->B HTLC, but A is unresponsive: B waits `G` more
+   blocks before giving up waiting for A.  A or B commits to the blockchain.
+5. Bad case: B sees A's commitment transaction in block `N+G+S+R+G+1`, and has
+   to spend the HTLC output, which takes `S` blocks to be mined.
+6. Worst case: There's another reorganization `R` deep which A uses to
+   spend the commitment transaction, so B sees A's commitment
+   transaction in block `N+G+S+R+G+R`, and has to spend the HTLC output, which
+   takes `S` blocks to be mined.
+7. B's HTLC spend needs to be at least `R` deep before it times out,
+   otherwise another reorganization could allow A to timeout the
+   transaction.
 
-The fulfillment risk is similar: if a node C fulfills an HTLC after
-its timeout, B might broadcast the commitment transaction and
-immediately broadcast the HTLC timeout transaction.  In this scenario,
-B would gain knowledge of the preimage without paying C.
+Thus the worst case is `3R+2G+2S` assuming `R` is at least 1.  Note that the
+chances of three reorganizations in which the other node wins all of them is
+low for `R` of 2 or more.  Since we use high fees (and HTLC spends can use
+almost arbitrary fees) `S` should be small, though given that block times are
+irregular and empty blocks still occur, `S = 2` should be considered a
+minimum.  Similarly, the grace period `G` can be low (1 or 2), as nodes are
+required to timeout or fulfill as soon as possible; but too low increases the
+risk of unnecessary channel closure due to networking delays.
+
+There are four values we need to derive:
+
+1. The `cltv_expiry_delta` for channels.  `3R+2G+2S`; if in doubt, a
+   `cltv_expiry_delta` of 12 is reasonable (R=2, G=1, S=2).
+
+2. For HTLCs we offer: the timeout deadline when we have to fail the channel
+   and time it out on-chain.  This is `G` blocks after the HTLC
+   `cltv_expiry`; 1 block is reasonable.
+
+3. For HTLCs we accept and have a preimage: the fulfillment deadline when we
+   have to fail the channel and fulfill the HTLC onchain before its
+   `cltv_expiry`.  This is steps 4-7 above, which means a deadline of `2R+G+S`
+   blocks before `cltv_expiry`; 7 blocks is reasonable.
+
+4. The minimum `cltv_expiry` we will accept for terminal payments: the
+   worst case for the terminal node C lower at `2R+G+S` blocks (steps
+   1-3 above don't apply).  The default in
+   [BOLT 11](11-payment-encoding.md) is 9, which is slightly more
+   conservative than the 6 this calculation suggests.
+
 
 #### Requirements
 
-A node MUST estimate the deadline for successful redemption for each
-HTLC.  A node MUST NOT offer a HTLC after this deadline, and
-MUST fail the channel if an HTLC which it offered is in either node's
-current commitment transaction past this deadline.
+A node MUST estimate a timeout deadline for each HTLC it offers.  A node MUST
+NOT offer an HTLC with a timeout deadline before its `cltv_expiry`, and MUST
+fail the channel if an HTLC which it offered is in either node's current
+commitment transaction past this timeout deadline.
 
-A node MUST NOT fulfill an HTLC after this deadline, and MUST fail the
-connection if a HTLC it has fulfilled is in either node's current
-commitment transaction past this deadline.
+A node MUST estimate a fulfillment deadline for each HTLC it is attempting to
+fulfill.  A node MUST fail (and not forward) an HTLC whose fulfillment
+deadline is already past, and MUST fail the connection if a HTLC it has
+fulfilled is in either node's current commitment transaction past this
+fulfillment deadline.
+
 
 ### Adding an HTLC: `update_add_htlc`
 
@@ -743,7 +795,7 @@ using the `failure_code` given and setting the data to
 #### Rationale
 
 A node which doesn't time out HTLCs risks channel failure (see
-"Risks With HTLC Timeouts").
+[`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection).
 
 A node which sends `update_fulfill_htlc` before the sender is also
 committed to the HTLC risks losing funds.

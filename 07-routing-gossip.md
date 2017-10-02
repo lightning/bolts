@@ -448,6 +448,96 @@ Other more advanced considerations involve diversity of routes to
 avoid single points of failure and detection, and channel balance
 of local channels.
 
+### Routing Example
+
+Consider four nodes:
+
+
+```
+   B
+  / \
+ /   \
+A     C 
+ \   /
+  \ /
+   D
+```
+
+Each advertises the following `cltv_expiry_delta` on its end of every
+channel:
+
+1. A: 10 blocks
+2. B: 20 blocks
+3. C: 30 blocks
+4. D: 40 blocks
+
+C also uses a`min_final_cltv_expiry` of 9 (the default) when requesting
+payments.
+
+Also, each node has the same fee scheme which it uses for each of its
+channels:
+
+1. A: 100 base + 1000 millionths
+1. B: 200 base + 2000 millionths
+1. C: 300 base + 3000 millionths
+1. D: 400 base + 4000 millionths
+
+The network will see eight `channel_update` messages:
+
+1. A->B: `cltv_expiry_delta` = 10, `fee_base_msat` = 100, `fee_proportional_millionths` = 1000
+1. A->D: `cltv_expiry_delta` = 10, `fee_base_msat` = 100, `fee_proportional_millionths` = 1000
+1. B->A: `cltv_expiry_delta` = 20, `fee_base_msat` = 200, `fee_proportional_millionths` = 2000
+1. D->A: `cltv_expiry_delta` = 40, `fee_base_msat` = 400, `fee_proportional_millionths` = 4000
+1. B->C: `cltv_expiry_delta` = 20, `fee_base_msat` = 200, `fee_proportional_millionths` = 2000
+1. D->C: `cltv_expiry_delta` = 40, `fee_base_msat` = 400, `fee_proportional_millionths` = 4000
+1. C->B: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
+1. C->D: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
+
+If B were to send 4,999,999 millisatoshi directly to C, it wouldn't
+charge itself a fee nor add its own `cltv_expiry_delta`, so it would
+use C's requested `min_final_cltv_expiry` of 9.  We also assume it adds a
+"shadow route" to give an extra CLTV of 42.  It could also add extra
+cltv deltas at other hops, as these values are a minimum, but we don't
+here for simplicity:
+
+   * `amount_msat`: 4999999
+   * `cltv_expiry`: current-block-height + 9 + 42
+   * `onion_routing_packet`:
+     * `amt_to_forward` = 4999999
+     * `outgoing_cltv_value` = current-block-height + 9 + 42
+
+If A were to send an 4,999,999 millisatoshi to C via B, it needs to
+pay B the fee it specified in the B->C `channel_update`, calculated as
+per [HTLC Fees](#htlc_fees):
+
+	200 + 4999999 * 2000 / 1000000 = 10199
+
+Similarly, it would need to add the `cltv_expiry` from B->C's
+`channel_update` (20), plus C's requested `min_final_cltv_expiry` (9), plus 42 for the
+"shadow route".  Thus the `update_add_htlc` message from A to B would
+be:
+
+   * `amount_msat`: 5010198
+   * `cltv_expiry`: current-block-height + 20 + 9 + 42
+   * `onion_routing_packet`:
+     * `amt_to_forward` = 4999999
+     * `outgoing_cltv_value` = current-block-height + 9 + 42
+
+The `update_add_htlc` from B to C would be the same as the B->C direct
+payment above.
+
+Finally, if for some reason A chose the more expensive route via D, it
+would send the following `update_add_htlc` to D:
+
+   * `amount_msat`: 5020398
+   * `cltv_expiry`: current-block-height + 40 + 9 + 42
+   * `onion_routing_packet`:
+	 * `amt_to_forward` = 4999999
+     * `outgoing_cltv_value` = current-block-height + 9 + 42
+
+And the `update_add_htlc` from D to C would be the same as the B->C
+direct payment again.
+
 ## References
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
