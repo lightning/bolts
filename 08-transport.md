@@ -57,7 +57,7 @@ indicate possibly encrypted keying material, and `es, ee, se` each indicate an
 All of the handshake data sent across the wire, including the keying material, is
 incrementally hashed into a session-wide "handshake digest", `h`. Note that the
 handshake state `h`, is never transmitted during the handshake, instead digest
-is used as the Authenticated Data within the zero-length AEAD messages.
+is used as the Associated Data within the zero-length AEAD messages.
 
 By authenticating each message sent, we can ensure that a MiTM hasn't modified
 or replaced any of the data sent across as part of a handshake, as the MAC
@@ -298,7 +298,7 @@ responder was able to properly decrypt and check the `MAC` of the tag sent at
 the end of `Act One`.
 
 The handshake is _exactly_ `50 bytes:` `1 byte` for the handshake version, `33
-bytes` for the compressed ephemeral public key of the initiator, and `16 bytes`
+bytes` for the compressed ephemeral public key of the responder, and `16 bytes`
 for the `poly1305` tag.
 
 **Sender Actions:**
@@ -591,7 +591,7 @@ backwards secrecy).
 
 
 Key rotation is performed for _each_ key (`sk` and `rk`) _individually _. A key
-is to be rotated after a party sends of decrypts `1000` messages with it.
+is to be rotated after a party sends or decrypts `1000` messages with it.
 This can be properly accounted for by rotating the key once the nonce dedicated
 to it exceeds `1000`.
 

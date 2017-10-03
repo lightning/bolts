@@ -227,7 +227,9 @@ the payment preimage from the transaction input witness.
 
 
 If the HTLC output has *timed out* and not been *resolved*, the node
-MUST *resolve* the output.  If the transaction is the node's own
+MUST *resolve* the output and MUST fail the corresponding incoming
+HTLC (if any) once the resolving transaction has reached reasonable
+depth.  If the transaction is the node's own
 commitment transaction, it MUST *resolve* the output by spending it
 using the HTLC-timeout transaction, and the HTLC-timeout
 transaction output MUST be *resolved* as described in "On-chain HTLC
@@ -323,9 +325,9 @@ Otherwise, if the other node is not irrevocably committed to the HTLC,
 it MUST NOT *resolve* the output by spending it.
 
 
-To spend an offered HTLC output: if the transaction is the nodes' own commitment transaction, then it MUST use the HTLC-success transaction, and the
+To spend an offered HTLC output: if the transaction is the node's own commitment transaction, then it MUST use the HTLC-success transaction, and the
 HTLC-success transaction output MUST be *resolved* as described in
-"On-chain HTLC Transaction Handling", otherwise, it MUST spending the output to a convenient address.
+"On-chain HTLC Transaction Handling", otherwise, it MUST spend the output to a convenient address.
 
 
 If not otherwise resolved, once the HTLC output has expired, it is considered

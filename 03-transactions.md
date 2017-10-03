@@ -29,10 +29,10 @@ This details the exact format of on-chain transactions, which both sides need to
       * [Expected weight of the commitment transaction](#expected-weight-of-the-commitment-transaction)
       * [Expected weight of HTLC-Timeout and HTLC-Success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
   * [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
-  * [Appendix C: Commitment and HTLC Transaction Test Vectors](#appendix-c-commitment-and-htlc-transaction-test-vectors)    
+  * [Appendix C: Commitment and HTLC Transaction Test Vectors](#appendix-c-commitment-and-htlc-transaction-test-vectors)
+  * [Appendix D: Per-commitment Secret Generation Test Vectors](#appendix-d-per-commitment-secret-generation-test-vectors)
     * [Generation tests](#generation-tests)
     * [Storage tests](#storage-tests)
-  * [Appendix D: Per-commitment Secret Generation Test Vectors](#appendix-d-per-commitment-secret-generation-test-vectors)
   * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
   * [References](#references)   
   * [Authors](#authors)   
@@ -473,7 +473,7 @@ The I'th secret P MUST match the output of this algorithm:
 
     generate_from_seed(seed, I):
         P = seed
-        for B in 0 to 47:
+        for B in 47 down to 0:
             if B set in I:
                 flip(B) in P
                 P = SHA256(P)
@@ -506,7 +506,7 @@ We do this using a slight generalization of `generate_from_seed` above:
     # Return I'th secret given base secret whose index has bits..47 the same.
     derive_secret(base, bits, I):
         P = base
-        for B in 0 to bits:
+        for B in bits-1 down to 0:
             if B set in I:
                 flip(B) in P
                 P = SHA256(P)
@@ -591,7 +591,7 @@ The *expected weight* of a commitment transaction is calculated as follows:
 		- sig_bob: 73 bytes
 		- witness_script_length: 1 byte
 		- witness_script (multi_sig)
-		
+
 	funding_input: 41 bytes
 		- previous_out_point: 36 bytes
 			- hash: 32 bytes
@@ -802,7 +802,7 @@ The funding transaction is paid to the following keys:
 The funding transaction has a single input, and a change output (order
 determined by BIP69 in this case):
 
-    input txid: adbb20ea41a8423ea937e76e8151636bf6093b70eaff942930d20576600521fd
+    input txid: fd2105607605d2302994ffea703b09f66b6351816ee737a93e42a841ea20bbad
     input index: 0
     input satoshis: 5000000000
     funding satoshis: 10000000
@@ -858,7 +858,7 @@ HTLCs are not used for the first "simple commitment tx with no HTLCs" test.
      required for this test.  They're included here for completeness and
 	 in case someone wants to reproduce the test vectors themselves:
 
-INTERNAL: remote_funding_privkey: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e1301
+INTERNAL: remote_funding_privkey: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e130101
 INTERNAL: local_payment_basepoint_secret: 111111111111111111111111111111111111111111111111111111111111111101
 INTERNAL: remote_revocation_basepoint_secret: 222222222222222222222222222222222222222222222222222222222222222201
 INTERNAL: local_delayed_payment_basepoint_secret: 333333333333333333333333333333333333333333333333333333333333333301

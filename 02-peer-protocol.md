@@ -108,7 +108,7 @@ The existence of the `chain_hash` allows nodes to open channel
 across many distinct blockchains as well as have channels within multiple
 blockchains opened to the same peer (if they support the target chains).
 
-The `temporary_channel_id` is used to identify this channel until the funding transaction is established. `funding_satoshis` is the amount the sender is putting into the channel.  `dust_limit_satoshis` is the threshold below which output should be generated for this node's commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
+The `temporary_channel_id` is used to identify this channel until the funding transaction is established. `funding_satoshis` is the amount the sender is putting into the channel.  `dust_limit_satoshis` is the threshold below which outputs should not be generated for this node's commitment or HTLC transaction; ie. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain.  This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
 
 `max_htlc_value_in_flight_msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max_accepted_htlcs` limits the number of outstanding HTLCs the other node can offer. `channel_reserve_satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc_minimum_msat` indicates the smallest value HTLC this node will accept.
 
@@ -217,7 +217,7 @@ acceptance of the new channel.
 #### Requirements
 
 
-The receiving MUST reject the channel if the `chain_hash` value within the
+The receiving node MUST reject the channel if the `chain_hash` value within the
 `open_channel` message is set to a hash of a chain unknown to the receiver.
 
 The `temporary_channel_id` MUST be the same as the `temporary_channel_id` in the `open_channel` message.  The sender SHOULD set `minimum_depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
@@ -653,7 +653,7 @@ breakdown.
 
 If a node did not accept multiple HTLCs with the same payment hash, an
 attacker could probe to see if a node had an existing HTLC.  This
-requirement deal with duplicates leads us to using a separate
+requirement to deal with duplicates leads us to use a separate
 identifier; we assume a 64 bit counter never wraps.
 
 
@@ -715,8 +715,9 @@ For a unparsable HTLC:
 A node SHOULD remove an HTLC as soon as it can; in particular, a node
 SHOULD fail an HTLC which has timed out.
 
-A node MUST NOT send `update_fulfill_htlc` until an HTLC is
-irrevocably committed in both sides' commitment transactions.
+A node MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc` or 
+`update_fail_malformed_htlc` until the corresponding HTLC is irrevocably 
+committed in both sides' commitment transactions.
 
 A receiving node MUST check that `id` corresponds to an HTLC in its
 current commitment transaction, and MUST fail the channel if it does
