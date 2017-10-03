@@ -553,7 +553,7 @@ outgoing channel:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
-If the ctlv-expiry is too near, we tell them the the current channel
+If the cltv-expiry is too near, we tell them the the current channel
 setting for the outgoing channel:
 
 1. type: UPDATE|14 (`expiry_too_soon`)
@@ -591,7 +591,7 @@ If the `cltv_expiry` is too low, the final node MUST fail the HTLC:
 
 1. type: 17 (`final_expiry_too_soon`)
 
-If the `outgoing_cltv_value` does not match the `ctlv_expiry` of the
+If the `outgoing_cltv_value` does not match the `cltv_expiry` of the
 HTLC at the final hop:
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
