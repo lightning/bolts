@@ -411,7 +411,8 @@ The blinded EC point then is the result of the scalar multiplication between the
 
 The protocol includes a simple mechanism to return encrypted error messages to the origin node.
 The returned messages may either be failures reported by any intermediate hop, or the final node.
-The format of the forward packet is not usable for the return path, since no node other than the origin has the required information.  Note that these error messages are not reliable, as they are not placed on-chain in the case of node failure.
+The format of the forward packet is not usable for the return path, since no node other than the origin has the required information.
+Note that these error messages are not reliable, as they are not placed on-chain in the case of node failure.
 
 Intermediate hops store the shared secret from the forward path and reuse it to obfuscate the error packet on each hop.
 In addition each node locally stores the previous hop it received the forward packet from, in order to determine where to send an eventual return packet.
@@ -424,7 +425,7 @@ The node returning the message builds a return packet consisting of the followin
    * [`2`:`pad_len`]
    * [`pad_len`:`pad`]
 
-Where `hmac` is an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type "_um_", `failuremsg` is defined below, and `pad` as extra bytes to conceal length.
+Where `hmac` is an HMAC authenticating the remainder of the packet, with a key using the above key generation with key type `um`, `failuremsg` is defined below, and `pad` as extra bytes to conceal length.
 
 The node SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to 256.
 This is 118 bytes longer than then the longest currently-defined message.
@@ -436,7 +437,10 @@ The obfuscation step is repeated by every node on the return path.
 Upon receiving a packet the node will generate its `ammag`, generate the pseudo-random byte stream and apply it to the packet before forwarding.
 
 The origin node detects that it is the final hop of the return message since it was the origin of the corresponding forward packet.
-Having the shared secrets of all intermediate nodes it can unwrap the packet until the HMAC is a valid HMAC for the packet, which also identifies the sender of the return message.
+When an origin node receive an error message matching a transfer it initiated, i.e., it cannot forward the error any further, the node generates the `ammag` and `um` keys for each hop in the route.
+The node then iteratively decrypts the error message with each of the `ammag` keys and computes the HMAC with the `um` keys. 
+The origin node can detect the sender of the error message by matching the `hmac` field with the computed HMAC.
+Once the original message has been decrypted it SHOULD be stored in a copy and the node SHOULD continue decrypting, until the loop has been repeated 20 times, using a constant `ammag` and `um` keys to obfuscate the route length.
 
 The association between forward and return packet is handled outside of the protocol, e.g., by association to an HTLC in a payment channel.
 
