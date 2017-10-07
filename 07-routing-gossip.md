@@ -329,7 +329,7 @@ A subsequent `channel_update` with the `disable` bit unset MAY re-enable the cha
 
 The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this `short_channel_id`.
 
-It MUST set `cltv_expiry_delta` to the number of blocks it will subtract from an incoming HTLCs `cltv_expiry`.  It MUST set `htlc_minimum_msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee_base_msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee_proportional_millionths` to the amount it will charge per transferred satoshi in millionths of a satoshi.
+It MUST set `cltv_expiry_delta` to value received in the `open_channel` or `accept_channel` message.  It MUST set `htlc_minimum_msat` to the minimum HTLC value it will accept, in millisatoshi.  It MUST set `fee_base_msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee_proportional_millionths` to the amount it will charge per transferred satoshi in millionths of a satoshi.
 
 The receiving nodes MUST ignore the `channel_update` if it does not correspond to one of its own channels, if the `short_channel_id` does not match a previous `channel_announcement`, or the channel has been closed in the meantime.
 It SHOULD accept `channel_update`s for its own channels in order to learn the other end's forwarding parameters, even for non-public channels.
@@ -430,6 +430,13 @@ When calculating a route for an HTLC, the `cltv_expiry_delta` and the fee both
 need to be considered: the `cltv_expiry_delta` contributes to the time that funds
 will be unavailable on worst-case failure.  The tradeoff between these
 two is unclear, as it depends on the reliability of nodes.
+
+Note that the `cltv_expiry_delta` is a requirement ultimately set by
+the receiving end of each channel, whereas fees are set by the sending
+end.  This matters, because it means that adding the
+`cltv_expiry_delta` to the HTLC timeout is required for the every
+channel in a route, whereas a node doesn't charge itself fees for
+using (its own) first channel.
 
 If a route is computed by simply routing to the intended recipient, summing up the `cltv_expiry_delta`s, then nodes along the route may guess their position in the route.
 Knowing the CLTV of the HTLC and the surrounding topology with the `cltv_expiry_delta`s gives an attacker a way to guess the intended recipient.

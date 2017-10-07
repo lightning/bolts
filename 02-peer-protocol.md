@@ -94,6 +94,7 @@ desire to set up a new channel.
    * [`4`:`feerate_per_kw`]
    * [`2`:`to_self_delay`]
    * [`2`:`max_accepted_htlcs`]
+   * [`2`:`cltv_expiry_delta`]
    * [`33`:`funding_pubkey`]
    * [`33`:`revocation_basepoint`]
    * [`33`:`payment_basepoint`]
@@ -113,6 +114,9 @@ The `temporary_channel_id` is used to identify this channel until the funding tr
 `max_htlc_value_in_flight_msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly `max_accepted_htlcs` limits the number of outstanding HTLCs the other node can offer. `channel_reserve_satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc_minimum_msat` indicates the smallest value HTLC this node will accept.
 
 `feerate_per_kw` indicates the initial fee rate by 1000-weight (ie. 1/4 the more normally-used 'feerate per kilobyte') which this side will pay for commitment and HTLC transactions as described in [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted later with an `update_fee` message).  `to_self_delay` is the number of blocks that the other nodes to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
+
+`cltv_expiry_delta` indicates the CLTV timeout requirement for HTLCs
+offered into this channel.
 
 Only the least-significant bit of `channel_flags` is currently
 defined: `announce_channel`.  This indicates whether the initiator of the
@@ -141,6 +145,8 @@ compressed secp256k1 pubkeys. The sender SHOULD set `feerate_per_kw`
 to at least the rate it estimates would cause the transaction to be
 immediately included in a block.
 
+The sender MUST set `cltv_expiry_delta` to the number of blocks it will
+subtract from an incoming HTLCs `cltv_expiry`.
 
 The sender SHOULD set `dust_limit_satoshis` to a sufficient value to
 allow commitment transactions to propagate through the Bitcoin
@@ -208,6 +214,7 @@ acceptance of the new channel.
    * [`4`:`minimum_depth`]
    * [`2`:`to_self_delay`]
    * [`2`:`max_accepted_htlcs`]
+   * [`2`:`cltv_expiry_delta`]
    * [`33`:`funding_pubkey`]
    * [`33`:`revocation_basepoint`]
    * [`33`:`payment_basepoint`]
@@ -508,7 +515,7 @@ the incoming HTLC has been irrevocably committed.
 A node MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed 
 to an outgoing HTLC, until the removal of the outgoing HTLC is irrevocably committed, or the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction with sufficient depth.
 
-A node MUST fail an incoming HTLC (`update_fail_htlc`) once its `cltv_expiry` has been reached.
+A node MUST fail an incoming HTLC (`update_fail_htlc`) once its `cltv_expiry` has been reached, or if its `ctlv_expiry` is within `cltv_expiry_delta` (as this node sent in `open_channel` or `accept_channel`) of the current block height.
  
 A node MUST fulfill an incoming HTLC for which it has committed to an outgoing HTLC,
 as soon as it receives `update_fulfill_htlc` for the outgoing HTLC, or has discovered the `payment_preimage` from an on-chain HTLC spend.
