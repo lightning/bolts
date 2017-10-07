@@ -553,7 +553,7 @@ outgoing channel:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
-If the cltv-expiry is too near, we tell them the the current channel
+If the `cltv_expiry` is too near, we tell them the the current channel
 setting for the outgoing channel:
 
 1. type: UPDATE|14 (`expiry_too_soon`)
