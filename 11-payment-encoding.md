@@ -166,9 +166,10 @@ A reader MUST skip over unknown fields, an `f` field with unknown
 A reader MUST check that the SHA-2 256 in the `h` field exactly
 matches the hashed description.
 
-A reader MUST use a greater value for the last htlc's `cltv_expiry` than the one
- in the `c` field if provided, and SHOULD follow the [shadow route recommendation](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#recommendations-for-routing)
- on top of that.
+A reader MUST use a greater value for the `cltv_expiry` of the last
+htlc than the one in the `c` field if provided, and SHOULD follow the 
+[shadow route recommendation](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#recommendations-for-routing) 
+on top of that.
 
 A reader MUST use the `n` field to validate the signature instead of
 performing signature recovery if a valid `n` field is provided.
