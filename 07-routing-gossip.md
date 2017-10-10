@@ -293,7 +293,7 @@ Note that the `channel_update` message is only useful in the context
 of *relaying* payments, not *sending* payments. When making a payment
  `A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels 
  `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will 
- come into play. When building the route, htlcs' amounts and expiries need
+ come into play. When building the route, amounts and expiries for htlcs need
  to be calculated backwards from the destination to the source. The initial
  exact value for `amount_msat` and minimal value for `htlc_expiry`, which are
   to be used for the last htlc in the route, are provided in the payment request
