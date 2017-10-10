@@ -594,14 +594,14 @@ If the `cltv_expiry` is too low, the final node MUST fail the HTLC:
 If the `outgoing_cltv_value` does not match the `cltv_expiry` of the
 HTLC at the final hop:
 
-1. type: 18 (`final_incorrect_cltv_expiry`)
+1. type: PERM|18 (`final_incorrect_cltv_expiry`)
 2. data:
    * [`4`:`cltv_expiry`]
 
 If the `amt_to_forward` is higher than `incoming_htlc_amt` of
 the HTLC at the final hop:
 
-1. type: 19 (`final_incorrect_htlc_amount`)
+1. type: PERM|19 (`final_incorrect_htlc_amount`)
 2. data:
    * [`4`:`incoming_htlc_amt`]
 
