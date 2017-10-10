@@ -109,6 +109,7 @@ Currently defined Tagged Fields are:
 * `n` (19): `data_length` 53.  The 33-byte public key of the payee node.
 * `h` (23): `data_length` 52.  256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
 * `x` (6): `data_length` variable.  `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
+* `c` (24): `data_length` (16 bits, big-endian). Minimum `cltv_expiry` to use for the last htlc. Default is 9 if not specified.
 * `f` (9): `data_length` variable, depending on version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or P2PKH or P2SH address.
 * `r` (3): `data_length` variable.  One or more entries containing extra routing information for a private route; there may be more than one `r` field, too.
    * `pubkey` (264 bits)
@@ -130,6 +131,9 @@ which SHOULD be a complete description of the purpose of the payment.
 
 A writer MAY include one `x` field, which SHOULD use the minimum `data_length` 
 possible.
+
+A writer MAY include one `c` field, which MUST be set to the minimum `cltv_expiry` it
+will accept for the last htlc.
 
 A writer MAY include one `n` field, which MUST be set to the public key
 used to create the `signature`.
@@ -161,6 +165,10 @@ A reader MUST skip over unknown fields, an `f` field with unknown
 
 A reader MUST check that the SHA-2 256 in the `h` field exactly
 matches the hashed description.
+
+A reader MUST use a greater value for the last htlc's `cltv_expiry` than the one
+ in the `c` field if provided, and SHOULD follow the [shadow route recommendation](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#recommendations-for-routing)
+ on top of that.
 
 A reader MUST use the `n` field to validate the signature instead of
 performing signature recovery if a valid `n` field is provided.

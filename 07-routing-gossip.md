@@ -282,11 +282,22 @@ padding within `addresses` if they require certain alignment.
 ## The `channel_update` message
 
 After a channel has been initially announced, each side independently
-announces its fees and minimum expiry for HTLCs.  It uses the 8-byte
+announces the fees and minimum expiry delta it requires to relay HTLCs
+through this channel.  It uses the 8-byte
 channel shortid which matches the `channel_announcement` and one bit
 in the `flags` field
 to indicate which end this is.  It can do this multiple times, if
 it wants to change fees.
+
+Note that the `channel_update` message is only useful in the context 
+of *relaying* payments, not *sending* payments. When making a payment
+ `A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels 
+ `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will 
+ come into play. When building the route, htlc's amounts and expiries need
+ to be calculated backwards from the destination to the source. The initial
+ exact value for `amount_msat` and minimal value for `htlc_expiry`, which are
+  to be used for the last htlc in the route, are provided in the payment request
+ (see [BOLT #11](11-payment-encoding.md#tagged-fields)).
 
 A node MAY still create a `channel_update` to communicate the channel parameters to the other endpoint, even though the channel has not been announced, e.g., because the `announce_channel` bit was not set.
 For further privacy such a `channel_update` MUST NOT be forwarded to other peers.
@@ -421,10 +432,6 @@ In addition nodes MAY ignore channels with a timestamp older than 2 weeks.
 Notice that this is a node policy and MUST NOT be enforced by peers, e.g., by closing channels when receiving outdated gossip messages.
 
 ## Recommendations for Routing
-
-As the fee is proportional, it must be calculated backwards from the
-destination to the source: only the amount required at the final
-destination is known initially.
 
 When calculating a route for an HTLC, the `cltv_expiry_delta` and the fee both
 need to be considered: the `cltv_expiry_delta` contributes to the time that funds
