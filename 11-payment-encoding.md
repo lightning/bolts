@@ -301,7 +301,8 @@ Breakdown:
 * `p`: payment hash...
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
-  * `3x9et2e20v6pu37c5d9vax37wxq72un98`: `3` = 17, so P2PKH address
+  * `3` = 17, so P2PKH address
+  * `x9et2e20v6pu37c5d9vax37wxq72un98`: 160 bit P2PKH address
 * `h`: tagged field: hash of description...
 * `kmzzhznpurw9sgl2v0nklu2g4d0keph5t7tj9tcqd8rexnd07ux4uv2cjvcqwaxgj7v4uwn5wmypjd5n69z2xm3xgksg28nwht7f6zsp`: signature
 * `wp3f9t`: Bech32 checksum
@@ -319,7 +320,8 @@ Breakdown:
 * `h`: tagged field: hash of description...
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
-  * `3qjmp7lwpagxun9pygexvgpjdc4jdj85f`: `3` = 17, so P2PKH address
+  * `3` = 17, so P2PKH address
+  * `qjmp7lwpagxun9pygexvgpjdc4jdj85f`: 160 bit P2PKH address
 * `r`: tagged field: route information
   * `9y`: `data_length` (`9` = 5, `y` = 4.  5 * 32 + 4 = 164)
     `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqqqqqqq7qqzq`: pubkey `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `short_channel_id` 0102030405060708, `fee` 20 millisatoshi, `cltv_expiry_delta` 3.  pubkey `039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `short_channel_id` 030405060708090a, `fee` 30 millisatoshi, `cltv_expiry_delta` 4.
@@ -338,7 +340,8 @@ Breakdown:
 * `p`: payment hash...
 * `f`: tagged field: fallback address.
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
-  * `j3a24vwu6r8ejrss3axul8rxldph2q7z9`: `j` = 18, so P2SH address
+  * `j` = 18, so P2SH address
+  * `3a24vwu6r8ejrss3axul8rxldph2q7z9`:  160 bit P2SH address
 * `h`: tagged field: hash of description...
 * `kmrgvr7xlaqm47apw3d48zm203kzcq357a4ls9al2ea73r8jcceyjtya6fu5wzzpe50zrge6ulk4nvjcpxlekvmxl6qcs9j3tz0469gq`: signature
 * `5g658y`: Bech32 checksum
@@ -354,7 +357,7 @@ Breakdown:
 * `f`: tagged field: fallback address.
   * `pp`: `data_length` (`p` = 1. 1 * 32 + 1 == 33)
   * `q`: 0, so witness version 0.  
-  * `qw508d6qejxtdg4y5r3zarvary0c5xw7k`: 160 bits = P2WPKH.
+  * `w508d6qejxtdg4y5r3zarvary0c5xw7k`: 160 bits = P2WPKH.
 * `h`: tagged field: hash of description...
 * `epvrhrm9s57hejg0p662ur5j5cr03890fa7k2pypgttmh4897d3raaq85a293e9jpuqwl0rnfuwzam7yr8e690nd2ypcq9hlkdwdvycq`: signature
 * `a0qza8`: Bech32 checksum
