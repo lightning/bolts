@@ -109,7 +109,7 @@ Currently defined Tagged Fields are:
 * `n` (19): `data_length` 53.  The 33-byte public key of the payee node.
 * `h` (23): `data_length` 52.  256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
 * `x` (6): `data_length` variable.  `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
-* `f` (9): `data_length` variable, depending in version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or P2PKH or P2SH address.
+* `f` (9): `data_length` variable, depending on version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or P2PKH or P2SH address.
 * `r` (3): `data_length` variable.  One or more entries containing extra routing information for a private route; there may be more than one `r` field, too.
    * `pubkey` (264 bits)
    * `short_channel_id` (64 bits)
