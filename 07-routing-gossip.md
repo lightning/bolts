@@ -296,7 +296,7 @@ of *relaying* payments, not *sending* payments. When making a payment
  come into play. When building the route, amounts and expiries for htlcs need
  to be calculated backwards from the destination to the source. The initial
  exact value for `amount_msat` and minimal value for `htlc_expiry`, which are
-  to be used for the last htlc in the route, are provided in the payment request
+  to be used for the last HTLC in the route, are provided in the payment request
  (see [BOLT #11](11-payment-encoding.md#tagged-fields)).
 
 A node MAY still create a `channel_update` to communicate the channel parameters to the other endpoint, even though the channel has not been announced, e.g., because the `announce_channel` bit was not set.

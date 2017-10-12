@@ -109,7 +109,7 @@ Currently defined Tagged Fields are:
 * `n` (19): `data_length` 53.  The 33-byte public key of the payee node.
 * `h` (23): `data_length` 52.  256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
 * `x` (6): `data_length` variable.  `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
-* `c` (24): `data_length` (16 bits, big-endian). Minimum `cltv_expiry` to use for the last htlc. Default is 9 if not specified.
+* `c` (24): `data_length` (16 bits, big-endian). `min_final_cltv` to use for the last HTLC in the route. Default is 9 if not specified.
 * `f` (9): `data_length` variable, depending on version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or P2PKH or P2SH address.
 * `r` (3): `data_length` variable.  One or more entries containing extra routing information for a private route; there may be more than one `r` field, too.
    * `pubkey` (264 bits)
@@ -133,7 +133,7 @@ A writer MAY include one `x` field, which SHOULD use the minimum `data_length`
 possible.
 
 A writer MAY include one `c` field, which MUST be set to the minimum `cltv_expiry` it
-will accept for the last htlc.
+will accept for the last HTLC in the route.
 
 A writer MAY include one `n` field, which MUST be set to the public key
 used to create the `signature`.
@@ -166,11 +166,6 @@ A reader MUST skip over unknown fields, an `f` field with unknown
 A reader MUST check that the SHA-2 256 in the `h` field exactly
 matches the hashed description.
 
-A reader MUST use a greater value for the `cltv_expiry` of the last
-htlc than the one in the `c` field if provided, and SHOULD follow the 
-[shadow route recommendation](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#recommendations-for-routing) 
-on top of that.
-
 A reader MUST use the `n` field to validate the signature instead of
 performing signature recovery if a valid `n` field is provided.
 
@@ -199,6 +194,13 @@ The `x` field gives advance warning as to when a payment will be
 refused; this is mainly to avoid confusion.  The default was chosen
 to be reasonable for most payments, and allow sufficient time for
 on-chain payment if necessary.
+
+The `c` field gives a way for the destination node to require a specific
+minimum cltv expiry for its incoming HTLC. Destination nodes may use this 
+to require a higher, more conservative value than the default one, depending
+on their fee estimation policy and their sensitivity to time locks. Note 
+that other nodes in the route specify their required `cltv_expiry_delta` 
+in the `channel_update` message, which they can update at all times.
 
 The `f` field allows on-chain fallback.  This may not make sense for
 tiny or very time-sensitive payments, however.  It's possible that new
