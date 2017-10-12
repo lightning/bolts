@@ -159,7 +159,7 @@ This output sends funds to the remote peer after the HTLC timeout or using the r
         OP_ENDIF
     OP_ENDIF
 
-To timeout the htlc, the remote node spends it with the witness:
+To timeout the HTLC, the remote node spends it with the witness:
 
     <remotesig> 0
 
