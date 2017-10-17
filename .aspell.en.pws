@@ -96,7 +96,6 @@ init
 reconnection
 milli
 revocationsig
-irc
 unroutable
 NOTIF
 txindex
