@@ -103,6 +103,7 @@ hopDataSize
 I'th
 segwit
 htlc
+htlcs
 ChaCha
 len
 ciphertext
