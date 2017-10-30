@@ -565,6 +565,10 @@ setting for the outgoing channel:
    * [`2`:`len`]
    * [`len`:`channel_update`]
    
+If the `cltv_expiry` is unreasonably far, we can also report an error:
+
+1. type: 21 (`expiry_too_far`)
+
 If the channel is disabled, we tell them the the current channel
 setting for the outgoing channel:
    
