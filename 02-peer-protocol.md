@@ -522,7 +522,7 @@ Fulfilling an HTLC is different: knowledge of the preimage is by definition irre
 so we should fulfill the incoming HTLC as soon as we can to reduce latency.
 
 An HTLC with an extremely long expiry is a denial-of-service vector,
-so is not allowed: the exact value of reasonable is currently unclear
+so it is not allowed: the exact value of "unreasonable" is currently unclear
 and may depend on network topology.
 
 ### `cltv_expiry_delta` Selection
