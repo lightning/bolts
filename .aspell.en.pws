@@ -292,3 +292,8 @@ SRV
 TTL
 URI
 cli
+paymentkey
+htlckey
+remotehtlcsig
+localhtlcsig
+basepoints
