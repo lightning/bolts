@@ -98,7 +98,8 @@ desire to set up a new channel.
    * [`33`:`htlc_basepoint`]
    * [`33`:`first_per_commitment_point`]
    * [`1`:`channel_flags`]
-
+   * [`2`:`shutdown_len`] (`option_upfront_shutdown_script`)
+   * [`shutdown_len`: `shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
 The `chain_hash` value denotes the exact blockchain the opened channel will
 reside within. This is usually the genesis hash of the respective blockchain.
@@ -120,18 +121,26 @@ as detailed within
 
 The `funding_pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output. The `revocation_basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment_basepoint`, `htlc_basepoint`, and `delayed_payment_basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed_payment_basepoint` is used for payments encumbered by a delay. Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen — this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
 
+The `shutdown_scriptpubkey` allows the sending node to commit to where
+funds will go on mutual close, which the remote node should enforce
+even if a node is compromised later.
+
 [ FIXME: Describe dangerous feature bit for larger channel amounts. ]
 
 #### Requirements
 
-The sending node MUST:
-  - ensure that the `chain_hash` value identifies the chain it wishes to open the channel within.
-  - ensure `temporary_channel_id` is unique from any other channel ID with the same peer.
-  - set `funding_satoshis` to less than 2^24 satoshi.
-  - set `push_msat` to equal or less than 1000 * `funding_satoshis`.
-  - set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid DER-encoded, compressed, secp256k1 pubkeys.
-  - set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
-  - set undefined bits in `channel_flags` to 0.
+The sending node:
+  - MUST ensure that the `chain_hash` value identifies the chain it wishes to open the channel within.
+  - MUST ensure `temporary_channel_id` is unique from any other channel ID with the same peer.
+  - MUST set `funding_satoshis` to less than 2^24 satoshi.
+  - MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.
+  - MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid DER-encoded, compressed, secp256k1 pubkeys.
+  - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+  - MUST set undefined bits in `channel_flags` to 0.
+  - if both nodes advertised the `option_upfront_shutdown_script` feature:
+	- MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
+  - otherwise:
+	- MAY include a`shutdown_scriptpubkey`.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -202,6 +211,8 @@ acceptance of the new channel.
    * [`33`:`delayed_payment_basepoint`]
    * [`33`:`htlc_basepoint`]
    * [`33`:`first_per_commitment_point`]
+   * [`2`:`shutdown_len`] (`option_upfront_shutdown_script`)
+   * [`shutdown_len`: `shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
 #### Requirements
 
@@ -363,6 +374,8 @@ A sending node:
     - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
   - SHOULD fail to route any HTLC added after it sent `shutdown`.
+  - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
+    - MUST send the same value in `scriptpubkey`.
   - MUST set `scriptpubkey` in one of the following forms:
 
     1. `OP_DUP` `OP_HASH160` `20` 20-bytes `OP_EQUALVERIFY` `OP_CHECKSIG`
@@ -376,6 +389,8 @@ A receiving node:
     - SHOULD fail the connection.
   - once there are no outstanding updates on the peer:
     - MUST reply to a `shutdown` message with a `shutdown`, unless it has already sent a `shutdown`.
+  - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
+    - MUST fail the connection.
 
 #### Rationale
 
@@ -389,6 +404,13 @@ HTLCs will be added or accepted.
 The `scriptpubkey` forms include only standard forms accepted by the
 Bitcoin network, which ensures the resulting transaction will
 propagate to miners.
+
+The `option_upfront_shutdown_script` feature means that the node
+wanted to pre-commit to `shutdown_scriptpubkey` in case it was
+compromised somehow.  This is a weak commitment (a malevolent
+implementation tends to ignore specifications like this one!) but
+provides an incremental improvement in security by requiring cooperation
+of the receiving node to change the `scriptpubkey`.
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
 

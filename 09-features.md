@@ -18,6 +18,7 @@ These flags may only be used in the `init` message:
 | Bits | Name             |Description                                     | Link                                                                |
 |------|------------------|------------------------------------------------|---------------------------------------------------------------------|
 | 3  | `initial_routing_sync` | The sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
+| 4/5  | `option_upfront_shutdown_script` | Commit to a shutdown scriptpubkey when opening | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 
 ## Assigned `globalfeatures` flags
 
