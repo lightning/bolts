@@ -510,6 +510,8 @@ to an outgoing HTLC, until the removal of the outgoing HTLC is irrevocably commi
 
 A node MUST fail an incoming HTLC (`update_fail_htlc`) once its `cltv_expiry` has been reached, or if `cltv_expiry` - `current_height` < `cltv_expiry_delta` for the outgoing channel.
  
+A node SHOULD fail an incoming HTLC (`update_fail_htlc`) if its `cltv_expiry` is unreasonably far in the future.
+
 A node MUST fulfill an incoming HTLC for which it has committed to an outgoing HTLC,
 as soon as it receives `update_fulfill_htlc` for the outgoing HTLC, or has discovered the `payment_preimage` from an on-chain HTLC spend.
 
@@ -519,6 +521,9 @@ In general, we need to complete one side of the exchange before dealing with the
 Fulfilling an HTLC is different: knowledge of the preimage is by definition irrevocable, 
 so we should fulfill the incoming HTLC as soon as we can to reduce latency.
 
+An HTLC with an extremely long expiry is a denial-of-service vector,
+so it is not allowed: the exact value of "unreasonable" is currently unclear
+and may depend on network topology.
 
 ### `cltv_expiry_delta` Selection
 
