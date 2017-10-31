@@ -98,6 +98,7 @@ desire to set up a new channel.
    * [`33`:`revocation_basepoint`]
    * [`33`:`payment_basepoint`]
    * [`33`:`delayed_payment_basepoint`]
+   * [`33`:`htlc_basepoint`]
    * [`33`:`first_per_commitment_point`]
    * [`1`:`channel_flags`]
 
@@ -120,7 +121,7 @@ funding flow wishes to advertise this channel publicly to the network
 as detailed within
 [BOLT #7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
 
-The `funding_pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation_basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment_basepoint` and `delayed_payment_basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed_payment_basepoint` is used to for payments encumbered by a delay.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
+The `funding_pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation_basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment_basepoint`, `htlc_basepoint` and `delayed_payment_basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed_payment_basepoint` is used to for payments encumbered by a delay.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
 
 FIXME: Describe Dangerous feature bit for larger channel amounts.
 
@@ -136,11 +137,10 @@ to less than 2^24 satoshi.  The sender MUST set `push_msat` to
 equal or less than to 1000 * `funding_satoshis`.   The sender SHOULD set `to_self_delay` sufficient to ensure the sender
 can irreversibly spend a commitment transaction output in case of
 misbehavior by the receiver.
-`funding_pubkey`, `revocation_basepoint`, `payment_basepoint` and `delayed_payment_basepoint` MUST be valid DER-encoded
+`funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint` and `delayed_payment_basepoint` MUST be valid DER-encoded
 compressed secp256k1 pubkeys. The sender SHOULD set `feerate_per_kw`
 to at least the rate it estimates would cause the transaction to be
 immediately included in a block.
-
 
 The sender SHOULD set `dust_limit_satoshis` to a sufficient value to
 allow commitment transactions to propagate through the Bitcoin
@@ -166,9 +166,8 @@ The receiving node MAY fail the channel if it considers
 
 The receiver MUST fail the channel if it
 considers `feerate_per_kw` too small for timely processing, or unreasonably large.  The
-receiver MUST fail the channel if `funding_pubkey`, `revocation_basepoint`, `payment_basepoint` or `delayed_payment_basepoint`
+receiver MUST fail the channel if `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint` or `delayed_payment_basepoint`
 are not valid DER-encoded compressed secp256k1 pubkeys.
-
 
 The receiver MUST NOT consider funds received using `push_msat` to be received until the funding transaction has reached sufficient depth.
 
@@ -182,6 +181,8 @@ The *channel reserve* is specified by the peer's `channel_reserve_satoshis`; 1% 
 The sender can unconditionally give initial funds to the receiver using a non-zero `push_msat`, and this is one case where the normal reserve mechanism doesn't apply.  However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (may be double-spent) and may require a separate method to prove payment via on-chain confirmation.
 
 The `feerate_per_kw` is generally only a concern to the sender (who pays the fees), but that is also the feerate paid by HTLC transactions; thus unreasonably large fee rates can also penalize the recipient.
+
+Separating the `htlc_basepoint` from the `payment_basepoint` improves security: a node needs the secret associated with the `htlc_basepoint` to produce HTLC signatures for the protocol, but the secret for the `payment_basepoint` can be in cold storage.
 
 #### Future
 
@@ -212,6 +213,7 @@ acceptance of the new channel.
    * [`33`:`revocation_basepoint`]
    * [`33`:`payment_basepoint`]
    * [`33`:`delayed_payment_basepoint`]
+   * [`33`:`htlc_basepoint`]
    * [`33`:`first_per_commitment_point`]
 
 #### Requirements
