@@ -1,12 +1,12 @@
 # BOLT #0: Introduction and Index
 
-Welcome, friend!  These Basis of Lightning Technology (BOLT) documents
+Welcome, friend! These Basis of Lightning Technology (BOLT) documents
 describe a layer-2 protocol for off-chain bitcoin transfer by mutual
 cooperation, relying on on-chain transactions for enforcement if
 necessary.
 
 Some requirements are subtle; we have tried to highlight motivations
-and reasoning behind the results you see here.  I'm sure we've fallen
+and reasoning behind the results you see here. I'm sure we've fallen
 short: if you find any part confusing, or wrong, please contact us and
 help us improve.
 
@@ -25,21 +25,21 @@ This is version 0.
 
 ## Glossary and Terminology Guide
 
-* *Funding Transaction*:
-   * The on-chain, irreversible transaction which pays to both peers
-         on a channel.  Thus it can only be spent by mutual consent.
+* *Funding transaction*:
+   * The on-chain, irreversible transaction that pays to both peers
+         on a channel. It can only be spent by mutual consent.
 
 
 * *Channel*:
    * A fast, off-chain method of mutual exchange between two *peers*.
-         To move funds, they exchange signatures for an updated *commitment
+         To move funds, peers exchange signatures for an updated *commitment
          transaction*.
 
 
-* *Commitment Transaction*:
-   * A transaction which spends the funding transaction; each peer
-         holds a signature from the other peer for this transaction, so it
-         always has a commitment transaction it can spend.  After a new
+* *Commitment transaction*:
+   * A transaction which spends the funding transaction. Each peer
+         holds the other peer's signature for this transaction, so that it
+         always has a commitment transaction it can spend. After a new
          commitment transaction is negotiated, the old one is *revoked*.
 
 
@@ -47,22 +47,22 @@ This is version 0.
    * A conditional payment between two peers: the recipient can spend
          the payment by presenting its signature and a *payment preimage*,
          otherwise the payer can cancel the contract by spending it after
-         a given time.  These are implemented as outputs from the
+         a given time. These are implemented as outputs from the
          *commitment transaction*.
 
 
 * *Payment hash, payment preimage*:
    * The HTLC contains the payment hash, which is the hash of the
-         payment preimage.  Only the final recipient knows the payment
-         preimage; thus when it reveals the preimage to collect funds is
-         considered proof that it received the payment.
+         payment preimage. Only the final recipient knows the payment
+         preimage. In order to release funds, the final recipient releases
+         the preimage as proof it has received payment.
 
 
 * *Commitment revocation key*:
    * Every *commitment transaction* has a unique *commitment revocation key*
          value which allows the other peer to spend all outputs
          immediately: revealing this key is how old commitment
-         transactions are revoked.  To do this, each output refers to the
+         transactions are revoked. To do this, each output refers to the
          commitment revocation pubkey.
 
 
@@ -72,36 +72,36 @@ This is version 0.
      for all previous commitments can be stored compactly.
 
 
-* *Mutual Close*:
+* *Mutual close*:
    * A cooperative close of a channel, by broadcasting an unconditional
          spend of the *funding transaction* with an output to each peer
          (unless one output is too small, and thus is not included).
 
 
-* *Unilateral Close*:
+* *Unilateral close*:
    * An uncooperative close of a channel, by broadcasting a
-         *commitment transaction*.  This transaction is larger (ie. less
+         *commitment transaction*. This transaction is larger (ie. less
          efficient) than a mutual close transaction, and the peer whose
          commitment is broadcast cannot access its own outputs for some
          previously-negotiated duration.
 
 
-* *Revoked Transaction Close*:
+* *Revoked transaction close*:
    * An invalid close of the channel, by broadcasting a revoked
-         *commitment transaction*.  Since the other peer knows the
+         *commitment transaction*. Since the other peer knows the
          *commitment revocation secret key*, it can create a *penalty transaction*.
 
 
-* *Penalty Transaction*:
+* *Penalty transaction*:
    * A transaction which spends all outputs of a revoked commitment
-         transaction, using the *commitment revocation secret key*.  A peer uses this
+         transaction, using the *commitment revocation secret key*. A peer uses this
          if the other peer tries to "cheat" by broadcasting a revoked
          *commitment transaction*.
 
 
-* *Commitment Number*:
+* *Commitment number*:
    * A 48-bit incrementing counter for each *commitment transaction*; they
-         are independent for each peer in the channel, and start at 0.
+         are independent for each peer in the channel and start at 0.
 
 
 * *It's ok to be odd*:
@@ -112,11 +112,11 @@ This is version 0.
 
 
 * `chain_hash`:
-   * Used in several of the BOLT documents, and denotes the genesis hash of a
+   * Used in several of the BOLT documents to denote the genesis hash of a
      target blockchain. This allows nodes to create and reference channels on
      several blockchains. Nodes are to ignore any messages which reference a
      `chain_hash` that are unknown to them. Unlike `bitcoin-cli` the hash is
-     not being reversed, and the hash is used directly.
+     not reversed but is used directly.
 
      For the main chain Bitcoin blockchain, the `chain_hash` value MUST be
      (encoded in hex):
