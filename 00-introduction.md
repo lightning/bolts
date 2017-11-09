@@ -1,7 +1,7 @@
 # BOLT #0: Introduction and Index
 
 Welcome, friend! These Basis of Lightning Technology (BOLT) documents
-describe a layer-2 protocol for off-chain bitcoin transfer by mutual
+describe a layer-2 protocol for off-chain Bitcoin transfer by mutual
 cooperation, relying on on-chain transactions for enforcement if
 necessary.
 
@@ -79,15 +79,15 @@ This is version 0.
 
 
 * *Unilateral close*:
-   * An uncooperative close of a channel, by broadcasting a
-         *commitment transaction*. This transaction is larger (ie. less
+   * An uncooperative close of a channel, through broadcasting of a
+         *commitment transaction*. This transaction is larger (i.e. less
          efficient) than a mutual close transaction, and the peer whose
          commitment is broadcast cannot access its own outputs for some
          previously-negotiated duration.
 
 
 * *Revoked transaction close*:
-   * An invalid close of the channel, by broadcasting a revoked
+   * An invalid close of the channel, through broadcasting of a revoked
          *commitment transaction*. Since the other peer knows the
          *commitment revocation secret key*, it can create a *penalty transaction*.
 
@@ -100,7 +100,7 @@ This is version 0.
 
 
 * *Commitment number*:
-   * A 48-bit incrementing counter for each *commitment transaction*; they
+   * A 48-bit incrementing counter for each *commitment transaction*; counters
          are independent for each peer in the channel and start at 0.
 
 
@@ -115,7 +115,7 @@ This is version 0.
    * Used in several of the BOLT documents to denote the genesis hash of a
      target blockchain. This allows nodes to create and reference channels on
      several blockchains. Nodes are to ignore any messages which reference a
-     `chain_hash` that are unknown to them. Unlike `bitcoin-cli` the hash is
+     `chain_hash` that are unknown to them. Unlike `bitcoin-cli`, the hash is
      not reversed but is used directly.
 
      For the main chain Bitcoin blockchain, the `chain_hash` value MUST be
