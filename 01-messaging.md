@@ -57,7 +57,7 @@ The size of the message is required to fit into a 2 byte unsigned int by the tra
 A receiving node:
   - MUST ignore any additional data within a message, beyond the length it expects for that type.
   - upon receiving a known message with insufficient length for the contents:
-  - MUST fail the channels.
+    - MUST fail the channels.
 
 ### Rationale
 
