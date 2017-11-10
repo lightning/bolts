@@ -26,44 +26,43 @@ This is version 0.
 ## Glossary and Terminology Guide
 
 * *Funding transaction*:
-   * The on-chain, irreversible transaction that pays to both peers
-         on a channel. It can only be spent by mutual consent.
+   * The on-chain, irreversible transaction that pays to both peers on a channel.
+   It can only be spent by mutual consent.
 
 
 * *Channel*:
    * A fast, off-chain method of mutual exchange between two *peers*.
-         To move funds, peers exchange signatures for an updated *commitment
-         transaction*.
+   To move funds, peers exchange signatures for an updated *commitment transaction*.
 
 
 * *Commitment transaction*:
-   * A transaction which spends the funding transaction. Each peer
-         holds the other peer's signature for this transaction, so that it
-         always has a commitment transaction it can spend. After a new
-         commitment transaction is negotiated, the old one is *revoked*.
+   * A transaction which spends the funding transaction.
+   Each peer holds the other peer's signature for this transaction, so that it
+   always has a commitment transaction it can spend. After a new
+   commitment transaction is negotiated, the old one is *revoked*.
 
 
 * *HTLC*: Hashed Time Locked Contract.
    * A conditional payment between two peers: the recipient can spend
-         the payment by presenting its signature and a *payment preimage*,
-         otherwise the payer can cancel the contract by spending it after
-         a given time. These are implemented as outputs from the
-         *commitment transaction*.
+    the payment by presenting its signature and a *payment preimage*,
+    otherwise the payer can cancel the contract by spending it after
+    a given time. These are implemented as outputs from the
+    *commitment transaction*.
 
 
 * *Payment hash, payment preimage*:
    * The HTLC contains the payment hash, which is the hash of the
-         payment preimage. Only the final recipient knows the payment
-         preimage. In order to release funds, the final recipient releases
-         the preimage as proof it has received payment.
+    payment preimage. Only the final recipient knows the payment
+    preimage. In order to release funds, the final recipient releases
+    the preimage as proof it has received payment.
 
 
 * *Commitment revocation key*:
    * Every *commitment transaction* has a unique *commitment revocation key*
-         value which allows the other peer to spend all outputs
-         immediately: revealing this key is how old commitment
-         transactions are revoked. To do this, each output refers to the
-         commitment revocation pubkey.
+    value which allows the other peer to spend all outputs
+    immediately: revealing this key is how old commitment
+    transactions are revoked. To do this, each output refers to the
+    commitment revocation pubkey.
 
 
 * *Per-commitment secret*:
@@ -74,34 +73,34 @@ This is version 0.
 
 * *Mutual close*:
    * A cooperative close of a channel, by broadcasting an unconditional
-         spend of the *funding transaction* with an output to each peer
-         (unless one output is too small, and thus is not included).
+    spend of the *funding transaction* with an output to each peer
+    (unless one output is too small, and thus is not included).
 
 
 * *Unilateral close*:
    * An uncooperative close of a channel, through broadcasting of a
-         *commitment transaction*. This transaction is larger (i.e. less
-         efficient) than a mutual close transaction, and the peer whose
-         commitment is broadcast cannot access its own outputs for some
-         previously-negotiated duration.
+    *commitment transaction*. This transaction is larger (i.e. less
+    efficient) than a mutual close transaction, and the peer whose
+    commitment is broadcast cannot access its own outputs for some
+    previously-negotiated duration.
 
 
 * *Revoked transaction close*:
    * An invalid close of the channel, through broadcasting of a revoked
-         *commitment transaction*. Since the other peer knows the
-         *commitment revocation secret key*, it can create a *penalty transaction*.
+    *commitment transaction*. Since the other peer knows the
+    *commitment revocation secret key*, it can create a *penalty transaction*.
 
 
 * *Penalty transaction*:
    * A transaction which spends all outputs of a revoked commitment
-         transaction, using the *commitment revocation secret key*. A peer uses this
-         if the other peer tries to "cheat" by broadcasting a revoked
-         *commitment transaction*.
+    transaction, using the *commitment revocation secret key*. A peer uses this
+    if the other peer tries to "cheat" by broadcasting a revoked
+    *commitment transaction*.
 
 
 * *Commitment number*:
    * A 48-bit incrementing counter for each *commitment transaction*; counters
-         are independent for each peer in the channel and start at 0.
+    are independent for each peer in the channel and start at 0.
 
 
 * *It's ok to be odd*:
@@ -123,7 +122,6 @@ This is version 0.
      `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
 
 ## Theme Song
-
 
       Why this network could be democratic...
       Numismatic...
@@ -172,12 +170,9 @@ This is version 0.
 
    -- Anthony Towns <aj@erisian.com.au>
 
-
 ## Authors
 
-
 [ FIXME: Insert Author List ]
-
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>

@@ -24,7 +24,6 @@ All data fields are big-endian unless otherwise specified.
 
 Implementations MUST use a single connection per peer — channel messages (which include a channel id) are multiplexed over this single connection.
 
-
 ## Lightning Message Format
 
 After decryption, all Lightning messages are of the form:
@@ -112,7 +111,6 @@ The receiving node:
   - MUST ignore the bit.
  - upon receiving <i>even</i> feature bits which are non-zero:
   - MUST fail the connection.
-
 
 #### Rationale
 
@@ -267,11 +265,9 @@ every message maximally).
 Finally, the usage of periodic `ping` messages serves to promote frequent key
 rotations as specified within [BOLT #8](https://github.com/lightningnetwork/lightning-rfc/blob/master/08-transport.md).
 
-
 ## Acknowledgments
 
 [ TODO: (roasbeef); fin ]
-
 
 ## References
 1. <a id="reference-2">http://www.unicode.org/charts/PDF/U2600.pdf</a>
