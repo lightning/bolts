@@ -22,7 +22,7 @@ All data fields are big-endian unless otherwise specified.
 
 ## Connection Handling and Multiplexing
 
-Implementations MUST use a single connection per peer — channel messages (which include a channel id) are multiplexed over this single connection.
+Implementations MUST use a single connection per peer — channel messages (which include a channel ID) are multiplexed over this single connection.
 
 ## Lightning Message Format
 
@@ -34,15 +34,15 @@ After decryption, all Lightning messages are of the form:
 
 The `type` field indicates how to interpret the `payload` field.
 The format for each individual type is specified in a specification in this repository.
-The type follows the _it's ok to be odd_ rule, so nodes MAY send <i>odd</i>-numbered types without ascertaining that the recipient understands it.
+The type follows the _it's ok to be odd_ rule, so nodes MAY send _odd_-numbered types without ascertaining that the recipient understands it.
 
 A sending node:
   - MUST NOT send an evenly-typed message not listed here, without prior negotiation.
 
 A receiving node:
-  - upon receiving a message of <i>odd</i>, unknown type:
+  - upon receiving a message of _odd_, unknown type:
     - MUST ignore the received message.
-  - upon receiving a message of <i>even</i>, unknown type:
+  - upon receiving a message of _even_, unknown type:
     - MUST fail the channels.
 
 The messages are grouped logically into 4 groups, ordered by their most significant set bit:
@@ -68,7 +68,7 @@ other fields.
 Length is limited to 65535 bytes by the cryptographic wrapping, and
 messages in the protocol are never more than that length anyway.
 
-The "it's OK to be odd" rule allows for future optional extensions
+The _it's ok to be odd_ rule allows for future optional extensions
 without negotiation or special coding in clients. The "ignore
 additional data" rule similarly allows for future expansion.
 
@@ -83,7 +83,7 @@ a buffer with 6 bytes of pre-padding.
 ### The `init` Message
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits. The least-significant bit is numbered 0, which is <i>even</i>, and the next most significant bit is numbered 1, which is <i>odd</i>.
+[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
 
 Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with zeros.
 
@@ -107,9 +107,9 @@ The sending node:
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
   - MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
-  - upon receiving <i>odd</i> feature bits which are non-zero:
+  - upon receiving _odd_ feature bits which are non-zero:
     - MUST ignore the bit.
-  - upon receiving <i>even</i> feature bits which are non-zero:
+  - upon receiving _even_ feature bits which are non-zero:
     - MUST fail the connection.
 
 #### Rationale
@@ -223,7 +223,7 @@ A node receiving a `ping` message:
   - SHOULD fail the channels if it has received significantly in excess of one `ping` per 30 seconds.
   - if `num_pong_bytes` is less than 65532:
     - MUST respond by sending a `pong` message, with `byteslen` equal to `num_pong_bytes`.
-  - otherwise (`num_pong_bytes` is <b>not</b> less than 65532):
+  - otherwise (`num_pong_bytes` is **not** less than 65532):
     - it MUST ignore the `ping`.
 
 A node receiving a `pong` message:
@@ -258,7 +258,7 @@ privacy of participants within the network.
 
 Limited precautions are recommended against `ping` flooding, however some
 latitude is given because of network delays. Note that there are other methods
-of incoming traffic flooding (e.g. sending <i>odd</i> unknown message types, or padding
+of incoming traffic flooding (e.g. sending _odd_ unknown message types, or padding
 every message maximally).
 
 Finally, the usage of periodic `ping` messages serves to promote frequent key
