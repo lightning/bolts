@@ -31,7 +31,7 @@ This is version 0.
 
 
 * *Channel*:
-   * A fast, off-chain method of mutual exchange between two *peers*.
+   * A fast, off-chain method of mutual exchange between 2 *peers*.
    To move funds, peers exchange signatures for an updated *commitment transaction*.
 
 
@@ -43,7 +43,7 @@ This is version 0.
 
 
 * *HTLC*: Hashed Time Locked Contract.
-   * A conditional payment between two peers: the recipient can spend
+   * A conditional payment between 2 peers: the recipient can spend
     the payment by presenting its signature and a *payment preimage*,
     otherwise the payer can cancel the contract by spending it after
     a given time. These are implemented as outputs from the

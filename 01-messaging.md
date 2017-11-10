@@ -85,7 +85,7 @@ Once authentication is complete, the first message reveals the features supporte
 
 [BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
 
-Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with zeros.
+Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s.
 
 1. type: 16 (`init`)
 2. data:
@@ -101,7 +101,7 @@ The 2 byte `gflen` and `lflen` fields indicate the number of bytes in the immedi
 The sending node:
   - MUST send `init` as the first Lightning message for any connection.
   - MUST set feature bits as defined in [BOLT #9](09-features.md).
-  - MUST set to zero any feature bits that are not defined.
+  - MUST set any undefined feature bits to 0.
   - SHOULD use the minimum lengths required to represent the feature fields.
 
 The receiving node:
@@ -120,7 +120,7 @@ Nodes wait for receipt of the other's features to simplify error
 diagnosis, where features are incompatible.
 
 The feature masks are split into local features (which only affect the
-protocol between these two nodes) and global features (which can affect
+protocol between these 2 nodes) and global features (which can affect
 HTLCs) and are thus also advertised to other nodes.
 
 ### The `error` Message
@@ -137,7 +137,7 @@ The 2-byte `len` field indicates the number of bytes in the immediately followin
 
 #### Requirements
 
-The channel is referred to by `channel_id`, unless `channel_id` is zero (i.e. all bytes are zero), in which case it refers to all channels.
+The channel is referred to by `channel_id`, unless `channel_id` is 0 (i.e. all bytes are 0), in which case it refers to all channels.
 
 The funding node:
   - for all error messages sent before (and including) the `funding_created` message:
@@ -154,7 +154,7 @@ A sending node:
   - MAY send an empty `data` field.
   - when failure was caused by an invalid signature check:
     - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
-  - when `channel_id` is zero:
+  - when `channel_id` is 0:
     - MUST fail all channels,
     - and MUST close the connection.
   - MUST set `len` equal to the length of `data`.
@@ -206,7 +206,7 @@ included within the data payload of the `pong` message.
 #### Requirements
 
 A node sending a `ping` message:
-  - SHOULD set `ignored` to zeros,
+  - SHOULD set `ignored` to 0s,
   - but MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
 memory.
   - if it doesn't receive a corresponding `pong`:
@@ -215,12 +215,12 @@ memory.
   - SHOULD NOT send `ping` messages more often than once every 30 seconds.
 
 A node sending a `pong` message:
-  - SHOULD set `ignored` to zeros,
+  - SHOULD set `ignored` to 0s,
   - but MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
  memory.
 
 A node receiving a `ping` message:
-  - SHOULD fail the channels if it has received significantly in excess of one `ping` per 30 seconds.
+  - SHOULD fail the channels if it has received significantly in excess of 1 `ping` per 30 seconds.
   - if `num_pong_bytes` is less than 65532:
     - MUST respond by sending a `pong` message, with `byteslen` equal to `num_pong_bytes`.
   - otherwise (`num_pong_bytes` is **not** less than 65532):
