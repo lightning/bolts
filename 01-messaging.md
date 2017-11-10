@@ -240,8 +240,8 @@ Connections between nodes within the network may be very long lived, as payment
 channels have an indefinite lifetime. However, it's likely that for a
 significant portion of the lifetime of a connection, no new data will be
 exchanged. Also, on several platforms it's possible that Lightning
-clients will be put to sleep without prior warning. Hence, we use a
-distinct `ping` message, in order to probe for the liveness of the connection on
+clients will be put to sleep without prior warning. Hence, a
+distinct `ping` message is used, in order to probe for the liveness of the connection on
 the other side, as well as to keep the established connection active.
 
 Additionally, the ability for a sender to request that the receiver send a
