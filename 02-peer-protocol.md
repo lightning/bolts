@@ -295,29 +295,29 @@ per-commitment point to be used for the following commitment
 transaction, derived as specified in
 [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
-A non-funding node SHOULD:
+A non-funding node (fundee) SHOULD:
   - forget the channel if it does not see the
 funding transaction after a reasonable timeout.
 
-From the point of waiting for `funding_locked` onward, a node MAY
+From the point of waiting for `funding_locked` onward, either node MAY
 fail the channel if it does not receive a required response from the
 other node after a reasonable timeout.
 
 #### Rationale
 
 The non-funder can simply forget the channel ever existed, since no
-funds are at risk. There is a denial of service risk: if it remembers
+funds are at risk. There is a denial of service risk: if the fundee remembers
 the channel forever (on the promise of the funding transaction finally
 appearing), even if `push_msat` is significant.
 
 #### Future
 
-We could add an SPV proof and route block hashes in separate
+An SPV proof could be added and block hashes could be routed in separate
 messages.
 
 ## Channel Close
 
-Nodes can negotiate a mutual close for the connection, which unlike a
+Nodes can negotiate a mutual close of the connection, which unlike a
 unilateral close, allows them to access their funds immediately and
 can be negotiated with lower fees.
 
@@ -354,37 +354,36 @@ along with the scriptpubkey it wants to be paid to.
 
 #### Requirements
 
-A node MUST NOT:
-  - send a `shutdown` if there are updates pending
- on the receiving node's commitment transaction.
-  - send an `update_add_htlc` after a `shutdown`.
-
 A sending node:
+  - if there are updates pending on the receiving node's commitment transaction:
+    - MUST NOT send a `shutdown`.
+  - MUST NOT send an `update_add_htlc` after a `shutdown`.
   - SHOULD fail to route any HTLC added after it sent `shutdown`.
   - MUST set `scriptpubkey` in one of the following forms:
 
-  1. `OP_DUP` `OP_HASH160` `20` 20-bytes `OP_EQUALVERIFY` `OP_CHECKSIG`
+    1. `OP_DUP` `OP_HASH160` `20` 20-bytes `OP_EQUALVERIFY` `OP_CHECKSIG`
    (pay to pubkey hash), OR
-  2. `OP_HASH160` `20` 20-bytes `OP_EQUAL` (pay to script hash), OR
-  3. `OP_0` `20` 20-bytes (version 0 pay to witness pubkey), OR
-  4. `OP_0` `32` 32-bytes (version 0 pay to witness script hash)
+    2. `OP_HASH160` `20` 20-bytes `OP_EQUAL` (pay to script hash), OR
+    3. `OP_0` `20` 20-bytes (version 0 pay to witness pubkey), OR
+    4. `OP_0` `32` 32-bytes (version 0 pay to witness script hash)
 
 A receiving node:
-  - SHOULD fail the connection if the `scriptpubkey` is not one of those forms.
-  - MUST reply to a `shutdown` message with a `shutdown` once there are no
-  outstanding updates on the peer, unless it has already sent a `shutdown`.
+  - if the `scriptpubkey` is not in one of the above forms:
+    - SHOULD fail the connection.
+  - once there are no outstanding updates on the peer:
+    - MUST reply to a `shutdown` message with a `shutdown`, unless it has already sent a `shutdown`.
 
 #### Rationale
 
 If channel state is always "clean" (no pending changes) when a
-shutdown starts, we avoid the question of how to behave if it wasn't;
+shutdown starts, the question of how to behave if it wasn't is avoided:
 the sender always sends a `commitment_signed` first.
 
 As shutdown implies a desire to terminate, it implies that no new
 HTLCs will be added or accepted.
 
 The `scriptpubkey` forms include only standard forms accepted by the
-Bitcoin network, ensuring that the resulting transaction will
+Bitcoin network, which ensures the resulting transaction will
 propagate to miners.
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
@@ -395,7 +394,7 @@ Once shutdown is complete and the channel is empty of HTLCs, the final
 current commitment transactions will have no HTLCs, and closing fee
 negotiation begins. Each node chooses a fee it thinks is fair, and
 signs the close transaction with the `scriptpubkey` fields from the
-`shutdown` messages and that fee, and sends the signature. The
+`shutdown` messages (along with its chosen fee) and sends the signature. The
 process terminates when both agree on the same fee, or one side fails
 the channel.
 
@@ -407,22 +406,22 @@ the channel.
 
 #### Requirements
 
-Nodes SHOULD:
-  - send a `closing_signed` message after `shutdown` has
-been received and no HTLCs remain in either commitment transaction.
-
 A sending node:
+  - after `shutdown` has been received and no HTLCs remain in either commitment transaction:
+    - SHOULD send a `closing_signed` message.
   - MUST set `fee_satoshis` lower than or equal to the
- base fee of the final commitment transaction as calculated in [BOLT #3](03-transactions.md#fee-calculation).
+ base fee of the final commitment transaction, as calculated in [BOLT #3](03-transactions.md#fee-calculation).
   - SHOULD set the initial `fee_satoshis` according to its
  estimate of cost of inclusion in a block.
   - MUST set `signature` to the Bitcoin signature of the close
  transaction, as specified in [BOLT #3](03-transactions.md#closing-transaction).
 
-The receiver:
+The receiving node:
+  - after `shutdown` has been received and no HTLCs remain in either commitment transaction:
+    - SHOULD send a `closing_signed` message.
   - MUST check `signature` is valid for either variant of close
 transaction specified in [BOLT #3](03-transactions.md#closing-transaction),
-    - and MUST fail the connection if it is not.
+  - and MUST fail the connection if it is not.
   - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
     - SHOULD sign and broadcast the final closing transaction
     - MAY close the connection.
@@ -433,22 +432,21 @@ the base fee of the final commitment transaction as calculated in
   - SHOULD fail the connection if `fee_satoshis` is not strictly
 between its last-sent `fee_satoshis` and its previously-received
 `fee_satoshis`, unless it has reconnected since then.
-  - if the receiver agrees with the fee
-    - it SHOULD reply with a .
-    33`closing_signed` with the same `fee_satoshis` value
+  - if the receiver agrees with the fee:
+    - SHOULD reply with a `closing_signed` with the same `fee_satoshis` value.
   - otherwise:
-    - it MUST propose a value strictly between the received `fee_satoshis`
+    - MUST propose a value "strictly between" the received `fee_satoshis`
   and its previously-sent `fee_satoshis`.
 
 #### Rationale
 
-The "strictly between" requirements ensure that we make forward
-progress, even if only by a single satoshi at a time. To avoid
+The "strictly between" requirement ensures that forward
+progress is made, even if only by a single satoshi at a time. To avoid
 keeping state and to handle the corner case, where fees have shifted
 between disconnection and reconnection, negotiation restarts on reconnection.
 
-Note that there is limited risk if the closing transaction is
-delayed, and it will be broadcast very soon, so there is usually no
+Note there is limited risk if the closing transaction is
+delayed, but it will be broadcast very soon; so there is usually no
 reason to pay a premium for rapid processing.
 
 ## Normal Operation
@@ -472,7 +470,7 @@ Changes are sent in batches: one or more `update_` messages are sent before a
         +-------+                            +-------+
 
 
-Counterintuitively, these updates apply to the *other node's*
+Counter-intuitively, these updates apply to the *other node's*
 commitment transaction; the node only adds those updates to its own
 commitment transaction when the remote node acknowledges it has
 applied them via `revoke_and_ack`.
@@ -487,7 +485,7 @@ Thus each update traverses through the following states:
 5. ... and the sender's previous commitment transaction has been revoked
 
 
-As the two node's updates are independent, the two commitment
+As the two nodes' updates are independent, the two commitment
 transactions may be out of sync indefinitely. This is not concerning:
 what matters is whether both sides have irrevocably committed to a
 particular HTLC or not (the final state, above).
@@ -495,45 +493,46 @@ particular HTLC or not (the final state, above).
 ### Forwarding HTLCs
 
 In general, a node offers HTLCs for two reasons: to initiate a payment of its own,
-or to forward a payment coming from another node. In the forwarding case, care must
-be taken to ensure that the *outgoing* HTLC cannot be redeemed unless the *incoming*
-HTLC can be redeemed; these requirements ensure that is always true.
+or to forward another node's payment. In the forwarding case, care must
+be taken to ensure the *outgoing* HTLC cannot be redeemed unless the *incoming*
+HTLC can be redeemed. The following requirements ensure this is always true:
 
-The addition/removal of an HTLC is considered *irrevocably committed* when:
+The respective **addition/removal** of an HTLC is considered *irrevocably committed* when:
 
-1. the commitment transaction with/without it it is committed by both nodes, and any
-previous commitment transaction which without/with it has been revoked, OR
-2. the commitment transaction with/without it has been irreversibly committed to
+1. the commitment transaction **with/without** it is committed by both nodes, and any
+previous commitment transaction which **without/with** it has been revoked, OR
+2. the commitment transaction **with/without** it has been irreversibly committed to
 the blockchain.
 
 #### Requirements
 
-A node MUST NOT offer an HTLC (`update_add_htlc`) in response to an incoming HTLC until
-the incoming HTLC has been irrevocably committed.
-
-A node MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed
-to an outgoing HTLC, until the removal of the outgoing HTLC is irrevocably committed, or the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction with sufficient depth.
-
-A node MUST fail an incoming HTLC (`update_fail_htlc`) once its `cltv_expiry` has been reached, or if `cltv_expiry` - `current_height` < `cltv_expiry_delta` for the outgoing channel.
-
-A node SHOULD fail an incoming HTLC (`update_fail_htlc`) if its `cltv_expiry` is unreasonably far in the future.
-
-A node MUST fulfill an incoming HTLC for which it has committed to an outgoing HTLC,
-as soon as it receives `update_fulfill_htlc` for the outgoing HTLC, or has discovered the `payment_preimage` from an on-chain HTLC spend.
+A node:
+  - until the incoming HTLC has been irrevocably committed:
+    - MUST NOT offer an HTLC (`update_add_htlc`) in response to an incoming HTLC.
+  - until the removal of the outgoing HTLC is irrevocably committed, OR until the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction (with sufficient depth):
+    - MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed
+to an outgoing HTLC.
+  - once its `cltv_expiry` has been reached, OR if `cltv_expiry` - `current_height` < `cltv_expiry_delta` for the outgoing channel:
+    - MUST fail an incoming HTLC (`update_fail_htlc`).
+  - if an incoming HTLC's `cltv_expiry` is unreasonably far in the future:
+    - SHOULD fail that incoming HTLC (`update_fail_htlc`).
+  - upon receiving an `update_fulfill_htlc` for the outgoing HTLC, OR upon discovering the `payment_preimage` from an on-chain HTLC spend:
+    - MUST fulfill an incoming HTLC for which it has committed to an outgoing HTLC.
 
 #### Rationale
 
-In general, we need to complete one side of the exchange before dealing with the other.
-Fulfilling an HTLC is different: knowledge of the preimage is by definition irrevocable,
-so we should fulfill the incoming HTLC as soon as we can to reduce latency.
+In general, one side of the exchange needs to be dealt with before the other.
+Fulfilling an HTLC is different: knowledge of the preimage is, by definition,
+irrevocable and the incoming HTLC should be fulfilled as soon as possible to
+reduce latency.
 
-An HTLC with an extremely long expiry is a denial-of-service vector,
-so it is not allowed: the exact value of "unreasonable" is currently unclear
+An HTLC with an unreasonably long expiry is a denial-of-service vector and
+therefor is not allowed. Note that the exact value of "unreasonable" is currently unclear
 and may depend on network topology.
 
 ### `cltv_expiry_delta` Selection
 
-Once an HTLC has timed out it could either be fulfilled or timed-out;
+Once an HTLC has timed out, it can either be fulfilled or timed-out;
 care must be taken around this transition both for offered and received HTLCs.
 
 Consider the following scenario, where A sends an HTLC to B, who
@@ -545,16 +544,16 @@ received.
     time it out on-chain.
 
 2.  B needs to be sure that if C fulfills the HTLC from B, it can fulfill the
-    incoming HTLC from A. i.e. B can get the preimage from C and fulfill incoming the
+    incoming HTLC from A; i.e. B can get the preimage from C and fulfill the incoming
     HTLC on-chain before A can time it out on-chain.
 
 The critical settings here are the `cltv_expiry_delta` in
-[BOLT #7](07-routing-gossip.md#the-channel_update-message), and the
+[BOLT #7](07-routing-gossip.md#the-channel_update-message) and the
 related
 [`min_final_cltv_expiry` in BOLT #11](11-payment-encoding.md#tagged-fields).
-`cltv_expiry_delta` is the minimum difference in HTLC CLTV timeouts in
-the forwarding case (B) and `min_final_ctlv_expiry` is the minimum difference
-between HTLC CLTV timeout and the current block height for the
+`cltv_expiry_delta` is the minimum difference in HTLC CLTV timeouts, in
+the forwarding case (B). `min_final_ctlv_expiry` is the minimum difference
+between HTLC CLTV timeout and the current block height, for the
 terminal case (C).
 
 Note that if this value is too low for a channel, the risk is only to
@@ -562,17 +561,17 @@ the node *accepting* the HTLC, not the node offering it. For this
 reason, the `cltv_expiry_delta` for the *outgoing* channel is used as
 the delta across a node.
 
-We can derive the worst-case number of blocks between outgoing and
-incoming HTLC resolution, given a few assumptions:
+The worst-case number of blocks between outgoing and
+incoming HTLC resolution can be derived, given a few assumptions:
 
-* A worst-case reorganization depth `R` blocks
+* A worst-case reorganization depth `R` blocks.
 * A grace-period `G` blocks after HTLC timeout before giving up on
   an unresponsive peer and dropping to chain.
 * A number of blocks `S` between transaction broadcast and the
   transaction being included in a block.
 
-The worst case is for a forwarding node (B) which takes the longest
-possible time to spot the outgoing HTLC fulfillment, and then takes
+The worst case is for a forwarding node (B) that takes the longest
+possible time to spot the outgoing HTLC fulfillment and also takes
 the longest possible time to redeem it on-chain:
 
 1. The B->C HTLC times out at block `N`, and B waits `G` blocks until
@@ -603,21 +602,21 @@ minimum. Similarly, the grace period `G` can be low (1 or 2), as nodes are
 required to timeout or fulfill as soon as possible; but too low increases the
 risk of unnecessary channel closure due to networking delays.
 
-There are four values we need to derive:
+There are four values that need be derived:
 
 1. The `cltv_expiry_delta` for channels. `3R+2G+2S`; if in doubt, a
    `cltv_expiry_delta` of 12 is reasonable (R=2, G=1, S=2).
 
-2. For HTLCs we offer: the timeout deadline when we have to fail the channel
-   and time it out on-chain. This is `G` blocks after the HTLC
-   `cltv_expiry`; 1 block is reasonable.
+2. For sent HTLCs: the timeout deadline after which the channel has to be failed
+   and timed out on-chain. This is `G` blocks after the HTLC's
+   `cltv_expiry`: 1 block is reasonable.
 
-3. For HTLCs we accept and have a preimage: the fulfillment deadline when we
-   have to fail the channel and fulfill the HTLC onchain before its
-   `cltv_expiry`. This is steps 4-7 above, which means a deadline of `2R+G+S`
-   blocks before `cltv_expiry`; 7 blocks is reasonable.
+3. For received HTLCs (with a preimage): the fulfillment deadline after which
+the channel has to be failed and the HTLC fulfilled on-chain before its
+   `cltv_expiry`. See steps 4-7 above, which imply a deadline of `2R+G+S`
+   blocks before `cltv_expiry`: 7 blocks is reasonable.
 
-4. The minimum `cltv_expiry` we will accept for terminal payments: the
+4. The minimum `cltv_expiry` accepted for terminal payments: the
    worst case for the terminal node C lower at `2R+G+S` blocks (steps
    1-3 above don't apply). The default in
    [BOLT #11](11-payment-encoding.md) is 9, which is slightly more
@@ -708,7 +707,7 @@ breakdown.
 If a node did not accept multiple HTLCs with the same payment hash, an
 attacker could probe to see if a node had an existing HTLC. This
 requirement to deal with duplicates leads us to use a separate
-identifier; we assume a 64 bit counter never wraps.
+identifier; its assumed a 64 bit counter never wraps.
 
 Retransmissions of unacknowledged updates are explicitly allowed for
 reconnection purposes; allowing them at other times simplifies the
@@ -935,7 +934,7 @@ fee.
 Given the variance in fees, and the fact that the transaction may be
 spent in the future, it's a good idea for the fee payer to keep a good
 margin, say 5x the expected fee requirement, but differing methods of
-fee estimation mean we don't specify an exact value.
+fee estimation means an exact value is not specified.
 
 Since the fees are currently one-sided (the party which requested the
 channel creation always pays the fees for the commitment transaction),
@@ -949,14 +948,14 @@ Because communication transports are unreliable and may need to be
 re-established from time to time, the design of the transport has been
 explicitly separated from the protocol.
 
-Nonetheless, we assume that our transport is ordered and reliable;
-reconnection introduces doubt as to what has been received, so we
-have explicit acknowledgments at that point.
+Nonetheless, its assumed our transport is ordered and reliable;
+reconnection introduces doubt as to what has been received, so there are
+explicit acknowledgments at that point.
 
 This is fairly straightforward in the case of channel establishment
 and close where messages have an explicit order, but in normal
 operation acknowledgments of updates are delayed until the
-`commitment_signed` / `revoke_and_ack` exchange, so we cannot assume
+`commitment_signed` / `revoke_and_ack` exchange, so it cannot be assumed
 the updates have been received. This also means that the receiving
 node only needs to store updates upon receipt of `commitment_signed`.
 
@@ -1053,18 +1052,18 @@ not be an exact retransmission). The only acknowledgment for
 unless `closing_signed` is.
 
 The handling of updates is similarly atomic: if the commit is not
-acknowledged (or wasn't sent) the updates are re-sent. However, we
-don't insist they be identical: they could be in a different order, or
+acknowledged (or wasn't sent) the updates are re-sent. However, its not
+insisted they be identical: they could be in a different order, or
 involve different fees, or even be missing HTLCs which are now too old
 to be added. Requiring they be identical would effectively mean a
 write to disk by the sender upon each transmission, whereas the scheme
 here encourages a single persistent write to disk for each
 `commitment_signed` sent or received.
 
-We should never be asked to retransmit `revoke_and_ack` if we've
-received a `closing_signed`, since that implies we've completed
-shutdown which can only happen once the `revoke_and_ack` was received
-by the remote node.
+A retransmital of `revoke_and_ack` should never be asked for once a
+`closing_signed` has been received, since that implies a shutdown has been
+completed — which can only happen once the `revoke_and_ack` was received by the
+remote node.
 
 Note that the `next_local_commitment_number` starts at 1 since
 commitment number 0 is created during opening.
@@ -1073,7 +1072,7 @@ commitment number 0 is created during opening.
 point the revocation for commitment number 0 is sent.
 
 `funding_locked` is implicitly acknowledged by the start of normal
-operation, which we know has begun once a `commitment_signed` has been
+operation, which its known has begun once a `commitment_signed` has been
 received, thus the test for a `next_local_commitment_number` greater
 than 1.
 
