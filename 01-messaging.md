@@ -156,7 +156,7 @@ A sending node:
     - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
   - when `channel_id` is 0:
     - MUST fail all channels,
-    - and MUST close the connection.
+      - and MUST close the connection.
   - MUST set `len` equal to the length of `data`.
 
 The receiving node:
@@ -207,16 +207,16 @@ included within the data payload of the `pong` message.
 
 A node sending a `ping` message:
   - SHOULD set `ignored` to 0s,
-  - but MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
+    - but MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
 memory.
   - if it doesn't receive a corresponding `pong`:
     - MAY terminate the network connection,
-    - and MUST NOT fail the channels in this case.
+      - and MUST NOT fail the channels in this case.
   - SHOULD NOT send `ping` messages more often than once every 30 seconds.
 
 A node sending a `pong` message:
   - SHOULD set `ignored` to 0s,
-  - but MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
+    - but MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
  memory.
 
 A node receiving a `ping` message:
