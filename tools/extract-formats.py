@@ -32,6 +32,9 @@ def guess_alignment(message, name, sizestr):
     if 'signature' in name:
         return 1
 
+    if message == 'open_channel' and name == 'len':
+        return 1
+
     # Size can be variable.
     try:
         size = int(sizestr)

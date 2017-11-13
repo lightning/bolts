@@ -98,8 +98,11 @@ desire to set up a new channel.
    * [`33`:`revocation_basepoint`]
    * [`33`:`payment_basepoint`]
    * [`33`:`delayed_payment_basepoint`]
+   * [`33`:`htlc_payment_basepoint`]
    * [`33`:`first_per_commitment_point`]
    * [`1`:`channel_flags`]
+   * [`2`:`len`]
+   * [`len`:`final_scriptpubkey`]
 
 
 The `chain_hash` value denotes the exact blockchain the opened channel will
@@ -120,7 +123,22 @@ funding flow wishes to advertise this channel publicly to the network
 as detailed within
 [BOLT #7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
 
-The `funding_pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output.  The `revocation_basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment_basepoint` and `delayed_payment_basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed_payment_basepoint` is used to for payments encumbered by a delay.  Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen: this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
+The `funding_pubkey` is the public key in the 2-of-2 multisig script of the 
+funding transaction output.  The `revocation_basepoint` is combined with the 
+revocation preimage for this commitment transaction to generate a unique 
+revocation key for this commitment transaction. 
+The `payment_basepoint`, `delayed_payment_basepoint` and `htlc_payment_basepoint` 
+are similarly used to generate a series of keys for any payments to this node: 
+`delayed_payment_basepoint` is used to for payments encumbered by a delay, and 
+`htlc_payment_basepoint` is used for pending payments which have not yet been 
+integrated into the main commitment transaction output.  
+Varying these keys ensures that the transaction ID of each commitment transaction 
+is unpredictable by an external observer, even if one commitment transaction is 
+seen: this property is very useful for preserving privacy when outsourcing 
+penalty transactions to third parties.
+
+The `final_scriptpubkey` is optional (set `len` to 0 if unused) and specifies 
+the public key script for the final transaction when a channel is closed.
 
 FIXME: Describe Dangerous feature bit for larger channel amounts.
 
@@ -212,7 +230,10 @@ acceptance of the new channel.
    * [`33`:`revocation_basepoint`]
    * [`33`:`payment_basepoint`]
    * [`33`:`delayed_payment_basepoint`]
+   * [`33`:`htlc_payment_basepoint`]
    * [`33`:`first_per_commitment_point`]
+   * [`2`:`len`]
+   * [`len`:`final_scriptpubkey`]
 
 #### Requirements
 
@@ -220,7 +241,8 @@ acceptance of the new channel.
 The receiving node MUST reject the channel if the `chain_hash` value within the
 `open_channel` message is set to a hash of a chain unknown to the receiver.
 
-The `temporary_channel_id` MUST be the same as the `temporary_channel_id` in the `open_channel` message.  The sender SHOULD set `minimum_depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
+The `temporary_channel_id` MUST be the same as the `temporary_channel_id` in the `open_channel` message.  The sender SHOULD 
+set `minimum_depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
 
 The receiver MAY reject the `minimum_depth` if it considers it unreasonably large.
 Other fields have the same requirements as their counterparts in `open_channel`.
@@ -368,6 +390,9 @@ A receiving node SHOULD fail the connection if the `scriptpubkey` is not one
 of those forms.
 
 A receiving node MUST reply to a `shutdown` message with a `shutdown` once there are no outstanding updates on the peer, unless it has already sent a `shutdown`.
+
+A receiving node MUST ignore `scriptpubkey` if the sending node already provided one in their `open_channel` or `accept_channel` message, and use the 
+provided `final_scriptpubkey` instead.
 
 #### Rationale
 
