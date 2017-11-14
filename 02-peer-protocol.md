@@ -1047,15 +1047,15 @@ A node:
     - if it has sent no `revoke_and_ack`, AND `next_remote_revocation_number`
     is equal to 0:
       - SHOULD fail the channel.
-  
+
  A receiving node:
   - if it supports `option-data-loss-protect`, AND the `option-data-loss-protect`
-  fields are present: 
-    - if `next_remote_revocation_number` is greater than expected above, AND 
-    `your_last_per_commitment_secret` is correct for that 
+  fields are present:
+    - if `next_remote_revocation_number` is greater than expected above, AND
+    `your_last_per_commitment_secret` is correct for that
     `next_remote_revocation_number` minus one:
-      - MUST NOT broadcast its commitment transaction, 
-        - and SHOULD fail the channel, 
+      - MUST NOT broadcast its commitment transaction,
+        - and SHOULD fail the channel,
         - and SHOULD store `my_current_per_commitment_point` to retrieve funds
         should the sending node broadcast its commitment transaction onchain.
     - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
@@ -1131,18 +1131,17 @@ Similarly, for the fundee's `funding_signed` message: it's better to
 remember a channel that never opens (and times out) than to let the
 funder open it while the fundee has forgotten it.
 
-`option-data-loss-protect` was added to allow a node which has somehow fallen behind
-(eg. restored from old backup) to detect it, and know that it cannot
-broadcast its current commitment transaction (which would lead to
-total loss of funds, as the remote node has proven it knows the
-revocation preimage).  The error returned by the fallen-behind node
+`option-data-loss-protect` was added to allow a node, which has somehow fallen behind
+(e.g. restored from old backup), to detect that it's fallen-behind. A fallen-behind
+node must know it cannot broadcast its current commitment transaction — which would lead to
+total loss of funds — as the remote node can prove it knows the
+revocation preimage. The error returned by the fallen-behind node
 (or simply the invalid numbers in the `channel_reestablish` it has
 sent) should make the other node drop its current commitment
-transaction to the chain, which will at least allow the recovery on
-non-HTLC funds for the fallen-behind node if the `my_current_per_commitment_point`
-is valid.  On the other hand, it also
-means the fallen-behind node has revealed this fact (though not
-provably: it could be lying), and the other node could use this to
+transaction to the chain. This will, at least, allow the fallen-behind node to recovery
+non-HTLC funds, if the `my_current_per_commitment_point`
+is valid. However, this also means the fallen-behind node has revealed this
+fact (though not provably: it could be lying), and the other node could use this to
 broadcast a previous state.
 
 # Authors
