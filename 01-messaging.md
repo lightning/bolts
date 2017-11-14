@@ -54,10 +54,12 @@ The messages are grouped logically into 4 groups, ordered by their most signific
 
 The size of the message is required to fit into a 2 byte unsigned int by the transport layer; therefore, the maximum possible size is 65535 bytes.
 
-A receiving node:
+A node:
   - MUST ignore any additional data within a message, beyond the length it expects for that type.
   - upon receiving a known message with insufficient length for the contents:
     - MUST fail the channels.
+  - that understands an option (each is numbered):
+    - MUST include all the fields annotated with that option.
 
 ### Rationale
 

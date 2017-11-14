@@ -978,6 +978,8 @@ messages are), they are independent of requirements here.
    * [`32`:`channel_id`]
    * [`8`:`next_local_commitment_number`]
    * [`8`:`next_remote_revocation_number`]
+   * [`32`:`your_last_per_commitment_secret`] (option-data-loss-protect)
+   * [`33`:`my_current_per_commitment_point`] (option-data-loss-protect)
 
 ### Requirements
 
@@ -1045,6 +1047,22 @@ A node:
     - if it has sent no `revoke_and_ack`, AND `next_remote_revocation_number`
     is equal to 0:
       - SHOULD fail the channel.
+  
+ A receiving node:
+  - if it supports `option-data-loss-protect`, AND the `option-data-loss-protect`
+  fields are present: 
+    - if `next_remote_revocation_number` is greater than expected above, AND 
+    `your_last_per_commitment_secret` is correct for that 
+    `next_remote_revocation_number` minus one:
+      - MUST NOT broadcast its commitment transaction, 
+        - and SHOULD fail the channel, 
+        - and SHOULD store `my_current_per_commitment_point` to retrieve funds
+        should the sending node broadcast its commitment transaction onchain.
+    - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
+    do not match the expected values):
+      - SHOULD fail the channel.
+
+A node:
   - MUST not assume that previously-transmitted messages were lost,
     - if it has sent a previous `commitment_signed` message:
       - MUST handle the case where the corresponding commitment transaction is
@@ -1112,6 +1130,20 @@ channel which hasn't been broadcast than to forget one which has!
 Similarly, for the fundee's `funding_signed` message: it's better to
 remember a channel that never opens (and times out) than to let the
 funder open it while the fundee has forgotten it.
+
+`option-data-loss-protect` was added to allow a node which has somehow fallen behind
+(eg. restored from old backup) to detect it, and know that it cannot
+broadcast its current commitment transaction (which would lead to
+total loss of funds, as the remote node has proven it knows the
+revocation preimage).  The error returned by the fallen-behind node
+(or simply the invalid numbers in the `channel_reestablish` it has
+sent) should make the other node drop its current commitment
+transaction to the chain, which will at least allow the recovery on
+non-HTLC funds for the fallen-behind node if the `my_current_per_commitment_point`
+is valid.  On the other hand, it also
+means the fallen-behind node has revealed this fact (though not
+provably: it could be lying), and the other node could use this to
+broadcast a previous state.
 
 # Authors
 
