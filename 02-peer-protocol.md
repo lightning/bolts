@@ -1,6 +1,6 @@
 # BOLT #2: Peer Protocol for Channel Management
 
-The peer channel protocol has 3 phases: establishment, normal
+The peer channel protocol has three phases: establishment, normal
 operation, and closing.
 
 # Table of Contents
@@ -125,8 +125,7 @@ The `funding_pubkey` is the public key in the 2-of-2 multisig script of the fund
 
 The sending node MUST:
   - ensure that the `chain_hash` value identifies the chain it wishes to open the channel within.
-  - ensure `temporary_channel_id` is unique from any other.
-channel ID with the same peer.
+  - ensure `temporary_channel_id` is unique from any other channel ID with the same peer.
   - set `funding_satoshis` to less than 2^24 satoshi.
   - set `push_msat` to equal or less than 1000 * `funding_satoshis`.
   - set `funding_pubkey`, `revocation_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid DER-encoded, compressed, secp256k1 pubkeys.
@@ -141,8 +140,8 @@ The receiving node MUST:
   - ignore undefined bits in `channel_flags`.
   - if the connection has been re-established after receiving a previous
  `open_channel` but before receiving a `funding_created` message:
-    - accept a new `open_channel` message,
-      - and MUST discard the previous `open_channel` message.
+    - accept a new `open_channel` message.
+    - discard the previous `open_channel` message.
 
 The receiving node MAY fail the channel if:
   - `announce_channel` is `false` (`0`), yet it wishes to publicly announce the channel.
@@ -210,8 +209,9 @@ avoid double-spending of the funding transaction.
 The receiver:
   - if the `chain_hash` value within the `open_channel` message is set to a hash
  of a chain unknown to the receiver:
-    - MUST reject the channel,
-      - and MAY reject the `minimum_depth`, if it considers it unreasonably large.
+    - MUST reject the channel.
+  - if `minimum_depth` is unreasonably large:
+    - MAY reject the channel.
 
 Other fields have the same requirements as their counterparts in `open_channel`.
 
@@ -272,9 +272,9 @@ The sender MUST set:
 The recipient:
   - if `signature` is incorrect:
     - MUST fail the channel.
+  - MUST NOT broadcast the funding transaction before receipt of a valid `funding_signed`.
   - on receipt of a valid `funding_signed`:
-    - SHOULD broadcast the funding transaction,
-      - and MUST NOT broadcast the funding transaction earlier.
+    - SHOULD broadcast the funding transaction.
 
 ### The `funding_locked` Message
 
@@ -306,9 +306,7 @@ other node after a reasonable timeout.
 #### Rationale
 
 The non-funder can simply forget the channel ever existed, since no
-funds are at risk. There is a denial of service risk: if the fundee remembers
-the channel forever (on the promise of the funding transaction finally
-appearing), even if `push_msat` is significant.
+funds are at risk. If the fundee were to remember the channel forever, that would create a Denial of Service risk; therefore, forgetting it is recommended (even if the promise of `push_msat` is significant).
 
 #### Future
 
@@ -321,7 +319,7 @@ Nodes can negotiate a mutual close of the connection, which unlike a
 unilateral close, allows them to access their funds immediately and
 can be negotiated with lower fees.
 
-Closing happens in 2 stages: 1) one side indicates it wants to clear the channel
+Closing happens in two stages: 1) one side indicates it wants to clear the channel
 (and thus will accept no new HTLCs) 2) once all HTLCs are resolved, the final channel close
 negotiation begins.
 
@@ -419,9 +417,9 @@ A sending node:
 The receiving node:
   - after `shutdown` has been received and no HTLCs remain in either commitment transaction:
     - SHOULD send a `closing_signed` message.
-  - MUST check `signature` is valid for either variant of close
-transaction specified in [BOLT #3](03-transactions.md#closing-transaction),
-    - and MUST fail the connection if it is not.
+  - if the `signature` is not valid for either variant of close transaction
+  specified in [BOLT #3](03-transactions.md#closing-transaction):
+    - MUST fail the connection.
   - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
     - SHOULD sign and broadcast the final closing transaction
     - MAY close the connection.
@@ -453,7 +451,7 @@ reason to pay a premium for rapid processing.
 
 Once both nodes have exchanged `funding_locked` (and optionally [`announcement_signatures`](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hash TimeLocked Contracts.
 
-Changes are sent in batches: 1 or more `update_` messages are sent before a
+Changes are sent in batches: one or more `update_` messages are sent before a
 `commitment_signed` message, as in the following diagram:
 
         +-------+                            +-------+
@@ -485,14 +483,14 @@ Thus each update traverses through the following states:
 5. ... and the sender's previous commitment transaction has been revoked
 
 
-As the 2 nodes' updates are independent, the 2 commitment
+As the two nodes' updates are independent, the two commitment
 transactions may be out of sync indefinitely. This is not concerning:
 what matters is whether both sides have irrevocably committed to a
 particular HTLC or not (the final state, above).
 
 ### Forwarding HTLCs
 
-In general, a node offers HTLCs for 2 reasons: to initiate a payment of its own,
+In general, a node offers HTLCs for two reasons: to initiate a payment of its own,
 or to forward another node's payment. In the forwarding case, care must
 be taken to ensure the *outgoing* HTLC cannot be redeemed unless the *incoming*
 HTLC can be redeemed. The following requirements ensure this is always true:
@@ -500,7 +498,7 @@ HTLC can be redeemed. The following requirements ensure this is always true:
 The respective **addition/removal** of an HTLC is considered *irrevocably committed* when:
 
 1. the commitment transaction **with/without** it is committed by both nodes, and any
-previous commitment transaction which **without/with** it has been revoked, OR
+previous commitment transaction **without/with** it has been revoked, OR
 2. the commitment transaction **with/without** it has been irreversibly committed to
 the blockchain.
 
@@ -527,7 +525,7 @@ irrevocable and the incoming HTLC should be fulfilled as soon as possible to
 reduce latency.
 
 An HTLC with an unreasonably long expiry is a denial-of-service vector and
-therefor is not allowed. Note that the exact value of "unreasonable" is currently unclear
+therefore is not allowed. Note that the exact value of "unreasonable" is currently unclear
 and may depend on network topology.
 
 ### `cltv_expiry_delta` Selection
@@ -594,7 +592,7 @@ the longest possible time to redeem it on-chain:
    transaction.
 
 Thus, the worst case is `3R+2G+2S` assuming `R` is at least 1. Note that the
-chances of 3 reorganizations in which the other node wins all of them is
+chances of three reorganizations in which the other node wins all of them is
 low for `R` of 2 or more. Since high fees are used (and HTLC spends can use
 almost arbitrary fees), `S` should be small; although, given that block times are
 irregular and empty blocks still occur, `S = 2` should be considered a
@@ -602,7 +600,7 @@ minimum. Similarly, the grace period `G` can be low (1 or 2), as nodes are
 required to timeout or fulfill as soon as possible; but if `G` is too low it increases the
 risk of unnecessary channel closure due to networking delays.
 
-There are 4 values that need be derived:
+There are four values that need be derived:
 
 1. The `cltv_expiry_delta` for channels, `3R+2G+2S`: if in doubt, a
    `cltv_expiry_delta` of 12 is reasonable (R=2, G=1, S=2).
@@ -669,7 +667,7 @@ Fees") while maintaining its channel reserve.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
   - for channels with `chain_hash` identifying the Bitcoin blockchain:
-    - MUST set the 4 most significant bytes of `amount_msat` to 0.
+    - MUST set the four most significant bytes of `amount_msat` to 0.
   - if result would be offering more than the remote's
   `max_accepted_htlcs` HTLCs, in the remote commitment transaction:
     - MUST NOT add an HTLC.
@@ -677,8 +675,8 @@ Fees") while maintaining its channel reserve.
 `max_htlc_value_in_flight_msat`:
     - MUST NOT add an HTLC.
   - for the first HTLC it offers:
-    - MUST set `id` to 0,
-      - and MUST increase the value by 1 for each successive offer.
+    - MUST set `id` to 0.
+  - MUST increase the value of `id` by 1 for each successive offer.
 
 A receiving node:
   - receiving an `amount_msat` equal to 0, OR less than its own `htlc_minimum_msat`:
@@ -690,7 +688,7 @@ A receiving node:
     - SHOULD fail the channel.
   - if sending node sets `cltv_expiry` to greater or equal to 500000000:
     - SHOULD fail the channel.
-  - for channels with `chain_hash` identifying the Bitcoin blockchain, if the 4 most significant bytes of `amount_msat` are not 0:
+  - for channels with `chain_hash` identifying the Bitcoin blockchain, if the four most significant bytes of `amount_msat` are not 0:
     - MUST fail the channel.
   - MUST allow multiple HTLCs with the same `payment_hash`.
   - if the sender did not previously acknowledge the commitment of that HTLC:
@@ -731,7 +729,7 @@ bootstrap phase of the network.
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
 
 For simplicity, a node can only remove HTLCs added by the other node.
-There are 3 reasons for removing an HTLC: it has timed out, it has
+There are three reasons for removing an HTLC: it has timed out, it has
 failed to route, or the payment preimage is supplied.
 
 The `reason` field is an opaque encrypted blob for the benefit of the
@@ -767,27 +765,27 @@ For an unparsable HTLC:
 #### Requirements
 
 A node:
- - SHOULD remove an HTLC as soon as it can.
- - SHOULD fail an HTLC which has timed out.
- - until the corresponding HTLC is irrevocably
- committed in both sides' commitment transactions:
-   - MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc` or
+  - SHOULD remove an HTLC as soon as it can.
+  - SHOULD fail an HTLC which has timed out.
+  - until the corresponding HTLC is irrevocably committed in both sides'
+  commitment transactions:
+    - MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc`, or
 `update_fail_malformed_htlc`.
 
 A receiving node:
-  - MUST check that `id` corresponds to an HTLC in its current commitment transaction,
-    - and MUST fail the channel if it does not.
-  - MUST check that the `payment_preimage` value in `update_fulfill_htlc`
-  SHA256 hashes to the corresponding HTLC `payment_hash`,
-    - and MUST fail the channel if it does not.
+  - if the `id` does not correspond to an HTLC in its current commitment transaction:
+    - MUST fail the channel.
+  - if the `payment_preimage` value in `update_fulfill_htlc`
+  doesn't SHA256 hash to the corresponding HTLC `payment_hash`:
+    - MUST fail the channel.
   - if the `BADONION` bit in `failure_code` is not set for
   `update_fail_malformed_htlc`:
     - MUST fail the channel.
-  - MAY check the `sha256_of_onion` in `update_fail_malformed_htlc`,
-    - and if it does not match the onion it sent:
-      - MAY retry or choose an alternate error response.
-    - otherwise, a receiving node which has an outgoing HTLC canceled by `update_fail_malformed_htlc`:
-      - MUST return an error in the `update_fail_htlc` sent to the link which
+  - if the `sha256_of_onion` in `update_fail_malformed_htlc` doesn't match the
+  onion it sent:
+    - MAY retry or choose an alternate error response.
+  - otherwise, a receiving node which has an outgoing HTLC canceled by `update_fail_malformed_htlc`:
+    - MUST return an error in the `update_fail_htlc` sent to the link which
       originally sent the HTLC, using the `failure_code` given and setting the
       data to `sha256_of_onion`.
 
@@ -796,7 +794,7 @@ A receiving node:
 A node that doesn't time out HTLCs risks channel failure (see
 [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)).
 
-A node which sends `update_fulfill_htlc`, before the sender, is also
+A node that sends `update_fulfill_htlc`, before the sender, is also
 committed to the HTLC and risks losing funds.
 
 If the onion is malformed, the upstream node won't be able to extract
@@ -827,13 +825,13 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
 A sending node:
   - MUST NOT send a `commitment_signed` message which does not include any
 updates.
-    - but MAY send a `commitment_signed` message which only
-alters the fee,
-    - and MAY send a `commitment_signed` message which doesn't
+  - MAY send a `commitment_signed` message which only
+alters the fee.
+  - MAY send a `commitment_signed` message which doesn't
 change the commitment transaction aside from the new revocation hash
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).
-  - MUST include 1 `htlc_signature` for every HTLC transaction corresponding
+  - MUST include one `htlc_signature` for every HTLC transaction corresponding
   to BIP69 lexicographic ordering of the commitment transaction.
 
 A receiving node:
@@ -882,8 +880,8 @@ A sending node:
   transaction.
 
 A receiving node:
-  - MUST check that `per_commitment_secret` generates the previous `per_commitment_point`,
-    - and MUST fail the channel if it does not.
+  - if `per_commitment_secret` does not generate the previous `per_commitment_point`:
+    - MUST fail the channel.
   - if the `per_commitment_secret` was not generated by the protocol in [BOLT #3](03-transactions.md#per-commitment-secret-requirements):
     - MAY fail the channel.
 
@@ -1011,8 +1009,8 @@ A node:
       - SHOULD retransmit the error packet and ignore any other packets for
       that channel.
     - otherwise:
-      - MUST transmit `channel_reestablish` for each channel,
-        - and MUST wait for to receive the other node's `channel_reestablish`
+      - MUST transmit `channel_reestablish` for each channel.
+      - MUST wait for to receive the other node's `channel_reestablish`
         message before sending any other messages for that channel.
 
 The sending node:
@@ -1053,10 +1051,10 @@ A node:
   fields are present:
     - if `next_remote_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
-    `next_remote_revocation_number` minus one:
-      - MUST NOT broadcast its commitment transaction,
-        - and SHOULD fail the channel,
-        - and SHOULD store `my_current_per_commitment_point` to retrieve funds
+    `next_remote_revocation_number` minus 1:
+      - MUST NOT broadcast its commitment transaction.
+      - SHOULD fail the channel.
+      - SHOULD store `my_current_per_commitment_point` to retrieve funds
         should the sending node broadcast its commitment transaction onchain.
     - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
     do not match the expected values):

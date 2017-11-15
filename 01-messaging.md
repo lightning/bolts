@@ -28,7 +28,7 @@ Implementations MUST use a single connection per peer — channel messages (whic
 
 After decryption, all Lightning messages are of the form:
 
-1. `type`: 2 byte big-endian field indicating the type of message.
+1. `type`: 2-byte big-endian field indicating the type of message.
 2. `payload`: variable length payload which comprises the remainder of
    the message and conforms to the format matching the `type`.
 
@@ -45,14 +45,14 @@ A receiving node:
   - upon receiving a message of _even_, unknown type:
     - MUST fail the channels.
 
-The messages are grouped logically into 4 groups, ordered by their most significant set bit:
+The messages are grouped logically into four groups, ordered by their most significant set bit:
 
   - Setup & Control (types `0`-`31`): messages related to connection setup, control, supported features, and error reporting. These are described below.
   - Channel (types `32`-`127`): messages used to setup and tear down micropayment channels. These are described in [BOLT #2](02-peer-protocol.md).
   - Commitment (types `128`-`255`): messages related to updating the current commitment transaction, which includes adding, revoking, and settling HTLCs, as well as updating fees and exchanging signatures. These are described in [BOLT #2](02-peer-protocol.md).
   - Routing (types `256`-`511`): node and channel announcements, as well as any active route exploration. These are described in [BOLT #7](07-routing-gossip.md).
 
-The size of the message is required to fit into a 2 byte unsigned int by the transport layer; therefore, the maximum possible size is 65535 bytes.
+The size of the message is required to fit into a 2-byte unsigned int by the transport layer; therefore, the maximum possible size is 65535 bytes.
 
 A node:
   - MUST ignore any additional data within a message, beyond the length it expects for that type.
@@ -74,18 +74,18 @@ The _it's ok to be odd_ rule allows for future optional extensions
 without negotiation or special coding in clients. The "ignore
 additional data" rule similarly allows for future expansion.
 
-Implementations may prefer to have message data aligned on an 8 byte
+Implementations may prefer to have message data aligned on an 8-byte
 boundary (the largest natural alignment requirement of any type here);
-however, adding a 6 byte padding after the type field was considered
+however, adding a 6-byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
-a buffer with 6 bytes of pre-padding.
+a buffer with 6-bytes of pre-padding.
 
 ## Setup Messages
 
 ### The `init` Message
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
+[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2-bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
 
 Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s.
 
@@ -96,7 +96,7 @@ Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s
    * [`2`:`lflen`]
    * [`lflen`:`localfeatures`]
 
-The 2 byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
+The 2-byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
 
 #### Requirements
 
@@ -122,7 +122,7 @@ Nodes wait for receipt of the other's features to simplify error
 diagnosis, where features are incompatible.
 
 The feature masks are split into local features (which only affect the
-protocol between these 2 nodes) and global features (which can affect
+protocol between these two nodes) and global features (which can affect
 HTLCs) and are thus also advertised to other nodes.
 
 ### The `error` Message
@@ -157,8 +157,8 @@ A sending node:
   - when failure was caused by an invalid signature check:
     - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
   - when `channel_id` is 0:
-    - MUST fail all channels,
-      - and MUST close the connection.
+    - MUST fail all channels.
+    - MUST close the connection.
   - MUST set `len` equal to the length of `data`.
 
 The receiving node:
@@ -167,8 +167,8 @@ The receiving node:
   - if no existing channel is referred to by the message:
     - MUST ignore the message.
   - MUST truncate `len` to the remainder of the packet (if it's larger).
-  - if the string is composed solely of printable ASCII characters (For reference: the printable character set includes byte values 32 through 127, inclusive):
-    - SHOULD only print out `data` verbatim.
+  - if `data` is not composed solely of printable ASCII characters (For reference: the printable character set includes byte values 32 through 127, inclusive):
+    - SHOULD NOT print out `data` verbatim.
 
 #### Rationale
 
@@ -208,8 +208,8 @@ included within the data payload of the `pong` message.
 #### Requirements
 
 A node sending a `ping` message:
-  - SHOULD set `ignored` to 0s,
-    - but MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
+  - SHOULD set `ignored` to 0s.
+  - MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
 memory.
   - if it doesn't receive a corresponding `pong`:
     - MAY terminate the network connection,
@@ -217,16 +217,16 @@ memory.
   - SHOULD NOT send `ping` messages more often than once every 30 seconds.
 
 A node sending a `pong` message:
-  - SHOULD set `ignored` to 0s,
-    - but MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
+  - SHOULD set `ignored` to 0s.
+  - MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
  memory.
 
 A node receiving a `ping` message:
-  - SHOULD fail the channels if it has received significantly in excess of 1 `ping` per 30 seconds.
+  - SHOULD fail the channels if it has received significantly in excess of one `ping` per 30 seconds.
   - if `num_pong_bytes` is less than 65532:
     - MUST respond by sending a `pong` message, with `byteslen` equal to `num_pong_bytes`.
   - otherwise (`num_pong_bytes` is **not** less than 65532):
-    - it MUST ignore the `ping`.
+    - MUST ignore the `ping`.
 
 A node receiving a `pong` message:
   - if `byteslen` does not correspond to any `ping`'s `num_pong_bytes` value it has sent:
