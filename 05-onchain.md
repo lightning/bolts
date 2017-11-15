@@ -42,7 +42,7 @@ Outputs which are *resolved* are considered *irrevocably resolved*
 once their *resolving* transaction is included in a block at least 100
 deep on the most-work blockchain.  100 blocks is far greater than the
 longest known Bitcoin fork, and the same value used to wait for
-confirmations of miner's rewards[FIXME: ref].
+confirmations of miner's rewards (see [Reference Implementation](https://github.com/bitcoin/bitcoin/blob/4db82b7aab4ad64717f742a7318e3dc6811b41be/src/consensus/tx_verify.cpp#L223)).
 
 
 ## Requirements
