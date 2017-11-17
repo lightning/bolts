@@ -1,4 +1,4 @@
-personal_ws-1.1 en 264 
+personal_ws-1.1 en 264
 secp
 sig
 unguessable
@@ -214,6 +214,7 @@ num
 numStreamBytes
 txout
 HTLCs
+HTLC's
 retransmission
 decrypted
 sessionKey
