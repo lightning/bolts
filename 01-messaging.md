@@ -1,6 +1,7 @@
 # BOLT #1: Base Protocol
 
 ## Overview
+
 This protocol assumes an underlying authenticated and ordered transport mechanism that takes care of framing individual messages.
 [BOLT #8](08-transport.md) specifies the canonical transport layer used in Lightning, though it can be replaced by any transport that fulfills the above guarantees.
 
@@ -9,6 +10,7 @@ The default TCP port is 9735. This corresponds to hexadecimal `0x2607`: the Unic
 All data fields are big-endian unless otherwise specified.
 
 ## Table of Contents
+
   * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
   * [Lightning Message Format](#lightning-message-format)
   * [Setup Messages](#setup-messages)
@@ -83,6 +85,7 @@ a buffer with 6-bytes of pre-padding.
 ## Setup Messages
 
 ### The `init` Message
+
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
 [BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2-bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
@@ -272,6 +275,7 @@ rotations as specified within [BOLT #8](https://github.com/lightningnetwork/ligh
 [ TODO: (roasbeef); fin ]
 
 ## References
+
 1. <a id="reference-2">http://www.unicode.org/charts/PDF/U2600.pdf</a>
 
 ## Authors
