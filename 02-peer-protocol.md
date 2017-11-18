@@ -4,6 +4,7 @@ The peer channel protocol has three phases: establishment, normal
 operation, and closing.
 
 # Table of Contents
+
   * [Channel](#channel)
     * [Channel Establishment](#channel-establishment)
       * [The `open_channel` Message](#the-open_channel-message)

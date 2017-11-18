@@ -1,11 +1,12 @@
 # BOLT #3: Bitcoin Transaction and Script Formats
 
-This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid.  That is, the funding transaction output script, commitment transactions and the HTLC transactions.
+This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. That is, the funding transaction output script, commitment transactions, and the HTLC transactions.
 
 # Table of Contents
+
   * [Transactions](#transactions)
-    * [Transaction input and output ordering](#transaction-input-and-output-ordering)
-    * [Use of segwit](#use-of-segwit)
+    * [Transaction Input and Output Ordering](#transaction-input-and-output-ordering)
+    * [Use of Segwit](#use-of-segwit)
     * [Funding Transaction Output](#funding-transaction-output)
     * [Commitment Transaction](#commitment-transaction)
         * [Commitment Transaction Outputs](#commitment-transaction-outputs)
@@ -21,31 +22,31 @@ This details the exact format of on-chain transactions, which both sides need to
         * [Fee Payment](#fee-payment)
   * [Keys](#keys)
     * [Key Derivation](#key-derivation)
-        * [`localkey`, `remotekey`, `local_htlckey`, `remote_htlckey`, `local_delayedkey` and `remote_delayedkey` Derivation](#localkey-remotekey-local_delayedkey-and-remote_delayedkey-derivation)
-        * [`revocationkey` Derivation](#revocationkey-derivation) 
-        * [Per-commitment Secret Requirements](#per-commitment-secret-requirements) 
+        * [`localkey`, `remotekey`, `local_htlckey`, `remote_htlckey`, `local_delayedkey`, and `remote_delayedkey` Derivation](#localkey-remotekey-local_delayedkey-and-remote_delayedkey-derivation)
+        * [`revocationkey` Derivation](#revocationkey-derivation)
+        * [Per-commitment Secret Requirements](#per-commitment-secret-requirements)
     * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
-  * [Appendix A: Expected weights](#appendix-a-expected-weights)    
-      * [Expected weight of the commitment transaction](#expected-weight-of-the-commitment-transaction)
-      * [Expected weight of HTLC-Timeout and HTLC-Success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
+  * [Appendix A: Expected Weights](#appendix-a-expected-weights)    
+      * [Expected Weight of the Commitment Transaction](#expected-weight-of-the-commitment-transaction)
+      * [Expected Weight of HTLC-Timeout and HTLC-Success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
   * [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
   * [Appendix C: Commitment and HTLC Transaction Test Vectors](#appendix-c-commitment-and-htlc-transaction-test-vectors)
   * [Appendix D: Per-commitment Secret Generation Test Vectors](#appendix-d-per-commitment-secret-generation-test-vectors)
-    * [Generation tests](#generation-tests)
-    * [Storage tests](#storage-tests)
+    * [Generation Tests](#generation-tests)
+    * [Storage Tests](#storage-tests)
   * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
   * [References](#references)   
   * [Authors](#authors)   
-  
+
 # Transactions
 
-## Transaction input and output ordering
+## Transaction Input and Output Ordering
 
 Lexicographic ordering as per [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).
 
-## Use of segwit
+## Use of Segwit
 
-Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
+Most transaction outputs used here are P2WSH outputs, the Segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
 
 ## Funding Transaction Output
 
@@ -54,6 +55,7 @@ Most transaction outputs used here are P2WSH outputs, the segwit version of P2SH
 * Where `key1` is the numerically lesser of the two DER-encoded `funding_pubkey` and `key2` is the greater.
 
 ## Commitment Transaction
+
 * version: 2
 * locktime: upper 8 bits are 0x20, lower 24 bits are the lower 24 bits of the obscured commitment transaction number.
 * txin count: 1
@@ -73,12 +75,12 @@ commitment transaction.
 
 ### Commitment Transaction Outputs
 
-To allow an opportunity for penalty transactions in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to_self_delay` blocks.  This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
+To allow an opportunity for penalty transactions in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can time out or be fulfilled even though they are within the `to_self_delay` delay.
 Otherwise the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
-The amounts for each output MUST BE rounded down to whole satoshis.  If this amount, minus the fees for the HTLC transaction is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
+The amounts for each output MUST BE rounded down to whole satoshis. If this amount, minus the fees for the HTLC transaction is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
 
 #### `to_local` Output
 
@@ -109,7 +111,7 @@ This output sends funds to the other peer, thus is a simple P2WPKH to `remotekey
 
 #### Offered HTLC Outputs
 
-This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or to the remote peer using the payment preimage or the revocation key.  The output is a P2WSH, with a witness script:
+This output sends funds to a HTLC-timeout transaction after the HTLC timeout, or to the remote peer using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
 
     # To you with revocation key
     OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationkey))> OP_EQUAL
@@ -172,9 +174,9 @@ To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 ### Trimmed Outputs
 
 Each peer specifies `dust_limit_satoshis` below which outputs should
-not be produced; we term these outputs "trimmed".  A trimmed output is
+not be produced; we term these outputs "trimmed". A trimmed output is
 considered too small to be worth creating, and thus that amount adds
-to the commitment transaction fee.  For HTLCs, we need to take into
+to the commitment transaction fee. For HTLCs, we need to take into
 account that the second-stage HTLC transaction may also be below the
 limit.
 
@@ -208,15 +210,16 @@ MUST be generated as specified in
 
 
 ## HTLC-Timeout and HTLC-Success Transactions
-These HTLC transactions are almost identical, except the HTLC-Timeout transaction is timelocked.  This is also the transaction which can be spent by a valid penalty transaction.
+
+These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. This is also the transaction which can be spent by a valid penalty transaction.
 
 * version: 2
-* locktime: `0` for HTLC-Success, `cltv_expiry` for HTLC-Timeout.
+* locktime: `0` for HTLC-success, `cltv_expiry` for HTLC-timeout.
 * txin count: 1
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction.
    * `txin[0]` sequence: `0`
    * `txin[0]` script bytes: `0`
-   * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-Success, `0 <remotehtlcsig> <localhtlcsig> 0` for HTLC-Timeout.
+   * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-success, `0 <remotehtlcsig> <localhtlcsig> 0` for HTLC-timeout.
 * txout count: 1
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation)).
    * `txout[0]` script: version 0 P2WSH with witness script as shown below.
@@ -260,15 +263,15 @@ the output to the funder; it MUST then remove any output below its own `dust_lim
 
 There is a possibility of irreparable differences on closing if one
 node considers the other's output too small to allow propagation on
-the bitcoin network (aka "dust"), and that other node instead
-considers that output to be too valuable to discard.  This is why each
+the Bitcoin network (aka "dust"), and that other node instead
+considers that output to be too valuable to discard. This is why each
 side uses its own `dust_limit_satoshis`, and the result can be a
 signature validation failure, if they disagree on what the closing
 transaction should look like.
 
 However, if one side chooses to eliminate its own output, there's no
 reason for the other side to fail the closing protocol, so this is
-explicitly allowed.  The signature will indicate which variant
+explicitly allowed. The signature will indicate which variant
 has been used.
 
 There will be at least one output if `dust_limit_satoshis` is greater
@@ -301,7 +304,7 @@ This gives us the following *expected weights* (details of the computation in [A
     HTLC-timeout weight: 663
     HTLC-success weight: 703
 
-Note that we refer to the "base fee" for a commitment transaction in the requirements below, which is what the funder pays.  The actual fee may be higher than the amount calculated here, due to rounding and trimmed outputs.
+Note that we refer to the "base fee" for a commitment transaction in the requirements below, which is what the funder pays. The actual fee may be higher than the amount calculated here, due to rounding and trimmed outputs.
 
 #### Requirements
 
@@ -325,8 +328,8 @@ The base fee for a commitment transaction MUST BE calculated to match:
 #### Example
 
 For example, suppose that we have a `feerate_per_kw` of 5000, a `dust_limit_satoshis` of 546 satoshis, and commitment transaction with:
-* 2 offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
-* 2 received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
+* two offered HTLCs of 5000000 and 1000000 millisatoshis (5000 and 1000 satoshis)
+* two received HTLCs of 7000000 and 800000 millisatoshis (7000 and 800 satoshis)
 
 The HTLC timeout transaction weight is 663, thus fee would be 3315 satoshis.
 The HTLC success transaction weight is 703, thus fee would be 3515 satoshis
@@ -351,7 +354,7 @@ The commitment transaction weight would be calculated as follows:
 
 The base commitment transaction fee would be 5340 satoshi; the actual
 fee (adding the 1000 and 800 satoshi HTLCs which would have made dust
-outputs) is 7140 satoshi.  The final fee may even be more if the
+outputs) is 7140 satoshi. The final fee may even be more if the
 `to_local` or `to_remote` outputs fall below `dust_limit_satoshis`.
 
 ### Fee Payment
@@ -392,21 +395,21 @@ committed HTLCs:
 
 ## Key Derivation
 
-Each commitment transaction uses a unique set of keys; `localkey` and `remotekey`.  The HTLC-success and HTLC-timeout transactions use `local_delayedkey` and `revocationkey`.  These are changed every time depending on the
+Each commitment transaction uses a unique set of keys; `localkey` and `remotekey`. The HTLC-success and HTLC-timeout transactions use `local_delayedkey` and `revocationkey`. These are changed every time depending on the
 `per_commitment_point`.
 
 Keys change because of the desire for trustless outsourcing of
 watching for revoked transactions; a _watcher_ should not be able to
 determine what the contents of commitment transaction is, even if
 given the transaction ID to watch for and can make a reasonable guess
-as to what HTLCs and balances might be included.  Nonetheless, to
+as to what HTLCs and balances might be included. Nonetheless, to
 avoid storage for every commitment transaction, it can be given the
 `per_commitment_secret` values (which can be stored compactly) and the
 `revocation_basepoint` and `delayed_payment_basepoint` to regenerate
 the scripts required for the penalty transaction: it need only be
 given (and store) the signatures for each penalty input.
 
-Changing the `localkey` and `remotekey` every time ensures that commitment transaction id cannot be guessed: Every commitment transaction uses one of these in its output script.  Splitting the `local_delayedkey` which is required for the penalty transaction allows that to be shared with the watcher without revealing `localkey`; even if both peers use the same watcher, nothing is revealed.
+Changing the `localkey` and `remotekey` every time ensures that commitment transaction ID cannot be guessed: Every commitment transaction uses one of these in its output script. Splitting the `local_delayedkey` which is required for the penalty transaction allows that to be shared with the watcher without revealing `localkey`; even if both peers use the same watcher, nothing is revealed.
 
 Finally, even in the case of normal unilateral close, the HTLC-success
 and/or HTLC-timeout transactions do not reveal anything to the
@@ -416,7 +419,7 @@ their bases.
 
 For efficiency, keys are generated from a series of per-commitment secrets which are generated from a single seed, allowing the receiver to compactly store them (see [below](#efficient-per-commitment-secret-storage)).
 
-### `localkey`, `remotekey`, `local_htlckey`, `remote_htlckey`, `local_delayedkey` and `remote_delayedkey` Derivation
+### `localkey`, `remotekey`, `local_htlckey`, `remote_htlckey`, `local_delayedkey`, and `remote_delayedkey` Derivation
 
 These keys are simply generated by addition from their base points:
 
@@ -465,7 +468,7 @@ is known:
 ### Per-commitment Secret Requirements
 
 A node MUST select an unguessable 256-bit seed for each connection,
-and MUST NOT reveal the seed.  Up to 2^48-1 per-commitment secrets can be
+and MUST NOT reveal the seed. Up to 2^48-1 per-commitment secrets can be
 generated; the first secret used MUST be index 281474976710655, and
 then the index decremented.
 
@@ -487,13 +490,13 @@ MAY calculate it from a compact representation as described below.
 ## Efficient Per-commitment Secret Storage
 
 The receiver of a series of secrets can store them compactly in an
-array of 49 (value,index) pairs.  This is because given a secret on a
+array of 49 (value,index) pairs. This is because given a secret on a
 2^X boundary, we can derive all secrets up to the next 2^X boundary,
 and we always receive secrets in descending order starting at
 `0xFFFFFFFFFFFF`.
 
 In binary, it's helpful to think of any index in terms of a *prefix*,
-followed by some trailing zeroes.  You can derive the secret for any
+followed by some trailing zeroes. You can derive the secret for any
 index which matches this *prefix*.
 
 For example, secret `0xFFFFFFFFFFF0` allows us to derive secrets for
@@ -541,7 +544,7 @@ otherwise the secrets were not generated from the same seed:
 		known[B].secret = secret
 
 Finally, if we are asked to derive secret at index `I`, we need to
-figure out which known secret we can derive it from.  The simplest
+figure out which known secret we can derive it from. The simplest
 method is iterating over all the known secrets, and testing if we
 can derive from it:
 
@@ -557,9 +560,9 @@ This looks complicated, but remember that the index in entry `b` has
 `b` trailing zeros; the mask and compare is just seeing if the index
 at each bucket is a prefix of the index we want.
 
-# Appendix A: Expected weights
+# Appendix A: Expected Weights
 
-## Expected weight of the commitment transaction
+## Expected Weight of the Commitment Transaction
 
 The *expected weight* of a commitment transaction is calculated as follows:
 
@@ -636,18 +639,18 @@ The *expected weight* of a commitment transaction is calculated as follows:
 			output_paying_to_us,
 			....htlc_output's...
 		- lock_time: 4 bytes
-	
+
 Multiplying non-witness data by 4, this gives a weight of:
-	
+
 	// 500 + 172 * num-htlc-outputs weight
 	commitment_transaction_weight = 4 * commitment_transaction
 
 	// 224 weight
 	witness_weight = witness_header + witness
 
-	overall_weight = 500 + 172 * num-htlc-outputs + 224 weight 
+	overall_weight = 500 + 172 * num-htlc-outputs + 224 weight
 
-## Expected weight of HTLC-Timeout and HTLC-Success Transactions
+## Expected Weight of HTLC-Timeout and HTLC-Success Transactions
 
 The *expected weight* of an HTLC transaction is calculated as follows:
 
@@ -757,7 +760,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- var_int: 1 byte (pk_script length)
 		- pk_script (p2wsh): 34 bytes
 
-	htlc_transaction: 
+	htlc_transaction:
 		- version: 4 bytes
 		- witness_header <---- part of the witness data
 		- count_tx_in: 1 byte
@@ -768,7 +771,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 			htlc_output
 		- lock_time: 4 bytes
 
-Multiplying non-witness data by 4, this gives a weight of 376.  Adding
+Multiplying non-witness data by 4, this gives a weight of 376. Adding
 the witness data for each case (285 + 2 for HTLC-timeout, 325 + 2 for
 HTLC-success) gives a weight of:
 
@@ -779,7 +782,7 @@ HTLC-success) gives a weight of:
 
 In the following:
  - we assume that *local* is the funder
- - private keys are displayed as 32 bytes plus a trailing 1 (bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed)
+ - private keys are displayed as 32 bytes plus a trailing 1 (Bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed)
  - transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256)
 
 The input for the funding transaction was created using a test chain
@@ -821,7 +824,7 @@ The resulting funding transaction is:
 In the following:
  - we consider *local* transactions, which implies that all payments to *local* are delayed
  - we assume that *local* is the funder
- - private keys are displayed as 32 bytes plus a trailing 1 (bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed)
+ - private keys are displayed as 32 bytes plus a trailing 1 (Bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed)
  - transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256)
 
 We start by defining common basic parameters for each test vector: the
@@ -855,7 +858,7 @@ HTLCs are not used for the first "simple commitment tx with no HTLCs" test.
     htlc 4 payment_preimage: 0404040404040404040404040404040404040404040404040404040404040404
 
 <!-- We derive the test vector values as per Key Derivation, though it's not
-     required for this test.  They're included here for completeness and
+     required for this test. They're included here for completeness and
 	 in case someone wants to reproduce the test vectors themselves:
 
 INTERNAL: remote_funding_privkey: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e130101
@@ -907,7 +910,7 @@ And here are the test vectors themselves:
     output commit_tx: 02000000000101bef67e4e2fb9ddeeb3461973cd4c62abb35050b1add772995b820b584a488489000000000038b02b8002c0c62d0000000000160014ccf1af2f2aabee14bb40fa3851ab2301de84311054a56a00000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0400473044022051b75c73198c6deee1a875871c3961832909acd297c6b908d59e3319e5185a46022055c419379c5051a78d00dbbce11b5b664a0c22815fbcc6fcef6b1937c383693901483045022100f51d2e566a70ba740fc5d8c0f07b9b93d2ed741c3c0860c613173de7d39e7968022041376d520e9c0e1ad52248ddf4b22e12be8763007df977253ef45a4ca3bdb7c001475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae3e195220
     num_htlcs: 0
 
-    name: commitment tx with all 5 HTLCs untrimmed (minimum feerate)
+    name: commitment tx with all five HTLCs untrimmed (minimum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 0
@@ -945,7 +948,7 @@ And here are the test vectors themselves:
     # local_signature = 30440220549e80b4496803cbc4a1d09d46df50109f546d43fbbf86cd90b174b1484acd5402205f12a4f995cb9bded597eabfee195a285986aa6d93ae5bb72507ebc6a4e2349e
     output htlc_success_tx 4: 020000000001018154ecccf11a5fb56c39654c4deb4d2296f83c69268280b94d021370c94e219704000000000000000001a00f0000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e050047304402207e0410e45454b0978a623f36a10626ef17b27d9ad44e2760f98cfa3efb37924f0220220bd8acd43ecaa916a80bd4f919c495a2c58982ce7c8625153f8596692a801d014730440220549e80b4496803cbc4a1d09d46df50109f546d43fbbf86cd90b174b1484acd5402205f12a4f995cb9bded597eabfee195a285986aa6d93ae5bb72507ebc6a4e2349e012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 7 outputs untrimmed (maximum feerate)
+    name: commitment tx with seven outputs untrimmed (maximum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 647
@@ -983,7 +986,7 @@ And here are the test vectors themselves:
     # local_signature = 304402202d1a3c0d31200265d2a2def2753ead4959ae20b4083e19553acfffa5dfab60bf022020ede134149504e15b88ab261a066de49848411e15e70f9e6a5462aec2949f8f
     output htlc_success_tx 4: 020000000001018323148ce2419f21ca3d6780053747715832e18ac780931a514b187768882bb604000000000000000001da0d0000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0500483045022100cc28030b59f0914f45b84caa983b6f8effa900c952310708c2b5b00781117022022027ba2ccdf94d03c6d48b327f183f6e28c8a214d089b9227f94ac4f85315274f00147304402202d1a3c0d31200265d2a2def2753ead4959ae20b4083e19553acfffa5dfab60bf022020ede134149504e15b88ab261a066de49848411e15e70f9e6a5462aec2949f8f012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 6 outputs untrimmed (minimum feerate)
+    name: commitment tx with six outputs untrimmed (minimum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 648
@@ -1016,7 +1019,7 @@ And here are the test vectors themselves:
     # local_signature = 304402200daf2eb7afd355b4caf6fb08387b5f031940ea29d1a9f35071288a839c9039e4022067201b562456e7948616c13acb876b386b511599b58ac1d94d127f91c50463a6
     output htlc_success_tx 4: 02000000000101579c183eca9e8236a5d7f5dcd79cfec32c497fdc0ec61533cde99ecd436cadd103000000000000000001d90d0000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0500473044022035cac88040a5bba420b1c4257235d5015309113460bc33f2853cd81ca36e632402202fc94fd3e81e9d34a9d01782a0284f3044370d03d60f3fc041e2da088d2de58f0147304402200daf2eb7afd355b4caf6fb08387b5f031940ea29d1a9f35071288a839c9039e4022067201b562456e7948616c13acb876b386b511599b58ac1d94d127f91c50463a6012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 6 outputs untrimmed (maximum feerate)
+    name: commitment tx with six outputs untrimmed (maximum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 2069
@@ -1049,7 +1052,7 @@ And here are the test vectors themselves:
     # local_signature = 304402202c3e14282b84b02705dfd00a6da396c9fe8a8bcb1d3fdb4b20a4feba09440e8b02202b058b39aa9b0c865b22095edcd9ff1f71bbfe20aa4993755e54d042755ed0d5
     output htlc_success_tx 4: 02000000000101ca94a9ad516ebc0c4bdd7b6254871babfa978d5accafb554214137d398bfcf6a03000000000000000001f2090000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e05004830450221008ec888e36e4a4b3dc2ed6b823319855b2ae03006ca6ae0d9aa7e24bfc1d6f07102203b0f78885472a67ff4fe5916c0bb669487d659527509516fc3a08e87a2cc0a7c0147304402202c3e14282b84b02705dfd00a6da396c9fe8a8bcb1d3fdb4b20a4feba09440e8b02202b058b39aa9b0c865b22095edcd9ff1f71bbfe20aa4993755e54d042755ed0d5012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 5 outputs untrimmed (minimum feerate)
+    name: commitment tx with five outputs untrimmed (minimum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 2070
@@ -1077,7 +1080,7 @@ And here are the test vectors themselves:
     # local_signature = 304402200831422aa4e1ee6d55e0b894201770a8f8817a189356f2d70be76633ffa6a6f602200dd1b84a4855dc6727dd46c98daae43dfc70889d1ba7ef0087529a57c06e5e04
     output htlc_success_tx 4: 0200000000010140a83ce364747ff277f4d7595d8d15f708418798922c40bc2b056aca5485a21802000000000000000001f1090000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0500483045022100c9458a4d2cbb741705577deb0a890e5cb90ee141be0400d3162e533727c9cb2102206edcf765c5dc5e5f9b976ea8149bf8607b5a0efb30691138e1231302b640d2a40147304402200831422aa4e1ee6d55e0b894201770a8f8817a189356f2d70be76633ffa6a6f602200dd1b84a4855dc6727dd46c98daae43dfc70889d1ba7ef0087529a57c06e5e04012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 5 outputs untrimmed (maximum feerate)
+    name: commitment tx with five outputs untrimmed (maximum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 2194
@@ -1105,7 +1108,7 @@ And here are the test vectors themselves:
     # local_signature = 3045022100ff200bc934ab26ce9a559e998ceb0aee53bc40368e114ab9d3054d9960546e2802202496856ca163ac12c143110b6b3ac9d598df7254f2e17b3b94c3ab5301f4c3b0
     output htlc_success_tx 4: 02000000000101fb824d4e4dafc0f567789dee3a6bce8d411fe80f5563d8cdfdcc7d7e4447d43a020000000000000000019a090000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0500483045022100a12a9a473ece548584aabdd051779025a5ed4077c4b7aa376ec7a0b1645e5a48022039490b333f53b5b3e2ddde1d809e492cba2b3e5fc3a436cd3ffb4cd3d500fa5a01483045022100ff200bc934ab26ce9a559e998ceb0aee53bc40368e114ab9d3054d9960546e2802202496856ca163ac12c143110b6b3ac9d598df7254f2e17b3b94c3ab5301f4c3b0012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 4 outputs untrimmed (minimum feerate)
+    name: commitment tx with four outputs untrimmed (minimum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 2195
@@ -1128,7 +1131,7 @@ And here are the test vectors themselves:
     # local_signature = 30440220665b9cb4a978c09d1ca8977a534999bc8a49da624d0c5439451dd69cde1a003d022070eae0620f01f3c1bd029cc1488da13fb40fdab76f396ccd335479a11c5276d8
     output htlc_success_tx 4: 020000000001014e16c488fa158431c1a82e8f661240ec0a71ba0ce92f2721a6538c510226ad5c0100000000000000000199090000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0500483045022100e769cb156aa2f7515d126cef7a69968629620ce82afcaa9e210969de6850df4602200b16b3f3486a229a48aadde520dbee31ae340dbadaffae74fbb56681fef27b92014730440220665b9cb4a978c09d1ca8977a534999bc8a49da624d0c5439451dd69cde1a003d022070eae0620f01f3c1bd029cc1488da13fb40fdab76f396ccd335479a11c5276d8012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 4 outputs untrimmed (maximum feerate)
+    name: commitment tx with four outputs untrimmed (maximum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 3702
@@ -1151,7 +1154,7 @@ And here are the test vectors themselves:
     # local_signature = 30440220048a41c660c4841693de037d00a407810389f4574b3286afb7bc392a438fa3f802200401d71fa87c64fe621b49ac07e3bf85157ac680acb977124da28652cc7f1a5c
     output htlc_success_tx 4: 02000000000101b8de11eb51c22498fe39722c7227b6e55ff1a94146cf638458cb9bc6a060d3a30100000000000000000176050000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0500483045022100ea9dc2a7c3c3640334dab733bb4e036e32a3106dc707b24227874fa4f7da746802204d672f7ac0fe765931a8df10b81e53a3242dd32bd9dc9331eb4a596da87954e9014730440220048a41c660c4841693de037d00a407810389f4574b3286afb7bc392a438fa3f802200401d71fa87c64fe621b49ac07e3bf85157ac680acb977124da28652cc7f1a5c012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 3 outputs untrimmed (minimum feerate)
+    name: commitment tx with three outputs untrimmed (minimum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 3703
@@ -1169,7 +1172,7 @@ And here are the test vectors themselves:
     # local_signature = 3045022100b94d931a811b32eeb885c28ddcf999ae1981893b21dd1329929543fe87ce793002206370107fdd151c5f2384f9ceb71b3107c69c74c8ed5a28a94a4ab2d27d3b0724
     output htlc_success_tx 4: 020000000001011c076aa7fb3d7460d10df69432c904227ea84bbf3134d4ceee5fb0f135ef206d0000000000000000000175050000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0500473044022044f65cf833afdcb9d18795ca93f7230005777662539815b8a601eeb3e57129a902206a4bf3e53392affbba52640627defa8dc8af61c958c9e827b2798ab45828abdd01483045022100b94d931a811b32eeb885c28ddcf999ae1981893b21dd1329929543fe87ce793002206370107fdd151c5f2384f9ceb71b3107c69c74c8ed5a28a94a4ab2d27d3b0724012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 3 outputs untrimmed (maximum feerate)
+    name: commitment tx with three outputs untrimmed (maximum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 4914
@@ -1187,7 +1190,7 @@ And here are the test vectors themselves:
     # local_signature = 304502210086e76b460ddd3cea10525fba298405d3fe11383e56966a5091811368362f689a02200f72ee75657915e0ede89c28709acd113ede9e1b7be520e3bc5cda425ecd6e68
     output htlc_success_tx 4: 0200000000010110a3fdcbcd5db477cd3ad465e7f501ffa8c437e8301f00a6061138590add757f0000000000000000000122020000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0500483045022100fcb38506bfa11c02874092a843d0cc0a8613c23b639832564a5f69020cb0f6ba02206508b9e91eaa001425c190c68ee5f887e1ad5b1b314002e74db9dbd9e42dbecf0148304502210086e76b460ddd3cea10525fba298405d3fe11383e56966a5091811368362f689a02200f72ee75657915e0ede89c28709acd113ede9e1b7be520e3bc5cda425ecd6e68012004040404040404040404040404040404040404040404040404040404040404048a76a91414011f7254d96b819c76986c277d115efce6f7b58763ac67210394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b7c8201208763a91418bc1a114ccf9c052d3d23e28d3b0a9d1227434288527c21030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e752ae677502f801b175ac686800000000
 
-    name: commitment tx with 2 outputs untrimmed (minimum feerate)
+    name: commitment tx with two outputs untrimmed (minimum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 4915
@@ -1200,7 +1203,7 @@ And here are the test vectors themselves:
     output commit_tx: 02000000000101bef67e4e2fb9ddeeb3461973cd4c62abb35050b1add772995b820b584a488489000000000038b02b8002c0c62d0000000000160014ccf1af2f2aabee14bb40fa3851ab2301de843110fa926a00000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80e0400483045022100a012691ba6cea2f73fa8bac37750477e66363c6d28813b0bb6da77c8eb3fb0270220365e99c51304b0b1a6ab9ea1c8500db186693e39ec1ad5743ee231b0138384b90147304402200769ba89c7330dfa4feba447b6e322305f12ac7dac70ec6ba997ed7c1b598d0802204fe8d337e7fee781f9b7b1a06e580b22f4f79d740059560191d7db53f876555201475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae3e195220
     num_htlcs: 0
 
-    name: commitment tx with 2 outputs untrimmed (maximum feerate)
+    name: commitment tx with two outputs untrimmed (maximum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 9651180
@@ -1213,7 +1216,7 @@ And here are the test vectors themselves:
     output commit_tx: 02000000000101bef67e4e2fb9ddeeb3461973cd4c62abb35050b1add772995b820b584a488489000000000038b02b800222020000000000002200204adb4e2f00643db396dd120d4e7dc17625f5f2c11a40d857accc862d6b7dd80ec0c62d0000000000160014ccf1af2f2aabee14bb40fa3851ab2301de84311004004730440220514f977bf7edc442de8ce43ace9686e5ebdc0f893033f13e40fb46c8b8c6e1f90220188006227d175f5c35da0b092c57bea82537aed89f7778204dc5bacf4f29f2b901473044022037f83ff00c8e5fb18ae1f918ffc24e54581775a20ff1ae719297ef066c71caa9022039c529cccd89ff6c5ed1db799614533844bd6d101da503761c45c713996e3bbd01475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae3e195220
     num_htlcs: 0
 
-    name: commitment tx with 1 output untrimmed (minimum feerate)
+    name: commitment tx with one output untrimmed (minimum feerate)
     to_local_msat: 6988000000
     to_remote_msat: 3000000000
     local_feerate_per_kw: 9651181
@@ -1237,13 +1240,11 @@ And here are the test vectors themselves:
     output commit_tx: 02000000000101bef67e4e2fb9ddeeb3461973cd4c62abb35050b1add772995b820b584a488489000000000038b02b8001c0c62d0000000000160014ccf1af2f2aabee14bb40fa3851ab2301de8431100400473044022031a82b51bd014915fe68928d1abf4b9885353fb896cac10c3fdd88d7f9c7f2e00220716bda819641d2c63e65d3549b6120112e1aeaf1742eed94a471488e79e206b101473044022064901950be922e62cbe3f2ab93de2b99f37cff9fc473e73e394b27f88ef0731d02206d1dfa227527b4df44a07599289e207d6fd9cca60c0365682dcd3deaf739567e01475221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae3e195220
     num_htlcs: 0
 
-
-
 # Appendix D: Per-commitment Secret Generation Test Vectors
 
 These test the generation algorithm which all nodes use.
 
-## Generation tests
+## Generation Tests
 
     name: generate_from_seed 0 final node
 	seed: 0x0000000000000000000000000000000000000000000000000000000000000000
@@ -1270,12 +1271,12 @@ These test the generation algorithm which all nodes use.
 	I: 1
 	output: 0x915c75942a26bb3a433a8ce2cb0427c29ec6c1775cfc78328b57f6ba7bfeaa9c
 
-## Storage tests
+## Storage Tests
 
-These test the optional compact storage system.  In many cases, an
+These test the optional compact storage system. In many cases, an
 incorrect entry cannot be determined until its parent is revealed; we
 specifically corrupt an entry and all its children (except for the
-last test, which would require another 8 samples to be detected).  For
+last test, which would require another eight samples to be detected). For
 these tests we use a seed of `0xFFF...FF` and incorrect entries are
 seeded with `0x000...00`.
 
@@ -1366,7 +1367,7 @@ seeded with `0x000...00`.
 	I: 281474976710648
 	secret: 0x05cde6323d949933f7f7b78776bcc1ea6d9b31447732e3802e1f7ac44b650e17
 	output: ERROR
-	
+
     name: insert_secret #5 incorrect
 	I: 281474976710655
 	secret: 0x7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc
@@ -1464,7 +1465,7 @@ seeded with `0x000...00`.
 	I: 281474976710648
 	secret: 0xa7efbc61aac46d34f77778bac22c8a20c6a46ca460addc49009bda875ec88fa4
 	output: ERROR
-	
+
 # Appendix E: Key Derivation Test Vectors
 
 These test the derivation for `localkey`, `remotekey`, `local_delayedkey` and
@@ -1521,7 +1522,7 @@ All of them use the following secrets (and thus the derived points):
 
 # Authors
 
-FIXME
+[ FIXME: ]
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
