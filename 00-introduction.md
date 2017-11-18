@@ -1,7 +1,7 @@
 # BOLT #0: Introduction and Index
 
 Welcome, friend! These Basis of Lightning Technology (BOLT) documents
-describe a layer-2 protocol for off-chain Bitcoin transfer by mutual
+describe a layer-2 protocol for off-chain bitcoin transfer by mutual
 cooperation, relying on on-chain transactions for enforcement if
 necessary.
 
