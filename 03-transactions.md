@@ -215,7 +215,7 @@ less than `dust_limit_satoshis` set by the transaction owner:
 
 ## HTLC-Timeout and HTLC-Success Transactions
 
-These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. The HTLC-timout transaction is also the transaction which can be spent by a valid penalty transaction.
+These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. The HTLC-timeout transaction is also the transaction which can be spent by a valid penalty transaction.
 
 * version: 2
 * locktime: `0` for HTLC-success, `cltv_expiry` for HTLC-timeout
