@@ -539,7 +539,7 @@ A node:
   - until the removal of the outgoing HTLC is irrevocably committed, OR until the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction (with sufficient depth):
     - MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed
 to an outgoing HTLC.
-  - once its `cltv_expiry` has been reached, OR if `cltv_expiry` - `current_height` < `cltv_expiry_delta` for the outgoing channel:
+  - once its `cltv_expiry` has been reached, OR if `cltv_expiry` minus `current_height` is less than `cltv_expiry_delta` for the outgoing channel:
     - MUST fail an incoming HTLC (`update_fail_htlc`).
   - if an incoming HTLC's `cltv_expiry` is unreasonably far in the future:
     - SHOULD fail that incoming HTLC (`update_fail_htlc`).
@@ -623,7 +623,7 @@ Thus, the worst case is `3R+2G+2S`, assuming `R` is at least 1. Note that the
 chances of three reorganizations in which the other node wins all of them is
 low for `R` of 2 or more. Since high fees are used (and HTLC spends can use
 almost arbitrary fees), `S` should be small; although, given that block times are
-irregular and empty blocks still occur, `S = 2` should be considered a
+irregular and empty blocks still occur, `S=2` should be considered a
 minimum. Similarly, the grace period `G` can be low (1 or 2), as nodes are
 required to timeout or fulfill as soon as possible; but if `G` is too low it increases the
 risk of unnecessary channel closure due to networking delays.
