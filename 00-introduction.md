@@ -7,7 +7,7 @@ necessary.
 
 Some requirements are subtle; we have tried to highlight motivations
 and reasoning behind the results you see here. I'm sure we've fallen
-short: if you find any part confusing, or wrong, please contact us and
+short; if you find any part confusing or wrong, please contact us and
 help us improve.
 
 This is version 0.
@@ -25,86 +25,100 @@ This is version 0.
 
 ## Glossary and Terminology Guide
 
+* *Node*:
+   * A computer or other device connected to the Bitcoin network.
+
+
+* *Peers*:
+   * *Nodes* wanting to transact Bitcoins with each other through a *channel*.
+
+
 * *Funding transaction*:
-   * The on-chain, irreversible transaction that pays to both peers on a channel.
+   * An irreversible on-chain transaction that pays to both *peers* on a *channel*.
    It can only be spent by mutual consent.
 
 
 * *Channel*:
    * A fast, off-chain method of mutual exchange between two *peers*.
-   To move funds, peers exchange signatures for an updated *commitment transaction*.
+   To transact funds, peers exchange signatures to create an updated *commitment transaction*.
 
 
 * *Commitment transaction*:
-   * A transaction which spends the funding transaction.
-   Each peer holds the other peer's signature for this transaction, so that it
-   always has a commitment transaction it can spend. After a new
+   * A transaction that spends the *funding transaction*.
+   Each *peer* holds the other peer's signature for this transaction, so that each
+   always has a commitment transaction that it can spend. After a new
    commitment transaction is negotiated, the old one is *revoked*.
 
 
 * *HTLC*: Hashed Time Locked Contract.
-   * A conditional payment between two peers: the recipient can spend
+   * A conditional payment between two *peers*: the recipient can spend
     the payment by presenting its signature and a *payment preimage*,
     otherwise the payer can cancel the contract by spending it after
     a given time. These are implemented as outputs from the
     *commitment transaction*.
 
 
-* *Payment hash, payment preimage*:
-   * The HTLC contains the payment hash, which is the hash of the
-    payment preimage. Only the final recipient knows the payment
-    preimage. In order to release funds, the final recipient releases
-    the preimage as proof it has received payment.
+* *Payment hash*:
+   * The *HTLC* contains the payment hash, which is the hash of the
+    *payment preimage*. 
 
 
-* *Commitment revocation key*:
-   * Every *commitment transaction* has a unique *commitment revocation key*
-    value which allows the other peer to spend all outputs
+* *Payment preimage*: 
+   * Proof that payment has been received, held by
+    the final recipient, who is the only person who knows this
+    secret. The final recipient releases the preimage in order to
+    release funds. The payment preimage is hashes as the *payment hash*
+    in the *HTLC*.
+
+
+* *Commitment revocation secret key*:
+   * Every *commitment transaction* has a unique *commitment revocation* secret-key
+    value that allows the other *peer* to spend all outputs
     immediately: revealing this key is how old commitment
-    transactions are revoked. To do this, each output refers to the
-    commitment revocation pubkey.
+    transactions are revoked. To support revocation, each output of the 
+    commitment transaction refers to the commitment revocation public key.
 
 
 * *Per-commitment secret*:
-   * Every commitment derives its keys from a *per-commitment secret*,
+   * Every *commitment transaction* derives its keys from a per-commitment secret,
      which is generated such that the series of per-commitment secrets
      for all previous commitments can be stored compactly.
 
 
 * *Mutual close*:
-   * A cooperative close of a channel, by broadcasting an unconditional
-    spend of the *funding transaction* with an output to each peer
+   * A cooperative close of a *channel*, accomplished by broadcasting an unconditional
+    spend of the *funding transaction* with an output to each *peer*
     (unless one output is too small, and thus is not included).
 
 
 * *Unilateral close*:
-   * An uncooperative close of a channel, through broadcasting of a
+   * An uncooperative close of a *channel*, accomplished by broadcasting a
     *commitment transaction*. This transaction is larger (i.e. less
-    efficient) than a mutual close transaction, and the peer whose
+    efficient) than a *mutual close* transaction, and the peer whose
     commitment is broadcast cannot access its own outputs for some
     previously-negotiated duration.
 
 
 * *Revoked transaction close*:
-   * An invalid close of the channel, through broadcasting of a revoked
-    *commitment transaction*. Since the other peer knows the
+   * An invalid close of a *channel*, accomplished by broadcasting a revoked
+    *commitment transaction*. Since the other *peer* knows the
     *commitment revocation secret key*, it can create a *penalty transaction*.
 
 
 * *Penalty transaction*:
-   * A transaction which spends all outputs of a revoked commitment
-    transaction, using the *commitment revocation secret key*. A peer uses this
+   * A transaction that spends all outputs of a revoked *commitment
+    transaction*, using the *commitment revocation secret key*. A *peer* uses this
     if the other peer tries to "cheat" by broadcasting a revoked
     *commitment transaction*.
 
 
 * *Commitment number*:
    * A 48-bit incrementing counter for each *commitment transaction*; counters
-    are independent for each peer in the channel and start at 0.
+    are independent for each *peer* in the *channel* and start at 0.
 
 
 * *It's ok to be odd*:
-   * A rule applied to some numeric fields that indicates optional and
+   * A rule applied to some numeric fields that indicates either optional or
      compulsory support for features. Even numbers indicate that both endpoints
      MUST support the feature in question, while odd numbers indicate
      that the feature MAY be disregarded by the other endpoint.
@@ -112,8 +126,8 @@ This is version 0.
 
 * `chain_hash`:
    * Used in several of the BOLT documents to denote the genesis hash of a
-     target blockchain. This allows nodes to create and reference channels on
-     several blockchains. Nodes are to ignore any messages which reference a
+     target blockchain. This allows *nodes* to create and reference *channels* on
+     several blockchains. Nodes are to ignore any messages that reference a
      `chain_hash` that are unknown to them. Unlike `bitcoin-cli`, the hash is
      not reversed but is used directly.
 
