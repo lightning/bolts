@@ -323,7 +323,7 @@ The fee for an HTLC-success transaction:
     1. Multiply `feerate_per_kw` by 703 and divide by 1000 (rounding down).
 
 The base fee for a commitment transaction:
-  - MUST BE calculated to match:
+  - MUST be calculated to match:
     1. Start with `weight` = 724.
     2. For each committed HTLC, if that output is not trimmed as specified in
     [Trimmed Outputs](#trimmed-outputs), add 172 to `weight`.
@@ -450,8 +450,8 @@ secrets are known (i.e. `localkey`, `local_htlckey`, and `local_delayedkey` only
 
 ### `revocationkey` Derivation
 
-The `revocationkey` is a blinded key: when a local node wishes to create a new
-commitment for a remote node, it uses its own `revocation_basepoint` and the remote
+The `revocationkey` is a blinded key: when the local node wishes to create a new
+commitment for the remote node, it uses its own `revocation_basepoint` and the remote
 node's `per_commitment_point` to derive a new `revocationkey` for the
 commitment. After the remote node reveals (thereby revoking that commitment) the
 `per_commitment_secret` used, the local node
