@@ -251,7 +251,7 @@ signature, it will broadcast the funding transaction.
 The sender MUST set:
   - `temporary_channel_id` the same as the `temporary_channel_id` in the `open_channel` message.
   - `funding_txid` to the transaction ID of a non-malleable transaction,
-    - and MUST NOT broadcast this non-malleable transaction.
+    - and MUST NOT broadcast this transaction.
   - `funding_output_index` to the output number of that transaction which corresponds the funding transaction output, as defined in [BOLT #3](03-transactions.md#funding-transaction-output).
   - `signature` to the valid signature using its `funding_pubkey` for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
@@ -574,7 +574,7 @@ received.
     incoming HTLC from A; i.e. B can get the preimage from C and fulfill the incoming
     HTLC on-chain before A can time it out on-chain.
 
-The critical settings here are the [`cltv_expiry_delta` in
+The critical settings here are the `cltv_expiry_delta` in
 [BOLT #7](07-routing-gossip.md#the-channel_update-message) and the
 related `min_final_cltv_expiry` in [BOLT #11](11-payment-encoding.md#tagged-fields).
 `cltv_expiry_delta` is the minimum difference in HTLC CLTV timeouts, in
