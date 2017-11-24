@@ -544,12 +544,12 @@ applied them via `revoke_and_ack`.
 
 Thus each update traverses through the following states:
 
-1. Pending on the receiver.
-2. In the receiver's latest commitment transaction,
+1. pending on the receiver
+2. in the receiver's latest commitment transaction
 3. ... and the receiver's previous commitment transaction has been revoked,
-   and the HTLC is pending on the sender.
-4. ... and in the sender's latest commitment transaction,
-5. ... and the sender's previous commitment transaction has been revoked.
+   and the HTLC is pending on the sender
+4. ... and in the sender's latest commitment transaction
+5. ... and the sender's previous commitment transaction has been revoked
 
 
 As the two nodes' updates are independent, the two commitment
@@ -566,9 +566,9 @@ HTLC can be redeemed. The following requirements ensure this is always true.
 
 The respective **addition/removal** of an HTLC is considered *irrevocably committed* when:
 
-1. the commitment transaction **with/without** it is committed by both nodes, and any
+1. The commitment transaction **with/without** it is committed by both nodes, and any
 previous commitment transaction **without/with** it has been revoked, OR
-2. the commitment transaction **with/without** it has been irreversibly committed to
+2. The commitment transaction **with/without** it has been irreversibly committed to
 the blockchain.
 
 #### Requirements
@@ -630,11 +630,11 @@ the delta across a node.
 The worst-case number of blocks between outgoing and
 incoming HTLC resolution can be derived, given a few assumptions:
 
-* A worst-case reorganization depth `R` blocks.
-* A grace-period `G` blocks after HTLC timeout before giving up on
-  an unresponsive peer and dropping to chain.
-* A number of blocks `S` between transaction broadcast and the
-  transaction being included in a block.
+* a worst-case reorganization depth `R` blocks
+* a grace-period `G` blocks after HTLC timeout before giving up on
+  an unresponsive peer and dropping to chain
+* a number of blocks `S` between transaction broadcast and the
+  transaction being included in a block
 
 The worst case is for a forwarding node (B) that takes the longest
 possible time to spot the outgoing HTLC fulfillment and also takes
@@ -670,19 +670,19 @@ risk of unnecessary channel closure due to networking delays.
 
 There are four values that need be derived:
 
-1. The `cltv_expiry_delta` for channels, `3R+2G+2S`: if in doubt, a
+1. the `cltv_expiry_delta` for channels, `3R+2G+2S`: if in doubt, a
    `cltv_expiry_delta` of 12 is reasonable (R=2, G=1, S=2).
 
-2. The deadline for offered HTLCs: the deadline after which the channel has to be failed
+2. the deadline for offered HTLCs: the deadline after which the channel has to be failed
    and timed out on-chain. This is `G` blocks after the HTLC's
    `cltv_expiry`: 1 block is reasonable.
 
-3. The deadline for received HTLCs this node has fulfilled: the deadline after which
+3. the deadline for received HTLCs this node has fulfilled: the deadline after which
 the channel has to be failed and the HTLC fulfilled on-chain before its
    `cltv_expiry`. See steps 4-7 above, which imply a deadline of `2R+G+S`
    blocks before `cltv_expiry`: 7 blocks is reasonable.
 
-4. The minimum `cltv_expiry` accepted for terminal payments: the
+4. the minimum `cltv_expiry` accepted for terminal payments: the
    worst case for the terminal node C is `2R+G+S` blocks (as, again, steps
    1-3 above don't apply). The default in
    [BOLT #11](11-payment-encoding.md) is 9, which is slightly more
