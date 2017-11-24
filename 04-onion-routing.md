@@ -2,35 +2,40 @@
 
 ## Overview
 
-This document describes the construction of an onion routed packet that is used to route a payment from a _origin node_ to a _final node_, over a number of intermediate nodes, called _hops_.
+This document describes the construction of an onion routed packet that is
+used to route a payment from an _origin node_ to a _final node_. The packet
+is routed through a number of intermediate nodes which are referred to as _hops_.
 
 The routing schema is based on the
 [Sphinx](http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf)
-construction, and is extended with a per-hop payload.
+construction and is extended with a per-hop payload.
 
 Intermediate nodes forwarding the message can verify the integrity of
-the packet, and can learn about which node they should forward the
-packet to. They cannot learn about which other nodes, besides their
-predecessor or successor, are part of this route, nor can they learn
-the length of the route and their position within it. The packet is
-obfuscated at each hop, so that a network level attacker cannot
-associate packets belonging to the same route, i.e., packets belonging
-to a route do not share any identifying information. Notice that this
-does not preclude the possibility to associate packets by performing a
-traffic analysis.
+the packet and can learn which node they should forward the
+packet to. They cannot learn which other nodes, besides their
+predecessor or successor, are part of the packet's route; nor can they learn
+the length of the route or their position within it. The packet is
+obfuscated at each hop, to ensure that a network level attacker cannot
+associate packets belonging to the same route, i.e. packets belonging
+to the same route do not share any identifying information. Notice that this
+does not preclude the possibility of packet association by an attacker
+via traffic analysis.
 
-The route is constructed by the sender, which knows a public key of
-each intermediate node. Knowing the intermediate node's public key
-allows the sender to create a shared secret using ECDH for each
-intermediate node, including the final recipient. The shared secret is then
-used to generate a _pseudo-random stream_ of bytes to obfuscate the
-packet, and a number of _keys_ used to encrypt the payload and compute
-HMACs ensuring integrity at each hop.
+The route is constructed by the sender (origin node), which knows the public keys of
+each intermediate node. Knowing each intermediate node's public key
+allows the sender to create a shared secret (using ECDH) for each
+intermediate node, including the final recipient node. The shared secret is then
+used to generate a _pseudo-random stream_ of bytes, which is used to obfuscate the
+packet, and a number of _keys_, which are used to encrypt the payload and compute
+HMACs, which are used to ensure the integrity of the packet at each hop.
 
 This specification describes version 0 of the packet format and
-routing mechanism. Should a node receive a higher version packet that
-it does not implement it MUST report a route failure to the sending
-node and discard the packet.
+routing mechanism.
+
+A node:
+  - upon receiving a higher version packet than it implements:
+    - MUST report a route failure to the sending node.
+    - MUST discard the packet.
 
 # Table of Contents
 
@@ -114,7 +119,7 @@ The overall structure of the packet is depicted below. The network format of the
 
 For this specification `version` has a constant value of `0x00`.
 
-The `hops_data` field is a structure that holds obfuscated versions of the next hop's address, transfer information and the associated HMAC.  It is 1300 bytes long, and has the following structure:
+The `hops_data` field is a structure that holds obfuscated versions of the next hop's address, transfer information and the associated HMAC. It is 1300 bytes long, and has the following structure:
 
 1. type: `hops_data`
 2. data:
@@ -144,7 +149,7 @@ Using the `per_hop`, the sender is able to precisely specify the path and
 structure of the HTLCs forwarded at each hop. As the `per_hop` is
 protected under the packet-wide HMAC, the information within
 is fully authenticated with each pair-wise relationship between
-the HTLC sender, and each intermediate node in the path.  Using this end-to-end
+the HTLC sender, and each intermediate node in the path. Using this end-to-end
 authentication, forwarding nodes are able to ensure that the incoming node
 didn't forward an ill-crafted HTLC by cross-checking the HTLC parameters with
 the values as specified within the `per_hop`.
@@ -189,7 +194,7 @@ Field Description:
      `per_hop` won't change the overall `hops_data` size.
 
 Nodes forwarding HTLCs MUST construct the outgoing HTLC as specified within
-`per_hop`.  Otherwise, deviation from the specified HTLC parameters
+`per_hop`. Otherwise, deviation from the specified HTLC parameters
 may lead to extraneous routing failure.
 
 ## Payload for the Last Node
@@ -336,9 +341,9 @@ Should this not be the case the node MUST abort processing the packet and report
 
 The node then computes the shared secret as described below, using the private key corresponding to its public key and the ephemeral key from the packet.
 
-The node MUST detect a duplicated routing info which it has already forwarded or redeemed locally; it MAY immediately redeem the HTLC using the preimage (if known), otherwise it MUST abort processing and report a route failure.  This prevents a node on the route from retrying a payment multiple times and attempting to track its progress by traffic analysis.  Note that this could be done using a log of previous shared secrets or HMACs, which can be forgotten once that HTLC would not be accepted anyway (eg. once `outgoing_cltv_value` has passed).  Such a log may use a probabilistic data structure, but MUST rate-limit commitments as necessary to constrain the worst-case storage requirements or false positives of this log.
+The node MUST detect a duplicated routing info which it has already forwarded or redeemed locally; it MAY immediately redeem the HTLC using the preimage (if known), otherwise it MUST abort processing and report a route failure. This prevents a node on the route from retrying a payment multiple times and attempting to track its progress by traffic analysis. Note that this could be done using a log of previous shared secrets or HMACs, which can be forgotten once that HTLC would not be accepted anyway (eg. once `outgoing_cltv_value` has passed). Such a log may use a probabilistic data structure, but MUST rate-limit commitments as necessary to constrain the worst-case storage requirements or false positives of this log.
 
-The shared secret is used to compute a _mu_-key.  The node then computes the HMAC of the `hops_data` using the _mu_-key.
+The shared secret is used to compute a _mu_-key. The node then computes the HMAC of the `hops_data` using the _mu_-key.
 The resulting HMAC is compared with the HMAC from the packet.
 Should the computed HMAC and the HMAC from the packet differ then the node MUST abort processing and report a route failure.
 Comparison of the computed HMAC and the HMAC from the packet MUST be time-constant to avoid leaking information.
@@ -347,7 +352,7 @@ At this point the node can generate a _rho_-key and a _gamma_-key.
 
 The routing info is deobfuscated and the information about the next hop is extracted.
 In order to do so the node copies the `hops_data` field, appends 65 `0x00` bytes and generates 1365 pseudo-random bytes using the _rho_-key and applies it using `XOR` to the copy of the `hops_data`
-The first 65 bytes of the resulting routing info are `per_hop` field for the next hop.  The next 1300 bytes is the `hops_data` for the outgoing packet.
+The first 65 bytes of the resulting routing info are `per_hop` field for the next hop. The next 1300 bytes is the `hops_data` for the outgoing packet.
 
 If the `realm` is unknown, then the node MUST drop the packet and signal a route failure.
 
@@ -614,8 +619,8 @@ If the payment hash is unknown, the final node MUST fail the HTLC:
 1. type: PERM|15 (`unknown_payment_hash`)
 
 If the amount paid is less than the amount expected, the final node
-MUST fail the HTLC.  If the amount paid is more than twice the amount
-expected, the final node SHOULD fail the HTLC.  This allows the sender
+MUST fail the HTLC. If the amount paid is more than twice the amount
+expected, the final node SHOULD fail the HTLC. This allows the sender
 to reduce information leakage by altering the amount, without allowing
 accidental gross overpayment:
 
@@ -646,7 +651,7 @@ A node MUST ignore any extra bytes in `failuremsg`.
 If node sending the error is the final node:
 * If the PERM bit is set, the origin node SHOULD fail the payment,
   otherwise it MAY retry the payment if the error code is understood
-  and valid.  (In particular, `final_expiry_too_soon` can occur if the
+  and valid. (In particular, `final_expiry_too_soon` can occur if the
   block height has changed since sending, `temporary_node_failure`
   could resolve within a few seconds).
 
