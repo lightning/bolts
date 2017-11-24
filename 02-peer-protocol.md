@@ -618,11 +618,10 @@ the channel has to be failed and the HTLC fulfilled on-chain before its
    `cltv_expiry`. See steps 4-7 above, which imply a deadline of `2R+G+S`
    blocks before `cltv_expiry`: 7 blocks is reasonable.
 
-4. The minimum `cltv_expiry` accepted for terminal payments: the
-   worst case for the terminal node C lower at `2R+G+S` blocks (steps
-   1-3 above don't apply). The default in
+4. The minimum `cltv_expiry` accepted for terminal payments: this
+   is the same calculation as above.  The default in
    [BOLT #11](11-payment-encoding.md) is 9, which is slightly more
-   conservative than the 6 this calculation suggests.
+   conservative than the 7 this calculation suggests.
 
 #### Requirements
 
