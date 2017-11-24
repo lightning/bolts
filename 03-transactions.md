@@ -42,7 +42,7 @@ This details the exact format of on-chain transactions, which both sides need to
 
 ## Transaction Input and Output Ordering
 
-Lexicographic ordering as per [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).
+Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).
 
 ## Use of Segwit
 
@@ -347,7 +347,7 @@ The commitment transaction `weight` is calculated as follows:
   * a HTLC-timeout transaction of 5000 - 3145 satoshis which spends this output
   * `weight` increases to 896
 
-* The offered HTLC of 1000 satoshis is below 546 + 3315, so is trimmed.
+* The offered HTLC of 1000 satoshis is below 546 + 3315 so is trimmed.
 
 * The received HTLC of 7000 satoshis is above 546 + 3590 and results in:
   * an output of 7000 satoshi in the commitment transaction
@@ -800,9 +800,9 @@ HTLC-success) results in weights of:
 # Appendix B: Funding Transaction Test Vectors
 
 In the following:
- - it's assumed that *local* is the funder.
- - private keys are displayed as 32 bytes plus a trailing 1 (Bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed).
- - transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256).
+ - It's assumed that *local* is the funder.
+ - Private keys are displayed as 32 bytes plus a trailing 1 (Bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed).
+ - Transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256).
 
 The input for the funding transaction was created using a test chain
 with the following first two blocks; the second block contains a spendable
@@ -842,9 +842,9 @@ The resulting funding transaction is:
 
 In the following:
  - *local* transactions are considered, which implies that all payments to *local* are delayed.
- - it's assumed that *local* is the funder.
- - private keys are displayed as 32 bytes plus a trailing 1 (Bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed).
- - transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256).
+ - It's assumed that *local* is the funder.
+ - Private keys are displayed as 32 bytes plus a trailing 1 (Bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed).
+ - Transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256).
 
 To start, common basic parameters for each test vector are defined: the
 HTLCs are not used for the first "simple commitment tx with no HTLCs" test.
