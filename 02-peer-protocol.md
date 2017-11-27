@@ -201,6 +201,7 @@ The receiving node MAY fail the channel if:
   - it considers `max_htlc_value_in_flight_msat` too small.
   - it considers `channel_reserve_satoshis` too large.
   - it considers `max_accepted_htlcs` too small.
+  - it considers `dust_limit_satoshis` too small and plans to rely on the sending node publishing its commitment transaction in the event of a data loss (see [message-retransmission](02-peer-protocol.md#message-retransmission)).
 
 The receiving node MUST fail the channel if:
   - `push_msat` is greater than `funding_satoshis` * 1000.
