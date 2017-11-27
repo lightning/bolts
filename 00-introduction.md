@@ -67,7 +67,7 @@ This is version 0.
    * Proof that payment has been received, held by
     the final recipient, who is the only person who knows this
     secret. The final recipient releases the preimage in order to
-    release funds. The payment preimage is hashes as the *payment hash*
+    release funds. The payment preimage is hashed as the *payment hash*
     in the *HTLC*.
 
 
