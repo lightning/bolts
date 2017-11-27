@@ -116,6 +116,7 @@ Currently defined Tagged Fields are:
    * `short_channel_id` (64 bits)
    * `fee` (64 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
+* `a` (29): `data_length` 29.  IP (v4/v6) address information encoded in the same manner as the p2p protocol in Bitcoin. First 128 bits are the IP address encoded using  IPv4-mapped IPv6 address format. The last 16 bits are the port number. This can be used to fallback to opening a channel with the payee node. (used with n tag)
 
 ### Requirements
 
