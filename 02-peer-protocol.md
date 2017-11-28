@@ -49,7 +49,7 @@ for the funding transaction to enter the blockchain and reach the
 specified depth (number of confirmations). After both sides have sent
 the `funding_locked` message, the channel is established and can begin
 normal operation. The `funding_locked` message includes information
-which will be used to construct channel authentication proofs.
+that will be used to construct channel authentication proofs.
 
 
         +-------+                              +-------+
@@ -71,13 +71,14 @@ fails.
 
 Note that multiple channels can operate in parallel, as all channel
 messages are identified by either a `temporary_channel_id` (before the
-funding transaction is created) or `channel_id` (derived from the
+funding transaction is created) or a `channel_id` (derived from the
 funding transaction).
 
 ### The `open_channel` Message
 
 This message contains information about a node and indicates its
-desire to set up a new channel.
+desire to set up a new channel. This is the first step toward creating
+the funding transaction and both versions of the commitment transaction.
 
 1. type: 32 (`open_channel`)
 2. data:
@@ -102,25 +103,63 @@ desire to set up a new channel.
    * [`2`:`shutdown_len`] (`option_upfront_shutdown_script`)
    * [`shutdown_len`: `shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
-The `chain_hash` value denotes the exact blockchain the opened channel will
+
+The `chain_hash` value denotes the exact blockchain that the opened channel will
 reside within. This is usually the genesis hash of the respective blockchain.
 The existence of the `chain_hash` allows nodes to open channels
 across many distinct blockchains as well as have channels within multiple
 blockchains opened to the same peer (if it supports the target chains).
 
-The `temporary_channel_id` is used to identify this channel until the funding transaction is established. `funding_satoshis` is the amount the sender is putting into the channel. `dust_limit_satoshis` is the threshold below which outputs should not be generated for this node's commitment or HTLC transaction; i.e. HTLCs below this amount plus HTLC transaction fees are not enforceable on-chain. This reflects the reality that tiny outputs are not considered standard transactions and will not propagate through the Bitcoin network.
+The `temporary_channel_id` is used to identify this channel until the
+funding transaction is established. 
 
-`max_htlc_value_in_flight_msat` is a cap on total value of outstanding HTLCs, which allows a node to limit its exposure to HTLCs; similarly, `max_accepted_htlcs` limits the number of outstanding HTLCs the other node can offer. `channel_reserve_satoshis` is the minimum amount that the other node is to keep as a direct payment. `htlc_minimum_msat` indicates the smallest value HTLC this node will accept.
+`funding_satoshis` is the amount the sender is putting into the
+channel. `push_msat` is an amount of initial funds that the sender is
+unconditionally giving to the receiver. `dust_limit_satoshis` is the
+threshold below which outputs should not be generated for this node's
+commitment or HTLC transactions (i.e. HTLCs below this amount plus
+HTLC transaction fees are not enforceable on-chain). This reflects the
+reality that tiny outputs are not considered standard transactions and
+will not propagate through the Bitcoin network. `channel_reserve_satoshis` 
+is the minimum amount that the other node is to keep as a direct
+payment. `htlc_minimum_msat` indicates the smallest value HTLC this
+node will accept.
 
-`feerate_per_kw` indicates the initial fee rate by 1000-weight (i.e. 1/4 the more normally-used 'fee rate per kilobyte') which this side will pay for commitment and HTLC transactions, as described in [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted later with an `update_fee` message). `to_self_delay` is the number of blocks that the other node's to-self outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this is how long it will have to wait in case of breakdown before redeeming its own funds.
+`max_htlc_value_in_flight_msat` is a cap on total value of outstanding
+HTLCs, which allows a node to limit its exposure to HTLCs; similarly,
+`max_accepted_htlcs` limits the number of outstanding HTLCs the other
+node can offer. 
+
+`feerate_per_kw` indicates the initial fee rate by 1000-weight
+(i.e. 1/4 the more normally-used 'fee rate per kilobyte') that this
+side will pay for commitment and HTLC transactions, as described in
+[BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted
+later with an `update_fee` message). 
+
+`to_self_delay` is the number of blocks that the other node's to-self
+outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this
+is how long it will have to wait in case of breakdown before redeeming
+its own funds.
+
+`funding_pubkey` is the public key in the 2-of-2 multisig script of
+the funding transaction output.
+
+The various `_basepoint` fields are used to [derive unique
+keys](03-transactions.md#key-derivation) for each commitment
+transaction. Varying these keys ensures that the transaction ID of
+each commitment transaction is unpredictable to an external observer,
+even if one commitment transaction is seen; this property is very
+useful for preserving privacy when outsourcing penalty transactions to
+third parties.
+
+`first_per_commitment_point` is the per-commitment point to be used
+for the first commitment transaction,
 
 Only the least-significant bit of `channel_flags` is currently
-defined: `announce_channel`. This indicates whether the initiator of the
-funding flow wishes to advertise this channel publicly to the network,
-as detailed within
-[BOLT #7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
-
-The `funding_pubkey` is the public key in the 2-of-2 multisig script of the funding transaction output. The `revocation_basepoint` is combined with the revocation preimage for this commitment transaction to generate a unique revocation key for this commitment transaction. The `payment_basepoint`, `htlc_basepoint`, and `delayed_payment_basepoint` are similarly used to generate a series of keys for any payments to this node: `delayed_payment_basepoint` is used for payments encumbered by a delay. Varying these keys ensures that the transaction ID of each commitment transaction is unpredictable by an external observer, even if one commitment transaction is seen — this property is very useful for preserving privacy when outsourcing penalty transactions to third parties.
+defined: `announce_channel`. This indicates whether the initiator of
+the funding flow wishes to advertise this channel publicly to the
+network, as detailed within [BOLT
+#7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
 
 The `shutdown_scriptpubkey` allows the sending node to commit to where
 funds will go on mutual close, which the remote node should enforce
@@ -139,9 +178,9 @@ The sending node:
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
   - MUST set undefined bits in `channel_flags` to 0.
   - if both nodes advertised the `option_upfront_shutdown_script` feature:
-	- MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
+  - MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
   - otherwise:
-	- MAY include a`shutdown_scriptpubkey`.
+  - MAY include a`shutdown_scriptpubkey`.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -177,9 +216,9 @@ The receiving node MUST NOT:
 
 #### Rationale
 
-The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% of the channel total is suggested. Each side of a channel maintains this reserve so it always has something to lose, if it were to try to broadcast an old, revoked commitment transaction. Initially, this reserve may not be met, as only one side has funds; but the protocol ensures that progress is always toward it being met, and once met, it is maintained.
+The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% of the channel total is suggested. Each side of a channel maintains this reserve so it always has something to lose if it were to try to broadcast an old, revoked commitment transaction. Initially, this reserve may not be met, as only one side has funds; but the protocol ensures that there is always progress toward meeting this reserve, and once met, it is maintained.
 
-The sender can unconditionally give initial funds to the receiver using a non-zero `push_msat` — this is one case where the normal reserve mechanism doesn't apply. However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (may not be double-spent) and may require a separate method to prove payment via on-chain confirmation.
+The sender can unconditionally give initial funds to the receiver using a non-zero `push_msat` — this is one case where the normal reserve mechanism doesn't apply. However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (with a danger of double-spend until that occurs) and may require a separate method to prove payment via on-chain confirmation.
 
 The `feerate_per_kw` is generally only of concern to the sender (who pays the fees), but there is also the fee rate paid by HTLC transactions; thus, unreasonably large fee rates can also penalize the recipient.
 
@@ -194,7 +233,8 @@ protocol.
 ### The `accept_channel` Message
 
 This message contains information about a node and indicates its
-acceptance of the new channel.
+acceptance of the new channel. This is the second step toward creating the
+funding transaction and both versions of the commitment transaction.
 
 1. type: 33 (`accept_channel`)
 2. data:
@@ -237,7 +277,7 @@ Other fields have the same requirements as their counterparts in `open_channel`.
 
 This message describes the outpoint which the funder has created for
 the initial commitment transactions. After receiving the peer's
-signature, it will broadcast the funding transaction.
+signature via `funding_signed`, it will broadcast the funding transaction.
 
 1. type: 34 (`funding_created`)
 2. data:
@@ -252,7 +292,7 @@ The sender MUST set:
   - `temporary_channel_id` the same as the `temporary_channel_id` in the `open_channel` message.
   - `funding_txid` to the transaction ID of a non-malleable transaction,
     - and MUST NOT broadcast this transaction.
-  - `funding_output_index` to the output number of that transaction which corresponds the funding transaction output, as defined in [BOLT #3](03-transactions.md#funding-transaction-output).
+  - `funding_output_index` to the output number of that transaction that corresponds the funding transaction output, as defined in [BOLT #3](03-transactions.md#funding-transaction-output).
   - `signature` to the valid signature using its `funding_pubkey` for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
 The sender:
@@ -272,7 +312,7 @@ A transaction with all Segregated Witness inputs is not malleable, hence the fun
 ### The `funding_signed` Message
 
 This message gives the funder the signature it needs for the first
-commitment transaction, so it can broadcast the signature knowing funds
+commitment transaction, so it can broadcast the signature knowing that funds
 can be redeemed, if need be.
 
 This message introduces the `channel_id` to identify the channel. It's derived from the funding transaction by combining the `funding_txid` and the `funding_output_index`, using big-endian exclusive-OR (i.e. `funding_output_index` alters the last 2 bytes).
@@ -410,8 +450,8 @@ propagate to miners.
 The `option_upfront_shutdown_script` feature means that the node
 wanted to pre-commit to `shutdown_scriptpubkey` in case it was
 compromised somehow.  This is a weak commitment (a malevolent
-implementation tends to ignore specifications like this one!) but
-provides an incremental improvement in security by requiring cooperation
+implementation tends to ignore specifications like this one!), but it
+provides an incremental improvement in security by requiring the cooperation
 of the receiving node to change the `scriptpubkey`.
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
@@ -509,8 +549,9 @@ Thus each update traverses through the following states:
 2. In the receiver's latest commitment transaction,
 3. ... and the receiver's previous commitment transaction has been revoked,
    and the HTLC is pending on the sender.
-4. ... and in the sender's latest commitment transaction.
+4. ... and in the sender's latest commitment transaction,
 5. ... and the sender's previous commitment transaction has been revoked.
+
 
 As the two nodes' updates are independent, the two commitment
 transactions may be out of sync indefinitely. This is not concerning:
@@ -633,19 +674,20 @@ There are four values that need be derived:
 1. The `cltv_expiry_delta` for channels, `3R+2G+2S`: if in doubt, a
    `cltv_expiry_delta` of 12 is reasonable (R=2, G=1, S=2).
 
-2. For sent HTLCs: the timeout deadline after which the channel has to be failed
+2. The `cltv_expiry_delta` for sent HTLCs: the timeout deadline after which the channel has to be failed
    and timed out on-chain. This is `G` blocks after the HTLC's
    `cltv_expiry`: 1 block is reasonable.
 
-3. For received HTLCs (with a preimage): the fulfillment deadline after which
+3. The `cltv_expiry_delta` for received HTLCs (with a preimage): the fulfillment deadline after which
 the channel has to be failed and the HTLC fulfilled on-chain before its
    `cltv_expiry`. See steps 4-7 above, which imply a deadline of `2R+G+S`
    blocks before `cltv_expiry`: 7 blocks is reasonable.
 
-4. The minimum `cltv_expiry` accepted for terminal payments: this
-   is the same calculation as above.  The default in
+4. The minimum `cltv_expiry` accepted for terminal payments: the
+   worst case for the terminal node C is `2R+G+S` blocks (as, again, steps
+   1-3 above don't apply). The default in
    [BOLT #11](11-payment-encoding.md) is 9, which is slightly more
-   conservative than the 7 this calculation suggests.
+   conservative than the 7 that this calculation suggests.
 
 #### Requirements
 
@@ -756,14 +798,10 @@ bootstrap phase of the network.
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
 
 For simplicity, a node can only remove HTLCs added by the other node.
-There are three reasons for removing an HTLC: it has timed out, it has
-failed to route, or the payment preimage is supplied.
+There are four reasons for removing an HTLC: the payment preimage is supplied,
+it has timed out, it has failed to route, or it is malformed.
 
-The `reason` field is an opaque encrypted blob for the benefit of the
-original HTLC initiator, as defined in [BOLT #4](04-onion-routing.md);
-however, there's a special malformed failure variant for the case where
-our peer couldn't parse it: in this case the current node encrypts
-it into a `update_fail_htlc` for relaying.
+To supply the preimage:
 
 1. type: 130 (`update_fulfill_htlc`)
 2. data:
@@ -779,6 +817,12 @@ For a timed out or route-failed HTLC:
    * [`8`:`id`]
    * [`2`:`len`]
    * [`len`:`reason`]
+
+The `reason` field is an opaque encrypted blob for the benefit of the
+original HTLC initiator, as defined in [BOLT #4](04-onion-routing.md);
+however, there's a special malformed failure variant for the case where
+our peer couldn't parse it: in this case the current node instead take action, encrypting
+it into a `update_fail_htlc` for relaying.
 
 For an unparsable HTLC:
 
@@ -825,10 +869,10 @@ A node that sends `update_fulfill_htlc`, before the sender, is also
 committed to the HTLC and risks losing funds.
 
 If the onion is malformed, the upstream node won't be able to extract
-a key to generate a response — hence, the special failure message which
+a key to generate a response — hence the special failure message, which
 makes this node do it.
 
-The node can check that the SHA256 the upstream is complaining about
+The node can check that the SHA256 that the upstream is complaining about
 does match the onion it sent, which may allow it to detect random bit
 errors. However, without re-checking the actual encrypted packet sent,
 it won't know whether the error was its own or the remote's; so
@@ -850,11 +894,11 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
 #### Requirements
 
 A sending node:
-  - MUST NOT send a `commitment_signed` message which does not include any
+  - MUST NOT send a `commitment_signed` message that does not include any
 updates.
-  - MAY send a `commitment_signed` message which only
+  - MAY send a `commitment_signed` message that only
 alters the fee.
-  - MAY send a `commitment_signed` message which doesn't
+  - MAY send a `commitment_signed` message that doesn't
 change the commitment transaction aside from the new revocation hash
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).
@@ -988,10 +1032,10 @@ Reconnection introduces doubt as to what has been received, so there are
 explicit acknowledgments at that point.
 
 This is fairly straightforward in the case of channel establishment
-and close where messages have an explicit order, but during normal
-operation acknowledgments of updates are delayed until the
+and close, where messages have an explicit order, but during normal
+operation, acknowledgments of updates are delayed until the
 `commitment_signed` / `revoke_and_ack` exchange; so it cannot be assumed
-the updates have been received. This also means that the receiving
+that the updates have been received. This also means that the receiving
 node only needs to store updates upon receipt of `commitment_signed`.
 
 Note that messages described in [BOLT #7](07-routing-gossip.md) are
@@ -1133,7 +1177,7 @@ write to disk by the sender upon each transmission, whereas the scheme
 here encourages a single persistent write to disk for each
 `commitment_signed` sent or received.
 
-A retransmittal of `revoke_and_ack` should never be asked for, after a
+A re-transmittal of `revoke_and_ack` should never be asked for, after a
 `closing_signed` has been received; since that would imply a shutdown has been
 completed — which can only occur after the `revoke_and_ack` has been received
 by the remote node.
@@ -1166,7 +1210,7 @@ total loss of funds — as the remote node can prove it knows the
 revocation preimage. The error returned by the fallen-behind node
 (or simply the invalid numbers in the `channel_reestablish` it has
 sent) should make the other node drop its current commitment
-transaction to the chain. This will, at least, allow the fallen-behind node to recovery
+transaction to the chain. This will, at least, allow the fallen-behind node to recover
 non-HTLC funds, if the `my_current_per_commitment_point`
 is valid. However, this also means the fallen-behind node has revealed this
 fact (though not provably: it could be lying), and the other node could use this to
