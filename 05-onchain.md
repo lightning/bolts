@@ -417,7 +417,6 @@ A node MUST resolve all unresolved outputs as follows:
 3. _A's offered HTLCs_: The node MUST *resolve* this in one of three ways by spending: 
   * the *commitment tx* using the payment revocation
   * the *commitment tx* using the payment preimage if known
-  * the *HTLC-timeout tx* if B publishes them
 4. _B's offered HTLCs_: The node MUST *resolve* this in one of two ways by spending:
   * the *commitment tx* using the payment revocation
   * the *commitment tx* once the HTLC timeout has passed.
