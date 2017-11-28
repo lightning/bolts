@@ -226,7 +226,7 @@ avoid double-spending of the funding transaction.
 
 The receiver:
   - if the `chain_hash` value, within the `open_channel`, message is set to a hash
- of a chain which is unknown to the receiver:
+ of a chain that is unknown to the receiver:
     - MUST reject the channel.
   - if `minimum_depth` is unreasonably large:
     - MAY reject the channel.
