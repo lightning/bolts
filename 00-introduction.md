@@ -32,6 +32,8 @@ This is version 0.
 * *Peers*:
    * *Nodes* wanting to transact Bitcoins with each other through a *channel*.
 
+* *MSAT*:
+   * A millisatoshi, often used as a field name.
 
 * *Funding transaction*:
    * An irreversible on-chain transaction that pays to both *peers* on a *channel*.
