@@ -1,4 +1,4 @@
-personal_ws-1.1 en 264 
+personal_ws-1.1 en 264
 secp
 sig
 unguessable
@@ -125,6 +125,7 @@ ee
 eg
 hopSize
 retransmit
+retransmittal
 deobfuscating
 onchain
 BADONION
@@ -214,6 +215,7 @@ num
 numStreamBytes
 txout
 HTLCs
+HTLC's
 retransmission
 decrypted
 sessionKey
@@ -292,3 +294,9 @@ SRV
 TTL
 URI
 cli
+paymentkey
+htlckey
+remotehtlcsig
+localhtlcsig
+basepoints
+Bitcoins

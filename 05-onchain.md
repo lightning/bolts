@@ -42,7 +42,7 @@ Outputs which are *resolved* are considered *irrevocably resolved*
 once their *resolving* transaction is included in a block at least 100
 deep on the most-work blockchain.  100 blocks is far greater than the
 longest known Bitcoin fork, and the same value used to wait for
-confirmations of miner's rewards[FIXME: ref].
+confirmations of miner's rewards (see [Reference Implementation](https://github.com/bitcoin/bitcoin/blob/4db82b7aab4ad64717f742a7318e3dc6811b41be/src/consensus/tx_verify.cpp#L223)).
 
 
 ## Requirements
@@ -184,8 +184,8 @@ Similarly, when node A sees a *commitment transaction* from B:
 4. _B's offered HTLCs_: See "On-chain HTLC Output Handling: Their Offers" below.
 
 
-A node MUST handle the broadcast if any valid *commitment transaction*
-from B in this way.
+A node MUST handle the broadcast of any valid *commitment transaction*
+from B in this way; if it is unable to do so it MUST warn about lost funds.
 
 
 ## Rationale
@@ -200,6 +200,16 @@ Note that there can be more than one valid, unrevoked *commitment
 transaction* after a signature has been received via `commitment_signed` and
 before the corresponding `revoke_and_ack`.  Either commitment can serve as
 B's *commitment transaction*, hence the requirement to handle both.
+
+
+In the case of data loss, a node can reach a state where we don't
+recognize all of B's commitment transaction HTLC outputs.  It can tell
+this has happened because the commitment number will be greater than
+expected, and the fact that the transaction has been signed by this
+node.  If both nodes support `option-data-loss-protect` the node will
+know the B's `per_commitment_point` and thus be able to derive its own
+`remotekey` for the transaction and salvage its own funds (but not
+HTLCs).
 
 
 # On-chain HTLC Output Handling: Our Offers
