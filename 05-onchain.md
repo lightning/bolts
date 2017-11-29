@@ -414,13 +414,14 @@ A node MUST resolve all unresolved outputs as follows:
    This output is considered *resolved* by the *commitment transaction*.
 2. _B's main output_: The node MUST *resolve* this by spending using the
    revocation key.
-3. _A's offered HTLCs_: The node MUST *resolve* this in one of three ways by spending: 
-  * the *commitment tx* using the payment revocation
-  * the *commitment tx* using the payment preimage if known
-  * the *HTLC-timeout tx* if B publishes them
-4. _B's offered HTLCs_: The node MUST *resolve* this in one of two ways by spending:
-  * the *commitment tx* using the payment revocation
-  * the *commitment tx* once the HTLC timeout has passed.
+3. _A's offered HTLCs_: The node MUST *resolve* these in one of three ways:
+  * spending using the payment revocation
+  * spending using any transaction once the HTLC timeout has passed
+  * by noting *B's HTLC-success transaction* if B publishes it
+4. _B's offered HTLCs_: The node MUST *resolve* these in one of three ways:
+  * spending using the payment revocation
+  * spending using the payment preimage if known
+  * by noting *B's HTLC-timeout transaction* if B publishes it
 5. _B's HTLC-timeout transaction_: The node MUST *resolve* this by
    spending using the revocation key.
 6. _B's HTLC-success transaction_: The node MUST *resolve* this by
