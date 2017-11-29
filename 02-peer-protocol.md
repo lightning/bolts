@@ -179,7 +179,7 @@ The sending node:
   - if both nodes advertised the `option_upfront_shutdown_script` feature:
   - MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
   - otherwise:
-  - MAY include a`shutdown_scriptpubkey`.
+      - MAY include a`shutdown_scriptpubkey`.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -673,11 +673,11 @@ There are four values that need be derived:
 1. The `cltv_expiry_delta` for channels, `3R+2G+2S`: if in doubt, a
    `cltv_expiry_delta` of 12 is reasonable (R=2, G=1, S=2).
 
-2. The `cltv_expiry_delta` for sent HTLCs: the timeout deadline after which the channel has to be failed
+2. The deadline for offered HTLCs: the deadline after which the channel has to be failed
    and timed out on-chain. This is `G` blocks after the HTLC's
    `cltv_expiry`: 1 block is reasonable.
 
-3. The `cltv_expiry_delta` for received HTLCs (with a preimage): the fulfillment deadline after which
+3. The deadline for received HTLCs this node has fulfilled: the deadline after which
 the channel has to be failed and the HTLC fulfilled on-chain before its
    `cltv_expiry`. See steps 4-7 above, which imply a deadline of `2R+G+S`
    blocks before `cltv_expiry`: 7 blocks is reasonable.
@@ -820,7 +820,7 @@ For a timed out or route-failed HTLC:
 The `reason` field is an opaque encrypted blob for the benefit of the
 original HTLC initiator as defined in [BOLT #4](04-onion-routing.md);
 however, there's a special malformed failure variant for the case where
-our peer couldn't parse it: in this case the current node instead take action, encrypting
+the peer couldn't parse it: in this case the current node instead takes action, encrypting
 it into a `update_fail_htlc` for relaying.
 
 For an unparsable HTLC:
