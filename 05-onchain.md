@@ -436,7 +436,7 @@ The node MAY use a single transaction to *resolve* all the outputs, but MUST han
 
 
 A single transaction which resolves all the outputs will be under the
-standard size limit thanks to the 511 HTLC-per-party limit (see
+standard size limit thanks to the 483 HTLC-per-party limit (see
 [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
 
 Note that if a single transaction is used, it may be invalidated as B
