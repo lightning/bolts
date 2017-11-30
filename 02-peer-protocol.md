@@ -178,9 +178,9 @@ The sending node:
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
   - MUST set undefined bits in `channel_flags` to 0.
   - if both nodes advertised the `option_upfront_shutdown_script` feature:
-  - MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
+    - MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
   - otherwise:
-      - MAY include a`shutdown_scriptpubkey`.
+    - MAY include a`shutdown_scriptpubkey`.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
