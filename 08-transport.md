@@ -37,7 +37,7 @@ Diffie-Hellman) operations followed by a `MAC` check.
 The authenticated key agreement (`Noise_XK`) is performed in three distinct
 steps. During each "act" of the handshake, some (possibly encrypted) keying
 material is sent to the other party, an `ECDH` is performed based on exactly
-which act is being executed with the result mixed into the current sent of
+which act is being executed with the result mixed into the current set of
 encryption keys (`ck` the chaining key and `k` the encryption key), and finally
 an `AEAD` payload with a zero length cipher text is sent.  As this payload is
 of length zero, only a `MAC` is sent across.  The mixing of `ECDH` outputs into
