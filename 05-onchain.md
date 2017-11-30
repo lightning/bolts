@@ -180,12 +180,12 @@ this has happened because the commitment number will be greater than
 expected, and because it has signed the transaction.
 If both nodes support `option-data-loss-protect` the node will
 know B's `per_commitment_point` and thus be able to derive its own
-`remotekey` for the transaction and salvage its own funds (but not its
+`remotekey` for the transaction and salvage its own funds (but not the
 HTLCs).
 
 # On-chain HTLC Output Handling: Our Offers
 
-Each HTLC output can only be spent by us, as the payer, after it's timed out,
+Each HTLC output can only be spent by us, as the offerer, after it's timed out,
 or by them, as the recipient, if they have the payment preimage.
 
 The HTLC output has *timed out* once the depth of the latest block is equal
@@ -223,12 +223,11 @@ contains an output corresponding to the HTLC.
 
 If the commitment transaction is the recipient's, the only way to spend the
 HTLC output using a payment preimage is for them to use the
-HTLC-success transaction. If the commitment transaction is the payer's, the recipient
+HTLC-success transaction. If the commitment transaction is the offerer's, the recipient
 could create any transaction using the preimage.
 
-The payment preimage either serves to prove payment (for the payer) or
-to redeem the corresponding incoming HTLC from another peer (for the
-recipient). Note that the parties don't care about the fate of the
+The payment preimage either serves to prove payment (for the offerer originating the payment) or
+to redeem the corresponding incoming HTLC from another peer (for an offerer forwarding the payment). Note that the parties don't care about the fate of the
 HTLC-spending transaction itself once they've extracted the payment
 preimage; the knowledge is not revocable.
 
@@ -237,11 +236,11 @@ success is seen after timeout, for example), either interpretation is
 acceptable; it is the responsibility of the recipient to spend it
 before this occurs.
 
-If the commitment transaction is the recipient's, the payer's signature alone is enough
+If the commitment transaction is the recipient's, the offerer's signature alone is enough
 to spend the HTLC output (see
-[BOLT #3](03-transactions.md#received-htlc-outputs)), but the payer needs to
+[BOLT #3](03-transactions.md#received-htlc-outputs)), but the offerer needs to
 do so, otherwise the recipient could fulfill the HTLC after the timeout. If
-the commitment transaction is the payer's, they need to use the HTLC-timeout
+the commitment transaction is the offerer's, they need to use the HTLC-timeout
 transaction.
 
 The fulfillment of an on-chain HTLC delivers the `payment_preimage`
@@ -258,23 +257,23 @@ the incoming HTLC (if any: it might be locally-generated).
 If a HTLC isn't in the commitment transaction a node needs to make sure
 that a blockchain reorganization or race does not switch to a
 commitment transaction that does contain it before the node fails it, hence
-the wait. The requirement that that the incoming HTLC be failed before its
+the wait. The requirement that the incoming HTLC be failed before its
 own timeout still applies as an upper bound.
 
 # On-chain HTLC Output Handling: Their Offers
 
 Each HTLC output can only be spent by us, as the recipient, if we have the payment
-preimage, or them, as the payer, if it has timed out.
+preimage, or them, as the offerer, if it has timed out.
 
 There are actually several possible cases for an offered HTLC:
 
-1. The payer is not irrevocably committed to the offered HTLC; this can only
-   happen if the recipient has not received `revoke_and_ack` so that the payer
+1. The offerer is not irrevocably committed to the offered HTLC; this can only
+   happen if the recipient has not received `revoke_and_ack` so that the offerer
    holds two valid commitment transactions, one with the HTLC and
    one without. The recipient won't normally know the preimage here, unless it's
    a payment to themselves, and revealing that would be an information leak,
    so it's best to allow the HTLC to time out in this case.
-2. The payer is irrevocably committed to the offered HTLC, but the recipient hasn't yet
+2. The offerer is irrevocably committed to the offered HTLC, but the recipient hasn't yet
    committed to an outgoing HTLC. In this case the recipient can either forward
    or timeout.
 3. The recipient has committed to an outgoing HTLC for the offered one. In
@@ -302,7 +301,7 @@ If not otherwise resolved, once the HTLC output has expired, it is considered
 
 If this is the recipient's commitment transaction, they can only use a payment
 preimage with the HTLC-success transaction (which preserves the
-`to_self_delay` requirement). Otherwise they recipient can create any transaction they want to
+`to_self_delay` requirement). Otherwise the recipient can create any transaction they want to
 resolve it.
 
 The recipient doesn't care about expired offers: they should have ensured that the
