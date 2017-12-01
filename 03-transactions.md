@@ -247,7 +247,7 @@ To spend this via penalty, the remote node uses a witness stack `<revocationsig>
 
 Note that there are two possible variants for each node.
 
-* version: 1
+* version: 2
 * locktime: 0
 * txin count: 1
    * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
