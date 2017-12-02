@@ -632,7 +632,7 @@ Any node MAY return one of the following errors:
   which were not present in the onion:
     1. type: PERM|NODE|3 (`required_node_feature_missing`)
 
-A forwarding node MAY, but the final node MUST NOT, return one of the following
+A _forwarding node_ MAY, but the _final node_ MUST NOT, return one of the following
 errors:
   - if the onion `version` byte is unknown:
     1. type: BADONION|PERM|4 (`invalid_onion_version`)
@@ -700,7 +700,7 @@ errors:
        * [`2`:`len`]
        * [`len`:`channel_update`]
 
-The _final node_ MAY, but intermediate nodes MUST NOT, return one of the
+The _final node_ MAY, but _intermediate nodes_ MUST NOT, return one of the
 following errors:
   - if the payment hash has already been paid:
     - MAY treat the payment hash as unknown.
@@ -733,32 +733,37 @@ following errors:
 A node:
   - MUST ignore any extra bytes in `failuremsg`.
 
-If the final node is sending the error:
-* If the PERM bit is set, the origin node SHOULD fail the payment,
-  otherwise it MAY retry the payment if the error code is understood
-  and valid. (In particular, `final_expiry_too_soon` can occur if the
-  block height has changed since sending, `temporary_node_failure`
-  could resolve within a few seconds).
-
-Otherwise, the node sending the error is an intermediate node:
-* If the NODE bit is set, the origin node SHOULD remove all channels
-  connected with the sending node from consideration.
-  * If the PERM bit is not set, the origin node SHOULD restore the
-    channels as it sees new `channel_update`s.
-* Otherwise, if UPDATE is set, and the `channel_update` is valid
-  and more recent than the `channel_update` used to send the payment:
-  * The origin node MAY treat the `channel_update` as invalid if it
-    should not have caused the failure.
-  * Otherwise, the origin node SHOULD apply the `channel_update`.
-  * The origin node MAY queue the `channel_update` for broadcast.
-* Otherwise, the origin node SHOULD eliminate the channel outgoing
-  from the sending node from consideration.
-  * If the PERM bit is not set, the origin node SHOULD restore the
-    channel as it sees a new `channel_update`.
-* The origin node SHOULD then retry routing and sending the payment.
-
-The origin node MAY use the data specified in the various types of
-failure for debugging purposes.
+The _origin node_:
+  - if the _final node_ is sending the error:
+    - if the PERM bit is set:
+      - SHOULD fail the payment.
+    - otherwise:
+      - if the error code is understood and valid:
+        - MAY retry the payment. (In particular, `final_expiry_too_soon` can
+        occur if the block height has changed since sending,
+        `temporary_node_failure` could resolve within a few seconds).
+  - otherwise, an _intermediate node_ is sending the error:
+    - if the NODE bit is set:
+      - SHOULD remove all channels connected with the sending node from
+      consideration.
+    - if the PERM bit is NOT set:
+      - SHOULD restore the channels as it receives new `channel_update`s.
+    - otherwise:
+      - if UPDATE is set, AND the `channel_update` is valid and more recent
+      than the `channel_update` used to send the payment:
+        - if this [FIXME: what does 'this' refer to?] should not have caused the failure:
+          - MAY treat the `channel_update` as invalid.
+        - otherwise:
+          - SHOULD apply the `channel_update`.
+        - MAY queue the `channel_update` for broadcast.
+      - otherwise:
+        - SHOULD eliminate the channel outgoing from the sending node from
+        consideration.
+        - if the PERM bit is not set:
+          - SHOULD restore the channel as it receives new `channel_update`s.
+    - SHOULD then retry routing and sending the payment.
+  - MAY use the data specified in the various types of failure for debugging
+  purposes.
 
 # Test Vector
 
@@ -778,7 +783,12 @@ The following is an in-depth trace of the packet creation, including intermediat
 	sessionkey = 0x4141414141414141414141414141414141414141414141414141414141414141
 	associated data = 0x4242424242424242424242424242424242424242424242424242424242424242
 
-The HMAC is omitted in the following `hop_data` since it is likely filled by the onion construction. Hence the values below are the `realm`, the `short_channel_id`, the `amt_to_forward`, the `outgoing_cltv` and the 16-bytes `padding`. These were initialized by byte-filling the `short_channel_id` to the respective position in the route, and by settings `amt_to_forward` and `outgoing_cltv` to the position in the route, starting with 0.
+The HMAC is omitted in the following `hop_data`, since it's likely to be filled
+by the onion construction. Hence, the values below are the `realm`, the
+`short_channel_id`, the `amt_to_forward`, the `outgoing_cltv`, and the 16-byte
+`padding`. They were initialized by byte-filling the `short_channel_id` to the
+respective position in the route and then (starting at 0) setting
+`amt_to_forward` and `outgoing_cltv` to the appropriate position in the route.
 
 	hop_payload[0] = 0x000000000000000000000000000000000000000000000000000000000000000000
 	hop_payload[1] = 0x000101010101010101000000010000000100000000000000000000000000000000
@@ -855,7 +865,7 @@ The HMAC is omitted in the following `hop_data` since it is likely filled by the
 
 ## Returning Errors
 
-We use the same parameters (node IDs, shared secrets ,...) as above
+The same parameters (node IDs, shared secrets, ...) as above are used.
 
 	# node 4 is returning an error
 	failure_message = 2002
