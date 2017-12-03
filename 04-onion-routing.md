@@ -4,8 +4,7 @@
 
 This document describes the construction of an onion routed packet that is
 used to route a payment from an _origin node_ to a _final node_. The packet
-is routed through a number of intermediate nodes which are referred to here as
-_hops_.
+is routed through a number of intermediate nodes, called _hops_.
 
 The routing schema is based on the
 [Sphinx](http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf)
@@ -18,24 +17,25 @@ predecessor or successor, are part of the packet's route; nor can they learn
 the length of the route or their position within it. The packet is
 obfuscated at each hop, to ensure that a network level attacker cannot
 associate packets belonging to the same route, i.e. packets belonging
-to the same route do not share any identifying information. Notice that this
+to the same route do not share any correlating information. Notice that this
 does not preclude the possibility of packet association by an attacker
 via traffic analysis.
 
-The route is constructed by the sender (origin node), which knows the public keys of
-each intermediate node. Knowing each intermediate node's public key
-allows the sender to create a shared secret (using ECDH) for each
+The route is constructed by the origin node, which knows the public
+keys of each intermediate node. Knowing each intermediate hop's public key
+allows the origin node to create a shared secret (using ECDH) for each
 intermediate node, including the final recipient node. The shared secret is then
-used to generate a _pseudo-random stream_ of bytes, which is used to obfuscate the
-packet, and a number of _keys_, which are used to encrypt the payload and compute
-HMACs, which are used to ensure the integrity of the packet at each hop.
+used to generate a _pseudo-random stream_ of bytes, which is used to obfuscate
+the packet, and a number of _keys_, which are used to encrypt the payload and
+compute HMACs, which are in turn used to ensure the integrity of the packet at
+each hop.
 
-This specification describes version 0 of the packet format and
-routing mechanism.
+This specification describes _version 0_ of the packet format and routing
+mechanism.
 
 A node:
   - upon receiving a higher version packet than it implements:
-    - MUST report a route failure to the sending node.
+    - MUST report a route failure to the origin node.
     - MUST discard the packet.
 
 # Table of Contents
@@ -71,50 +71,74 @@ There are a number of conventions adhered to throughout this document:
  - The maximum route length is limited to 20 hops.
  - HMAC: the integrity verification of the packet is based on Keyed-Hash
  Message Authentication Code, as defined by the
- [FIPS 198 Standard](http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf)/[RFC 2104](https://tools.ietf.org/html/rfc2104)
+ [FIPS 198 Standard](http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf)/[RFC 2104](https://tools.ietf.org/html/rfc2104),
  and using a `SHA256` hashing algorithm.
  - Elliptic curve: for all computations involving elliptic curves, the
    Bitcoin curve is used, as specified in [`secp256k1`](http://www.secg.org/sec2-v2.pdf).
  - Pseudo-random stream: [`ChaCha20`](https://tools.ietf.org/html/rfc7539) is
  used to generate a pseudo-random byte stream. For its generation, a fixed
  null-nonce (`0x0000000000000000`) is used, along with a key derived from a
- shared secret and a `0x00`-byte stream of the desired output size as the message.
- - The terms _hop_ and _node_ are used interchangeably.
- - The term _peer_ refers only to a direct neighbor (in the overlay network) of the processing node.
+ shared secret and with a `0x00`-byte stream of the desired output size as the
+ message.
+
+ - The terms _origin node_ and _final node_ refer to the initial packet sender
+ and the final packet recipient, respectively.
+ - The terms _hop_ and _node_ are sometimes used interchangeably, but a _hop_
+ usually refers to an intermediate node in the route rather than an end node.
+        _origin node_ --> _hop_ --> ... --> _hop_ --> _final node_
+ - The term _processing node_ refers to the specific node along the route that is
+ currently processing the forwarded packet.
+ - The term _peers_ refers only to hops that are direct neighbors (in the
+ overlay network): more specifically, _sending peers_ forward packets to
+ _receiving peers_.
+        _sending peer_ --> _receiving peer_
 
 # Key Generation
 
 A number of encryption and verification keys are derived from the shared secret:
 
- - _rho_: used as key when generating the pseudo-random byte stream
-   used to obfuscate the per-hop information
+ - _rho_: used as key when generating the pseudo-random byte stream that is used
+ to obfuscate the per-hop information
  - _mu_: used during the HMAC generation
  - _um_: used during error reporting
 
-The key generation takes a key-type (_rho_=`0x72686F`, _mu_=`0x6d75` or _um_=`0x756d`) and a 32-byte secret as inputs and returns a 32-byte key.
+The key generation function takes a key-type (_rho_=`0x72686F`, _mu_=`0x6d75`,
+or _um_=`0x756d`) and a 32-byte secret as inputs and returns a 32-byte key.
 
-Keys are generated by computing an HMAC, with `SHA256` as hashing algorithm, using the key-type, i.e. _rho_, _mu_ or _um_, as HMAC-key and the 32-byte shared secret as the message.
-The resulting HMAC is then returned as the key.
+Keys are generated by computing an HMAC (with `SHA256` as hashing algorithm)
+using the appropriate key-type (i.e. _rho_, _mu_, or _um_) as HMAC-key and the
+32-byte shared secret as the message. The resulting HMAC is then returned as the
+key.
 
-Notice that the key-type does not include a C-style `0x00` termination-byte, e.g. the length of the _rho_ key-type is 3 bytes, not 4.
+Notice that the key-type does not include a C-style `0x00`-termination-byte,
+e.g. the length of the _rho_ key-type is 3 bytes, not 4.
 
 # Pseudo Random Byte Stream
 
-The pseudo-random byte stream is used to obfuscate the packet at each hop of the path, so that each hop may only recover the address of the next hop as well as the HMAC for the next hop.
-The pseudo-random byte stream is generated by encrypting a `0x00`-byte stream of the required length with `ChaCha20`, initialized with a key derived from the shared secret and a zero-nonce (`0x00000000000000`).
-The use of a fixed nonce is safe since the keys are never reused.
+The pseudo-random byte stream is used to obfuscate the packet at each hop of the
+path, so that each hop may only recover the address and HMAC of the next hop.
+The pseudo-random byte stream is generated by encrypting (using `ChaCha20`) a
+`0x00`-byte stream, of the required length, which is initialized with a key
+derived from the shared secret and a zero-nonce (`0x00000000000000`).
+The use of a fixed nonce is safe, since the keys are never reused.
 
 # Packet Structure
 
-The packet consists of four parts:
+The packet consists of four sections:
 
  - a `version` byte
- - a 33-byte compressed `secp256k1` `public_key`, used during the shared secret generation
- - a 1300-byte `hops_data` consisting of 20 fixed size packets containing information for each hop
-   as they forward the message
- - a 32-byte `HMAC` used to verify the packet's integrity
+ - a 33-byte compressed `secp256k1` `public_key`, used during the shared secret
+ generation
+ - a 1300-byte `hops_data` consisting of 20 fixed-size packets, each containing
+ information to be used by its associated hop during message forwarding
+ - a 32-byte `HMAC`, used to verify the packet's integrity
 
-The overall structure of the packet is depicted below. The network format of the packet consists of the individual parts being serialized into one contiguous byte-stream and then transferred to the recipient of the packet. Due to the fixed size of the packet, it does not need to be prefixed by its length when transferred over a connection.
+The network format of the packet consists of the individual sections being
+serialized into one contiguous byte-stream and then transferred to the packet
+recipient. Due to the fixed size of the packet, it need not be prefixed by its
+length when transferred over a connection.
+
+The overall structure of the packet is as follows:
 
 1. type: `onion_packet`
 2. data:
@@ -123,9 +147,11 @@ The overall structure of the packet is depicted below. The network format of the
    * [`20*65`:`hops_data`]
    * [`32`:`hmac`]
 
-For this specification, `version` has a constant value of `0x00`.
+For this specification (_version 0_), `version` has a constant value of `0x00`.
 
-The `hops_data` field is a structure that holds obfuscated versions of the next hop's address, transfer information, and the associated HMAC. It is 1300 bytes long and has the following structure:
+The `hops_data` field is a structure that holds obfuscations of the next hop's
+address, transfer information, and its associated HMAC. It is 1300 bytes long
+and has the following structure:
 
 1. type: `hops_data`
 2. data:
@@ -135,13 +161,14 @@ The `hops_data` field is a structure that holds obfuscated versions of the next 
    * ...
    * `filler`
 
-Where the `realm`, `HMAC`, and `per_hop` (of which contents depend on `realm`) are
-repeated for each hop; and where `filler` consists of obfuscated, deterministically-generated
-padding. The generation of `filler` is detailed below. Additionally, `hops_data` is incrementally
-obfuscated at each hop.
+Where, the `realm`, `HMAC`, and `per_hop` (of which contents depend on `realm`)
+are repeated for each hop; and where, `filler` consists of obfuscated,
+deterministically-generated padding, as detailed in
+[Filler Generation](#filler-generation). Additionally, `hops_data` is
+incrementally obfuscated at each hop.
 
-The `realm` byte determines the format of the `per_hop`; so far,
-only `realm` 0 is defined, for which the `per_hop` format follows:
+The `realm` byte determines the format of the `per_hop`; currently, only `realm`
+0 is defined, for which the `per_hop` format follows:
 
 1. type: `per_hop` (for `realm` 0)
 2. data:
@@ -150,48 +177,51 @@ only `realm` 0 is defined, for which the `per_hop` format follows:
    * [`4`:`outgoing_cltv_value`]
    * [`12`:`padding`]
 
-Using the `per_hop`, the sender is able to precisely specify the path and
-structure of the HTLCs forwarded at each hop. As the `per_hop` is
-protected under the packet-wide HMAC, the information it contains
-is fully authenticated with each pair-wise relationship between
-the HTLC sender and each intermediate node in the path. Using this end-to-end
-authentication as well as cross-checking the HTLC parameters with
-the values specified within the `per_hop`, forwarding nodes are able to ensure that the incoming node
-hasn't forwarded an ill-crafted HTLC.
+Using the `per_hop`, the origin node is able to precisely specify the path and
+structure of the HTLCs forwarded at each hop. As the `per_hop` is protected
+under the packet-wide HMAC, the information it contains is fully authenticated
+with each pair-wise relationship between the HTLC sender (origin node) and each
+hop in the path.
+
+Using this end-to-end authentication, in addition to
+cross-checking the HTLC parameters with the `per_hop`'s specified values, each
+hop is able to ensure the origin node hasn't forwarded it an
+ill-crafted HTLC.
 
 Field descriptions:
 
-   * `short_channel_id`: [FIXME: Please reword, meaning is unclear] The channel used to route the message, which implies the
-     next hop is the other end of the channel.
+   * `short_channel_id`: The ID of the channel used to route the message,
+   [FIXME: Please reword, meaning is unclear] which implies the next hop is the other end of the channel.
 
-   * `amt_to_forward`: The amount, in milli-satoshis, to forward to the next
-     (outgoing) hop specified within the routing information.
+   * `amt_to_forward`: The amount, in millisatoshis, to forward to the next
+     receiving peer specified within the routing information.
 
-     This value amount MUST factor in the computed fee for this particular hop. When
-     processing an incoming Sphinx packet along with the HTLC message it's
-     encapsulated within, if the following inequality doesn't hold, then the
-     HTLC should be rejected; as this indicates a prior node in the path has
+     This value amount MUST include the processing node's computed _fee_ for the
+     receiving peer. When processing an incoming Sphinx packet, along with the HTLC
+     message it's encapsulated within, if the following inequality doesn't hold,
+     then the HTLC should be rejected; as this indicates a prior hop has
      deviated from the specified parameters:
 
         incoming_htlc_amt - fee >= amt_to_forward
 
-     Where `fee` is either calculated according to the receiving node's advertised fee
-     schema (as described in [BOLT 7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#htlc-fees)) or is 0, if this node is the final hop.
+     Where `fee` is either calculated according to the receiving peer's advertised fee
+     schema (as described in [BOLT 7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#htlc-fees))
+     or is 0, if the processing node is the final node.
 
    * `outgoing_cltv_value`: The CLTV value that the _outgoing_ HTLC carrying
      the packet should have.
 
         cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
 
-     Inclusion of this field allows a node to both authenticate the information
-     specified by the original sender, and the parameters of the HTLC forwarded,
-	 and ensure the original sender is using the current `cltv_expiry_delta` value.
+     Inclusion of this field allows a hop to both authenticate the information
+     specified by the origin node, and the parameters of the HTLC forwarded,
+	 and ensure the origin node is using the current `cltv_expiry_delta` value.
      If there is no next hop, `cltv_expiry_delta` is 0.
      If the values don't correspond, then the HTLC should be failed and rejected as
-     this indicates that either the incoming node has tampered with the intended HTLC
-     values, or the origin has an obsolete `cltv_expiry_delta` value.
-     The node MUST be consistent in responding to an unexpected
-     `outgoing_cltv_value`, whether it is the final hop or not, to avoid
+     this indicates that either a forwarding node has tampered with the intended HTLC
+     values, or the origin node has an obsolete `cltv_expiry_delta` value.
+     The hop MUST be consistent in responding to an unexpected
+     `outgoing_cltv_value`, whether it is the final node or not, to avoid
      leaking its position in the route.
 
    * `padding`: This field is for future use and also for ensuring that future non-0-`realm`
@@ -203,26 +233,26 @@ may lead to extraneous routing failure.
 
 ## Payload for the Last Node
 
-When building the route, the original sender MUST use a payload for
-the last node with the following values:
+When building the route, the origin node MUST use a payload for
+the final node with the following values:
 * `outgoing_cltv_value`: set to the final expiry specified by the recipient
 * `amt_to_forward`: set to the final amount specified by the recipient
 
 This allows the final node to check these values and return errors if needed,
 but it also eliminates the possibility of probing attacks by the second-to-last
-node. Such attacks could, otherwise, attempt to discover if the next node is the
+node. Such attacks could, otherwise, attempt to discover if the receiving peer is the
 last one by re-sending HTLCs with different amounts/expiries.
-The last node will extract its onion payload from the HTLC it has received and
+The final node will extract its onion payload from the HTLC it has received and
 compare its values against those of the HTLC. See the
 [Returning Errors](#returning-errors) section below for more details.
 
-If not for the above, since it need not forward payments, the last node could
+If not for the above, since it need not forward payments, the final node could
 simply discard its payload.
 
 # Packet Construction
 
-In the following example, it's assumed that _sender node_, `n_0`, wants to route
-a packet to a _final recipient_, `n_r`.
+In the following example, it's assumed that a _sending node_ (origin node),
+`n_0`, wants to route a packet to a _receiving node_ (final node), `n_r`.
 First, the sender computes a route `{n_0, n_1, ..., n_{r-1}, n_r}`, where `n_0`
 is the sender itself and `n_r` is the final recipient. The nodes `n_i` and
 `n_{i+1}` MUST be peers in the overlay network. The sender then gathers the
@@ -232,12 +262,12 @@ packet commits to but that is not included in the packet itself. Associated
 data will be included in the HMACs and must match the associated data provided
 during integrity verification at each hop.
 
-Next, for each node along the route, the sender computes an
+Next, for each hop along the route, the sender computes an
 _ephemeral public key_, a _shared secret_, and a _blinding factor_. The blinding
 factor is used at each hop to blind the ephemeral public key for the next hop.
-The node receiving the header will perform ECDH with the ephemeral public key
+The hop receiving the header will perform ECDH with the ephemeral public key
 and its own private key in order to derive the same shared secret.
-However, when generating the packet, the sender node doesn't have access to the
+However, when generating the packet, the sending node doesn't have access to the
 other nodes' private keys. So instead, it uses the commutative property of
 multiplication to blind each node's public key with all previous blinding
 factors and performs ECDH using each node's blinded public key and the `sessionkey`.
@@ -271,8 +301,8 @@ the last hop's operations are applied first.
 
 The packet is initialized with 1366 `0x00`-bytes.
 
-A 65-byte filler is generated with the shared secret (generation of filler data
-is detailed below).
+A 65-byte filler is generated (see [Filler Generation](#filler-generation))
+using the shared secret.
 
 For each hop in the route, in reverse order, the sender applies the
 following operations:
@@ -365,23 +395,23 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 
 # Packet Forwarding
 
-This specification is limited to `version` `0` packets, but the structure of
+This specification is limited to `version` `0` packets; however, the structure of
 future versions may change.
-Upon receiving a packet, a node compares the version byte of the packet with
-its supported versions and aborts the connection if the packet specifies a
-version number it doesn't support.
-For packets with supported version numbers, the receiving node then parses the
+Upon receiving a packet, a processing node compares the version byte of the
+packet with its supported versions and aborts the connection if the packet
+specifies a version number it doesn't support.
+For packets with supported version numbers, the processing node then parses the
 packet into its individual fields.
 
-The receiving node:
+The processing node:
   - if the ephemeral public key is NOT on the `secp256k1` curve:
     - MUST abort processing the packet.
-    - MUST report a route failure to the sender.
+    - MUST report a route failure to the origin node.
 
-The node then computes the shared secret, as described below, using the private
+The processing node then computes the shared secret, as described below, using the private
 key corresponding to its public key and the ephemeral key from the packet.
 
-The receiving node:
+The processing node:
   - if the packet has previously been forwarded or locally redeemed, i.e. packet
   contains duplicated routing information:
     - if preimage is known:
@@ -389,7 +419,7 @@ The receiving node:
     - otherwise:
       - MUST abort processing and report a route failure.
 
-The above requirements prevent a node along the route from retrying a payment
+The above requirements prevent any hop along the route from retrying a payment
 multiple times and attempting to track a payment's progress via traffic
 analysis. Note that this could be accomplished using a log of previous shared
 secrets or HMACs, which could be forgotten once the HTLC would not be accepted
@@ -398,11 +428,11 @@ probabilistic data structure, but it MUST rate-limit commitments, as necessary,
 in order to constrain the worst-case storage requirements or false positives of
 this log.
 
-The shared secret is used to compute a _mu_-key. The node then computes the HMAC
-of the `hops_data` using the _mu_-key. The resulting HMAC is compared with the
-HMAC from the packet.
+The shared secret is used to compute a _mu_-key. The processing node then
+computes the HMAC of the `hops_data` using the _mu_-key. The resulting HMAC is
+compared with the HMAC from the packet.
 
-The receiving node:
+The processing node:
   - if the computed HMAC and the HMAC from the packet differ:
     - MUST abort processing.
     - MUST report a route failure.
@@ -410,18 +440,18 @@ The receiving node:
 Comparison of the computed HMAC and the HMAC from the packet MUST be
 time-constant to avoid leaking information.
 
-At this point, the node can generate a _rho_-key and a _gamma_-key.
+At this point, the processing node can generate a _rho_-key and a _gamma_-key.
 
 The routing information is then deobfuscated, and the information about the
 next hop is extracted.
-To do so, the node copies the `hops_data` field, appends 65 `0x00`-bytes,
+To do so, the processing node copies the `hops_data` field, appends 65 `0x00`-bytes,
 generates 1365 pseudo-random bytes (using the _rho_-key), and applies the result
 ,using `XOR`, to the copy of the `hops_data`.
 The first 65 bytes of the resulting routing information become the `per_hop`
 field used for the next hop. The next 1300 bytes are the `hops_data` for the
 outgoing packet.
 
-The receiving node:
+The processing node:
   - if the `realm` is unknown:
     - MUST drop the packet.
     - MUST signal a route failure.
@@ -429,31 +459,30 @@ The receiving node:
 A special `per_hop` `HMAC` value of 32 `0x00`-bytes indicates that the currently
 processing hop is the intended recipient and that the packet should not be forwarded.
 
-If the HMAC not indicate route termination, and if the next hop be a peer of the
-current node; then the new packet is assembled. Packet assembly is accomplished
-by blinding the ephemeral key with the current node's public key along with the
+If the HMAC does not indicate route termination, and if the next hop is a peer of the
+processing node; then the new packet is assembled. Packet assembly is accomplished
+by blinding the ephemeral key with the processing node's public key along with the
 shared secret and by serializing the `hops_data`.
 The resulting packet is then forwarded to the addressed peer.
 
-The processing peer:
+The processing node:
   - MUST address the packet to another peer that is its direct neighbor.
   - if the processing node does not have a peer with the matching address:
     - MUST drop the packet.
     - MUST signal a route failure.
-[FIXME: Should we move the above requirements into a new `Requirements` section? Or is it more important to include them here in the sequence of events?]
 
 # Shared Secret
 
-The sender performs ECDH with each hop of the route, in order to establish a secret.
+The origin node performs ECDH with each hop of the route, in order to establish a secret.
 A new _sessionkey_, a 32-byte EC private key, is generated for each message.
-The shared secret builder function receives a public key and a 32-byte secret
+The shared secret builder function takes a public key and a 32-byte secret
 as input and returns a 32-byte secret as output.
 
 During the packet generation phase, the secret is the `sessionkey`, and the
-public key is the current [FIXME: receiving?] node's public key, which is
+public key is the processing node's public key, which is
 blinded by all previous blinding factors.
-During the processing phase, the secret is the node's private key, while the
-public key is the ephemeral public key from the packet, which has been
+During the processing phase, the secret is the processing node's private key,
+while the public key is the ephemeral public key from the packet, which has been
 incrementally blinded by its predecessors.
 
 The public key is multiplied by the secret, using the `secp256k1` curve.
@@ -464,24 +493,24 @@ Notice that this is the ECDH variant implemented in `libsecp256k1`.
 
 # Filler Generation
 
-Upon receiving a packet, each individual node extracts the information destined
+Upon receiving a packet, the processing node extracts the information destined
 for it from the route information and the per-hop payload.
 The extraction is done by deobfuscating and left-shifting the field.
 This would make the field shorter at each hop, allowing an attacker to deduce the route length.
 For this reason, the field is padded before forwarding.
-Since the padding is part of the HMAC, the sender will have to generate an
+Since the padding is part of the HMAC, the origin node will have to generate an
 identical padding in order to compute the HMACs correctly for each hop.
 The filler is also used to pad the field-length, in the case that the selected
 route is shorter than the maximum allowed route length.
 
-Before deobfuscating the `hops_data`, the node pads it with 65 `0x00`-bytes,
-such that the total length is `(20 + 1) * 65`.
+Before deobfuscating the `hops_data`, the processing node pads it with 65
+`0x00`-bytes, such that the total length is `(20 + 1) * 65`.
 It then generates the pseudo-random byte stream, of matching length, and applies
 it with `XOR` to the `hops_data`.
 This deobfuscates the information destined for it, while simultaneously
 obfuscating the added `0x00`-bytes at the end.
 
-In order to compute the correct HMAC, the sender has to generate the `hops_data`
+In order to compute the correct HMAC, the origin node has to generate the `hops_data`
 for each hop, which includes the incrementally obfuscated padding added by each hop.
 The incrementally obfuscated padding is called the `filler`.
 
@@ -524,13 +553,13 @@ and will not extract an HMAC for any further hops.
 
 In order to vary the ephemeral public key (the EC point) between hops, it is
 blinded at each hop.
-The inputs for the blinding process are the EC point to be blinded, the node's
+The inputs for the blinding process are the EC point to be blinded, the hop's
 public key, and a 32-byte shared secret. The output is a single EC point,
 representing the blinded element.
 
-Blinding is accomplished by computing a blinding factor from the node's public
+Blinding is accomplished by computing a blinding factor from the hop's public
 key and the shared secret for that hop.
-The blinding factor is the result of serializing the node's public key into its
+The blinding factor is the result of serializing the hop's public key into its
 compressed format, appending the shared secret, and computing the `SHA256` hash.
 The blinded EC point then is the result of the scalar multiplication between the
 EC point and the blinding factor.
@@ -548,8 +577,8 @@ due to the possibility of hop failure.
 
 Intermediate hops store the shared secret from the forward path and reuse it to
 obfuscate the error packet on each hop.
-In addition each node locally stores the previous hop it received the forward
-packet from, so it knows where to send an eventual return packet.
+In addition, each node locally stores data regarding its sending peer in the
+route, so it knows where to back-send an eventual return packet.
 The node returning the message builds a return packet consisting of the
 following fields:
 
@@ -573,21 +602,21 @@ The node then generates a new key, using the key type `ammag`.
 This key is then used to generate a pseudo-random stream, which is then applied
 to the packet using `XOR`.
 
-The obfuscation step is repeated by every node on the return path.
-Upon receiving a packet, the node will generate its `ammag`, generate the
+The obfuscation step is repeated by every hop on the return path.
+Upon receiving a packet, the hop will generate its `ammag`, generate the
 pseudo-random byte stream, and apply it to the packet before forwarding.
 
-The origin node detects that it is the final hop of the return message, since it
+The origin node detects that it is the last hop of the return message, since it
 was the origin of the corresponding forward packet.
-When an origin node receive an error message matching a transfer it initiated,
-i.e. it cannot forward the error any further, the node then generates the
+When an origin node receives an error message matching a transfer it initiated
+(i.e. it cannot forward the error any further) it then generates the
 `ammag` and `um` keys for each hop in the route.
-The node then iteratively decrypts the error message using each of the `ammag`
+The origin node then iteratively decrypts the error message using each of the `ammag`
 keys and computes the HMAC using the `um` keys.
 The origin node can detect the sender of the error message by matching the
 `hmac` field with the computed HMAC.
 
-The node:
+The origin node:
   - once the original message has been decrypted:
     - SHOULD store a copy of the message.
     - SHOULD continue decrypting, until the loop has been repeated 20 times.
@@ -616,7 +645,7 @@ A node:
     - SHOULD select the first error listed below.
 
 The top byte of `failure_code` can be read as a set of flags:
-* 0x8000 (BADONION): unparsable onion encrypted by previous peer
+* 0x8000 (BADONION): unparsable onion encrypted by sending peer
 * 0x4000 (PERM): permanent failure (otherwise transient)
 * 0x2000 (NODE): node failure (otherwise channel)
 * 0x1000 (UPDATE): new channel update enclosed
@@ -658,7 +687,7 @@ errors:
   - if the outgoing channel has a requirement advertised in its
   `channel_announcement` `features` which was not present in the onion:
     1. type: PERM|9 (`required_channel_feature_missing`)
-  - if the next peer specified by the onion is not known:
+  - if the receiving peer specified by the onion is not known:
     1. type: PERM|10 (`unknown_next_peer`)
   - if the HTLC does not reach the current minimum amount, the amount of the
   incoming HTLC and the current channel setting for the outgoing channel are
@@ -700,7 +729,7 @@ errors:
        * [`2`:`len`]
        * [`len`:`channel_update`]
 
-The _final node_ MAY, but _intermediate nodes_ MUST NOT, return one of the
+The _final node_ MAY, but _intermediate hops_ MUST NOT, return one of the
 following errors:
   - if the payment hash has already been paid:
     - MAY treat the payment hash as unknown.
@@ -711,19 +740,19 @@ following errors:
   - if the amount paid is less than the amount expected:
     - MUST fail the HTLC.
   - if the amount paid is more than twice the amount expected:
-    - SHOULD fail the HTLC. This allows the sender to reduce information leakage
+    - SHOULD fail the HTLC. This allows the origin node to reduce information leakage
     by altering the amount while not allowing for accidental gross overpayment:
       1. type: PERM|16 (`incorrect_payment_amount`)
   - if the `cltv_expiry` is too low:
     - MUST fail the HTLC:
       1. type: 17 (`final_expiry_too_soon`)
   - if the `outgoing_cltv_value` does not match the `cltv_expiry` of the HTLC at
-  the final hop:
+  the final node:
     1. type: 18 (`final_incorrect_cltv_expiry`)
     2. data:
        * [`4`:`cltv_expiry`]
   - if the `amt_to_forward` is greater than the `incoming_htlc_amt` of the HTLC
-  at the final hop:
+  at the final node:
     1. type: 19 (`final_incorrect_htlc_amount`)
     2. data:
        * [`4`:`incoming_htlc_amt`]
@@ -734,7 +763,7 @@ A node:
   - MUST ignore any extra bytes in `failuremsg`.
 
 The _origin node_:
-  - if the _final node_ is sending the error:
+  - if the _final node_ is returning the error:
     - if the PERM bit is set:
       - SHOULD fail the payment.
     - otherwise:
@@ -742,9 +771,9 @@ The _origin node_:
         - MAY retry the payment. (In particular, `final_expiry_too_soon` can
         occur if the block height has changed since sending,
         `temporary_node_failure` could resolve within a few seconds).
-  - otherwise, an _intermediate node_ is sending the error:
+  - otherwise, an _intermediate hop_ is returning the error:
     - if the NODE bit is set:
-      - SHOULD remove all channels connected with the sending node from
+      - SHOULD remove all channels connected with the erring node from
       consideration.
     - if the PERM bit is NOT set:
       - SHOULD restore the channels as it receives new `channel_update`s.
@@ -757,7 +786,7 @@ The _origin node_:
           - SHOULD apply the `channel_update`.
         - MAY queue the `channel_update` for broadcast.
       - otherwise:
-        - SHOULD eliminate the channel outgoing from the sending node from
+        - SHOULD eliminate the channel outgoing from the erring node from
         consideration.
         - if the PERM bit is not set:
           - SHOULD restore the channel as it receives new `channel_update`s.
