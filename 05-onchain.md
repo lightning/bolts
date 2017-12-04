@@ -80,7 +80,7 @@ Nodes A and B each hold a *commitment transaction*, each of which has four types
 3. _A's offered HTLCs_: Zero or more pending payments (*HTLCs*) to pay B in return for a payment preimage.
 4. _B's offered HTLCs_: Zero or more pending payments (*HTLCs*) to pay A in return for a payment preimage.
 
-As an incentive for nodes A and B to cooperate, an `OP_CHECKSEQUENCEVERIFY` relative timeout encumbers node A's outputs in A's *commitment transaction*, and node B's outputs in B's *commitment transaction*. If node A publishes its commitment transaction, they won't be able to get their funds immediately but node B will. As a consequence, node A and B's *commitment transactions* are not identical, they are (usually) symmetrical.
+As an incentive for nodes A and B to cooperate, an `OP_CHECKSEQUENCEVERIFY` relative timeout encumbers node A's outputs in A's *commitment transaction*, and node B's outputs in B's *commitment transaction*. If node A publishes its commitment transaction, it won't be able to get its funds immediately but node B will. As a consequence, node A and B's *commitment transactions* are not identical, but they are (usually) symmetrical.
 
 See [BOLT #3: Commitment Transaction](03-transactions.md#commitment-transaction) for more details.
 
@@ -110,12 +110,12 @@ Since `dust_limit_satoshis` is supposed to prevent uneconomic output
 creation (which would be left unspent forever in the blockchain), we
 insist on spending the commitment transaction outputs.
 
-In the early stages of a channel it's common for one side to have
+In the early stages of a channel, it's common for one side to have
 little or no money in the channel; with nothing to lose, there's no
 reason to consume resources monitoring the channel state.
 
-There's a bias towards using mutual close over unilateral because
-outputs are unencumbered by delay and directly spendable by wallets and
+There's a bias towards using mutual close over unilateral, because
+outputs are unencumbered by a delay and are directly spendable by wallets, and
 because fees tend to be less exaggerated than commitment transactions:
 thus the only reason not to use the signature from `closing_signed`
 would be if the fee offered was too small for it to be processed.
@@ -185,8 +185,8 @@ HTLCs).
 
 # On-chain HTLC Output Handling: Our Offers
 
-Each HTLC output can only be spent by us, as the offerer, after it's timed out,
-or by them, as the recipient, if they have the payment preimage.
+Each HTLC output can only be spent by us, the offerer, after it's timed out,
+or by them, the recipient, if they have the payment preimage.
 
 The HTLC output has *timed out* once the depth of the latest block is equal
 or greater than the HTLC `cltv_expiry`.
@@ -194,7 +194,7 @@ The method by which the HTLC times out differs depending
 on which party the commitment transaction belongs to.
 
 There can be HTLCs that are not represented by an output: either
-because they were trimmed as dust or because the receipient has two
+because they were trimmed as dust, or because the receipient has two
 valid commitment transactions, and the HTLCs differ in each.
 
 ## Requirements
@@ -226,13 +226,10 @@ HTLC output using a payment preimage is for them to use the
 HTLC-success transaction. If the commitment transaction is the offerer's, the recipient
 could create any transaction using the preimage.
 
-The payment preimage either serves to prove payment (for the offerer originating the payment) or
-to redeem the corresponding incoming HTLC from another peer (for an offerer forwarding the payment). Note that the parties don't care about the fate of the
-HTLC-spending transaction itself once they've extracted the payment
-preimage; the knowledge is not revocable.
+The payment preimage either serves to prove payment (when the offering node originated the payment) or
+to redeem the corresponding incoming HTLC from another peer (when the offering node is forwarding the payment). Once a node has extracted the payment, it no longer cares about the fate of the HTLC-spending transaction itself.
 
-In cases where both resolutions are possible (when payment
-success is seen after timeout, for example), either interpretation is
+In cases where both resolutions are possible (e.g., when a node receives payment success after timeout), either interpretation is
 acceptable; it is the responsibility of the recipient to spend it
 before this occurs.
 
@@ -240,7 +237,7 @@ If the commitment transaction is the recipient's, the offerer's signature alone 
 to spend the HTLC output (see
 [BOLT #3](03-transactions.md#received-htlc-outputs)), but the offerer needs to
 do so, otherwise the recipient could fulfill the HTLC after the timeout. If
-the commitment transaction is the offerer's, they need to use the HTLC-timeout
+the commitment transaction is the offerer's, the offerer must use the HTLC-timeout
 transaction.
 
 The fulfillment of an on-chain HTLC delivers the `payment_preimage`
@@ -262,8 +259,8 @@ own timeout still applies as an upper bound.
 
 # On-chain HTLC Output Handling: Their Offers
 
-Each HTLC output can only be spent by us, as the recipient, if we have the payment
-preimage, or them, as the offerer, if it has timed out.
+Each HTLC output can only be spent by us, the recipient, if we have the payment
+preimage, or them, the offerer, if it has timed out.
 
 There are actually several possible cases for an offered HTLC:
 
@@ -271,14 +268,14 @@ There are actually several possible cases for an offered HTLC:
    happen if the recipient has not received `revoke_and_ack` so that the offerer
    holds two valid commitment transactions, one with the HTLC and
    one without. The recipient won't normally know the preimage here, unless it's
-   a payment to themselves, and revealing that would be an information leak,
+   a payment to itself, and revealing that would be an information leak,
    so it's best to allow the HTLC to time out in this case.
 2. The offerer is irrevocably committed to the offered HTLC, but the recipient hasn't yet
    committed to an outgoing HTLC. In this case the recipient can either forward
    or timeout.
 3. The recipient has committed to an outgoing HTLC for the offered one. In
-   this case the recipient has to use the preimage if they receive it from the
-   outgoing HTLC, otherwise they will lose funds by making an outgoing
+   this case the recipient has to use the preimage if it receives it from the
+   outgoing HTLC, otherwise it will lose funds by making an outgoing
    payment without redeeming the incoming one.
 
 
@@ -299,12 +296,12 @@ If not otherwise resolved, once the HTLC output has expired, it is considered
 
 ## Rationale
 
-If this is the recipient's commitment transaction, they can only use a payment
+If this is the recipient's commitment transaction, it can only use a payment
 preimage with the HTLC-success transaction (which preserves the
-`to_self_delay` requirement). Otherwise the recipient can create any transaction they want to
+`to_self_delay` requirement). Otherwise the recipient can create any transaction it wants to
 resolve it.
 
-The recipient doesn't care about expired offers: they should have ensured that the
+The recipient doesn't care about expired offers: it's the sender's responsibility to ensure that the
 HTLC can only expire long it is needed.
 
 # On-chain HTLC Transaction Handling
@@ -334,7 +331,7 @@ spending.
 
 # Revoked Transaction Close Handling
 
-If a node tries to broadcast old state, its peer can use the revocation key
+If a node tries to broadcast old state, the other node can use the revocation key
 to claim all the funds.
 
 ## Requirements
@@ -375,7 +372,7 @@ standard size limit thanks to the 483 HTLC-per-party limit (see
 
 Note that if a single transaction is used it may be invalidated as node B
 broadcasts HTLC-timeout and HTLC-success transactions, but the
-requirement of persistence until all outputs are irrevocably resolved
+requirement of persistence, until all outputs are irrevocably resolved,
 should cover this. [FIXME: May have to divide and conquer here, since they may be able to delay us long enough to avoid successful penalty spend? ]
 
 ## Penalty Transactions Weight Calculation
@@ -401,8 +398,8 @@ In addition to outputs being swept under as penalty, the node MAY also sweep the
 amount paid in fees). Doing so requires the inclusion of a p2wpkh witness and
 additional txinput, resulting in an additional 108 + 164 = 272 bytes.
 
-In a worst case scenario, a node holds only incoming HTLCs and the HTLC-timeout
-transactions are not published, forcing them to spend from the commitment
+In a worst case scenario, a node holds only incoming HTLCs, and the HTLC-timeout
+transactions are not published, which forces the node to spend from the commitment
 transaction.
 
 With a maximum standard weight of 400000, the maximum number of HTLCs that can
