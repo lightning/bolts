@@ -259,8 +259,8 @@ own timeout still applies as an upper bound.
 
 # On-chain HTLC Output Handling: Their Offers
 
-Each HTLC output can only be spent by us, the recipient, if we have the payment
-preimage, or them, the offerer, if it has timed out.
+Each HTLC output can only be spent by us, the recipient (if we have the payment
+preimage), or them, the offerer (if it has timed out).
 
 There are actually several possible cases for an offered HTLC:
 
