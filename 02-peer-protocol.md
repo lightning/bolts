@@ -103,7 +103,6 @@ the funding transaction and both versions of the commitment transaction.
    * [`2`:`shutdown_len`] (`option_upfront_shutdown_script`)
    * [`shutdown_len`: `shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
-
 The `chain_hash` value denotes the exact blockchain that the opened channel will
 reside within. This is usually the genesis hash of the respective blockchain.
 The existence of the `chain_hash` allows nodes to open channels
@@ -144,8 +143,8 @@ its own funds.
 `funding_pubkey` is the public key in the 2-of-2 multisig script of
 the funding transaction output.
 
-The various `_basepoint` fields are used to [derive unique
-keys](03-transactions.md#key-derivation) for each commitment
+The various `_basepoint` fields are used to derive unique
+keys as described in [BOLT #3](03-transactions.md#key-derivation) for each commitment
 transaction. Varying these keys ensures that the transaction ID of
 each commitment transaction is unpredictable to an external observer,
 even if one commitment transaction is seen; this property is very
@@ -218,7 +217,7 @@ The receiving node MUST NOT:
 
 The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% of the channel total is suggested. Each side of a channel maintains this reserve so it always has something to lose if it were to try to broadcast an old, revoked commitment transaction. Initially, this reserve may not be met, as only one side has funds; but the protocol ensures that there is always progress toward meeting this reserve, and once met, it is maintained.
 
-The sender can unconditionally give initial funds to the receiver using a non-zero `push_msat` — this is one case where the normal reserve mechanism doesn't apply. However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (with a danger of double-spend until that occurs) and may require a separate method to prove payment via on-chain confirmation.
+The sender can unconditionally give initial funds to the receiver using a non-zero `push_msat` — this is one case where the normal reserve mechanism doesn't apply. However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (with a danger of double-spend until this occurs) and may require a separate method to prove payment via on-chain confirmation.
 
 The `feerate_per_kw` is generally only of concern to the sender (who pays the fees), but there is also the fee rate paid by HTLC transactions; thus, unreasonably large fee rates can also penalize the recipient.
 
@@ -277,7 +276,7 @@ Other fields have the same requirements as their counterparts in `open_channel`.
 
 This message describes the outpoint which the funder has created for
 the initial commitment transactions. After receiving the peer's
-signature via `funding_signed`, it will broadcast the funding transaction.
+signature, via `funding_signed`, it will broadcast the funding transaction.
 
 1. type: 34 (`funding_created`)
 2. data:
