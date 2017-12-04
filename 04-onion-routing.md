@@ -630,7 +630,7 @@ The origin node:
   - once the return message has been decrypted:
     - SHOULD store a copy of the message.
     - SHOULD continue decrypting, until the loop has been repeated 20 times.
-    - SHOULD use constant `ammag` and `um` keys to de-obfuscate the route length.
+    - SHOULD use constant `ammag` and `um` keys to deobfuscate [FIXME: is this correct? was 'obfuscate'] the route length.
 
 The association between the forward and return packets is handled outside of
 this onion routing protocol, e.g. via association with an HTLC in a payment
