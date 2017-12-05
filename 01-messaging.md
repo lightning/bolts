@@ -170,7 +170,7 @@ The receiving node:
   - if no existing channel is referred to by the message:
     - MUST ignore the message.
   - MUST truncate `len` to the remainder of the packet (if it's larger).
-  - if `data` is not composed solely of printable ASCII characters (For reference: the printable character set includes byte values 32 through 127, inclusive):
+  - if `data` is not composed solely of printable ASCII characters (For reference: the printable character set includes byte values 32 through 126, inclusive):
     - SHOULD NOT print out `data` verbatim.
 
 #### Rationale
