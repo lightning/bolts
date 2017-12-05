@@ -30,9 +30,9 @@ Implementations MUST use a single connection per peer; channel messages (which i
 
 After decryption, all Lightning messages are of the form:
 
-1. `type`: a 2-byte big-endian field indicating the type of message.
+1. `type`: a 2-byte big-endian field indicating the type of message
 2. `payload`: a variable-length payload that comprises the remainder of
-   the message and that conforms to a format matching the `type`.
+   the message and that conforms to a format matching the `type`
 
 The `type` field indicates how to interpret the `payload` field.
 The format for each individual type is defined by a specification in this repository.
@@ -49,10 +49,10 @@ A receiving node:
 
 The messages are grouped logically into four groups, ordered by the most significant bit that is set:
 
-  - Setup & Control (types `0`-`31`): messages related to connection setup, control, supported features, and error reporting. These are described below.
-  - Channel (types `32`-`127`): messages used to setup and tear down micropayment channels. These are described in [BOLT #2](02-peer-protocol.md).
-  - Commitment (types `128`-`255`): messages related to updating the current commitment transaction, which includes adding, revoking, and settling HTLCs as well as updating fees and exchanging signatures. These are described in [BOLT #2](02-peer-protocol.md).
-  - Routing (types `256`-`511`): messages containing node and channel announcements, as well as any active route exploration. These are described in [BOLT #7](07-routing-gossip.md).
+  - Setup & Control (types `0`-`31`): messages related to connection setup, control, supported features, and error reporting (described below)
+  - Channel (types `32`-`127`): messages used to setup and tear down micropayment channels (described in [BOLT #2](02-peer-protocol.md))
+  - Commitment (types `128`-`255`): messages related to updating the current commitment transaction, which includes adding, revoking, and settling HTLCs as well as updating fees and exchanging signatures (described in [BOLT #2](02-peer-protocol.md))
+  - Routing (types `256`-`511`): messages containing node and channel announcements, as well as any active route exploration (described in [BOLT #7](07-routing-gossip.md)
 
 The size of the message is required by the transport layer to fit into a 2-byte unsigned int; therefore, the maximum possible size is 65535 bytes.
 
@@ -88,7 +88,7 @@ a buffer with 6-bytes of pre-padding.
 
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2-bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
+[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
 
 Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s.
 
@@ -242,7 +242,7 @@ is 65531 — in order to account for the type field (`pong`) and the `byteslen` 
 a convenient cutoff for `num_pong_bytes` to indicate that no reply should be sent.
 
 Connections between nodes within the network may be very long lived, as payment
-channels have an indefinite lifetime. However, it's likely that 
+channels have an indefinite lifetime. However, it's likely that
 no new data will be
 exchanged for a
 significant portion of a connection's lifetime. Also, on several platforms it's possible that Lightning
