@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the construction of an onion routed packet that is used to route a payment from a _origin node_ to a _final node_, over a number of intermediate nodes, called _hops_.
+This document describes the construction of an onion routed packet that is used to route a payment from an _origin node_ to a _final node_, over a number of intermediate nodes, called _hops_.
 
 The routing schema is based on the
 [Sphinx](http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf)
@@ -320,7 +320,7 @@ Comparison of the computed HMAC and the HMAC from the packet MUST be time-consta
 At this point the node can generate a _rho_-key and a _gamma_-key.
 
 The routing info is deobfuscated and the information about the next hop is extracted.
-In order to do so the node copies the `hops_data` field, appends 65 `0x00` bytes and generates 1365 pseudo-random bytes using the _rho_-key and applies it using `XOR` to the copy of the `hops_data`
+In order to do so the node copies the `hops_data` field, appends 65 `0x00` bytes and generates 1365 pseudo-random bytes using the _rho_-key and applies it using `XOR` to the copy of the `hops_data`.
 The first 65 bytes of the resulting routing info are `per_hop` field for the next hop.  The next 1300 bytes is the `hops_data` for the outgoing packet.
 
 If the `realm` is unknown, then the node MUST drop the packet and signal a route failure.
@@ -450,7 +450,7 @@ The failure message encapsulated in `failuremsg` has identical format to
 a normal message: two byte type (`failure_code`) followed by data suitable
 for that type. The following `failure_code` values are supported.
 A node MUST select one of these codes when creating an error message, and MUST include the appropriate data.
-Notice that the `failure_code` are not message types defined in other BOLTs, not being sent directly on the transport layer, but wrapped inside an return packet.
+Notice that the `failure_code` are not message types defined in other BOLTs, not being sent directly on the transport layer, but wrapped inside a return packet.
 The numeric values for the `failure_code` may therefore reuse values that are also assigned as message types, without causing collisions.
 
 In the case of more than one error, a node SHOULD select the first one
