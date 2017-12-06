@@ -497,7 +497,7 @@ The *maximum* size of _any_ lightning message MUST NOT exceed `65535` bytes. A
 maximum size of `65535` simplifies testing, makes memory management 
 easier and helps mitigate memory exhaustion attacks.
 
-In order to make make traffic analysis more difficult, the length prefix for
+In order to make traffic analysis more difficult, the length prefix for
 all encrypted lightning messages is also encrypted. Additionally we add a
 `16-byte` `Poly-1305` tag to the encrypted length prefix in order to ensure
 that the packet length hasn't been modified with in-flight, and also to avoid
