@@ -25,10 +25,10 @@ The route is constructed by the origin node, which knows the public
 keys of each intermediate node. Knowing each intermediate hop's public key
 allows the origin node to create a shared secret (using ECDH) for each
 intermediate node, including the final recipient node. The shared secret is then
-used to generate a _pseudo-random stream_ of bytes, which is used to obfuscate
-the packet, and a number of _keys_, which are used to encrypt the payload and
-compute HMACs, which are in turn used to ensure the integrity of the packet at
-each hop.
+used to generate a _pseudo-random stream_ of bytes (used to obfuscate
+the packet) and a number of _keys_ (used to encrypt the payload and
+compute the HMACs). The HMACs are then in turn used to ensure the integrity of
+the packet at each hop.
 
 This specification describes _version 0_ of the packet format and routing
 mechanism.
@@ -185,20 +185,20 @@ hop in the path.
 
 Using this end-to-end authentication, in addition to
 cross-checking the HTLC parameters with the `per_hop`'s specified values, each
-hop is able to ensure the origin node hasn't forwarded it an
+hop is able to ensure the sending peer hasn't forwarded it an
 ill-crafted HTLC.
 
 Field descriptions:
 
-   * `short_channel_id`: The ID of the channel used to route the message,
-   [FIXME: Please reword, meaning is unclear] which implies the next hop is the other end of the channel.
+   * `short_channel_id`: The ID of the channel used to route the message;
+     the receiving peer is the other end of the channel.
 
    * `amt_to_forward`: The amount, in millisatoshis, to forward to the next
      receiving peer specified within the routing information.
 
-     This value amount MUST include the processing node's computed _fee_ for the
+     This value amount MUST include the origin node's computed _fee_ for the
      receiving peer. When processing an incoming Sphinx packet, along with the HTLC
-     message it's encapsulated within, if the following inequality doesn't hold,
+     message that it is encapsulated within, if the following inequality doesn't hold,
      then the HTLC should be rejected; as this indicates a prior hop has
      deviated from the specified parameters:
 
@@ -426,7 +426,7 @@ The processing node:
 
 The above requirements prevent any hop along the route from retrying a payment
 multiple times, in an attempt to track a payment's progress via traffic
-analysis. Note that such traffic analysis could be accomplished using a log of
+analysis. Note that disabling such probing could be accomplished using a log of
 previous shared secrets or HMACs, which could be forgotten once the HTLC would
 not be accepted anyway (i.e. after `outgoing_cltv_value` has passed). Such a log
 may use a probabilistic data structure, but it MUST rate-limit commitments as
@@ -504,8 +504,9 @@ for it from the route information and the per-hop payload.
 The extraction is done by deobfuscating and left-shifting the field.
 This would make the field shorter at each hop, allowing an attacker to deduce the
 route length. For this reason, the field is pre-padded before forwarding.
-Since the padding is part of the HMAC, the origin node will have to generate an
-identical [FIXME: identical to what?] padding in order to compute the HMACs correctly for each hop.
+Since the padding is part of the HMAC, the origin node will have to pre-generate an
+identical padding (to that which each hop will generate) in order to compute the
+HMACs correctly for each hop.
 The filler is also used to pad the field-length, in the case that the selected
 route is shorter than the maximum allowed route length of 20.
 
@@ -630,7 +631,7 @@ The origin node:
   - once the return message has been decrypted:
     - SHOULD store a copy of the message.
     - SHOULD continue decrypting, until the loop has been repeated 20 times.
-    - SHOULD use constant `ammag` and `um` keys to deobfuscate [FIXME: is this correct? was 'obfuscate'] the route length.
+    - SHOULD use constant `ammag` and `um` keys to obfuscate the route length. [FIXME: should this be indented under 'once return message has been decrypted?']
 
 The association between the forward and return packets is handled outside of
 this onion routing protocol, e.g. via association with an HTLC in a payment
@@ -661,121 +662,141 @@ The top byte of `failure_code` can be read as a set of flags:
 * 0x2000 (NODE): node failure (otherwise channel)
 * 0x1000 (UPDATE): new channel update enclosed
 
-Any erring node MAY return one of the following errors:
-  - if the `realm` byte is unknown:
-    1. type: PERM|1 (`invalid_realm`)
-  - if an otherwise unspecified transient error occurs for the entire node:
-    1. type: NODE|2 (`temporary_node_failure`)
-  - if an otherwise unspecified permanent error occurs for the entire node:
-    1. type: PERM|NODE|2 (`permanent_node_failure`)
-  - if a node has requirements advertised in its `node_announcement` `features`
-  which were NOT included in the onion:
-    1. type: PERM|NODE|3 (`required_node_feature_missing`)
+Any _erring node_ MAY return one of the following errors:
 
-A _return-forwarding node_ MAY, but a _final node_ MUST NOT, return one of the following
+If the `realm` byte is unknown:
+1. type: PERM|1 (`invalid_realm`)
+
+If an otherwise unspecified transient error occurs for the entire node:
+1. type: NODE|2 (`temporary_node_failure`)
+
+If an otherwise unspecified permanent error occurs for the entire node:
+1. type: PERM|NODE|2 (`permanent_node_failure`)
+
+If a node has requirements advertised in its `node_announcement` `features`
+which were NOT included in the onion:
+1. type: PERM|NODE|3 (`required_node_feature_missing`)
+
+A _forwarding node_ MAY, but a _final node_ MUST NOT, return one of the following
 errors:
-  - if the onion `version` byte is unknown:
-    1. type: BADONION|PERM|4 (`invalid_onion_version`)
-    2. data:
-       * [`32`:`sha256_of_onion`]
-  - if the onion HMAC is incorrect:
-    1. type: BADONION|PERM|5 (`invalid_onion_hmac`)
-    2. data:
-       * [`32`:`sha256_of_onion`]
-  - if the ephemeral key in the onion is unparsable:
-    1. type: BADONION|PERM|6 (`invalid_onion_key`)
-    2. data:
-       * [`32`:`sha256_of_onion`]
-  - if an otherwise unspecified, transient error occurs for the outgoing
-  channel [FIXME: what is exact definition of 'outgoing' channel?] (e.g. channel capacity reached, too many in-flight HTLCs, etc.):
-    1. type: UPDATE|7 (`temporary_channel_failure`)
-    2. data:
-       * [`2`:`len`]
-       * [`len`:`channel_update`]
-  - if an otherwise unspecified, permanent error occurs for the outgoing channel
-  (e.g. channel recently closed):
-    1. type: PERM|8 (`permanent_channel_failure`)
-  - if the outgoing channel has requirements advertised in its
-  `channel_announcement` `features` which were NOT included in the onion:
-    1. type: PERM|9 (`required_channel_feature_missing`)
-  - if the receiving peer specified by the onion is NOT known:
-    1. type: PERM|10 (`unknown_next_peer`)
-  - if the HTLC amount is less than the currently specified minimum amount, the
-  amount of the incoming HTLC and the current channel setting for the outgoing
-  channel [FIXME: is there a more concise way to say this?] are reported:
-    1. type: UPDATE|11 (`amount_below_minimum`)
-    2. data:
-       * [`8`:`htlc_msat`]
-       * [`2`:`len`]
-       * [`len`:`channel_update`]
-  - if the HTLC does NOT pay a sufficient fee, the amount of the incoming HTLC
-  and the current channel setting for the outgoing channel are reported:
-    1. type: UPDATE|12 (`fee_insufficient`)
-    2. data:
-       * [`8`:`htlc_msat`]
-       * [`2`:`len`]
-       * [`len`:`channel_update`]
-  - if the `outgoing_cltv_value` does NOT match the `update_add_htlc`'s
-  `cltv_expiry` minus the `cltv_expiry_delta` for the outgoing channel, the
-  `cltv_expiry` and the current channel setting for the outgoing channel are
-  reported:
-    1. type: UPDATE|13 (`incorrect_cltv_expiry`)
-    2. data:
-       * [`4`:`cltv_expiry`]
-       * [`2`:`len`]
-       * [`len`:`channel_update`]
-  - if the `cltv_expiry` is too near, the current channel setting for the
-  outgoing channel are reported:
-    1. type: UPDATE|14 (`expiry_too_soon`)
-    2. data:
-       * [`2`:`len`]
-       * [`len`:`channel_update`]
-  - if the `cltv_expiry` is unreasonably far in the future, its also possible to
-  report an error:
-    1. type: 21 (`expiry_too_far`)
-  - if the channel is disabled, the current channel setting for the outgoing
-  channel are reported:
-    1. type: UPDATE|20 (`channel_disabled`)
-    2. data:
-       * [`2`: `flags`]
-       * [`2`:`len`]
-       * [`len`:`channel_update`]
+
+If the onion `version` byte is unknown:
+1. type: BADONION|PERM|4 (`invalid_onion_version`)
+2. data:
+   * [`32`:`sha256_of_onion`]
+
+If the onion HMAC is incorrect:
+1. type: BADONION|PERM|5 (`invalid_onion_hmac`)
+2. data:
+   * [`32`:`sha256_of_onion`]
+
+If the ephemeral key in the onion is unparsable:
+1. type: BADONION|PERM|6 (`invalid_onion_key`)
+2. data:
+   * [`32`:`sha256_of_onion`]
+
+If an otherwise unspecified, transient error occurs during forwarding to its
+receiving peer (e.g. channel capacity reached, too many in-flight HTLCs, etc.):
+1. type: UPDATE|7 (`temporary_channel_failure`)
+2. data:
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
+
+If an otherwise unspecified, permanent error occurs during forwarding to its
+receiving peer (e.g. channel recently closed):
+1. type: PERM|8 (`permanent_channel_failure`)
+
+If the outgoing channel has requirements advertised in its
+`channel_announcement` `features` which were NOT included in the onion:
+1. type: PERM|9 (`required_channel_feature_missing`)
+
+If the receiving peer specified by the onion is NOT known:
+1. type: PERM|10 (`unknown_next_peer`)
+
+If the HTLC amount is less than the currently specified minimum amount, the
+amount of the incoming HTLC and the current channel setting for the outgoing
+channel [FIXME: is there a more concise way to say this?] are reported:
+1. type: UPDATE|11 (`amount_below_minimum`)
+2. data:
+   * [`8`:`htlc_msat`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
+
+If the HTLC does NOT pay a sufficient fee, the amount of the incoming HTLC and
+the current channel setting for the outgoing channel are reported:
+1. type: UPDATE|12 (`fee_insufficient`)
+2. data:
+   * [`8`:`htlc_msat`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
+
+If the `outgoing_cltv_value` does NOT match the `update_add_htlc`'s
+`cltv_expiry` minus the `cltv_expiry_delta` for the outgoing channel, the
+`cltv_expiry` and the current channel setting for the outgoing channel are
+reported:
+1. type: UPDATE|13 (`incorrect_cltv_expiry`)
+2. data:
+   * [`4`:`cltv_expiry`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
+
+If the `cltv_expiry` is too near, the current channel setting for the
+outgoing channel are reported:
+1. type: UPDATE|14 (`expiry_too_soon`)
+2. data:
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
+
+If the `cltv_expiry` is unreasonably far in the future, its also possible to
+report an error:
+1. type: 21 (`expiry_too_far`)
+
+If the channel is disabled, the current channel setting for the outgoing
+channel are reported:
+1. type: UPDATE|20 (`channel_disabled`)
+2. data:
+   * [`2`: `flags`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
 
 The _final node_ MAY, but an _intermediate hop_ MUST NOT, return one of the
 following errors:
   - if the payment hash has already been paid:
     - MAY treat the payment hash as unknown.
-    - MAY succeed in accepting the HTLC [FIXME: is this correct?].
-  - if the payment hash is unknown:
-    - MUST fail the HTLC:
-      1. type: PERM|15 (`unknown_payment_hash`)
+    - MAY succeed in accepting the HTLC.
   - if the amount paid is less than the amount expected:
     - MUST fail the HTLC.
-  - if the amount paid is more than twice the amount expected:
-    - SHOULD [FIXME: MUST?] fail the HTLC. Note: this allows the origin node to reduce
-    information leakage by altering the amount while not allowing for accidental
-    gross overpayment:
-      1. type: PERM|16 (`incorrect_payment_amount`)
-  - if the `cltv_expiry` value is too near the present:
-    - MUST fail the HTLC:
-      1. type: 17 (`final_expiry_too_soon`)
-  - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
-  the final node's HTLC:
-    1. type: 18 (`final_incorrect_cltv_expiry`)
-    2. data:
-       * [`4`:`cltv_expiry`]
-  - if the `amt_to_forward` is greater than the `incoming_htlc_amt` from the
-  final node's HTLC:
-    1. type: 19 (`final_incorrect_htlc_amount`)
-    2. data:
-       * [`4`:`incoming_htlc_amt`]
+
+If the payment hash is unknown, the _final node_ MUST fail the HTLC:
+1. type: PERM|15 (`unknown_payment_hash`)
+
+If the amount paid is more than twice the amount expected, the _final node_
+SHOULD fail the HTLC. Note: this allows the origin node to reduce information
+leakage by altering the amount while not allowing for accidental gross
+overpayment:
+1. type: PERM|16 (`incorrect_payment_amount`)
+
+If the `cltv_expiry` value is too near the present, the _final node_ MUST fail
+the HTLC:
+1. type: 17 (`final_expiry_too_soon`)
+
+If the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
+the final node's HTLC:
+1. type: 18 (`final_incorrect_cltv_expiry`)
+2. data:
+   * [`4`:`cltv_expiry`]
+
+If the `amt_to_forward` is greater than the `incoming_htlc_amt` from the
+final node's HTLC:
+1. type: 19 (`final_incorrect_htlc_amount`)
+2. data:
+   * [`4`:`incoming_htlc_amt`]
 
 ## Receiving Failure Codes
 
-A node [FIXME: 'origin', 'return-forwarding', or 'any' node?]:
-  - MUST ignore any extra bytes in `failuremsg`.
 
 The _origin node_:
+  - MUST ignore any extra bytes in `failuremsg`.
   - if the _final node_ is returning the error:
     - if the PERM bit is set:
       - SHOULD fail the payment.
@@ -793,7 +814,7 @@ The _origin node_:
     - otherwise:
       - if UPDATE is set, AND the `channel_update` is valid and more recent
       than the `channel_update` used to send the payment:
-        - if this [FIXME: what does 'this' refer to?] should NOT have caused the failure:
+        - if `channel_update` should NOT have caused the failure:
           - MAY treat the `channel_update` as invalid.
         - otherwise:
           - SHOULD apply the `channel_update`.
@@ -831,7 +852,7 @@ by the onion construction. Hence, the values below are the `realm`, the
 `short_channel_id`, the `amt_to_forward`, the `outgoing_cltv`, and the 16-byte
 `padding`. They were initialized by byte-filling the `short_channel_id` to the
 each hop's respective position in the route and then, starting at 0, setting
-`amt_to_forward` and `outgoing_cltv` to same route position.
+`amt_to_forward` and `outgoing_cltv` to the same route position.
 
 	hop_payload[0] = 0x000000000000000000000000000000000000000000000000000000000000000000
 	hop_payload[1] = 0x000101010101010101000000010000000100000000000000000000000000000000
