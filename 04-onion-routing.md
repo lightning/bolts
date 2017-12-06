@@ -476,7 +476,7 @@ The processing node:
     - MUST drop the packet.
     - MUST signal a route failure.
 
-[FIXME: separate processing node requirements into `Requirements` section, or is more it important to integrate them into the sequence of events?]
+[TODO: separate processing node requirements into `Requirements` section]
 
 # Shared Secret
 
@@ -631,7 +631,7 @@ The origin node:
   - once the return message has been decrypted:
     - SHOULD store a copy of the message.
     - SHOULD continue decrypting, until the loop has been repeated 20 times.
-    - SHOULD use constant `ammag` and `um` keys to obfuscate the route length. [FIXME: should this be indented under 'once return message has been decrypted?']
+    - SHOULD use constant `ammag` and `um` keys to obfuscate the route length.
 
 The association between the forward and return packets is handled outside of
 this onion routing protocol, e.g. via association with an HTLC in a payment
@@ -695,8 +695,9 @@ If the ephemeral key in the onion is unparsable:
 2. data:
    * [`32`:`sha256_of_onion`]
 
-If an otherwise unspecified, transient error occurs during forwarding to its
-receiving peer (e.g. channel capacity reached, too many in-flight HTLCs, etc.):
+If an otherwise unspecified, transient error occurs in the outgoing channel
+(i.e. during forwarding to its receiving peer), e.g. channel capacity reached,
+too many in-flight HTLCs, etc.:
 1. type: UPDATE|7 (`temporary_channel_failure`)
 2. data:
    * [`2`:`len`]
@@ -715,7 +716,7 @@ If the receiving peer specified by the onion is NOT known:
 
 If the HTLC amount is less than the currently specified minimum amount, the
 amount of the incoming HTLC and the current channel setting for the outgoing
-channel [FIXME: is there a more concise way to say this?] are reported:
+channel are reported:
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
    * [`8`:`htlc_msat`]
@@ -791,6 +792,8 @@ final node's HTLC:
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
    * [`4`:`incoming_htlc_amt`]
+
+[TODO: Restore edited text and move the definitions of the structures into its own section, then turn the words describing each one into requirements]
 
 ## Receiving Failure Codes
 
