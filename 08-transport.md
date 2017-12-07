@@ -1,5 +1,7 @@
 # BOLT #8: Encrypted and Authenticated Transport
 
+## Overview
+
 All communications between Lightning nodes is encrypted in order to
 provide confidentiality for all transcripts between nodes, and authenticated to
 avoid malicious interference. Each node has a known long-term identifier which
@@ -7,6 +9,29 @@ is a public key on Bitcoin's `secp256k1` curve. This long-term public key is
 used within the protocol to establish an encrypted+authenticated connection
 with peers, and also to authenticate any information advertised on behalf
 of a node.
+
+# Table of Contents
+
+  * [Cryptographic Messaging Overview](#cryptographic-messaging-overview)
+    * [Authenticated Key Agreement Handshake](#authenticated-key-agreement-handshake)
+  * [Handshake Versioning](#handshake-versioning)
+    * [Noise Protocol Instantiation](#noise-protocol-instantiation)
+  * [Authenticated Key Exchange Handshake Specification](#authenticated-key-exchange-handshake-specification)
+    * [Handshake State](#handshake-state)
+    * [Handshake State Initialization](#handshake-state-initialization)
+    * [Handshake Exchange](#handshake-exchange)
+  * [Lightning Message Specification](#lightning-message-specification)
+    * [Encrypting Messages](#encrypting-messages)
+    * [Decrypting Messages](#decrypting-messages)
+  * [Lightning Message Key Rotation](#lightning-message-key-rotation)
+  * [Security Considerations](#security-considerations)
+  * [Appendix A: Transport Test Vectors](#appendix-a-transport-test-vectors)
+    * [Initiator Tests](#initiator-tests)
+    * [Responder Tests](#responder-tests)
+    * [Message Encryption Tests](#message-encryption-tests)
+  * [Acknowledgments](#acknowledgments)
+  * [References](#references)
+  * [Authors](#authors)
 
 ## Cryptographic Messaging Overview
 
