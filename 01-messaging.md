@@ -112,9 +112,9 @@ The sending node:
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
   - MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
-  - upon receiving _odd_ feature bits that are non-zero:
+  - upon receiving unknown _odd_ feature bits that are non-zero:
     - MUST ignore the bit.
-  - upon receiving _even_ feature bits that are non-zero:
+  - upon receiving unknown _even_ feature bits that are non-zero:
     - MUST fail the connection.
 
 #### Rationale
