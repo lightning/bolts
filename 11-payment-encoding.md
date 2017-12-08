@@ -4,6 +4,23 @@ A simple, extensible QR-code-ready protocol for requesting payments
 over Lightning.
 
 # Table of Contents
+
+  * [Encoding Overview](#encoding-overview)
+    * [Requirements](#requirements)
+  * [Human Readable Part](#human-readable-part)
+    * [Requirements](#requirements-1)
+    * [Rationale](#rationale)
+  * [Data Part](#data-part)
+    * [Requirements](#requirements-2)
+    * [Rationale](#rationale-1)
+    * [Tagged Fields](#tagged-fields)
+      * [Requirements](#requirements-3)
+      * [Rationale](#rationale-2)
+  * [Payer / Payee Interactions](#payer--payee-interactions)
+    * [Payer / Payee Requirements](#payer--payee-requirements)
+  * [Implementation](#implementation)
+  * [Examples](#examples)
+  * [Authors](#authors)
   
 # Encoding Overview
 

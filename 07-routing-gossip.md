@@ -1,5 +1,7 @@
 # BOLT #7: P2P Node and Channel Discovery
 
+## Overview
+
 This specification describes simple node discovery, channel discovery and channel update mechanisms which do not rely on a third-party to disseminate the information.
 
 Node and channel discovery serve two different purposes:
@@ -12,6 +14,19 @@ Peers in the network exchange `channel_announcement` messages that contain infor
 There can only be one valid `channel_announcement` for any channel,
 but multiple `node_announcement` messages are possible (to update node
 information), and at least two `channel_update` messages are expected.
+
+# Table of Contents
+
+  * [The `announcement_signatures` message](#the-announcement_signatures-message)
+  * [The `channel_announcement` message](#the-channel_announcement-message)
+  * [The `node_announcement` message](#the-node_announcement-message)
+  * [The `channel_update` message](#the-channel_update-message)
+  * [Initial Sync](#initial-sync)
+  * [Rebroadcasting](#rebroadcasting)
+  * [HTLC Fees](#htlc-fees)
+  * [Pruning the Network View](#pruning-the-network-view)
+  * [Recommendations for Routing](#recommendations-for-routing)
+  * [References](#references)
 
 ## The `announcement_signatures` message
 This is a direct message between two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
