@@ -8,6 +8,29 @@ used within the protocol to establish an encrypted and authenticated connection
 with peers, and also to authenticate any information advertised on behalf
 of a node.
 
+# Table of Contents
+
+  * [Cryptographic Messaging Overview](#cryptographic-messaging-overview)
+    * [Authenticated Key Agreement Handshake](#authenticated-key-agreement-handshake)
+    * [Handshake Versioning](#handshake-versioning)
+    * [Noise Protocol Instantiation](#noise-protocol-instantiation)
+  * [Authenticated Key Exchange Handshake Specification](#authenticated-key-exchange-handshake-specification)
+    * [Handshake State](#handshake-state)
+    * [Handshake State Initialization](#handshake-state-initialization)
+    * [Handshake Exchange](#handshake-exchange)
+  * [Lightning Message Specification](#lightning-message-specification)
+    * [Encrypting Messages](#encrypting-messages)
+    * [Decrypting Messages](#decrypting-messages)
+  * [Lightning Message Key Rotation](#lightning-message-key-rotation)
+  * [Security Considerations](#security-considerations)
+  * [Appendix A: Transport Test Vectors](#appendix-a-transport-test-vectors)
+    * [Initiator Tests](#initiator-tests)
+    * [Responder Tests](#responder-tests)
+    * [Message Encryption Tests](#message-encryption-tests)
+  * [Acknowledgments](#acknowledgments)
+  * [References](#references)
+  * [Authors](#authors)
+
 ## Cryptographic Messaging Overview
 
 Prior to sending any Lightning messages, nodes must first initiate the
@@ -27,20 +50,19 @@ The transcript between two nodes is separated into two distinct segments:
 
 ### Authenticated Key Agreement Handshake
 
-The handshake chosen for the authenticated key exchange is `Noise_XK`. Prior
-to the handshake, the initiator must know the identity public key of
+The handshake chosen for the authenticated key exchange is `Noise_XK`. As a
+pre-message, the initiator must know the identity public key of
 the responder. This provides a degree of identity hiding for the
 responder, as its public key is _never_ transmitted during the handshake. Instead,
 authentication is achieved implicitly via a series of Elliptic-Curve
 Diffie-Hellman (ECDH) operations followed by a MAC check.
 
 The authenticated key agreement (`Noise_XK`) is performed in three distinct
-steps. During each "act" of the handshake: some (possibly encrypted) keying
+steps. During each "act" of the handshake the following occurs: some (possibly encrypted) keying
 material is sent to the other party; an ECDH is performed based on exactly
 which act is being executed, with the result mixed into the current set of
 encryption keys (`ck` the chaining key and `k` the encryption key); and 
-an AEAD payload with a zero-length cipher text is sent. As this payload is
-length zero, only a MAC is sent across. The mixing of ECDH outputs into
+an AEAD payload with a zero-length cipher text is sent. As this payload has no length, only a MAC is sent across. The mixing of ECDH outputs into
 a hash digest forms an incremental TripleDH handshake.
 
 Using the language of the Noise Protocol, `e` and `s` (both public keys)
@@ -120,7 +142,7 @@ Throughout the handshake process, each side maintains these variables:
  * `e`: A party's **ephemeral keypair**. For each session a node MUST generate a
    new ephemeral key with strong cryptographic randomness.
 
- * `s`: A party's **static public key** (`ls` for local, `rs` for remote).
+ * `s`: A party's **static public key** (`ls` for local, `rs` for remote)
 
 The following functions will also be referenced:
 
@@ -223,7 +245,7 @@ and 16 bytes for the `poly1305` tag.
 **Receiver Actions:**
 
   * Read _exactly_ 50 bytes from the network buffer.
-  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]` and `c = m[34:]`.
+  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]`, and `c = m[34:]`.
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` is the next 33
       bytes of `m`, and `m[34:]` is the last 16 bytes of `m`
     * The raw bytes of the remote party's ephemeral public key (`e`) are to be
@@ -285,7 +307,7 @@ for the `poly1305` tag.
 
 **Receiver Actions:**
 
-  * Read _exactly_ 50-bytes from the network buffer.
+  * Read _exactly_ 50 bytes from the network buffer.
   * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]`, and `c = m[34:]`.
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` is the next 33
       bytes of `m`, and `m[34:]` is the last 16 bytes of `m`
@@ -351,7 +373,7 @@ construction, and 16 bytes for a final authenticating tag.
 
 **Receiver Actions:**
 
-  * Read _exactly_ 66-bytes from the network buffer.
+  * Read _exactly_ 66 bytes from the network buffer.
   * Parse out the read message (`m`) into `v = m[0]`, `c = m[1:49]` and `t = m[50:]`
   * If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
@@ -372,7 +394,7 @@ construction, and 16 bytes for a final authenticating tag.
        and `sk` is the key to be used by the responder to encrypt messages to
        the initiator
      * The final encryption keys to be used for sending and
-       receiving messages for the duration of the session are generated
+       receiving messages for the duration of the session are generated.
   * `rn = 0, sn = 0`
      * The sending and receiving nonces are initialized to zero.
 
@@ -424,7 +446,7 @@ In order to encrypt a Lightning message (`m`), given a sending key (`sk`) and a 
   * let `l = len(m)`
     * where `len` obtains the length in bytes of the Lightning message
   * Serialize `l` into 2 bytes encoded as a big-endian integer.
-  * Encrypt `l` using `ChaChaPoly-1305`, `sn`, and `sk`, to obtain `lc`
+  * Encrypt `l` (using `ChaChaPoly-1305`, `sn`, and `sk`), to obtain `lc`
     (18 bytes)
     * The nonce `sn` is encoded as a 96-bit little-endian number. As the
       decoded nonce is 64 bits, the 96-bit nonce is encoded as: 32 bits
@@ -444,13 +466,13 @@ done:
 
   * Read _exactly_ 18 bytes from the network buffer.
   * Let the encrypted length prefix be known as `lc`
-  * Decrypt `lc` using `ChaCha20-Poly1305`, `rn`, and `rk`, to obtain the size of
+  * Decrypt `lc` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain the size of
     the encrypted packet `l`.
     * A zero-length byte slice is to be passed as the AD (associated data).
     * The nonce `rn` MUST be incremented after this step.
   * Read _exactly_ `l+16` bytes from the network buffer, let the bytes be known as
     `c`.
-  * Decrypt `c` using `ChaCha20-Poly1305`, `rn`, and `rk`, to obtain decrypted
+  * Decrypt `c` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain decrypted
     plaintext packet `p`.
     * The nonce `rn` MUST be incremented after this step.
 
@@ -458,7 +480,7 @@ done:
 ## Lightning Message Key Rotation
 
 Changing keys regularly and forgetting previous keys is useful to
-prevent the decryption of old messages in the case of later key leakage (i.e.
+prevent the decryption of old messages, in the case of later key leakage (i.e.
 backwards secrecy).
 
 Key rotation is performed for _each_ key (`sk` and `rk`) _individually_. A key
