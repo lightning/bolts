@@ -469,6 +469,7 @@ The processing node:
   - if the processing node does not have a peer with the matching address:
     - MUST drop the packet.
     - MUST signal a route failure.
+    
 # Shared Secret
 
 The origin node performs ECDH with each hop of the route, in order to establish a secret.
@@ -593,11 +594,6 @@ Where `hmac` is an HMAC authenticating the remainder of the packet, with a key
 generated using the above process, with key type `um`, `failuremsg` as defined
 below, and `pad` as the extra bytes used to conceal length.
 
-The erring node:
-  - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to 256.
-    - Note: this value is 118 bytes longer than the longest currently-defined
-    message.
-
 The erring node then generates a new key, using the key type `ammag`.
 This key is then used to generate a pseudo-random stream, which is in turn
 applied to the packet using `XOR`.
@@ -618,22 +614,29 @@ key, and computes the HMAC, using each hop's `um` key.
 The origin node can detect the sender of the error message by matching the
 `hmac` field with the computed HMAC.
 
-The origin node:
+The association between the forward and return packets is handled outside of
+this onion routing protocol, e.g. via association with an HTLC in a payment
+channel.
+
+### Requirements
+
+The _erring node_:
+  - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to 256.
+    - Note: this value is 118 bytes longer than the longest currently-defined
+    message.
+
+The _origin node_:
   - once the return message has been decrypted:
     - SHOULD store a copy of the message.
     - SHOULD continue decrypting, until the loop has been repeated 20 times.
     - SHOULD use constant `ammag` and `um` keys to obfuscate the route length.
 
-The association between the forward and return packets is handled outside of
-this onion routing protocol, e.g. via association with an HTLC in a payment
-channel.
-
 ## Failure Messages
 
 The failure message encapsulated in `failuremsg` has an identical format as
 a normal message: a 2-byte type `failure_code` followed by data applicable
-to that type. Following is a list of the currently supported `failure_code`
-values and their required use cases.
+to that type. Below is a list of the currently supported `failure_code`
+values, followed by their use case requirements.
 
 Notice that the `failure_code`s are not of the same type as other message types,
 defined in other BOLTs, as they are not sent directly on the transport layer
@@ -730,7 +733,7 @@ An _erring node_:
   - MUST select one of the above error codes when creating an error message.
   - MUST include the appropriate data for that particular error type.
   - if there is more than one error:
-    - SHOULD select the first error it encounters in list above.
+    - SHOULD select the first error it encounters from list above.
 
 Any _erring node_ MAY:
   - if the `realm` byte is unknown:
@@ -749,16 +752,16 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
   - if the onion HMAC is incorrect:
     - return an `invalid_onion_hmac` error.
   - if the ephemeral key in the onion is unparsable:
-    - return `invalid_onion_key` error.
-  - if an otherwise unspecified, transient error occurs in the outgoing channel
-  (i.e. during forwarding to its receiving peer), e.g. channel capacity reached,
-  too many in-flight HTLCs, etc.:
+    - return an `invalid_onion_key` error.
+  - if, during forwarding to its receiving peer, an otherwise unspecified,
+  transient error occurs in the outgoing channel (e.g. channel capacity reached,
+  too many in-flight HTLCs, etc.):
     - return a `temporary_channel_failure` error.
   - if an otherwise unspecified, permanent error occurs during forwarding to its
   receiving peer (e.g. channel recently closed):
     - return a `permanent_channel_failure` error.
   - if the outgoing channel has requirements advertised in its
-  `channel_announcement` `features`, which were NOT included in the onion:
+  `channel_announcement`'s `features`, which were NOT included in the onion:
     - return a `required_channel_feature_missing` error.
   - if the receiving peer specified by the onion is NOT known:
     - return an `unknown_next_peer` error.
@@ -768,20 +771,20 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
     - return an `amount_below_minimum` error.
   - if the HTLC does NOT pay a sufficient fee:
     - report the amount of the incoming HTLC and the current channel setting for
-    the outgoing channel:
+    the outgoing channel.
     - return a `fee_insufficient` error.
   - if the `outgoing_cltv_value` does NOT match the `update_add_htlc`'s
   `cltv_expiry` minus the `cltv_expiry_delta` for the outgoing channel:
     - report the `cltv_expiry` and the current channel setting for the outgoing
     channel.
     - return an `incorrect_cltv_expiry` error.
-  - if the `cltv_expiry` is too near:
+  - if the `cltv_expiry` is unreasonably near the present:
     - report the current channel setting for the outgoing channel.
     - return an `expiry_too_soon` error.
   - if the `cltv_expiry` is unreasonably far in the future:
     - return an `expiry_too_far` error.
   - if the channel is disabled:
-    - report the current channel setting for the outgoing channel:
+    - report the current channel setting for the outgoing channel.
     - return a `channel_disabled` error.
 
 An _intermediate hop_ MUST NOT, but the _final node_:
@@ -796,9 +799,9 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the amount paid is more than twice the amount expected:
     - SHOULD fail the HTLC.
     - SHOULD return an `incorrect_payment_amount` error.
-    - Note: this allows the origin node to reduce information leakage by
-    altering the amount while not allowing for accidental gross overpayment.
-  - if the `cltv_expiry` value is too near the present:
+      - Note: this allows the origin node to reduce information leakage by
+      altering the amount while not allowing for accidental gross overpayment.
+  - if the `cltv_expiry` value is unreasonably near the present:
     - MUST fail the HTLC.
     - MUST return a `final_expiry_too_soon` error.
   - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
@@ -809,6 +812,8 @@ An _intermediate hop_ MUST NOT, but the _final node_:
     - [FIXME: MAY|SHOULD|MUST?] return a `final_incorrect_htlc_amount` error.
 
 ## Receiving Failure Codes
+
+### Requirements
 
 The _origin node_:
   - MUST ignore any extra bytes in `failuremsg`.
