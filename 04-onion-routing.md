@@ -407,22 +407,9 @@ specifies a version number that it doesn't support.
 For packets with supported version numbers, the processing node first parses the
 packet into its individual fields.
 
-The processing node:
-  - if the ephemeral public key is NOT on the `secp256k1` curve:
-    - MUST abort processing the packet.
-    - MUST report a route failure to the origin node.
-
 Next, the processing node computes the shared secret using the private key
 corresponding to its own public key and the ephemeral key from the packet, as
 described in [Shared Secret](#shared-secret).
-
-The processing node:
-  - if the packet has previously been forwarded or locally redeemed, i.e. the
-  packet contains duplicate routing information to a previously received packet:
-    - if preimage is known:
-      - MAY immediately redeem the HTLC using the preimage.
-    - otherwise:
-      - MUST abort processing and report a route failure.
 
 The above requirements prevent any hop along the route from retrying a payment
 multiple times, in an attempt to track a payment's progress via traffic
@@ -436,11 +423,6 @@ positives of this log.
 Next, the processing node uses the shared secret to compute a _mu_-key, which it
 in turn uses to compute the HMAC of the `hops_data`. The resulting HMAC is then
 compared against the packet's HMAC.
-
-The processing node:
-  - if the computed HMAC and the packet's HMAC differ:
-    - MUST abort processing.
-    - MUST report a route failure.
 
 Comparison of the computed HMAC and the packet's HMAC MUST be
 time-constant to avoid information leaks.
@@ -456,11 +438,6 @@ The first 65 bytes of the resulting routing information become the `per_hop`
 field used for the next hop. The next 1300 bytes are the `hops_data` for the
 outgoing packet.
 
-The processing node:
-  - if the `realm` is unknown:
-    - MUST drop the packet.
-    - MUST signal a route failure.
-
 A special `per_hop` `HMAC` value of 32 `0x00`-bytes indicates that the currently
 processing hop is the intended recipient and that the packet should not be forwarded.
 
@@ -470,14 +447,28 @@ by blinding the ephemeral key with the processing node's public key along with t
 shared secret and by serializing the `hops_data`.
 The resulting packet is then forwarded to the addressed peer.
 
+## Requirements
+
 The processing node:
+  - if the ephemeral public key is NOT on the `secp256k1` curve:
+    - MUST abort processing the packet.
+    - MUST report a route failure to the origin node.
+  - if the packet has previously been forwarded or locally redeemed, i.e. the
+  packet contains duplicate routing information to a previously received packet:
+    - if preimage is known:
+      - MAY immediately redeem the HTLC using the preimage.
+    - otherwise:
+      - MUST abort processing and report a route failure.
+  - if the computed HMAC and the packet's HMAC differ:
+    - MUST abort processing.
+    - MUST report a route failure.
+  - if the `realm` is unknown:
+    - MUST drop the packet.
+    - MUST signal a route failure.
   - MUST address the packet to another peer that is its direct neighbor.
   - if the processing node does not have a peer with the matching address:
     - MUST drop the packet.
     - MUST signal a route failure.
-
-[TODO: separate processing node requirements into `Requirements` section]
-
 # Shared Secret
 
 The origin node performs ECDH with each hop of the route, in order to establish a secret.
