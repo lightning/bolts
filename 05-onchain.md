@@ -29,7 +29,7 @@ seeing any of these on-chain.
 # Table of Contents
   * [General Nomenclature](#general-nomenclature)
   * [Commitment Transaction](#commitment-transaction)
-  * [Failing A Channel](#failing-a-channel)
+  * [Failing a Channel](#failing-a-channel)
   * [Mutual Close Handling](#mutual-close-handling)
   * [Unilateral Close Handling: Our Own Commitment Transaction](#unilateral-close-handling-our-own-commitment-transaction)
       * [HTLC Output Handling: Our Commitment, Our Offers](#htlc-output-handling-our-commitment-our-offers)
@@ -40,9 +40,9 @@ seeing any of these on-chain.
   * [Revoked Transaction Close Handling](#revoked-transaction-close-handling)
 	  * [Penalty Transactions Weight Calculation](#penalty-transactions-weight-calculation)
   * [General Requirements](#general-requirements)
-  * [Appendix A: Expected weights](#appendix-a-expected-weights)
+  * [Appendix A: Expected Weights](#appendix-a-expected-weights)
 	* [Expected Weight of the `to_local` Penalty Transaction Witness](#expected-weight-of-the-to-local-penalty-transaction-witness)
-	* [Expected Weight of the `received_htlc` Penalty Transaction Witness](#expected-weight-of-the-received-htlc-penalty-transaction-witness)
+	* [Expected Weight of the `offered_htlc` Penalty Transaction Witness](#expected-weight-of-the-offered-htlc-penalty-transaction-witness)
 	* [Expected Weight of the `accepted_htlc` Penalty Transaction Witness](#expected-weight-of-the-accepted-htlc-penalty-transaction-witness)
   * [Authors](#authors)
 
@@ -105,7 +105,7 @@ identical, but they are (usually) symmetrical.
 
 See [BOLT #3: Commitment Transaction](03-transactions.md#commitment-transaction) for more details.
 
-# Failing A Channel
+# Failing a Channel
 
 Various error cases involve closing a channel. This can be done in
 several ways; the most efficient is preferred. Note that there are
@@ -297,7 +297,7 @@ field) before spending that HTLC-success transaction output.
 If not otherwise resolved, once the HTLC output has expired, it is considered
 *irrevocably resolved*.
 
-# Unilateral Close Handling: Other Node's Commitment Transaction
+# Unilateral Close Handling: Their Commitment Transaction
 
 The other node's commitment transaction *resolves* the funding
 transaction output.
@@ -365,7 +365,7 @@ HTLC (if any) once the commitment transaction has reached reasonable
 depth, and MAY fail it sooner if no valid commitment transaction
 contains an output corresponding to the HTLC.
 
-## Rationale
+### Rationale
 
 If the commitment transaction is theirs, the only way to spend the
 HTLC output using a payment preimage is for them to use the
@@ -516,7 +516,7 @@ transaction.
 With a maximum standard weight of 400000, the maximum number of HTLCs that can
 be swept in a single transaction:
 
-    max_num_htlcs = (400000 - 324 - 272 - 4*53 - 2) / 413 = 966
+    max_num_htlcs = [400000 - 324 - 272 - (4 * 53) - 2] / 413 = 966
 
 This allows 483 HTLCs in each direction (with both `to_local` and
 `to_remote` outputs) to still be resolved in a single penalty transaction.
@@ -537,7 +537,7 @@ mempool. Considering mempool transactions should cause lower latency
 for HTLC redemption, but on-chain HTLCs should be such an unusual case
 that speed cannot be considered critical.
 
-# Appendix A: Expected weights
+# Appendix A: Expected Weights
 
 ## Expected Weight of the `to_local` Penalty Transaction Witness
 
