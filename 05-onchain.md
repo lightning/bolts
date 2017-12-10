@@ -3,7 +3,7 @@
 ## Abstract
 
 Lightning allows for two parties (nodes A and B) to conduct transactions
-off-chain by giving each of them a cross-signed *commitment transaction*, which
+off-chain by giving each of them a *cross-signed commitment transaction*, which
 describes the current state of the channel (basically, the current balance).
 This *commitment transaction* is updated every time a new payment is made and
 is spendable at all times.
@@ -16,10 +16,10 @@ commitment transaction, but without any pending payments) and publish it on the
 blockchain (see [BOLT #2: Channel Close](02-peer-protocol.md#channel-close)).
 2. The bad way (*unilateral close*): something goes wrong, possibly without evil
 intent on either side. Perhaps one party crashed, for instance. One side
-publishes its *latest* commitment transaction.
+publishes its *latest commitment transaction*.
 3. The ugly way (*revoked transaction close*): one of the parties deliberately
-tries to cheat, by publishing an outdated version of *its* commitment transaction
-(presumably one that is more in its favor).
+tries to cheat, by publishing an *outdated commitment transaction* (presumably,
+a prior version of which is more in its favor).
 
 Because Lightning is designed to be trustless, there is no risk of loss of funds
 in any of these three cases; provided that the situation is properly handled.
@@ -99,8 +99,8 @@ return for a payment preimage.
 return for a payment preimage.
 
 To incentivize nodes A and B to cooperate, an `OP_CHECKSEQUENCEVERIFY` relative
-timeout encumbers node *A's outputs* (in *A's* commitment transaction) and
-node *B's outputs* (in *B's* commitment transaction). So for example, if node A
+timeout encumbers node *A's outputs* (in *A's commitment transaction*) and
+node *B's outputs* (in *B's commitment transaction*). So for example, if node A
 publishes its commitment transaction, it will have to wait to claim its funds,
 whereas node B will have immediate access to its funds. As a consequence, the
 two commitment transactions are not identical, but they are (usually)
@@ -111,58 +111,67 @@ for more details.
 
 # Failing a Channel
 
-Various error cases involve closing a channel. This can be done in
-several ways; the most efficient is preferred. Note that there are
-requirements around sending the error message to the peer in
-[BOLT #1: The `error` message](01-messaging.md#the-error-message).
+Although, closing a channel can be accomplished in several ways, the most
+efficient is preferred.
+
+Various error cases involve closing a channel. The requirements for sending
+error messages to peers are specified in
+[BOLT #1: The `error` Message](01-messaging.md#the-error-message).
 
 ## Requirements
 
-- If no *local* commitment transaction ever contained a `to_local`
-  or HTLC output, the node MAY simply forget the channel.
-- Otherwise, if the *current* commitment transaction does not contain
-  `to_local` or HTLC outputs, a node MAY simply wait and rely on the
-  other node to close, but MUST not forget the channel.
-- Otherwise, if the node has received a valid `closing_signed` message
-  with high enough fee level, it SHOULD use that to perform a mutual
-  close.
-- Otherwise, it MUST use the *last* commitment transaction for which it
-  has a signature to perform unilateral close.
+A node:
+  - if a *local commitment transaction* has NOT ever contained a `to_local`
+  or HTLC output:
+    - MAY simply forget the channel.
+  - otherwise:
+    - if the *current commitment transaction* does NOT contain `to_local` or
+    other HTLC outputs:
+      - MAY simply wait for the other node to close the channel.
+      - until the other node closes:
+        - MUST NOT forget the channel.
+    - otherwise:
+      - if it has received a valid `closing_signed` message that includes a
+      sufficient fee:
+        - SHOULD use this fee to perform a *mutual close*.
+      - otherwise:
+        - MUST use the *last commitment transaction*, for which it has a
+        signature, to perform a *unilateral close*.
 
 ## Rationale
 
-Since `dust_limit_satoshis` is supposed to prevent uneconomic output
-creation (which would be left unspent forever in the blockchain), we
-insist on spending the commitment transaction outputs.
+Since `dust_limit_satoshis` is supposed to prevent creation of uneconomic
+outputs (which would otherwise be left forever, unspent on the blockchain), it's
+insisted that all commitment transaction outputs be spent.
 
 In the early stages of a channel, it's common for one side to have
-little or no money in the channel; with nothing to lose, there's no
-reason to consume resources monitoring the channel state.
+little or no funds in the channel; in this case, it has nothing to lose, and
+thus it need not consume resources monitoring the channel state.
 
-There's a bias towards using mutual close over unilateral, because
-outputs are unencumbered by a delay and are directly spendable by wallets, and
-because fees tend to be less exaggerated than commitment transactions:
-thus the only reason not to use the signature from `closing_signed`
-would be if the fee offered was too small for it to be processed.
+There exists a bias towards preferring mutual closes over unilateral closes,
+because outputs of the former are unencumbered by a delay and are directly
+spendable by wallets. In addition, fees tend to be less exaggerated than those
+of commitment transactions. So, the only reason not to use the signature from
+`closing_signed` would be if the fee offered was too small for it to be
+processed.
 
 # Mutual Close Handling
 
 A mutual close transaction *resolves* the funding transaction output.
 
-A node doesn't need to do anything else as it has already agreed to the
-output, which is sent to its specified `scriptpubkey` (see [BOLT #2: Closing initiation: `shutdown`](02-peer-protocol.md#closing-initiation-shutdown)).
+In the case of a mutual close, a node need not do anything else, as it has
+already agreed to the output, which is sent to its specified `scriptpubkey` (see
+[BOLT #2: Closing initiation: `shutdown`](02-peer-protocol.md#closing-initiation-shutdown)).
 
 # Unilateral Close Handling: Our Own Commitment Transaction
 
-There are two unilateral cases to consider: in this case, a node sees
-*its own* commitment transaction.
+This is the first of two cases involving unilateral closes: in this case, a
+node sees *its own commitment transaction*, which *resolves* the funding
+transaction output.
 
-*Our own* commitment transaction *resolves* the funding transaction output.
-
-A node can't claim funds from the outputs of its own unilateral close
+However, a node cannot claim funds from the outputs of its own unilateral close
 until the `OP_CHECKSEQUENCEVERIFY` delay has passed (as specified by
-the other node's `to_self_delay` field). Where this applies, it's
-noted below.
+the other node's `to_self_delay` field). Where relevant, this is noted below.
 
 ## Requirements
 
