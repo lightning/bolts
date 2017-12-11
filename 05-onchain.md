@@ -524,15 +524,15 @@ The *expected weight* is calculated as follows:
         - OP_IF: 1 byte
             - OP_DATA: 1 byte (revocationkey length)
             - revocationkey: 33 bytes
-            - OP_CHECKSIG: 1 byte
         - OP_ELSE: 1 byte
-            - OP_DATA: 1 byte (localkey length)
-            - localkey: 33 bytes
-            - OP_CHECKSIG_VERIFY: 1 byte
             - OP_DATA: 1 byte (delay length)
             - delay: 8 bytes
             - OP_CHECKSEQUENCEVERIFY: 1 byte
+            - OP_DROP: 1 byte
+            - OP_DATA: 1 byte (localkey length)
+            - localkey: 33 bytes
         - OP_ENDIF: 1 byte
+        - OP_CHECKSIG: 1 byte
 
     to_local_penalty_witness: 160 bytes
         - number_of_witness_elements: 1 byte
