@@ -71,7 +71,8 @@ whatever is being offered in return.
 The data part consists of multiple sections:
 
 1. `timestamp`: seconds-since-1970 (35 bits, big-endian)
-1. Zero or more tagged parts.
+1. `tagged_parts_data_length`: length (in 5 bit words) of the entire tagged parts section (15 bits, big-endian)
+1. One\* or more tagged parts. \*(Since payment_hash is required)
 1. `signature`: bitcoin-style signature of above. (520 bits)
 
 ## Requirements
@@ -105,9 +106,9 @@ Each Tagged Field is of format:
 Currently defined Tagged Fields are:
 
 * `p` (1): `data_length` 52.  256-bit SHA256 payment_hash: preimage of this provides proof of payment.
-* `d` (13): `data_length` variable.  short description of purpose of payment (ASCII),  e.g. '1 cup of coffee'
+* `d` (13): `data_length` variable.  short description of purpose of payment (UTF-8),  e.g. '1 cup of coffee'
 * `n` (19): `data_length` 53.  The 33-byte public key of the payee node.
-* `h` (23): `data_length` 52.  256-bit description of purpose of payment (SHA256).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
+* `h` (23): `data_length` variable.  256-bit description of purpose of payment (SHA256) with an optional URL for fetching the full text (encoded in ASCII bytes and appended to the 32 byte hash).  This is used to commit to an associated description which is too long to fit, such as may be contained in a web page.
 * `x` (6): `data_length` variable.  `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
 * `c` (24): `data_length` variable. `min_final_cltv_expiry` to use for the last HTLC in the route. Default is 9 if not specified.
 * `f` (9): `data_length` variable, depending on version. Fallback on-chain address: for bitcoin, this starts with a 5 bit `version`; a witness program or P2PKH or P2SH address.
@@ -123,11 +124,15 @@ A writer MUST include exactly one `p` field, and set `payment_hash` to
 the SHA-2 256-bit hash of the `payment_preimage` which will be given
 in return for payment.
 
-A writer MUST include either exactly one `d` or exactly one `h` field.  If included, a 
+A writer SHOULD warn / discourage payment requests longer than 1023 characters.
+
+A writer SHOULD include either exactly one `d` or exactly one `h` field.  If included, a 
 writer SHOULD make `d` a complete description of
 the purpose of the payment.  If included, a writer MUST make the preimage
 of the hashed description in `h` available through some unspecified means,
 which SHOULD be a complete description of the purpose of the payment.
+
+A writer MUST limit the `d` description field to a maximum length to 100 bytes (160 length of 5 bit words) (Keep in mind, UTF-8 encodes in multibyte characters, so converting from text to byte array before measuring length is recommended)
 
 A writer MAY include one `x` field.
 
