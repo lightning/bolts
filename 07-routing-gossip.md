@@ -225,7 +225,7 @@ The following `address descriptor` types are defined:
    * `2`: ipv6. data = `[16:ipv6_addr][2:port]` (length 18)
    * `3`: tor v2 onion service. data = `[10:onion_addr][2:port]` (length 12)
        * Version 2 onion service addresses. Encodes an 80-bit truncated `SHA-1` hash
-         of a 1024-bit `RSA` public key for the onion service (aka Tor hidden service).
+         of a 1024-bit `RSA` public key for the onion service (a.k.a. Tor hidden service).
    * `4`: tor v3 onion service. data `[35:onion_addr][2:port]`  (length 37)
        * Version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt))
          onion service addresses. Encodes: `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`. 
