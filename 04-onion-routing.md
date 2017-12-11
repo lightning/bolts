@@ -469,7 +469,7 @@ The processing node:
   - if the processing node does not have a peer with the matching address:
     - MUST drop the packet.
     - MUST signal a route failure.
-    
+
 # Shared Secret
 
 The origin node performs ECDH with each hop of the route, in order to establish a secret.
@@ -704,15 +704,6 @@ The top byte of `failure_code` can be read as a set of flags:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
-1. type: 21 (`expiry_too_far`)
-
-1. type: UPDATE|20 (`channel_disabled`)
-2. data:
-   * [`2`: `flags`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
-[FIXME: is it important that 20 and 21 remain in this order or can they be moved to end of list?]
-
 1. type: PERM|15 (`unknown_payment_hash`)
 
 1. type: PERM|16 (`incorrect_payment_amount`)
@@ -727,13 +718,22 @@ The top byte of `failure_code` can be read as a set of flags:
 2. data:
    * [`4`:`incoming_htlc_amt`]   
 
+1. type: UPDATE|20 (`channel_disabled`)
+2. data:
+   * [`2`: `flags`]
+   * [`2`:`len`]
+   * [`len`:`channel_update`]
+
+1. type: 21 (`expiry_too_far`)
+
+
 ### Requirements
 
 An _erring node_:
   - MUST select one of the above error codes when creating an error message.
   - MUST include the appropriate data for that particular error type.
   - if there is more than one error:
-    - SHOULD select the first error it encounters from list above.
+    - SHOULD select the first error it encounters from the list above.
 
 Any _erring node_ MAY:
   - if the `realm` byte is unknown:
@@ -806,10 +806,10 @@ An _intermediate hop_ MUST NOT, but the _final node_:
     - MUST return a `final_expiry_too_soon` error.
   - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
   the final node's HTLC:
-    - [FIXME: MAY|SHOULD|MUST?] return `final_incorrect_cltv_expiry` error.
+    - MUST return `final_incorrect_cltv_expiry` error.
   - if the `amt_to_forward` is greater than the `incoming_htlc_amt` from the
   final node's HTLC:
-    - [FIXME: MAY|SHOULD|MUST?] return a `final_incorrect_htlc_amount` error.
+    - MUST return a `final_incorrect_htlc_amount` error.
 
 ## Receiving Failure Codes
 
