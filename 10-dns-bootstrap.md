@@ -1,53 +1,54 @@
 # BOLT #10: DNS Bootstrap and Assisted Node Location
 
-This specification describes a node discovery mechanism based on the Domain Name System.
+This specification describes a node discovery mechanism based on the Domain Name System (DNS).
 Its purpose is twofold:
 
- - Bootstrap: the initial node discovery for nodes that have no known contacts in the network
- - Assisted Node Location: supporting nodes to discover the current network address of previously known peers
+ - Bootstrap: providing the initial node discovery for nodes that have no known contacts in the network
+ - Assisted Node Location: supporting nodes in  discovery of the current network address of previously known peers
 
-A domain name server implementing this specification is called a _DNS Seed_, and answers incoming DNS queries of type `A`, `AAAA` or `SRV` as specified in RFCs 1035<sup>[1](#ref-1)</sup>, 3596<sup>[2](#ref-2)</sup> and 2782<sup>[3](#ref-3)</sup> respectively.
+A domain name server implementing this specification is called a _DNS Seed_, and answers incoming DNS queries of type `A`, `AAAA`, or `SRV` as specified in RFCs 1035<sup>[1](#ref-1)</sup>, 3596<sup>[2](#ref-2)</sup> and 2782<sup>[3](#ref-3)</sup> respectively.
 The DNS server is authoritative for a subdomain, called a _seed root domain_, and clients may query it for subdomains.
 
 The subdomains consist of a number of dot-separated _conditions_ that further narrow the desired results.
 
 ## DNS Seed Queries
 
-A client MAY issue queries using either the `A`, `AAAA` or `SRV` query types, specifying conditions for the desired results the seed should return.
+A client MAY issue queries using the `A`, `AAAA`, or `SRV` query types, specifying conditions for the desired results that the seed should return.
 
 ### Query Semantics
 
-The conditions are key-value pairs with a single letter key and the remainder as the value.
+The conditions are key-value pairs with a single-letter key; the remainder of the key-value pair is the value.
 The following key-value pairs MUST be supported by a DNS seed:
 
  - `r`: realm byte, used to specify what realm the returned nodes must support (default value: 0, Bitcoin)
- - `a`: address types, used to specify what address types should be returned for `SRV` queries. This is a bitfield using the types from [BOLT 7](07-routing-gossip.md) as bit index. This condition MAY only be used for `SRV` queries. (default value: 6, i.e., `2 || 4`, IPv4 and IPv6)
- - `l`: `node_id`, the bech32 encoded `node_id` of a specific node, used to ask for a single node instead of a random selection. (default: null)
- - `n`: textual representation of the number of desired reply records (default: 25)
+ - `a`: address types, used to specify what address types should be returned for `SRV` queries. This is a bitfield that uses the types from [BOLT 7](07-routing-gossip.md) as bit index. This condition MAY only be used for `SRV` queries. (default value: 6, i.e., `2 || 4`, IPv4 and IPv6) [ FIXME: BOLT 7 says that IPv4 and IPv6 are address descriptor types 1 & 2. Are we missing something in this description? ]
+ - `l`: `node_id`, the bech32-encoded `node_id` of a specific node, used to ask for a single node instead of a random selection. (default: null)
+ - `n`: the number of desired reply records (default: 25)
 
 Results returned by the DNS seed SHOULD match all conditions.
-If the DNS seed does not implement filtering by a given condition it MAY ignore the condition altogether, i.e., the seed filtering is best effort only.
+If the DNS seed does not implement filtering by a given condition it MAY ignore the condition altogether (i.e., the seed filtering is best effort only).
 Clients MUST NOT rely on any given condition being met by the results.
 
-We distinguish between _wildcard_ queries and _node_ queries, depending on whether the `l`-key is set or not.
-Upon receiving a wildcard query the DNS seed MUST select a random subset of up to `n` IPv4 or IPv6 addresses of nodes that are listening for incoming connections.
-For `A` and `AAAA` queries only nodes listening on the default port 9735 as defined in [BOLT 01](01-messaging.md) MUST be returned.
+Queries distinguish between _wildcard_ queries and _node_ queries, depending on whether the `l`-key is set or not.
+
+Upon receiving a wildcard query, the DNS seed MUST select a random subset of up to `n` IPv4 or IPv6 addresses of nodes that are listening for incoming connections.
+For `A` and `AAAA` queries, only nodes listening on the default port 9735, as defined in [BOLT 01](01-messaging.md), MUST be returned.
 Since `SRV` records return a _(hostname,port)_-tuple, nodes that are listening on non-default ports MAY be returned.
 
-Upon receiving a node query, the seed MUST select the record matching the `node_id` if any, and return all addresses associated with that node.
+Upon receiving a node query, the seed MUST select the record matching the `node_id`, if any, and return all addresses associated with that node.
 
 ### Reply Construction
 
-The results are serialized in a reply with a query type matching the client's query type, i.e., `A` queries result in `A` replies, `AAAA` queries result in `AAAA` replies and `SRV` queries result in `SRV` replies, but may be augmented with additional records, e.g., to add `A` or `AAAA` records matching the returned `SRV` records.
+The results are serialized in a reply with a query type matching the client's query type, i.e., `A` queries result in `A` replies, `AAAA` queries result in `AAAA` replies, and `SRV` queries result in `SRV` replies, but they may be augmented with additional records (e.g., to add `A` or `AAAA` records matching the returned `SRV` records).
 
-For `A` and `AAAA` queries the reply contains the domain name and the IP address of the results.
+For `A` and `AAAA` queries, the reply contains the domain name and the IP address of the results.
 The domain name MUST match the domain in the query in order not to be filtered by intermediate resolvers.
 
-For `SRV` queries the reply consists of (_virtual hostnames_, port)-tuples
+For `SRV` queries, the reply consists of (_virtual hostnames_, port)-tuples
 A virtual hostname is a subdomain of the seed root domain that uniquely identifies a node in the network.
 It is constructed by prepending the `node_id` condition to the seed root domain.
-The DNS seed MAY additionally return the corresponding `A` and `AAAA` indicating the IP address for the `SRV` entries in the Extra section of the reply.
-Due to the large size of the resulting reply it may happen that the reply is dropped by intermediate resolvers, hence the DNS seed MAY omit these additional records upon detecting a repeated query.
+The DNS seed MAY additionally return the corresponding `A` and `AAAA` records that indicate the IP address for the `SRV` entries in the Extra section of the reply.
+Due to the large size of the resulting reply, the reply may be dropped by intermediate resolvers, hence the DNS seed MAY omit these additional records upon detecting a repeated query.
 
 Should no entries match all the conditions then an empty reply MUST be returned.
 
@@ -55,7 +56,7 @@ Should no entries match all the conditions then an empty reply MUST be returned.
 
 The DNS seed MUST NOT return replies with a TTL lower than 60 seconds.
 The DNS seed MAY filter nodes from its local views for various reasons, including faulty nodes, flaky nodes, or spam prevention.
-In accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup>, replies to random queries, i.e., queries to the seed root domain and the `_nodes._tcp.` alias for `SRV` queries, MUST be random samples from the set of all known good nodes and MUST NOT be biased.
+In accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup>, replies to random queries (i.e. queries to the seed root domain and to the `_nodes._tcp.` alias for `SRV` queries) MUST be random samples from the set of all known good nodes and MUST NOT be biased.
 
 ## Examples
 
