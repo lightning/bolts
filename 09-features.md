@@ -22,7 +22,7 @@ These flags may only be used in the `init` message:
 
 ## Assigned `globalfeatures` flags
 
-[ FIXME: Are there currently no globalfeatures flags? If so, we should note that. ]
+There are currently no `globalfeatures` flags.
 
 ## Requirements
 
