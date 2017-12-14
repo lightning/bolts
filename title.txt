@@ -1,0 +1,6 @@
+---
+title: Lightning Network In-Progress Specifications
+author: Rusty Russell et al.
+rights: Attribution 4.0 International (CC BY 4.0)
+language: en-US
+---
