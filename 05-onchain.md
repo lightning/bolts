@@ -111,7 +111,7 @@ for more details.
 
 # Failing a Channel
 
-Although, closing a channel can be accomplished in several ways, the most
+Although closing a channel can be accomplished in several ways, the most
 efficient is preferred.
 
 Various error cases involve closing a channel. The requirements for sending
@@ -188,10 +188,10 @@ A node:
     - MAY ignore the `to_remote` output.
       - Note: No action is required by the local node, as `to_remote` is
       considered *resolved* by the commitment transaction itself.
-    - [FIXME: SHOULD|MAY|MUST?] handle HTLCs offered by itself as specified in
-    "HTLC Output Handling: Local Commitment, Local Offers" below.
-    - [FIXME: SHOULD|MAY|MUST?] handle HTLCs offered by the remote node as
-    specified in "HTLC Output Handling: Local Commitment, Remote Offers" below.
+    - MUST handle HTLCs offered by itself as specified in
+    [HTLC Output Handling: Local Commitment, Local Offers](#htlc-output-handling-local-commitment-local-offers).
+    - MUST handle HTLCs offered by the remote node as
+    specified in [HTLC Output Handling: Local Commitment, Remote Offers](#htlc-output-handling-local-commitment-remote-offers).
 
 ## Rationale
 
@@ -536,7 +536,7 @@ transaction.
 With a maximum standard weight of 400000, the maximum number of HTLCs that can
 be swept in a single transaction:
 
-    max_num_htlcs = [400000 - 324 - 272 - (4 * 53) - 2] / 413 = 966
+    max_num_htlcs = (400000 - 324 - 272 - (4 * 53) - 2) / 413 = 966
 
 This allows 483 HTLCs in each direction (with both `to_local` and
 `to_remote` outputs) to still be resolved in a single penalty transaction.
