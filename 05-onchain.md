@@ -19,7 +19,7 @@ intent on either side. Perhaps one party crashed, for instance. One side
 publishes its *latest commitment transaction*.
 3. The ugly way (*revoked transaction close*): one of the parties deliberately
 tries to cheat, by publishing an *outdated commitment transaction* (presumably,
-a prior version of which is more in its favor).
+a prior version, which is more in its favor).
 
 Because Lightning is designed to be trustless, there is no risk of loss of funds
 in any of these three cases; provided that the situation is properly handled.
@@ -48,7 +48,7 @@ encounters any of the above situations, on-chain.
 
 # General Nomenclature
 
-Any unspent output is considered to be *unresolved* and is *resolved*
+Any unspent output is considered to be *unresolved* and can be *resolved*
 as detailed in this document. Usually this is accomplished by spending it with
 another *resolving* transaction. Although, sometimes simply noting the output
 for later wallet spending is sufficient, in which case the transaction containing
@@ -141,8 +141,8 @@ A node:
 ## Rationale
 
 Since `dust_limit_satoshis` is supposed to prevent creation of uneconomic
-outputs (which would otherwise be left forever, unspent on the blockchain), it's
-insisted that all commitment transaction outputs be spent.
+outputs (which would otherwise remain forever, unspent on the blockchain), all
+commitment transaction outputs MUST be spent.
 
 In the early stages of a channel, it's common for one side to have
 little or no funds in the channel; in this case, having nothing at stake, a node
@@ -252,12 +252,12 @@ another peer (when the offering node is forwarding the payment). Once a node has
 extracted the payment, it no longer cares about the fate of the HTLC-spending
 transaction itself.
 
-In cases where both resolutions are possible (e.g., when a node receives payment
+In cases where both resolutions are possible (e.g. when a node receives payment
 success after timeout), either interpretation is acceptable; it is the
 responsibility of the recipient to spend it before this occurs.
 
-We need to use local HTLC-timeout transaction to time out the HTLC to prevent them
-fulfilling it and claiming the funds, and before we can back-fail any
+The local HTLC-timeout transaction needs to be used to time out the HTLC to
+prevent the remote node fulfilling it and claiming the funds, and before we can back-fail any
 corresponding incoming HTLC, using `update_fail_htlc` (presumably with reason
 `permanent_channel_failure`) as detailed in
 [BOLT 02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
@@ -331,7 +331,7 @@ When a node discovers a commitment transaction from the *remote node*:
 
 1. `to_remote`: No action is required; this is a simple P2WPKH output to us.
    This output is considered *resolved* by the commitment transaction itself.
-2. `to_local`:: No action required; this is a payment to them. This output is considered *resolved*
+2. `to_local`: No action required; this is a payment to them. This output is considered *resolved*
    by the commitment transaction.
 3. HTLCs offered by the local node: See "HTLC Output Handling: Remote Commitment, Local Offers" below.
 4. HTLCs offered by the remote node: See "HTLC Output Handling: Remote Commitment, Remote Offers" below.
@@ -387,8 +387,8 @@ contains an output corresponding to the HTLC.
 
 ### Rationale
 
-If the commitment transaction is *remotes*, the only way to spend the
-HTLC output using a payment preimage is for them to use the
+If the commitment transaction belongs to the *remote* node, the only way to
+spend the HTLC output using a payment preimage is for them to use the
 HTLC-success transaction.
 
 The payment preimage either serves to prove payment (when the offering node
