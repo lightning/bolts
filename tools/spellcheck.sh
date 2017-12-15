@@ -51,7 +51,7 @@ do
     if [ -n "$CHECK" ]; then
 	# Eliminate the following:
 	# Inline references eg. [Use of segwit](#use-of-segwit)
-	# quoted identifers eg. `htlc_id`
+	# quoted identifiers eg. `htlc_id`
 	# field descriptions, eg. `* [`num_htlcs*64`:`htlc_signature]'
 	# indented field names, eg. '    `num_htlcs`: 0'
 	# lightning addresses, eg. `lnbc1qpvj6chq...`
