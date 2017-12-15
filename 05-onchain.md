@@ -3,8 +3,8 @@
 ## Abstract
 
 Lightning allows for two parties (nodes A and B) to conduct transactions
-off-chain by giving each of them a *cross-signed commitment transaction*, which
-describes the current state of the channel (basically, the current balance).
+off-chain by giving each of the parties a *cross-signed commitment transaction*,
+which describes the current state of the channel (basically, the current balance).
 This *commitment transaction* is updated every time a new payment is made and
 is spendable at all times.
 
@@ -256,65 +256,67 @@ In cases where both resolutions are possible (e.g. when a node receives payment
 success after timeout), either interpretation is acceptable; it is the
 responsibility of the recipient to spend it before this occurs.
 
-The local HTLC-timeout transaction needs to be used to time out the HTLC to
-prevent the remote node fulfilling it and claiming the funds, and before we can back-fail any
-corresponding incoming HTLC, using `update_fail_htlc` (presumably with reason
-`permanent_channel_failure`) as detailed in
+The local HTLC-timeout transaction needs to be used to time out the HTLC (to
+prevent the remote node fulfilling it and claiming the funds) before the
+local node can back-fail any corresponding incoming HTLC, using
+`update_fail_htlc` (presumably with reason `permanent_channel_failure`), as
+detailed in
 [BOLT 02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
-If the incoming HTLC is on-chain too, we simply wait for it to timeout: there's
-no way to signal early failure.
+If the incoming HTLC is also on-chain, a node must simply wait for it to
+timeout: there is no way to signal early failure.
 
-If an HTLC is too small to appear in *any* commitment transaction, it
-can be safely failed immediately. Otherwise,
-if a HTLC isn't in *local* commitment transaction a node needs to make sure
-that a blockchain reorganization or race does not switch to a
-commitment transaction which does contain it before the node fails it, hence
-the wait. The requirement that the incoming HTLC be failed before its
-own timeout still applies as an upper bound.
+If an HTLC is too small to appear in *any commitment transaction*, it can be
+safely failed immediately. Otherwise, if an HTLC isn't in the *local commitment
+transaction*, a node needs to make sure that a blockchain reorganization, or
+race, does not switch to a commitment transaction that does contain the HTLC
+before the node fails it (hence the wait). The requirement that the incoming
+HTLC be failed before its own timeout still applies as an upper bound.
 
 ## HTLC Output Handling: Local Commitment, Remote Offers
 
-Each HTLC output can only be spent by us, the recipient, using the HTLC-success
-transaction, which we can only populate if we have the payment
-preimage. If we don't have the preimage (and don't discover it), it's
+Each HTLC output can only be spent by the recipient, using the HTLC-success
+transaction, which it can only populate if it has the payment
+preimage. If it doesn't have the preimage (and doesn't discover it), it's
 the offerer's responsibility to spend the HTLC output once it's timed out.
 
-There are actually several possible cases for an offered HTLC:
+There are several possible cases for an offered HTLC:
 
-1. The offerer is not irrevocably committed to it. The recipient won't
-   normally know the preimage here, since it won't forward HTLCs until
-   they're fully committed. So using the preimage would reveal that
-   this recipient is the final hop, so it's best to allow the HTLC to time out in
-   this case.
-2. The offerer is irrevocably committed to the offered HTLC, but the recipient hasn't yet
-   committed to an outgoing HTLC. In this case the recipient can either forward
-   or timeout.
-3. The recipient has committed to an outgoing HTLC for the offered one. In
-   this case the recipient has to use the preimage if it receives it from the
-   outgoing HTLC, otherwise it will lose funds by making an outgoing
-   payment without redeeming the incoming one.
+1. The offerer is NOT irrevocably committed to it. The recipient will usually
+   not know the preimage, since it will not forward HTLCs until they're fully
+   committed. So using the preimage would reveal that this recipient is the
+   final hop; thus, in this case, it's best to allow the HTLC to time out.
+2. The offerer is irrevocably committed to the offered HTLC, but the recipient
+   has not yet committed to an outgoing HTLC. In this case, the recipient can
+   either forward or timeout the offered HTLC.
+3. The recipient has committed to an outgoing HTLC, in exchange for the offered
+   HTLC. In this case, the recipient must use the preimage, once it receives it
+   from the outgoing HTLC; otherwise, it will lose funds by sending an outgoing
+   payment without redeeming the incoming payment.
 
 ### Requirements
 
-If the node receives (or already knows) a payment preimage for an
-unresolved HTLC output it was offered for which it has committed to an
-outgoing HTLC, it MUST *resolve* the output by spending it using the
-HTLC-success transaction, and MUST resolve the output of that
-HTLC-success transaction. Otherwise, if the remote node is not
-irrevocably committed to the HTLC, it MUST NOT *resolve* the output by
-spending it.
+A local node:
+  - if it receives (or already possesses) a payment preimage for an unresolved
+  HTLC output that it has been offered AND for which it has committed to an
+  outgoing HTLC:
+    - MUST *resolve* the output by spending it, using the HTLC-success
+    transaction.
+    - MUST resolve the output of that HTLC-success transaction.
+  - otherwise:
+    - if the *remote node* is NOT irrevocably committed to the HTLC:
+      - MUST NOT *resolve* the output by spending it.
+  - SHOULD resolve that HTLC-success transaction output by spending it to a
+  convenient address.
+  - MUST wait until the `OP_CHECKSEQUENCEVERIFY` delay has passed (as specified
+    by the *remote node's* `open_channel`'s `to_self_delay` field), before
+    spending that HTLC-success transaction output.
 
-A node SHOULD resolve that HTLC-success transaction output by spending
-it to a convenient address. If the output is spent (as recommended),
-the output is *resolved* by the spending transaction, otherwise it is
-considered *resolved* by the commitment transaction itself.
+If the output is spent (as is recommended), the output is *resolved* by
+the spending transaction, otherwise it's considered *resolved* by the commitment
+transaction itself.
 
-A node MUST wait until the `OP_CHECKSEQUENCEVERIFY` delay has passed
-(as specified by the remote node's `open_channel` `to_self_delay`
-field) before spending that HTLC-success transaction output.
-
-If not otherwise resolved, once the HTLC output has expired, it is considered
-*irrevocably resolved*.
+If it's NOT otherwise resolved, once the HTLC output has expired, it is
+considered *irrevocably resolved*.
 
 # Unilateral Close Handling: Remote Commitment Transaction
 
@@ -358,8 +360,8 @@ HTLCs).
 
 ## HTLC Output Handling: Remote Commitment, Local Offers
 
-Each HTLC output can only be spent by us, the offerer, after it's timed out,
-or by them, the recipient, if they have the payment preimage.
+Each HTLC output can only be spent by the *offerer* after it's timed out or by
+the *recipient* if it has the payment preimage.
 
 The HTLC output has *timed out* once the depth of the latest block is equal
 or greater than the HTLC `cltv_expiry`.
@@ -387,8 +389,8 @@ contains an output corresponding to the HTLC.
 
 ### Rationale
 
-If the commitment transaction belongs to the *remote* node, the only way to
-spend the HTLC output using a payment preimage is for them to use the
+If the commitment transaction belongs to the *remote* node, the only way for it
+to spend the HTLC output (using a payment preimage) is for it to use the
 HTLC-success transaction.
 
 The payment preimage either serves to prove payment (when the offering node
@@ -397,16 +399,16 @@ another peer (when the offering node is forwarding the payment). Once a node has
 extracted the payment, it no longer cares about the fate of the HTLC-spending
 transaction itself.
 
-In cases where both resolutions are possible (e.g., when a node receives payment
+In cases where both resolutions are possible (e.g. when a node receives payment
 success after timeout), either interpretation is acceptable; it is the
 responsibility of the recipient to spend it before this occurs.
 
-We need to spend the HTLC output once it has timed out to prevent
-them using the HTLC-success transaction, and before we can
+Once it has timed out, the HTLC output needs to be spent (to prevent
+the remote node using the HTLC-success transaction) before the local node can
 back-fail any corresponding incoming HTLC, using `update_fail_htlc`
-(presumably with reason `permanent_channel_failure`) as detailed in
+(presumably with reason `permanent_channel_failure`), as detailed in
 [BOLT 02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
-If the incoming HTLC is on-chain too, we simply wait for it to
+If the incoming HTLC is also on-chain, a node simply waits for it to
 timeout: there's no way to signal early failure.
 
 If an HTLC is too small to appear in *any* commitment transaction, it
@@ -420,12 +422,14 @@ own timeout still applies as an upper bound.
 ## HTLC Output Handling: Remote Commitment, Remote Offers
 
 Each HTLC output can only be spent by us, the recipient, using the payment
-preimage. If we don't have the preimage (and don't discover it), it's
-the offerer's responsibility to spend the HTLC output once it's timed out.
+preimage. If the local node does not possess the preimage (and doesn't discover
+it), it's the offerer's responsibility to spend the HTLC output, once it's timed
+out.
 
-We can only spend remote HTLC outputs if we have the payment preimage.
-If we don't have the preimage (and don't discover it), it's the remote's
-responsibility to spend the HTLC output once it's timed out.
+The remote HTLC outputs can only be spent by the local node if it has the
+payment preimage. If the local node does not have the preimage (and doesn't
+discover it), it's the remote node's responsibility to spend the HTLC output,
+once it's timed out.
 
 There are actually several possible cases for an offered HTLC:
 
@@ -500,8 +504,8 @@ standard size limit thanks to the 483 HTLC-per-party limit (see
 Note that if a single transaction is used it may be invalidated as node B
 broadcasts HTLC-timeout and HTLC-success transactions, but the
 requirement of persistence, until all outputs are irrevocably resolved,
-should cover this. [FIXME: May have to divide and conquer here, since they may
-be able to delay us long enough to avoid successful penalty spend? ]
+should cover this. [ FIXME: May have to divide and conquer here, since the remote
+node may be able to delay the local node long enough to avoid successful penalty spend? ]
 
 ## Penalty Transactions Weight Calculation
 
