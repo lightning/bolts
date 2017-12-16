@@ -110,7 +110,7 @@ across many distinct blockchains as well as have channels within multiple
 blockchains opened to the same peer (if it supports the target chains).
 
 The `temporary_channel_id` is used to identify this channel until the
-funding transaction is established. 
+funding transaction is established.
 
 `funding_satoshis` is the amount the sender is putting into the
 channel. `push_msat` is an amount of initial funds that the sender is
@@ -119,7 +119,7 @@ threshold below which outputs should not be generated for this node's
 commitment or HTLC transactions (i.e. HTLCs below this amount plus
 HTLC transaction fees are not enforceable on-chain). This reflects the
 reality that tiny outputs are not considered standard transactions and
-will not propagate through the Bitcoin network. `channel_reserve_satoshis` 
+will not propagate through the Bitcoin network. `channel_reserve_satoshis`
 is the minimum amount that the other node is to keep as a direct
 payment. `htlc_minimum_msat` indicates the smallest value HTLC this
 node will accept.
@@ -127,13 +127,13 @@ node will accept.
 `max_htlc_value_in_flight_msat` is a cap on total value of outstanding
 HTLCs, which allows a node to limit its exposure to HTLCs; similarly,
 `max_accepted_htlcs` limits the number of outstanding HTLCs the other
-node can offer. 
+node can offer.
 
 `feerate_per_kw` indicates the initial fee rate by 1000-weight
 (i.e. 1/4 the more normally-used 'fee rate per kilobyte') that this
 side will pay for commitment and HTLC transactions, as described in
 [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted
-later with an `update_fee` message). 
+later with an `update_fee` message).
 
 `to_self_delay` is the number of blocks that the other node's to-self
 outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this
@@ -774,7 +774,7 @@ Invalid amounts are a clear protocol violation and indicate a breakdown.
 
 If a node did not accept multiple HTLCs with the same payment hash, an
 attacker could probe to see if a node had an existing HTLC. This
-requirement, to deal with duplicates, leads us to use a separate
+requirement, to deal with duplicates, leads to the use of a separate
 identifier; its assumed a 64-bit counter never wraps.
 
 Retransmissions of unacknowledged updates are explicitly allowed for
