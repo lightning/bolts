@@ -1,4 +1,4 @@
-# BOLT #3: Bitcoin Transaction and Script Formats
+a.k.a.# BOLT #3: Bitcoin Transaction and Script Formats
 
 This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. That is, the funding transaction output script, commitment transactions, and the HTLC transactions.
 
@@ -75,7 +75,7 @@ commitment transaction.
 
 ### Commitment Transaction Outputs
 
-To allow an opportunity for penalty transactions, in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (aka "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
+To allow an opportunity for penalty transactions, in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (a.k.a. "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can timeout or be fulfilled even though they are within the `to_self_delay` delay.
 Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
@@ -269,7 +269,7 @@ Each node offering a signature:
 
 There is a possibility of irreparable differences on closing if one
 node considers the other's output too small to allow propagation on
-the Bitcoin network (aka "dust"), and that other node instead
+the Bitcoin network (a.k.a. "dust"), and that other node instead
 considers that output too valuable to discard. This is why each
 side uses its own `dust_limit_satoshis`, and the result can be a
 signature validation failure, if they disagree on what the closing
@@ -538,7 +538,7 @@ Only one secret for each unique prefix need be saved; in effect, the number of
 trailing 0s is counted, and this determines where in the storage array the
 secret is stored:
 
-    # aka. count trailing 0s
+    # a.k.a. count trailing 0s
     where_to_put_secret(I):
 		for B in 0 to 47:
 			if testbit(I) in B == 1:
