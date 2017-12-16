@@ -28,9 +28,8 @@ This is version 0.
 * *Node*:
    * A computer or other device connected to the Bitcoin network.
 
-
 * *Peers*:
-   * *Nodes* wanting to transact Bitcoins with each other through a *channel*.
+   * *Nodes* transacting bitcoins with one other through a *channel*.
 
 * *MSAT*:
    * A millisatoshi, often used as a field name.
@@ -39,18 +38,15 @@ This is version 0.
    * An irreversible on-chain transaction that pays to both *peers* on a *channel*.
    It can only be spent by mutual consent.
 
-
 * *Channel*:
    * A fast, off-chain method of mutual exchange between two *peers*.
    To transact funds, peers exchange signatures to create an updated *commitment transaction*.
-
 
 * *Commitment transaction*:
    * A transaction that spends the *funding transaction*.
    Each *peer* holds the other peer's signature for this transaction, so that each
    always has a commitment transaction that it can spend. After a new
    commitment transaction is negotiated, the old one is *revoked*.
-
 
 * *HTLC*: Hashed Time Locked Contract.
    * A conditional payment between two *peers*: the recipient can spend
@@ -59,39 +55,33 @@ This is version 0.
     a given time. These are implemented as outputs from the
     *commitment transaction*.
 
-
 * *Payment hash*:
    * The *HTLC* contains the payment hash, which is the hash of the
-    *payment preimage*. 
+    *payment preimage*.
 
-
-* *Payment preimage*: 
+* *Payment preimage*:
    * Proof that payment has been received, held by
     the final recipient, who is the only person who knows this
     secret. The final recipient releases the preimage in order to
     release funds. The payment preimage is hashed as the *payment hash*
     in the *HTLC*.
 
-
 * *Commitment revocation secret key*:
    * Every *commitment transaction* has a unique *commitment revocation* secret-key
     value that allows the other *peer* to spend all outputs
     immediately: revealing this key is how old commitment
-    transactions are revoked. To support revocation, each output of the 
+    transactions are revoked. To support revocation, each output of the
     commitment transaction refers to the commitment revocation public key.
-
 
 * *Per-commitment secret*:
    * Every *commitment transaction* derives its keys from a per-commitment secret,
      which is generated such that the series of per-commitment secrets
      for all previous commitments can be stored compactly.
 
-
 * *Mutual close*:
    * A cooperative close of a *channel*, accomplished by broadcasting an unconditional
     spend of the *funding transaction* with an output to each *peer*
     (unless one output is too small, and thus is not included).
-
 
 * *Unilateral close*:
    * An uncooperative close of a *channel*, accomplished by broadcasting a
@@ -100,12 +90,10 @@ This is version 0.
     commitment is broadcast cannot access its own outputs for some
     previously-negotiated duration.
 
-
 * *Revoked transaction close*:
    * An invalid close of a *channel*, accomplished by broadcasting a revoked
     *commitment transaction*. Since the other *peer* knows the
     *commitment revocation secret key*, it can create a *penalty transaction*.
-
 
 * *Penalty transaction*:
    * A transaction that spends all outputs of a revoked *commitment
@@ -113,18 +101,15 @@ This is version 0.
     if the other peer tries to "cheat" by broadcasting a revoked
     *commitment transaction*.
 
-
 * *Commitment number*:
    * A 48-bit incrementing counter for each *commitment transaction*; counters
     are independent for each *peer* in the *channel* and start at 0.
-
 
 * *It's ok to be odd*:
    * A rule applied to some numeric fields that indicates either optional or
      compulsory support for features. Even numbers indicate that both endpoints
      MUST support the feature in question, while odd numbers indicate
      that the feature MAY be disregarded by the other endpoint.
-
 
 * `chain_hash`:
    * Used in several of the BOLT documents to denote the genesis hash of a
