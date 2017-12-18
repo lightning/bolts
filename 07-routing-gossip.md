@@ -315,7 +315,7 @@ of *relaying* payments, not *sending* payments. When making a payment
  `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will 
  come into play. When building the route, amounts and expiries for HTLCs need
  to be calculated backward from the destination to the source. The initial
- exact value for `amount_msat` and minimal value for `htlc_expiry`, which are
+ exact value for `amount_msat` and minimal value for `cltv_expiry`, which are
   to be used for the last HTLC in the route, are provided in the payment request
  (see [BOLT #11](11-payment-encoding.md#tagged-fields)).
 
