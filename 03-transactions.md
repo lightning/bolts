@@ -1,4 +1,4 @@
-a.k.a.# BOLT #3: Bitcoin Transaction and Script Formats
+# BOLT #3: Bitcoin Transaction and Script Formats
 
 This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. That is, the funding transaction output script, commitment transactions, and the HTLC transactions.
 
