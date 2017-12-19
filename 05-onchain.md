@@ -366,32 +366,35 @@ will be unable to salvage the HTLCs.
 
 ## HTLC Output Handling: Remote Commitment, Local Offers
 
-Each HTLC output can only be spent by the *offerer* after it's timed out or by
-the *recipient* if it has the payment preimage.
+Each HTLC output can only be spent by the *offerer*, after it's timed out, or by
+the *recipient*, if it has the payment preimage.
 
-The HTLC output has *timed out* once the depth of the latest block is equal
+The HTLC output has *timed out* once the depth of the latest block is equal to
 or greater than the HTLC `cltv_expiry`.
 
-There can be HTLCs which are not represented by an output: either
-because they were trimmed as dust, or in the case where the remote node has two
-*valid* commitment transactions, and the HTLCs differ in each.
+There can be HTLCs which are not represented by any outputs: either
+because the outputs were trimmed as dust or because the remote node has two
+*valid* commitment transactions with differing HTLCs.
 
 ### Requirements
 
-If the commitment transaction HTLC output is spent using the payment
-preimage, the output is considered *irrevocably resolved*, and the
-node MUST extract the payment preimage from the HTLC-success transaction input
-witness.
-
-If the commitment transaction HTLC output has *timed out* and not
-been *resolved*, the node MUST *resolve* the output by spending it
-to a convenient address.
-
-For any committed HTLC that does not have an output in this
-commitment transaction, the node MUST fail the corresponding incoming
-HTLC (if any) once the commitment transaction has reached reasonable
-depth, and MAY fail it sooner if no *valid* commitment transaction
-contains an output corresponding to the HTLC.
+A local node:
+  - if the commitment transaction HTLC output is spent using the payment
+  preimage:
+    - MUST extract the payment preimage from the HTLC-success transaction input
+    witness.
+      - Note: the output is considered *irrevocably resolved*.
+  - if the commitment transaction HTLC output has *timed out* AND NOT been
+  *resolved*:
+    - MUST *resolve* the output, by spending it to a convenient address.
+  - for any committed HTLC that does NOT have an output in this commitment
+  transaction:
+    - once the commitment transaction has reached reasonable depth:
+      - MUST fail the corresponding incoming HTLC (if any).
+    - otherwise:
+      - if no *valid* commitment transaction contains an output corresponding to
+      the HTLC:
+        - MAY fail it sooner.
 
 ### Rationale
 
@@ -401,7 +404,7 @@ HTLC-success transaction.
 
 The payment preimage either serves to prove payment (when the offering node
 originated the payment) or to redeem the corresponding incoming HTLC from
-another peer (when the offering node is forwarding the payment). Once a node has
+another peer (when the offering node is forwarding the payment). After a node has
 extracted the payment, it no longer cares about the fate of the HTLC-spending
 transaction itself.
 
