@@ -523,67 +523,70 @@ irrevocably resolved, should still protect against this happening. [ FIXME: May 
 ## Penalty Transactions Weight Calculation
 
 There are three different scripts for penalty transactions, with the following
-witnesses weight (details of the computation are in
+witnesses weights (details of weight computation are in
 [Appendix A](#appendix-a-expected-weights)):
 
     to_local_penalty_witness: 160 bytes
     offered_htlc_penalty_witness: 243 bytes
     accepted_htlc_penalty_witness: 249 bytes
 
-The penalty txinput itself takes 41 bytes, which has a weight of 164, making the
-weight of each input:
+The penalty *txinput* itself takes up 41 bytes and has a weight of 164 bytes,
+which results in the following weights for each input:
 
     to_local_penalty_input_weight: 324 bytes
     offered_htlc_penalty_input_weight: 407 bytes
     accepted_htlc_penalty_input_weight: 413 bytes
 
-The rest of the penalty transaction takes 4+1+1+8+1+34+4=53 bytes of non-witness
-data, assuming that it has a pay-to-witness-script-hash (the largest standard output
-script), in addition to a 2-byte witness header.
+The rest of the penalty transaction takes up 4+1+1+8+1+34+4=53 bytes of
+non-witness data: assuming it has a pay-to-witness-script-hash (the largest
+standard output script), in addition to a 2-byte witness header.
 
-In addition to outputs being swept under as penalty, the node MAY also sweep the
+In addition to the outputs being swept under [ FIXME: what does 'swept under' mean? ] as penalty, the node MAY also sweep the
 `to_remote` output of the commitment transaction (e.g. to reduce the total
-amount paid in fees). Doing so requires the inclusion of a p2wpkh witness and
-additional txinput, resulting in an additional 108 + 164 = 272 bytes.
+amount paid in fees). Doing so requires the inclusion of a P2WPKH witness and an
+additional *txinput*, resulting in an additional 108 + 164 = 272 bytes.
 
-In a worst case scenario, a node holds only incoming HTLCs, and the HTLC-timeout
-transactions are not published, which forces the node to spend from the commitment
-transaction.
+In the worst case scenario, the node holds only incoming HTLCs, and the
+HTLC-timeout transactions are not published, which forces the node to spend from
+the commitment transaction.
 
-With a maximum standard weight of 400000, the maximum number of HTLCs that can
-be swept in a single transaction:
+With a maximum standard weight of 400000 bytes, the maximum number of HTLCs that
+can be swept in a single transaction is as follows:
 
     max_num_htlcs = (400000 - 324 - 272 - (4 * 53) - 2) / 413 = 966
 
-This allows 483 HTLCs in each direction (with both `to_local` and
-`to_remote` outputs) to still be resolved in a single penalty transaction.
-Note that even if the `to_remote` output is not swept, the resulting
-`max_num_htlcs` is 967, which yields the same unidirectional limit of 483 HTLCs.
+Thus, 483 bidirectional (containing both `to_local` and
+`to_remote` outputs) HTLCs can be resolved in a single penalty transaction.
+Note: even if the `to_remote` output is not swept, the resulting
+`max_num_htlcs` is 967; which yields the same unidirectional limit of 483 HTLCs.
 
 # General Requirements
 
-A node SHOULD report an error to the operator if it discovers a transaction
-spend the funding transaction output which does not fall into one of
-these categories (mutual close, unilateral close, or revoked
-transaction close). Such a transaction implies its private key has
-leaked, and funds may be lost.
-
-A node MAY simply watch the contents of the most-work chain for
-transactions, or MAY watch for (valid) broadcast transactions a.k.a
-mempool. Considering mempool transactions should cause lower latency
-for HTLC redemption, but on-chain HTLCs should be such an unusual case
-that speed cannot be considered critical.
+A node:
+  - upon discovering a transaction that spends a funding transaction output
+  which does not fall into one of the above categories (mutual close, unilateral
+  close, or revoked transaction close):
+    - SHOULD report an error to the operator [ FIXME: who is the 'operator'? ].
+      - Note: the existence of such a rogue transaction implies that its private
+      key has leaked and that its funds may be lost as a result.
+  - MAY simply monitor the contents of the most-work chain for transactions.
+    - Note: on-chain HTLCs should be sufficiently rare that speed need not be
+    considered critical.
+  - MAY monitor (valid) broadcast transactions (a.k.a the mempool).
+    - Note: watching for mempool transactions should result in lower latency
+    HTLC redemptions.
 
 # Appendix A: Expected Weights
 
 ## Expected Weight of the `to_local` Penalty Transaction Witness
 
-As described in [BOLT #3](03-transactions.md), the witness for
-this transaction is:
+As described in [BOLT #3](03-transactions.md), the witness for this transaction
+is:
 
     <sig> 1 { OP_IF <key> OP_ELSE to_self_delay OP_CSV OP_DROP <key> OP_ENDIF OP_CHECKSIG }
 
-The *expected weight* is calculated as follows:
+The *expected weight* of the `to_local` penalty transaction witness is
+calculated as follows:
 
     to_local_script: 83 bytes
         - OP_IF: 1 byte
@@ -609,8 +612,9 @@ The *expected weight* is calculated as follows:
 
 ## Expected Weight of the `offered_htlc` Penalty Transaction Witness
 
-The *expected weight* is calculated as follows (some calculations have already
-been made in [BOLT #3](03-transactions.md)):
+The *expected weight* of the `offered_htlc` penalty transaction witness is
+calculated as follows (some calculations have already been made in
+[BOLT #3](03-transactions.md)):
 
     offered_htlc_script: 133 bytes
 
@@ -625,8 +629,9 @@ been made in [BOLT #3](03-transactions.md)):
 
 ## Expected Weight of the `accepted_htlc` Penalty Transaction Witness
 
-The *expected weight* is calculated as follows (some calculations have already
-been made in [BOLT #3](03-transactions.md)):
+The *expected weight*  of the `accepted_htlc` penalty transaction witness is
+calculated as follows (some calculations have already been made in
+[BOLT #3](03-transactions.md)):
 
     accepted_htlc_script: 139 bytes
 
