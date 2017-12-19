@@ -325,38 +325,44 @@ transaction output.
 
 There are no delays constraining node behavior in this case, so it's simpler for
 a node to handle than the case in which it discovers its local commitment
-transaction.
+transaction (see [Unilateral Close Handling: Local Commitment Transaction](#unilateral-close-handling-local-commitment-transaction)).
 
 ## Requirements
 
-When a node discovers a commitment transaction from the *remote node*:
-
-1. `to_remote`: No action is required; this is a simple P2WPKH output to us.
-   This output is considered *resolved* by the commitment transaction itself.
-2. `to_local`: No action required; this is a payment to them. This output is considered *resolved*
-   by the commitment transaction.
-3. HTLCs offered by the local node: See "HTLC Output Handling: Remote Commitment, Local Offers" below.
-4. HTLCs offered by the remote node: See "HTLC Output Handling: Remote Commitment, Remote Offers" below.
-
-A node MUST handle the broadcast of any *valid* commitment transaction
-from the *remote node* in this way; if it is unable to do so it MUST warn
-about lost funds.
+A local node:
+  - upon discovering a *valid* commitment transaction broadcast by a
+  *remote node*:
+    - if it is able to handle the broadcast:
+      - MUST handle it as specified below.
+      - MAY take no action in regard to the associated `to_remote`, which is
+      simply a P2WPKH output to the *local node*.
+        - Note: `to_remote` is considered *resolved* by the commitment transaction
+        itself.
+      - MAY take no action in regard to the associated `to_local`, which is a
+      payment output to the *remote node*.
+        - Note: `to_local` is considered *resolved* by the commitment transaction.
+      - MUST handle HTLCs offered by itself as specified in
+      [HTLC Output Handling: Remote Commitment, Local Offers](#htlc-output-handling-remote-commitment-local-offers)
+      - MUST handle HTLCs offered by the remote node as specified in
+      [HTLC Output Handling: Remote Commitment, Remote Offers](#htlc-output-handling-remote-commitment-remote-offers)
+    - otherwise (it is NOT able to handle the broadcast):
+      - MUST send warning regarding lost funds.
 
 ## Rationale
 
-Note that there can be more than one valid, *unrevoked* commitment
-transaction after a signature has been received via `commitment_signed` and
-before the corresponding `revoke_and_ack`. Either commitment can serve as
-the *remote node's* commitment transaction, hence the requirement to handle both.
+There may be more than one valid, *unrevoked* commitment transaction after a
+signature has been received via `commitment_signed` and before the corresponding
+`revoke_and_ack`. As such, either commitment may serve as the *remote node's*
+commitment transaction; hence, the local node is required to handle both.
 
-In the case of data loss, a node can reach a state where it doesn't
-recognize all of the *remote node's* commitment transaction HTLC outputs. It can tell
-this has happened because the commitment number will be greater than
-expected, and because it has signed the transaction.
-If both nodes support `option-data-loss-protect` the node will
-know the peer's `per_commitment_point` and thus be able to derive its own
-`remotekey` for the transaction and salvage its own funds (but not the
-HTLCs).
+In the case of data loss, a local node may reach a state where it doesn't
+recognize all of the *remote node's* commitment transaction HTLC outputs. It can
+detect the data loss state, because it has signed the transaction, and the
+commitment number is greater than expected. If both nodes support
+`option-data-loss-protect`, the local node will possess the remote's
+`per_commitment_point`, and thus can derive its own `remotekey` for the
+transaction, in order to salvage its own funds. Note: in this scenario, the node
+will be unable to salvage the HTLCs.
 
 ## HTLC Output Handling: Remote Commitment, Local Offers
 
@@ -421,7 +427,7 @@ own timeout still applies as an upper bound.
 
 ## HTLC Output Handling: Remote Commitment, Remote Offers
 
-Each HTLC output can only be spent by us, the recipient, using the payment
+Each HTLC output can only be spent by the recipient, using the payment
 preimage. If the local node does not possess the preimage (and doesn't discover
 it), it's the offerer's responsibility to spend the HTLC output, once it's timed
 out.
@@ -477,14 +483,13 @@ A node MUST resolve all unresolved outputs as follows:
    This output is considered *resolved* by the commitment transaction.
 2. _B's main output_: The node MUST *resolve* this by spending using the
    revocation key.
-3. _A's offered HTLCs_: The node MUST *resolve* these in one of three ways:
-  * spending using the payment revocation
-  * spending using any transaction once the HTLC timeout has passed
-  * by noting *B's HTLC-success transaction* if B publishes it
-4. _B's offered HTLCs_: The node MUST *resolve* these in one of three ways:
-  * spending using the payment revocation
-  * spending using the payment preimage if known
-  * by noting *B's HTLC-timeout transaction* if B publishes it
+3. _A's offered HTLCs_: The node MUST *resolve* this in one of three ways by spending:
+  * the *commitment tx* using the payment revocation
+  * the *commitment tx* using the payment preimage if known
+  * the *HTLC-timeout tx* if B publishes them
+4. _B's offered HTLCs_: The node MUST *resolve* this in one of two ways by spending:
+  * the *commitment tx* using the payment revocation
+  * the *commitment tx* once the HTLC timeout has passed.
 5. _B's HTLC-timeout transaction_: The node MUST *resolve* this by
    spending using the revocation key.
 6. _B's HTLC-success transaction_: The node MUST *resolve* this by
