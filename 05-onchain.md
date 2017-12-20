@@ -335,8 +335,8 @@ transaction (see [Unilateral Close Handling: Local Commitment Transaction](#unil
 A local node:
   - upon discovering a *valid* commitment transaction broadcast by a
   *remote node*:
-    - if it is able to handle the broadcast:
-      - MUST handle it as specified below.
+    - if possible:
+      - MUST handle each output as specified below.
       - MAY take no action in regard to the associated `to_remote`, which is
       simply a P2WPKH output to the *local node*.
         - Note: `to_remote` is considered *resolved* by the commitment transaction
@@ -349,8 +349,8 @@ A local node:
       [HTLC Output Handling: Remote Commitment, Local Offers](#htlc-output-handling-remote-commitment-local-offers)
       - MUST handle HTLCs offered by the remote node as specified in
       [HTLC Output Handling: Remote Commitment, Remote Offers](#htlc-output-handling-remote-commitment-remote-offers)
-    - otherwise (it is NOT able to handle the broadcast):
-      - MUST send warning regarding lost funds.
+    - otherwise (it is NOT able to handle the broadcast for some reason):
+      - MUST send a warning regarding lost funds.
 
 ## Rationale
 
@@ -474,7 +474,7 @@ If not otherwise resolved, once the HTLC output has expired, it is considered
 
 # Revoked Transaction Close Handling
 
-If any node tries to cheat by broadcasts an outdated commitment transaction
+If any node tries to cheat by broadcasting an outdated commitment transaction
 (any previous commitment transaction besides the most current one), the other
 node in the channel can use its revocation key to claim all the funds from the
 channel's original funding transaction.
@@ -541,8 +541,8 @@ The rest of the penalty transaction takes up 4+1+1+8+1+34+4=53 bytes of
 non-witness data: assuming it has a pay-to-witness-script-hash (the largest
 standard output script), in addition to a 2-byte witness header.
 
-In addition to the outputs being swept under [ FIXME: what does 'swept under' mean? ] as penalty, the node MAY also sweep the
-`to_remote` output of the commitment transaction (e.g. to reduce the total
+In addition to spending these outputs, a penalty transaction may optionally
+spend the commitment transaction's `to_remote` output (e.g. to reduce the total
 amount paid in fees). Doing so requires the inclusion of a P2WPKH witness and an
 additional *txinput*, resulting in an additional 108 + 164 = 272 bytes.
 
@@ -566,7 +566,7 @@ A node:
   - upon discovering a transaction that spends a funding transaction output
   which does not fall into one of the above categories (mutual close, unilateral
   close, or revoked transaction close):
-    - SHOULD report an error to the operator [ FIXME: who is the 'operator'? ].
+    - MUST send a warning regarding lost funds.
       - Note: the existence of such a rogue transaction implies that its private
       key has leaked and that its funds may be lost as a result.
   - MAY simply monitor the contents of the most-work chain for transactions.
