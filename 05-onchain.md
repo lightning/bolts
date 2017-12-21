@@ -434,7 +434,7 @@ own timeout still applies as an upper bound.
 
 ## HTLC Output Handling: Remote Commitment, Remote Offers
 
-Each HTLC output can only be spent by the recipient by using the payment
+Each HTLC output can only be spent by the recipient if it uses the payment
 preimage. If a node does not possess the preimage (and doesn't discover
 it), it's the offerer's responsibility to spend the HTLC output once it's timed
 out.
@@ -523,7 +523,7 @@ irrevocably resolved, should still protect against this happening. [ FIXME: May 
 ## Penalty Transactions Weight Calculation
 
 There are three different scripts for penalty transactions, with the following
-witnesses weights (details of weight computation are in
+witness weights (details of weight computation are in
 [Appendix A](#appendix-a-expected-weights)):
 
     to_local_penalty_witness: 160 bytes
@@ -555,8 +555,8 @@ can be swept in a single transaction is as follows:
 
     max_num_htlcs = (400000 - 324 - 272 - (4 * 53) - 2) / 413 = 966
 
-Thus, 483 bidirectional (containing both `to_local` and
-`to_remote` outputs) HTLCs can be resolved in a single penalty transaction.
+Thus, 483 bidirectional HTLCs (containing both `to_local` and
+`to_remote` outputs) can be resolved in a single penalty transaction.
 Note: even if the `to_remote` output is not swept, the resulting
 `max_num_htlcs` is 967; which yields the same unidirectional limit of 483 HTLCs.
 
