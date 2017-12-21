@@ -29,7 +29,7 @@ This is version 0.
    * A computer or other device connected to the Bitcoin network.
 
 * *Peers*:
-   * *Nodes* transacting bitcoins with one other through a *channel*.
+   * *Nodes* transacting bitcoins with one another through a *channel*.
 
 * *MSAT*:
    * A millisatoshi, often used as a field name.

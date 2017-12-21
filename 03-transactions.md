@@ -520,7 +520,7 @@ index which matches this *prefix*.
 
 For example, secret `0xFFFFFFFFFFF0` allows the secrets to be derived for
 `0xFFFFFFFFFFF1` through `0xFFFFFFFFFFFF`, inclusive; and secret `0xFFFFFFFFFF08`
-allows the secrets to be derive for `0xFFFFFFFFFF09` through `0xFFFFFFFFFF0F`,
+allows the secrets to be derived for `0xFFFFFFFFFF09` through `0xFFFFFFFFFF0F`,
 inclusive.
 
 This is done using a slight generalization of `generate_from_seed` above:
