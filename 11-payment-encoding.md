@@ -116,7 +116,7 @@ Each Tagged Field is of the form:
 Currently defined tagged fields are:
 
 * `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment
-* `d` (13): `data_length` variable. Short description of purpose of payment (ASCII),  e.g. '1 cup of coffee'
+* `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8),  e.g. '1 cup of coffee' or 'ナンセンス 1杯'
 * `n` (19): `data_length` 53. 33-byte public key of the payee node
 * `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is too long to fit, such as on a web page.
 * `x` (6): `data_length` variable. `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
@@ -137,7 +137,7 @@ in return for payment.
 
 A writer MUST include either exactly one `d` or exactly one `h` field. If included, a 
 writer SHOULD make `d` a complete description of
-the purpose of the payment. If included, a writer MUST make the preimage
+the purpose of the payment, and MUST use a valid UTF-8 string. If included, a writer MUST make the preimage
 of the hashed description in `h` available through some unspecified means,
 which SHOULD be a complete description of the purpose of the payment.
 
@@ -280,8 +280,8 @@ Breakdown:
   * `6c6e62630b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a1fa83632b0b9b29031b7b739b4b232b91039bab83837b93a34b733903a3434b990383937b532b1ba0` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `c3d4e83f646fa79a393d75277b1d858db1d1f7ab7137dcb7835db2ecd518e1c9` hex of SHA256 of the preimage
 
-> ### Please send $3 for a cup of coffee to the same peer, within 1 minute
-> lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuaztrnwngzn3kdzw5hydlzf03qdgm2hdq27cqv3agm2awhz5se903vruatfhq77w3ls4evs3ch9zw97j25emudupq63nyw24cg27h2rspfj9srp
+> ### Please send $3 for a cup of nonsense (ナンセンス 1杯) to the same peer, within 1 minute
+> lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuyk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esqchsrny
 
 Breakdown:
 
@@ -291,18 +291,18 @@ Breakdown:
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment hash...
 * `d`: short description
-  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
-  * `xysxxatsyp3k7enxv4js`: '1 cup coffee'
+  * `pq`: `data_length` (`p` = 1, `q` = 0; 1 * 32 + 0 == 32)
+  * `uwpc4curk03c9wlrswe78q4eyqc7d8d0`: 'ナンセンス 1杯'
 * `x`: expiry time
   * `qz`: `data_length` (`q` = 0, `z` = 2; 0 * 32 + 2 == 2)
   * `pu`: 60 seconds (`p` = 1, `u` = 28; 1 * 32 + 28 == 60)
-* `aztrnwngzn3kdzw5hydlzf03qdgm2hdq27cqv3agm2awhz5se903vruatfhq77w3ls4evs3ch9zw97j25emudupq63nyw24cg27h2rsp`: signature
-* `fj9srp`: Bech32 checksum
+* `yk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esq`: signature
+* `chsrny`: Bech32 checksum
 * Signature breakdown:
-  * `e89639ba6814e36689d4b91bf125f10351b55da057b00647a8dabaeb8a90c95f160f9d5a6e0f79d1fc2b964238b944e2fa4aa677c6f020d466472ab842bd750e` hex of signature data (32-byte r, 32-byte s)
-  * `1` (int) recovery flag contained in `signature`
-  * `6c6e626332353030750b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a0a189031bab81031b7b33332b2818020f00` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `3cd6ef07744040556e01be64f68fd9e1565fb47d78c42308b1ee005aca5a0d86` hex of SHA256 of the preimage
+  * `259f04511e7ef2aa77f6ff04d51b4ae9209504843e5ab9672ce32a153681f687515b73ce57ee309db588a10eb8e41b5a2d2bc17144ddf398033faa49ffe95ae6` hex of signature data (32-byte r, 32-byte s)
+  * `0` (int) recovery flag contained in `signature`
+  * `6c6e626332353030750b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a1071c1c571c1d9f1c15df1c1d9f1c15c9018f34ed798020f0` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `197a3061f4f333d86669b8054592222b488f3c657a9d3e74f34f586fb3e7931c` hex of SHA256 of the preimage
 
 > ### Now send $24 for an entire list of things (hashed)
 > lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqscc6gd6ql3jrc5yzme8v4ntcewwz5cnw92tz0pc8qcuufvq7khhr8wpald05e92xw006sq94mg8v2ndf4sefvf9sygkshp5zfem29trqq2yxxz7
