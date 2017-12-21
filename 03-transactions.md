@@ -491,14 +491,15 @@ The first secret used:
 
 The I'th secret P:
   - MUST match the output of this algorithm:
-
-    generate_from_seed(seed, I):
-        P = seed
-        for B in 47 down to 0:
-            if B set in I:
-                flip(B) in P
-                P = SHA256(P)
-        return P
+```
+generate_from_seed(seed, I):
+    P = seed
+    for B in 47 down to 0:
+        if B set in I:
+            flip(B) in P
+            P = SHA256(P)
+    return P
+```
 
 Where "flip(B)" alternates the B'th least significant bit in the value P.
 
