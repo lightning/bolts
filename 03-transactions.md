@@ -1487,8 +1487,8 @@ seeded with `0x000...00`.
 
 # Appendix E: Key Derivation Test Vectors
 
-These test the derivation for `localkey`, `remotekey`, `local_delayedkey`, and
-`remote_delayedkey` (which use the formula), as well as the `revocationkey`.
+These test the derivation for `localkey`, `remotekey`, `local_htlckey`, `remote_htlckey`, `local_delayedkey`, and
+`remote_delayedkey` (which use the same formula), as well as the `revocationkey`.
 
 All of them use the following secrets (and thus the derived points):
 
