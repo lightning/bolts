@@ -213,7 +213,7 @@ that remote nodes in the route specify their required `cltv_expiry_delta`
 in the `channel_update` message, which they can update at all times.
 
 The `f` field allows on-chain fallback. This may not make sense for
-tiny or very time-sensitive payments, however. It's possible that new
+tiny or time-sensitive payments, however. It's possible that new
 address forms will appear, and so multiple `f` fields in an implied
 preferred order help with transition, and `f` fields with versions 19-31
 will be ignored by readers.
