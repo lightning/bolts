@@ -1,6 +1,6 @@
 # BOLT #11: Invoice Protocol for Lightning Payments
 
-A simple, extensible QR-code-ready protocol for requesting payments
+A simple, extendable QR-code-ready protocol for requesting payments
 over Lightning.
 
 # Table of Contents
