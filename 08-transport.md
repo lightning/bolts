@@ -42,7 +42,7 @@ conventions.
 The transcript between two nodes is separated into two distinct segments:
 
 1. First, before any actual data transfer, both nodes participate in an
-   authenticated key agreement handshake, which is based off of the Noise
+   authenticated key agreement handshake, which is based on the Noise
    Protocol Framework<sup>[2](#reference-2)</sup>.
 2. If the initial handshake is successful, then nodes enter the Lightning
    message exchange phase. In the Lightning message exchange phase, all
