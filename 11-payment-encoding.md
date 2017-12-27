@@ -200,7 +200,7 @@ by changing the length, so readers ignore it if it's not 256 bits.
 The `n` field can be used to explicitly specify the destination node ID,
 instead of requiring signature recovery.
 
-The `x` field gives advance warning as to when a payment will be
+The `x` field gives warning as to when a payment will be
 refused; this is mainly to avoid confusion. The default was chosen
 to be reasonable for most payments and to allow sufficient time for
 on-chain payment if necessary.
