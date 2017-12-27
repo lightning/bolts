@@ -187,7 +187,7 @@ it leak information — hence, the optional `data` field.
 
 ### The `ping` and `pong` Messages
 
-In order to allow for the existence of very long-lived TCP connections, at
+In order to allow for the existence of long-lived TCP connections, at
 times it may be required that both ends keep alive the TCP connection at the
 application level. Such messages also allow obfuscation of traffic patterns.
 
@@ -241,7 +241,7 @@ The largest possible message is 65535 bytes; thus, the maximum sensible `bytesle
 is 65531 — in order to account for the type field (`pong`) and the `byteslen` itself. This allows
 a convenient cutoff for `num_pong_bytes` to indicate that no reply should be sent.
 
-Connections between nodes within the network may be very long lived, as payment
+Connections between nodes within the network may be long lived, as payment
 channels have an indefinite lifetime. However, it's likely that
 no new data will be
 exchanged for a
