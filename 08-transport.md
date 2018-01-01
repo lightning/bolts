@@ -225,48 +225,48 @@ and 16 bytes for the `poly1305` tag.
 
 **Sender Actions:**
 
-  * `e = generateKey()`
-  * `h = SHA-256(h || e.pub.serializeCompressed())`
+1. `e = generateKey()`
+1. `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into the running
        handshake digest.
-  * `ss = ECDH(rs, e.priv)`
+1. `ss = ECDH(rs, e.priv)`
      * The initiator performs an ECDH between its newly generated ephemeral
        key and the remote node's static public key.
-  * `ck, temp_k1 = HKDF(ck, ss)`
+1. `ck, temp_k1 = HKDF(ck, ss)`
      * A new temporary encryption key is generated, which is
        used to generate the authenticating MAC.
-  * `c = encryptWithAD(temp_k1, 0, h, zero)`
+1. `c = encryptWithAD(temp_k1, 0, h, zero)`
      * where `zero` is a zero-length plaintext
-  * `h = SHA-256(h || c)`
+1. `h = SHA-256(h || c)`
      * Finally, the generated ciphertext is accumulated into the authenticating
        handshake digest.
-  * Send `m = 0 || e.pub.serializeCompressed() || c` to the responder over the network buffer.
+1. Send `m = 0 || e.pub.serializeCompressed() || c` to the responder over the network buffer.
 
 **Receiver Actions:**
 
-  * Read _exactly_ 50 bytes from the network buffer.
-  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]`, and `c = m[34:]`.
+1. Read _exactly_ 50 bytes from the network buffer.
+1. Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]`, and `c = m[34:]`.
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` is the next 33
       bytes of `m`, and `m[34:]` is the last 16 bytes of `m`
     * The raw bytes of the remote party's ephemeral public key (`e`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
-  * If `v` is an unrecognized handshake version, then the responder MUST
+1. If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
-  * `h = SHA-256(h || re.serializeCompressed())`
+1. `h = SHA-256(h || re.serializeCompressed())`
     * The responder accumulates the initiator's ephemeral key into the authenticating
       handshake digest.
-  * `ss = ECDH(re, s.priv)`
+1. `ss = ECDH(re, s.priv)`
     * The responder performs an ECDH between its static public key and the
       initiator's ephemeral public key.
-  * `ck, temp_k1 = HKDF(ck, ss)`
+1. `ck, temp_k1 = HKDF(ck, ss)`
     * A new temporary encryption key is generated, which will
       shortly be used to check the authenticating MAC.
-  * `p = decryptWithAD(temp_k1, 0, h, c)`
+1. `p = decryptWithAD(temp_k1, 0, h, c)`
     * If the MAC check in this operation fails, then the initiator does _not_
       know the responder's static public key. If so, then the responder MUST terminate the
       connection without any further messages.
-  * `h = SHA-256(h || c)`
+1. `h = SHA-256(h || c)`
      * The received ciphertext is mixed into the handshake digest. This step serves
        to ensure the payload wasn't modified by a MiTM.
 
@@ -287,45 +287,45 @@ for the `poly1305` tag.
 
 **Sender Actions:**
 
-  * `e = generateKey()`
-  * `h = SHA-256(h || e.pub.serializeCompressed())`
+1. `e = generateKey()`
+1. `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into the running
        handshake digest.
-  * `ss = ECDH(re, e.priv)`
+1. `ss = ECDH(re, e.priv)`
      * where `re` is the ephemeral key of the initiator, which was received
        during Act One
-  * `ck, temp_k2 = HKDF(ck, ss)`
+1. `ck, temp_k2 = HKDF(ck, ss)`
      * A new temporary encryption key is generated, which is
        used to generate the authenticating MAC.
-  * `c = encryptWithAD(temp_k2, 0, h, zero)`
+1. `c = encryptWithAD(temp_k2, 0, h, zero)`
      * where `zero` is a zero-length plaintext
-  * `h = SHA-256(h || c)`
+1. `h = SHA-256(h || c)`
      * Finally, the generated ciphertext is accumulated into the authenticating
        handshake digest.
-  * Send `m = 0 || e.pub.serializeCompressed() || c` to the initiator over the network buffer.
+1. Send `m = 0 || e.pub.serializeCompressed() || c` to the initiator over the network buffer.
 
 
 **Receiver Actions:**
 
-  * Read _exactly_ 50 bytes from the network buffer.
-  * Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]`, and `c = m[34:]`.
+1. Read _exactly_ 50 bytes from the network buffer.
+1. Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]`, and `c = m[34:]`.
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` is the next 33
       bytes of `m`, and `m[34:]` is the last 16 bytes of `m`
-  * If `v` is an unrecognized handshake version, then the responder MUST
+1. If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
-  * `h = SHA-256(h || re.serializeCompressed())`
-  * `ss = ECDH(re, e.priv)`
+1. `h = SHA-256(h || re.serializeCompressed())`
+1. `ss = ECDH(re, e.priv)`
     * where `re` is the responder's ephemeral public key
     * The raw bytes of the remote party's ephemeral public key (`re`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
-  * `ck, temp_k2 = HKDF(ck, ss)`
+1. `ck, temp_k2 = HKDF(ck, ss)`
      * A new temporary encryption key is generated, which is
        used to generate the authenticating MAC.
-  * `p = decryptWithAD(temp_k2, 0, h, c)`
+1. `p = decryptWithAD(temp_k2, 0, h, c)`
     * If the MAC check in this operation fails, then the initiator MUST
       terminate the connection without any further messages.
-  * `h = SHA-256(h || c)`
+1. `h = SHA-256(h || c)`
      * The received ciphertext is mixed into the handshake digest. This step serves
        to ensure the payload wasn't modified by a MiTM.
 
@@ -349,16 +349,16 @@ construction, and 16 bytes for a final authenticating tag.
 
 **Sender Actions:**
 
-  * `c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())`
+1. `c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())`
     * where `s` is the static public key of the initiator
-  * `h = SHA-256(h || c)`
-  * `ss = ECDH(re, s.priv)`
+1. `h = SHA-256(h || c)`
+1. `ss = ECDH(re, s.priv)`
     * where `re` is the ephemeral public key of the responder.
-  * `ck, temp_k3 = HKDF(ck, ss)`
+1. `ck, temp_k3 = HKDF(ck, ss)`
     * The final intermediate shared secret is mixed into the running chaining key.
-  * `t = encryptWithAD(temp_k3, 0, h, zero)`
+1. `t = encryptWithAD(temp_k3, 0, h, zero)`
      * where `zero` is a zero-length plaintext
-  * `sk, rk = HKDF(ck, zero)`
+1. `sk, rk = HKDF(ck, zero)`
      * where `zero` is a zero-length plaintext,
        `sk` is the key to be used by the initiator to encrypt messages to the
        responder,
@@ -366,28 +366,28 @@ construction, and 16 bytes for a final authenticating tag.
        the responder
      * The final encryption keys to be used for sending and
        receiving messages for the duration of the session are generated.
-  * `rn = 0, sn = 0`
+1. `rn = 0, sn = 0`
      * The sending and receiving nonces are initialized to zero.
-  * Send `m = 0 || c || t` over the network buffer.
+1. Send `m = 0 || c || t` over the network buffer.
 
 
 **Receiver Actions:**
 
-  * Read _exactly_ 66 bytes from the network buffer.
-  * Parse out the read message (`m`) into `v = m[0]`, `c = m[1:49]` and `t = m[50:]`
-  * If `v` is an unrecognized handshake version, then the responder MUST
+1. Read _exactly_ 66 bytes from the network buffer.
+1. Parse out the read message (`m`) into `v = m[0]`, `c = m[1:49]` and `t = m[50:]`
+1. If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
-  * `rs = decryptWithAD(temp_k2, 1, h, c)`
+1. `rs = decryptWithAD(temp_k2, 1, h, c)`
      * At this point, the responder has recovered the static public key of the
        initiator.
-  * `h = SHA-256(h || c)`
-  * `ss = ECDH(rs, e.priv)`
+1. `h = SHA-256(h || c)`
+1. `ss = ECDH(rs, e.priv)`
      * where `e` is the responder's original ephemeral key
-  * `ck, temp_k3 = HKDF(ck, ss)`
-  * `p = decryptWithAD(temp_k3, 0, h, t)`
+1. `ck, temp_k3 = HKDF(ck, ss)`
+1. `p = decryptWithAD(temp_k3, 0, h, t)`
      * If the MAC check in this operation fails, then the responder MUST
        terminate the connection without any further messages.
-  * `rk, sk = HKDF(ck, zero)`
+1. `rk, sk = HKDF(ck, zero)`
      * where `zero` is a zero-length plaintext,
        `rk` is the key to be used by the responder to decrypt the messages sent
        by the initiator,
@@ -395,7 +395,7 @@ construction, and 16 bytes for a final authenticating tag.
        the initiator
      * The final encryption keys to be used for sending and
        receiving messages for the duration of the session are generated.
-  * `rn = 0, sn = 0`
+1. `rn = 0, sn = 0`
      * The sending and receiving nonces are initialized to zero.
 
 ## Lightning Message Specification
@@ -443,20 +443,20 @@ for a total maximum packet length of `2 + 16 + 65535 + 16` = `65569` bytes.
 In order to encrypt a Lightning message (`m`), given a sending key (`sk`) and a nonce
 (`sn`), the following is done:
 
-  * let `l = len(m)`
+1. let `l = len(m)`
     * where `len` obtains the length in bytes of the Lightning message
-  * Serialize `l` into 2 bytes encoded as a big-endian integer.
-  * Encrypt `l` (using `ChaChaPoly-1305`, `sn`, and `sk`), to obtain `lc`
+1. Serialize `l` into 2 bytes encoded as a big-endian integer.
+1. Encrypt `l` (using `ChaChaPoly-1305`, `sn`, and `sk`), to obtain `lc`
     (18 bytes)
     * The nonce `sn` is encoded as a 96-bit little-endian number. As the
       decoded nonce is 64 bits, the 96-bit nonce is encoded as: 32 bits
       of leading zeroes followed by a 64-bit value.
         * The nonce `sn` MUST be incremented after this step.
     * A zero-length byte slice is to be passed as the AD (associated data).
-  * Finally, encrypt the message itself (`m`) using the same procedure used to
+1. Finally, encrypt the message itself (`m`) using the same procedure used to
     encrypt the length prefix. Let encrypted ciphertext be known as `c`.
     * The nonce `sn` MUST be incremented after this step.
-  * Send `lc || c` over the network buffer.
+1. Send `lc || c` over the network buffer.
 
 
 ### Decrypting Messages
@@ -464,15 +464,15 @@ In order to encrypt a Lightning message (`m`), given a sending key (`sk`) and a 
 In order to decrypt the _next_ message in the network stream, the following is
 done:
 
-  * Read _exactly_ 18 bytes from the network buffer.
-  * Let the encrypted length prefix be known as `lc`
-  * Decrypt `lc` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain the size of
+1. Read _exactly_ 18 bytes from the network buffer.
+1. Let the encrypted length prefix be known as `lc`
+1. Decrypt `lc` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain the size of
     the encrypted packet `l`.
     * A zero-length byte slice is to be passed as the AD (associated data).
     * The nonce `rn` MUST be incremented after this step.
-  * Read _exactly_ `l+16` bytes from the network buffer, let the bytes be known as
+1. Read _exactly_ `l+16` bytes from the network buffer, let the bytes be known as
     `c`.
-  * Decrypt `c` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain decrypted
+1. Decrypt `c` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain decrypted
     plaintext packet `p`.
     * The nonce `rn` MUST be incremented after this step.
 
@@ -490,11 +490,11 @@ to it exceeds 1000.
 
 Key rotation for a key `k` is performed according to the following:
 
-  * Let `ck` be the chaining key obtained at the end of Act Three.
-  * `ck', k' = HKDF(ck, k)`
-  * Reset the nonce for the key to `n = 0`.
-  * `k = k'`
-  * `ck = ck'`
+1. Let `ck` be the chaining key obtained at the end of Act Three.
+1. `ck', k' = HKDF(ck, k)`
+1. Reset the nonce for the key to `n = 0`.
+1. `k = k'`
+1. `ck = ck'`
   
 # Security Considerations
 
