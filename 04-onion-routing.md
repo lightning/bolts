@@ -650,36 +650,63 @@ The top byte of `failure_code` can be read as a set of flags:
 * 0x2000 (NODE): node failure (otherwise channel)
 * 0x1000 (UPDATE): new channel update enclosed
 
+The following `failure_code`s are defined:
+
 1. type: PERM|1 (`invalid_realm`)
+
+The `realm` byte was not understood by the processing node.
 
 1. type: NODE|2 (`temporary_node_failure`)
 
+General temporary failure of the processing node.
+
 1. type: PERM|NODE|2 (`permanent_node_failure`)
 
+General permanent failure of the processing node.
+
 1. type: PERM|NODE|3 (`required_node_feature_missing`)
+
+The processing node has a required feature which was not in this onion.
 
 1. type: BADONION|PERM|4 (`invalid_onion_version`)
 2. data:
    * [`32`:`sha256_of_onion`]
 
+The `version` byte was not understood by the processing node.
+
 1. type: BADONION|PERM|5 (`invalid_onion_hmac`)
 2. data:
    * [`32`:`sha256_of_onion`]
 
+The HMAC of the onion was incorrect when it reached the processing node.
+
 1. type: BADONION|PERM|6 (`invalid_onion_key`)
 2. data:
    * [`32`:`sha256_of_onion`]
+
+The ephemeral key was unparsable by the processing node.
 
 1. type: UPDATE|7 (`temporary_channel_failure`)
 2. data:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
+The channel from the processing node was unable to handle this HTLC,
+but may be able to handle it, or others, later.
+
 1. type: PERM|8 (`permanent_channel_failure`)
+
+The channel from the processing node is unable to handle any HTLCs.
 
 1. type: PERM|9 (`required_channel_feature_missing`)
 
+The channel from the processing node requires features not present in
+the onion.
+
 1. type: PERM|10 (`unknown_next_peer`)
+
+The onion specified a `short_channel_id` which doesn't match any
+leading from the processing node.
 
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
@@ -687,11 +714,17 @@ The top byte of `failure_code` can be read as a set of flags:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
+The HTLC amount was below the `htlc_minimum_msat` of the channel from
+the processing node.
+
 1. type: UPDATE|12 (`fee_insufficient`)
 2. data:
    * [`8`:`htlc_msat`]
    * [`2`:`len`]
    * [`len`:`channel_update`]
+
+The fee amount was below that required by the channel from the
+processing node.
 
 1. type: UPDATE|13 (`incorrect_cltv_expiry`)
 2. data:
@@ -699,24 +732,40 @@ The top byte of `failure_code` can be read as a set of flags:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
+The CLTV expiry in the HTLC doesn't match the value in the onion.
+
 1. type: UPDATE|14 (`expiry_too_soon`)
 2. data:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
+The CLTV expiry is too close to the current block height for safe
+handling by the processing node.
+
 1. type: PERM|15 (`unknown_payment_hash`)
+
+The `payment_hash` is unknown to the final node.
 
 1. type: PERM|16 (`incorrect_payment_amount`)
 
+The amount for that `payment_hash` is incorrect.
+
 1. type: 17 (`final_expiry_too_soon`)
+
+The CLTV expiry is too close to the current block height for safe
+handling by the final node.
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
    * [`4`:`cltv_expiry`]
 
+The CLTV expiry in the HTLC doesn't match the value in the onion.
+
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
-   * [`4`:`incoming_htlc_amt`]   
+   * [`4`:`incoming_htlc_amt`]
+
+The amount in the HTLC doesn't match the value in the onion.
 
 1. type: UPDATE|20 (`channel_disabled`)
 2. data:
@@ -724,8 +773,11 @@ The top byte of `failure_code` can be read as a set of flags:
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
+The channel from the processing node has been disabled.
+
 1. type: 21 (`expiry_too_far`)
 
+The CLTV expiry in the HTLC is too far in the future.
 
 ### Requirements
 
