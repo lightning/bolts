@@ -1,14 +1,26 @@
 FILENAME=lightning
 TITLE=title.txt
 
-DEF_TARGETS=lightning.epub lightning.pdf
-TARGETS=$(DEF_TARGETS) lightning.mobi
+PANDOC_OPTS=-sS
+PANDOC_PDF_OPTS=$(PANDOC_OPTS) -V geometry:margin=1.5in
+
+DEF_TARGETS=$(FILENAME).epub $(FILENAME).pdf
+TARGETS=$(DEF_TARGETS) $(FILENAME).mobi $(FILENAME).man
 MDS=$(sort $(wildcard *-*.md))
 
 all: $(DEF_TARGETS)
 
-$(FILENAME).%: $(TITLE) $(MDS)
-	pandoc -S -o $@ $^
+man: $(FILENAME).man FAKE
+	@man ./$(FILENAME).man
+
+$(FILENAME).pdf: $(TITLE) $(MDS)
+	pandoc $(PANDOC_PDF_OPTS) -o $@ $^
+
+$(FILENAME).man: $(TITLE) $(MDS)
+	pandoc $(PANDOC_OPTS) -o $@ -t man $^
+
+$(FILENAME).epub: $(TITLE) $(MDS)
+	pandoc $(PANDOC_OPTS) -o $@ $^
 
 $(FILENAME).mobi: $(FILENAME).epub
 	ebook-convert $< $@
@@ -16,4 +28,4 @@ $(FILENAME).mobi: $(FILENAME).epub
 clean:
 	rm -f $(TARGETS)
 
-.PHONY: clean
+.PHONY: clean FAKE
