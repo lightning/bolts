@@ -4,19 +4,19 @@ This specification describes simple node discovery, channel discovery, and chann
 
 Node and channel discovery serve two different purposes:
 
- - Channel discovery allows the creation and maintenance of a local view of the network's topology, so that the node can discover routes to the desired destination.
- - Node discovery allows nodes to broadcast their ID, host, and port, so that other nodes can open connections and establish payment channels.
- 
+ - Channel discovery allows the creation and maintenance of a local view of the network's topology, so that a node can discover routes to desired destinations.
+ - Node discovery allows nodes to broadcast their ID, host, and port, so that other nodes can open connections and establish payment channels with them.
+
 To support channel discovery, peers in the network exchange
-`channel_announcement` messages, which contain information about new
-channels between two nodes. They can also exchange `channel_update`
+`channel_announcement` messages containing information regarding new
+channels between the two nodes. They can also exchange `channel_update`
 messages, which update information about a channel. There can only be
 one valid `channel_announcement` for any channel, but at least two
 `channel_update` messages are expected.
 
 To support node discovery, peers exchange `node_announcement`
-messages, which supply additional information about nodes. There can be
-multiple `node_announcement` messages, to update node information.
+messages, which supply additional information about the nodes. There may be
+multiple `node_announcement` messages, in order to update the node information.
 
 # Table of Contents
 
@@ -33,8 +33,8 @@ multiple `node_announcement` messages, to update node information.
 
 ## The `announcement_signatures` Message
 
-This is a direct message between two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
-It contains the necessary signatures by the sender to construct the `channel_announcement` message.
+This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
+It contains the necessary signatures, by the sender, to construct the `channel_announcement` message.
 
 1. type: 259 (`announcement_signatures`)
 2. data:
@@ -47,52 +47,59 @@ The willingness of the initiating node to announce the channel is signaled durin
 
 ### Requirements
 
-The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. The message is then sent using an `announcement_signatures`.
+The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. The message is then sent using an `announcement_signatures` message.
 
 The `short_channel_id` is the unique description of the funding transaction.
-It is constructed with the most significant 3 bytes indicating the block
-height, the next 3 bytes indicating the transaction index within the
-block, and the least significant two bytes indicating the output
-index that pays to the channel.
+It is constructed as follows:
+  1. the most significant 3 bytes: indicating the block height
+  2. the next 3 bytes: indicating the transaction index within the block
+  3. the least significant 2 bytes: indicating the output index that pays to the channel.
 
-If the `open_channel` message had the `announce_channel` bit set, then both nodes MUST send the `announcement_signatures` message, otherwise they MUST NOT.
+A node:
+  - if the `open_channel` message has the `announce_channel` bit set:
+    - MUST send the `announcement_signatures` message.
+      - MUST NOT send `announcement_signatures` messages until `funding_locked`
+      has been sent AND the funding transaction has at least six confirmations.
+  - otherwise:
+    - MUST NOT send the `announcement_signatures` message.
+  - upon reconnection:
+    - MUST respond to the first `announcement_signatures` message with its own
+    `announcement_signatures` message.
+    - if it has NOT received an `announcement_signatures` message:
+      - SHOULD retransmit the `announcement_signatures` message.
 
-If sent, `announcement_signatures` messages MUST NOT be sent until `funding_locked` has been sent and the funding transaction has at least six confirmations.
-
-The recipient MAY fail the channel if the `node_signature` or `bitcoin_signature` is incorrect.
-The recipient SHOULD queue the `channel_announcement` message for its peers if it has sent and received a valid `announcement_signatures` message.
-
-On reconnection, a node SHOULD retransmit the `announcement_signatures` message if it has not received an `announcement_signatures` message, and MUST respond to the first `announcement_signatures` message after reconnection with its own `announcement_signatures` message.
+A recipient node:
+  - if the `node_signature` OR the `bitcoin_signature` is NOT correct:
+    - MAY fail the channel.
+  - if it has sent AND received a valid `announcement_signatures` message:
+    - SHOULD queue the `channel_announcement` message for its peers.
 
 ## The `channel_announcement` Message
 
-This message contains ownership information about a channel. It ties
-each on-chain Bitcoin key to the Lightning node key, and vice-versa.
-The channel is not really usable until at least one side has announced
-its fee levels and expiry using `channel_update`.
+This message contains ownership information regarding a channel. It ties
+each on-chain Bitcoin key to the associated Lightning node key, and vice-versa.
+The channel is not practically usable until at least one side has announced
+its fee levels and expiry, using `channel_update`.
 
-Proving the existence of a channel between `node_1` and
-`node_2` requires:
+Proving the existence of a channel between `node_1` and `node_2` requires:
 
 1. proving that the funding transaction pays to `bitcoin_key_1` and
    `bitcoin_key_2`
 2. proving that `node_1` owns `bitcoin_key_1`
 3. proving that `node_2` owns `bitcoin_key_2`
 
-The first proof is accomplished by assuming that all nodes know the unspent
-transaction outputs, and thus can find the output given by
-`short_channel_id` and validate that it is indeed a P2WSH funding
-transaction output for those keys specified in
-[BOLT #3](03-transactions.md#funding-transaction-output).
+Assuming that all nodes know the unspent transaction outputs, the first proof is
+accomplished by a node finding the output given by the `short_channel_id` and
+verifying that it is indeed a P2WSH funding transaction output for those keys
+specified in [BOLT #3](03-transactions.md#funding-transaction-output).
 
-The second two proofs are accomplished through explicit signatures (`bitcoin_signature_1`
-and `bitcoin_signature_2`, generated by each `bitcoin_key` and signing
-the corresponding `node_id`).
+The last two proofs are accomplished through explicit signatures:
+`bitcoin_signature_1` and `bitcoin_signature_2` are generated for each
+`bitcoin_key` and each of the corresponding `node_id`s are signed.
 
-It is also necessary to prove that `node_1` and `node_2` both agree on this
-announcement message; this is accomplished by having a signature from each
-`node_id` signing the message (`node_signature_1` and
-`node_signature_2`).
+It's also necessary to prove that `node_1` and `node_2` both agree on the
+announcement message: this is accomplished by having a signature from each
+`node_id` (`node_signature_1` and `node_signature_2`) signing the message.
 
 1. type: 256 (`channel_announcement`)
 2. data:
@@ -228,7 +235,7 @@ The following `address descriptor` types are defined:
          of a 1024-bit `RSA` public key for the onion service (a.k.a. Tor hidden service).
    * `4`: tor v3 onion service. data `[35:onion_addr][2:port]`  (length 37)
        * Version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt))
-         onion service addresses. Encodes: `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`. 
+         onion service addresses. Encodes: `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`.
              where `checksum = sha3(".onion checksum" | pubkey || version)[:2]`
 
 ### Requirements
@@ -309,10 +316,10 @@ in the `flags` field
 to indicate which end this is. A node can do this multiple times, if
 it wants to change fees.
 
-Note that the `channel_update` message is only useful in the context 
+Note that the `channel_update` message is only useful in the context
 of *relaying* payments, not *sending* payments. When making a payment
- `A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels 
- `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will 
+ `A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels
+ `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will
  come into play. When building the route, amounts and expiries for HTLCs need
  to be calculated backward from the destination to the source. The initial
  exact value for `amount_msat` and minimal value for `cltv_expiry`, which are
@@ -388,7 +395,7 @@ messages longer than the minimum expected length.
 
 Upon establishing a connection, the two endpoints negotiate whether to perform an initial sync by setting the `initial_routing_sync` flags in the `init` message.
 The endpoint SHOULD set the `initial_routing_sync` flag if it requires a full copy of the other endpoint's routing state.
-Upon receiving an `init` message with the `initial_routing_sync` flag set, the node sends `channel_announcement`s, `channel_update`s and `node_announcement`s for all known channels and nodes as if they were just received. 
+Upon receiving an `init` message with the `initial_routing_sync` flag set, the node sends `channel_announcement`s, `channel_update`s and `node_announcement`s for all known channels and nodes as if they were just received.
 
 If the `initial_routing_sync` flag is not set, or initial sync was completed, then the node resumes normal operation: see the _Rebroadcasting_ section for details.
 
@@ -475,7 +482,7 @@ Consider four nodes:
    B
   / \
  /   \
-A     C 
+A     C
  \   /
   \ /
    D
