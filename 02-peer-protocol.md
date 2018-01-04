@@ -380,9 +380,9 @@ Nodes can negotiate a mutual close of the connection, which unlike a
 unilateral close, allows them to access their funds immediately and
 can be negotiated with lower fees.
 
-Closing happens in two stages: 1) one side indicates it wants to clear the channel
-(and thus will accept no new HTLCs) 2) once all HTLCs are resolved, the final channel close
-negotiation begins.
+Closing happens in two stages:
+1. one side indicates it wants to clear the channel (and thus will accept no new HTLCs)
+2. once all HTLCs are resolved, the final channel close negotiation begins.
 
         +-------+                              +-------+
         |       |--(1)-----  shutdown  ------->|       |
