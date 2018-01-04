@@ -135,16 +135,16 @@ The creating node:
     - Note: the hash skips the 4 signatures but hashes the rest of the message,
     including any future fields appended to the end.
   - MUST verify that `node_signature_1` and `node_signature_2` are valid
-    signatures of the hash `h`, using `node_id_1` and `node_id_2`'s respective
-    secrets.
+    signatures of the hash `h` (using `node_id_1` and `node_id_2`'s respective
+    secrets).
   - MUST verify that `bitcoin_signature_1` and `bitcoin_signature_2` are valid
-  signatures of the hash `h`, using `bitcoin_key_1` and `bitcoin_key_2`'s
-  respective secrets.
+  signatures of the hash `h` (using `bitcoin_key_1` and `bitcoin_key_2`'s
+  respective secrets).
   - SHOULD set `len` to the minimum length required to hold the `features` bits
   it sets.
 
 The receiving node:
-  - MUST verify the integrity and authenticity of the message by verifying the
+  - MUST verify the integrity AND authenticity of the message by verifying the
   signatures.
   - if there is an unknown even bit in the `features` field:
     - MUST NOT parse the remainder of the message.
@@ -162,7 +162,7 @@ The receiving node:
     `node_signature_2` are invalid OR NOT correct:
       - SHOULD fail the connection.
     - otherwise:
-      - if `node_id_1` or `node_id_2` are blacklisted:
+      - if `node_id_1` OR `node_id_2` are blacklisted:
         - SHOULD ignore the message.
       - otherwise:
         - if the transaction referred to was NOT previously announced as a
@@ -178,7 +178,7 @@ The receiving node:
         connected to them.
       - otherwise:
         - SHOULD store this `channel_announcement`.
-  - once its funding output has been spent or reorganized out:
+  - once its funding output has been spent OR reorganized out:
     - SHOULD forget a channel.
 
 ### Rationale
@@ -208,9 +208,9 @@ nodes that do not understand them.
 
 ## The `node_announcement` Message
 
-This allows a node to indicate extra data associated with it, in
+This message allows a node to indicate extra data associated with it, in
 addition to its public key. To avoid trivial denial of service attacks,
-nodes for which a channel is not already known are ignored.
+nodes not associated with an already known channel are ignored.
 
 1. type: 257 (`node_announcement`)
 2. data:
@@ -224,84 +224,92 @@ nodes for which a channel is not already known are ignored.
    * [`2`:`addrlen`]
    * [`addrlen`:`addresses`]
 
-The `timestamp` allows ordering in the case of multiple announcements;
-the `rgb_color` and `alias` allow
-intelligence services to give their nodes cool monikers like IRATEMONK
-and WISTFULTOLL and use the color black.
+The `timestamp` allows ordering of messages, in the case of multiple
+announcements; the `rgb_color` and `alias` allow intelligence services to give
+their nodes cool monikers like 'IRATEMONK' and 'WISTFULTOLL' and to use the
+color black.
 
-`addresses` allows the node to announce its willingness to accept
-incoming network connections: it contains series of `address
-descriptor`s for connecting to the node. The first byte describes the
-address type, followed by the appropriate number of bytes for that type.
+`addresses` allows a node to announce its willingness to accept incoming network
+connections: it contains a series of `address descriptor`s for connecting to the
+node. The first byte describes the address type and is followed by the
+appropriate number of bytes for that type.
 
 The following `address descriptor` types are defined:
 
-   * `0`: padding. data = none (length 0).
-   * `1`: ipv4. data = `[4:ipv4_addr][2:port]` (length 6)
-   * `2`: ipv6. data = `[16:ipv6_addr][2:port]` (length 18)
-   * `3`: tor v2 onion service. data = `[10:onion_addr][2:port]` (length 12)
-       * Version 2 onion service addresses. Encodes an 80-bit truncated `SHA-1` hash
-         of a 1024-bit `RSA` public key for the onion service (a.k.a. Tor hidden service).
-   * `4`: tor v3 onion service. data `[35:onion_addr][2:port]`  (length 37)
-       * Version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt))
-         onion service addresses. Encodes: `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`.
-             where `checksum = sha3(".onion checksum" | pubkey || version)[:2]`
+   * `0`: padding; data = none (length 0)
+   * `1`: ipv4; data = `[4:ipv4_addr][2:port]` (length 6)
+   * `2`: ipv6; data = `[16:ipv6_addr][2:port]` (length 18)
+   * `3`: tor v2 onion service; data = `[10:onion_addr][2:port]` (length 12)
+       * version 2 onion service addresses; Encodes an 80-bit, truncated `SHA-1`
+       hash of a 1024-bit `RSA` public key for the onion service (a.k.a. Tor
+       hidden service).
+   * `4`: tor v3 onion service; data `[35:onion_addr][2:port]` (length 37)
+       * version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt))
+         onion service addresses; Encodes:
+         `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where
+         `checksum = sha3(".onion checksum" | pubkey || version)[:2]`.
 
 ### Requirements
 
-The creating node MUST set `timestamp` to be greater than that for any previous
-`node_announcement` it has created. It MAY base it on a UNIX
-timestamp. It MUST set `signature` to the signature of
-the double-SHA256 of the entire remaining packet after `signature`, using the
-key given by `node_id`. It MAY set `alias` and `rgb_color` to customize the node's appearance in maps and graphs, where the first byte of `rgb` is the red value, the second byte is the green value and the last byte is the blue value. It MUST set `alias` to a valid UTF-8 string, with any `alias` bytes following equal to zero.
+The creating node:
+  - MUST set `timestamp` to be greater than that of any previous
+  `node_announcement` it has previously created.
+    - MAY base it on a UNIX timestamp.
+  - MUST set `signature` to the signature of the double-SHA256 of the entire
+  remaining packet after `signature` (using the key given by `node_id`).
+  - MAY set `alias` AND `rgb_color` to customize its appearance in maps and
+  graphs.
+    - Note: the first byte of `rgb` is the red value, the second byte is the
+    green value, and the last byte is the blue value.
+  - MUST set `alias` to a valid UTF-8 string, with any `alias` trailing-bytes
+  equal to zero.
+  - SHOULD fill `addresses` with an address descriptor for each public network
+  address that expects incoming connections.
+  - MUST set `addrlen` to the number of bytes in `addresses`.
+  - MUST place non-zero typed address descriptors in ascending order.
+  - MAY place any number of zero-typed address descriptors anywhere.
+  - SHOULD use placement only for aligning fields that follow `addresses`.
+  - MUST NOT create a `type 1` OR `type 2` address descriptor with `port` equal
+  to zero.
+  - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
+  - MUST NOT include more than one `address descriptor` of the same type.
+  - SHOULD set `flen` to the minimum length required to hold the `features`
+  bits it sets.
 
-The creating node SHOULD fill `addresses` with an address descriptor
-for each public network address that expects incoming connections,
-and MUST set `addrlen` to the number of bytes in `addresses`.
-Non-zero typed address descriptors MUST be placed in ascending order;
-any number of zero-typed address descriptors MAY be placed anywhere,
-but SHOULD only be used for aligning fields following `addresses`.
-
-The creating node MUST NOT create a type 1 or type 2 address
-descriptor with `port` equal to zero, and SHOULD ensure `ipv4_addr`
-and `ipv6_addr` are routable addresses. The creating node MUST NOT include
-more than one `address descriptor` of the same type.
-
-The creating node SHOULD set `flen` to the minimum length required to
-hold the `features` bits it sets.
-
-The receiving node SHOULD fail the connection if `node_id` is not a valid
-compressed public key, and MUST NOT further process the message.
-
-The receiving node SHOULD fail the connection if `signature` is not a
-valid signature using `node_id` of the double-SHA256 of the entire
-message following the `signature` field (including unknown fields
-following `alias`), and MUST NOT further process the message.
-
-If the `features` field contains unknown even bits the receiving node MUST NOT parse the remainder of the message and MAY discard the message altogether.
-The node MAY forward `node_announcement`s that contain unknown `features` bit set, even though it hasn't parsed the announcement.
-
-The receiving node SHOULD ignore the first `address descriptor` that
-does not match the types defined above. The receiving node SHOULD
-fail the connection if `addrlen` is insufficient to hold the address
-descriptors of the known types.
-
-The receiving node SHOULD ignore `ipv6_addr` or `ipv4_addr`
-if `port` is zero.
-
-The receiving node SHOULD ignore the message if `node_id` is not
-previously known from a `channel_announcement` message, or if
-`timestamp` is not greater than the last-received
-`node_announcement` from this `node_id`. Otherwise, if the
-`timestamp` is greater than the last-received `node_announcement` from
-this `node_id` the receiving node SHOULD queue the message for
-rebroadcasting, but MAY choose not to for messages longer than
-the minimum expected length.
-
-The receiving node SHOULD NOT connect to a node which has an unknown
-`features` bit set in the `node_announcement` that is even.
-
-The receiving node MAY use `rgb_color` and `alias` to reference nodes in interfaces, but SHOULD insinuate their self-signed origin.
+The receiving node:
+  - if `node_id` is NOT a valid compressed public key:
+    - SHOULD fail the connection.
+    - MUST NOT further process the message.
+  - if `signature` is NOT a valid signature (using `node_id` of the
+  double-SHA256 of the entire message following the `signature` field, including
+  unknown fields following `alias`):
+    - SHOULD fail the connection.
+    - MUST NOT further process the message.
+  - if `features` field contains unknown _even bits_:
+    - MUST NOT parse the remainder of the message.
+    - MAY discard the message altogether.
+  - MAY forward `node_announcement`s that contain an unknown `features` bit,
+  regardless of if it has parsed the announcement or not.
+  - SHOULD ignore the first `address descriptor` that does NOT match the types
+  defined above.
+  - if `addrlen` is insufficient to hold the address descriptors of the
+  known types:
+    - SHOULD fail the connection.
+  - if `port` is equal to zero:
+    - SHOULD ignore `ipv6_addr` OR `ipv4_addr`.
+  - if `node_id` is NOT previously known from a `channel_announcement` message,
+  OR if `timestamp` is NOT greater than the last-received `node_announcement`
+  from this `node_id`:
+    - SHOULD ignore the message.
+  - otherwise:
+    - if `timestamp` is greater than the last-received `node_announcement` from
+    this `node_id`:
+      - SHOULD queue the message for rebroadcasting.
+      - MAY choose NOT to queue messages longer than the minimum expected length.
+  - SHOULD NOT connect to a node which has an unknown, _even_ `features` bit set
+  in the `node_announcement`.
+  - MAY use `rgb_color` AND `alias` to reference nodes in interfaces.
+    - SHOULD insinuate their self-signed origin.
 
 ### Rationale
 
