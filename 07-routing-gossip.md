@@ -118,84 +118,93 @@ announcement message: this is accomplished by having a signature from each
 
 ### Requirements
 
-The creating node MUST set `chain_hash` to the 32-byte hash that uniquely
-identifies the chain that the channel was opened within. For the Bitcoin
-blockchain, the `chain_hash` value MUST be (encoded in hex):
-`000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
+The creating node:
+  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
+  that the channel was opened within:
+    - MUST set the _Bitcoin blockchain_ `chain_hash` value (encoded in hex) to: `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
+  - MUST set `short_channel_id` to refer to the confirmed funding transaction,
+  as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).
+    - Note: the corresponding output MUST be a P2WSH, as described in [BOLT #3](03-transactions.md#funding-transaction-output).
+  - MUST set `node_id_1` and `node_id_2` to the public keys of the two nodes
+  operating the channel, such that `node_id_1` is the numerically-lesser of the
+  two DER-encoded keys sorted in ascending numerical order.
+  - MUST set `bitcoin_key_1` and `bitcoin_key_2` to `node_id_1` and `node_id_2`'s
+  respective `funding_pubkey`s.
+  - MUST compute the double-SHA256 hash `h` of the message, beginning at offset
+  256, up to the end of the message.
+    - Note: the hash skips the 4 signatures but hashes the rest of the message,
+    including any future fields appended to the end.
+  - MUST verify that `node_signature_1` and `node_signature_2` are valid
+    signatures of the hash `h`, using `node_id_1` and `node_id_2`'s respective
+    secrets.
+  - MUST verify that `bitcoin_signature_1` and `bitcoin_signature_2` are valid
+  signatures of the hash `h`, using `bitcoin_key_1` and `bitcoin_key_2`'s
+  respective secrets.
+  - SHOULD set `len` to the minimum length required to hold the `features` bits
+  it sets.
 
-The creating node MUST set `short_channel_id` to refer to the confirmed
-funding transaction as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message). The corresponding output MUST be a
-P2WSH as described in [BOLT #3](03-transactions.md#funding-transaction-output).
-
-The creating node MUST set `node_id_1` and `node_id_2` to the public
-keys of the two nodes who are operating the channel, such that
-`node_id_1` is the numerically-lesser of the two DER-encoded keys sorted in
-ascending numerical order, and MUST set `bitcoin_key_1` and
-`bitcoin_key_2` to `funding_pubkey`s of `node_id_1` and `node_id_2`
-respectively.
-
-The creating node MUST compute the double-SHA256 hash `h` of the message, starting at offset 256, up to the end of the message.
-Thus the hash skips the 4 signatures, but hashes the rest of the message, including any future fields appended to the end.
-`node_signature_1` and `node_signature_2` MUST be valid signatures of the hash `h` using the secret associated with `node_id_1` and `node_id_2` respectively.
-`bitcoin_signature_1` and `bitcoin_signature_2` MUST be valid signatures of the hash `h` using the secret associated with `bitcoin_key_1` and `bitcoin_key_2` respectively.
-
-The creating node SHOULD set `len` to the minimum length required to
-hold the `features` bits it sets.
-
-The receiving node MUST verify the integrity and authenticity of the message by verifying the signatures.
-If there is an unknown even bit in the `features` field the receiving node MUST NOT parse the remainder of the message and MUST NOT add the channel to its local network view, and SHOULD NOT forward the announcement.
-
-The receiving node MUST ignore the message if the output specified
-by `short_channel_id` does not
-correspond to a P2WSH using `bitcoin_key_1` and `bitcoin_key_2` as
-specified in [BOLT #3](03-transactions.md#funding-transaction-output).
-The receiving node MUST ignore the message if this output is spent.
-
-The receiving node MUST ignore the message if the specified `chain_hash`
-is unknown to the receiver.
-
-Otherwise, the receiving node SHOULD fail the connection if
-`bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` or
-`node_signature_2` are invalid or not correct.
-
-Otherwise, if `node_id_1` or `node_id_2` are blacklisted, it SHOULD
-ignore the message.
-
-Otherwise, if the transaction referred to was not previously announced
-as a channel, the receiving node SHOULD queue the message for
-rebroadcasting, but MAY choose not to for messages longer than
-the minimum expected length. If it has previously received a valid
-`channel_announcement` for the same transaction in the same block, but
-for a different `node_id_1` or `node_id_2`, it SHOULD blacklist the
-previous message's `node_id_1` and `node_id_2` as well as this
-`node_id_1` and `node_id_2` and forget channels connected to them,
-otherwise it SHOULD store this `channel_announcement`.
-
-The receiving node SHOULD forget a channel once its funding output has
-been spent or reorganized out.
+The receiving node:
+  - MUST verify the integrity and authenticity of the message by verifying the
+  signatures.
+  - if there is an unknown even bit in the `features` field:
+    - MUST NOT parse the remainder of the message.
+    - MUST NOT add the channel to its local network view.
+    - SHOULD NOT forward the announcement.
+  - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using
+    `bitcoin_key_1` and `bitcoin_key_2`, as specified in
+    [BOLT #3](03-transactions.md#funding-transaction-output)) OR the output is
+    spent:
+    - MUST ignore the message.
+  - if the specified `chain_hash` is unknown to the receiver:
+    - MUST ignore the message.
+  - otherwise:
+    - if `bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` OR
+    `node_signature_2` are invalid OR NOT correct:
+      - SHOULD fail the connection.
+    - otherwise:
+      - if `node_id_1` or `node_id_2` are blacklisted:
+        - SHOULD ignore the message.
+      - otherwise:
+        - if the transaction referred to was NOT previously announced as a
+        channel:
+          - SHOULD queue the message for rebroadcasting.
+          - MAY choose NOT to for messages longer than the minimum expected
+          length.
+      - if it has previously received a valid `channel_announcement`, for the
+      same transaction, in the same block, but for a different `node_id_1` or
+      `node_id_2`:
+        - SHOULD blacklist the previous message's `node_id_1` and `node_id_2`,
+        as well as this `node_id_1` and `node_id_2` AND forget any channels
+        connected to them.
+      - otherwise:
+        - SHOULD store this `channel_announcement`.
+  - once its funding output has been spent or reorganized out:
+    - SHOULD forget a channel.
 
 ### Rationale
 
-Requiring both nodes to sign indicates they are both willing to route
-other payments via this channel (i.e. be part of the public network).
-Requiring the Bitcoin signatures proves that they control the channel.
+Both nodes are required to sign to indicate they are willing to route other
+payments via this channel (i.e. be part of the public network); requiring their
+Bitcoin signatures proves that they control the channel.
 
-The blacklisting of conflicting nodes disallows multiple
-different announcements: no node should ever do this, as it implies
-that keys have leaked.
+The blacklisting of conflicting nodes disallows multiple different
+announcements. Such conflicting announcements should never be broadcast by any
+node, as this implies that keys have leaked.
 
-While channels shouldn't be advertised before they are sufficiently
-deep, the requirement against rebroadcasting only applies if the
-transaction hasn't moved to a different block.
+While channels should not be advertised before they are sufficiently deep, the
+requirement against rebroadcasting only applies if the transaction has not moved
+to a different block.
 
-To avoid having to store excessive-sized messages, yet allow
-reasonable expansion in future, nodes are allowed to restrict
-rebroadcasting (perhaps statistically).
+In order to avoid storing excessively-large messages, yet still allow for
+reasonable future expansion, nodes are permitted to restrict rebroadcasting
+(perhaps statistically).
 
-New channel features are possible in future; backwards compatible (or
-optional) ones will have odd feature bits, incompatible ones will have
-even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
-Incompatible features will result in the announcement not being forwarded by nodes that don't understand them.
+New channel features are possible in the future: backwards compatible (or
+optional) features will have _odd_ feature bits, while incompatible features
+will have _even_ feature bits
+(["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
+Incompatible features will result in the announcement not being forwarded by
+nodes that do not understand them.
 
 ## The `node_announcement` Message
 
