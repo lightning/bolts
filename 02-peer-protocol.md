@@ -12,6 +12,7 @@ operation, and closing.
       * [The `funding_created` Message](#the-funding_created-message)
       * [The `funding_signed` Message](#the-funding_signed-message)
       * [The `funding_locked` Message](#the-funding_locked-message)
+      * [The `funding_cancelled` Message](#the-funding_cancelled-message)
     * [Channel Close](#channel-close)
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
@@ -373,6 +374,58 @@ would create a Denial of Service risk; therefore, forgetting it is recommended
 
 An SPV proof could be added and block hashes could be routed in separate
 messages.
+
+### The `funding_cancelled` Message
+
+This message indicates that the funding node has performed actions
+that ensure that the funding transaction can never be confirmed,
+and that the fundee node should forget the channel.
+
+1. type: 40 (`funding_cancelled`)
+2. data:
+    * [`32`:`channel_id`]
+
+#### Requirements
+
+The sender MUST:
+  - be the funding node of the channel.
+  - ensure that the funding transaction can never be confirmed and
+that `funding_locked` can never be sent by either node.
+  - send this message only after receiving `funding_signed`.
+  - NOT send this message if the receiver did not indicate the
+`option-funding-cancelled` feature bit.
+
+The receiver SHOULD:
+  - forget the channel.
+
+#### Rationale
+
+The `funding_cancelled` message is intended to be used for various
+useful features:
+
+1. Replace-by-fee funding transactions. When replacing a funding
+transaction with a higher feerate, the funding node can simply
+re-initiate the channel opening protocol with the replacement
+funding transaction. However, once one of the replaceable funding
+transactions have confirmed deeply enough, other versions of
+the funding transaction can never confirm, and the funding node
+can inform the fundee of this fact using `funding_cancelled`.
+2. Funding transactions that fund multiple channels to multiple
+nodes. If one of the fundee nodes completes the protocol up to
+`funding_signed`, but another fundee node fails to complete the
+protocol, the funding node cannot safely sign and broadcast
+the single funding transaction. The funding node can send
+`funding_cancelled` to the fundee nodes that successfully
+completed the protocol to indicate that the funding transaction
+will never be broadcast and confirmed.
+
+In principle, this message is unnecessary if the fundee node
+follows the recommendation that it SHOULD forget channels if it
+does not see the funding transaction after a reasonable timeout.
+However, keeping track of funding transactions will consume
+resources on the fundee node. This message prevents unnecessary
+use of resources on the fundee side.
+
 
 ## Channel Close
 
