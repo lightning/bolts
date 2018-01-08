@@ -325,6 +325,23 @@ to be ordered in ascending order, unknown ones can be safely ignored.
 Future fields beyond `addresses` can still be added, optionally with
 padding within `addresses` if they require certain alignment.
 
+### Security Considerations for Node Aliases
+
+Node aliases are user-defined and provide a potential avenue for injection
+attacks, both in the process of rendering and persistence. 
+
+Node aliases should always be sanitized before being displayed in
+HTML/Javascript contexts, or any other dynamically interpreted rendering
+frameworks.  Similarly, consider using prepared statements, input validation,
+and/or escaping to protect against injection vulnerabilities against persistence
+engines that support SQL or other dynamically interpreted querying languages. 
+
+* [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
+* [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
+* [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
+
+Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
+
 ## The `channel_update` Message
 
 After a channel has been initially announced, each side independently
