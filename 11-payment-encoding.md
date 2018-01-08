@@ -222,6 +222,28 @@ The `r` field allows limited routing assistance: as specified it only
 allows minimum information to use private channels, but it could also
 assist in future partial-knowledge routing.
 
+### Security Considerations for Payment Descriptions
+
+Payment descriptions are user-defined and provide a potential avenue for
+injection attacks, both in the process of rendering and persistence. 
+
+Payment descriptions should always be sanitized before being displayed in
+HTML/Javascript contexts, or any other dynamically interpreted rendering
+frameworks. Implementers should be extra perceptive to the possibility of
+reflected XSS attacks when decoding and displaying payment descriptions. Avoid
+optimistically rendering the contents of the payment request until all
+validation, verification, and sanitization have been successfully completed.
+
+Furthermore, consider using prepared statements, input validation, and/or
+escaping to protect against injection vulnerabilities against persistence
+engines that support SQL or other dynamically interpreted querying languages.
+
+* [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
+* [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
+* [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
+
+Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
+
 # Payer / Payee Interactions
 
 These are generally defined by the rest of the Lightning BOLT series,
