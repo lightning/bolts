@@ -359,7 +359,7 @@ Bits which are not assigned a meaning must be set to 0.
 A node MAY create and send a `channel_update` with the `disable` bit set to signal the temporary unavailability of a channel, e.g., due to loss of connectivity, or the permanent unavailability, e.g., ahead of an on-chain settlement.
 A subsequent `channel_update` with the `disable` bit unset MAY re-enable the channel.
 
-The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this `short_channel_id`.
+The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this `short_channel_id`, and SHOULD base it on a UNIX timestamp.
 It MUST set `cltv_expiry_delta` to the number of blocks it will subtract from an incoming HTLCs `cltv_expiry`. It MUST set `htlc_minimum_msat` to the minimum HTLC value the other end of the channel will accept, in millisatoshi. It MUST set `fee_base_msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee_proportional_millionths` to the amount it will charge per transferred satoshi in millionths of a satoshi.
 
 The receiving nodes MUST ignore the `channel_update` if it does not correspond to one of its own channels, if the `short_channel_id` does not match a previous `channel_announcement`, or if the channel has been closed in the meantime.
@@ -380,9 +380,18 @@ is not greater than that of the last-received `channel_announcement` for
 this `short_channel_id` and `node_id`. Otherwise, if the `timestamp` is equal to
 the last-received `channel_announcement` and the fields other than
 `signature` differ, the node MAY blacklist this `node_id` and forget all
-channels associated with it. Otherwise the receiving node SHOULD
+channels associated with it.  The receiving node MAY discard the `channel_announcement` if the `timestamp` is far in the future.
+Otherwise the receiving node SHOULD
 queue the message for rebroadcasting, but MAY choose not to for
 messages longer than the minimum expected length.
+
+### Rationale
+
+The `timestamp` field is used by nodes for pruning (either if it's too
+far in the future, or if it's been two weeks with no update), so it
+makes sense to have it be a UNIX timestamp (ie. seconds since UTC
+1970-01-01).  It can't be a hard requirement, however, given the possible case
+of two `channel_update`s within a second.
 
 ## Initial Sync
 
