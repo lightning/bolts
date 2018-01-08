@@ -134,10 +134,10 @@ The creating node:
   256, up to the end of the message.
     - Note: the hash skips the 4 signatures but hashes the rest of the message,
     including any future fields appended to the end.
-  - MUST verify that `node_signature_1` and `node_signature_2` are valid
+  - MUST set `node_signature_1` and `node_signature_2` to valid
     signatures of the hash `h` (using `node_id_1` and `node_id_2`'s respective
     secrets).
-  - MUST verify that `bitcoin_signature_1` and `bitcoin_signature_2` are valid
+  - MUST set `bitcoin_signature_1` and `bitcoin_signature_2` to valid
   signatures of the hash `h` (using `bitcoin_key_1` and `bitcoin_key_2`'s
   respective secrets).
   - SHOULD set `len` to the minimum length required to hold the `features` bits
