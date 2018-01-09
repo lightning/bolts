@@ -47,7 +47,8 @@ The willingness of the initiating node to announce the channel is signaled durin
 
 ### Requirements
 
-The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. The message is then sent using an `announcement_signatures` message.
+The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. After it's signed, the
+`announcement_signatures` message may be sent.
 
 The `short_channel_id` is the unique description of the funding transaction.
 It is constructed as follows:
@@ -121,7 +122,8 @@ announcement message: this is accomplished by having a signature from each
 The creating node:
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that the channel was opened within:
-    - MUST set the _Bitcoin blockchain_ `chain_hash` value (encoded in hex) to: `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
+    - for the _Bitcoin blockchain_:
+      - MUST set `chain_hash` value (encoded in hex) equal to `000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
   - MUST set `short_channel_id` to refer to the confirmed funding transaction,
   as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).
     - Note: the corresponding output MUST be a P2WSH, as described in [BOLT #3](03-transactions.md#funding-transaction-output).
@@ -195,7 +197,7 @@ While channels should not be advertised before they are sufficiently deep, the
 requirement against rebroadcasting only applies if the transaction has not moved
 to a different block.
 
-In order to avoid storing excessively-large messages, yet still allow for
+In order to avoid storing excessively large messages, yet still allow for
 reasonable future expansion, nodes are permitted to restrict rebroadcasting
 (perhaps statistically).
 
