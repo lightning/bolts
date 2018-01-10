@@ -257,7 +257,7 @@ and 16 bytes for the `poly1305` tag.
     * The responder accumulates the initiator's ephemeral key into the authenticating
       handshake digest.
 5. `ss = ECDH(re, s.priv)`
-    * The responder performs an ECDH between its static public key and the
+    * The responder performs an ECDH between its static private key and the
       initiator's ephemeral public key.
 6. `ck, temp_k1 = HKDF(ck, ss)`
     * A new temporary encryption key is generated, which will
