@@ -412,6 +412,9 @@ along with the `scriptpubkey` it wants to be paid to.
 #### Requirements
 
 A sending node:
+  - if it hasn't sent a `funding_created` (if it is a funder) or a `funding_signed` (if it is a fundee):
+    - MUST NOT send a `shutdown`
+  - MAY send a `shutdown` before a `funding_locked`, i.e. before the funding transaction has reached `min_depth`.
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
@@ -427,8 +430,12 @@ A sending node:
     4. `OP_0` `32` 32-bytes (version 0 pay to witness script hash)
 
 A receiving node:
+  - if it hasn't received a `funding_signed` (if it is a funder) or a `funding_created` (if it is a fundee):
+    - SHOULD fail the connection
   - if the `scriptpubkey` is not in one of the above forms:
     - SHOULD fail the connection.
+  - if it hasn't sent a `funding_locked` yet:
+    - MAY reply to a `shutdown` message with a `shutdown`
   - once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:
     - MUST reply to a `shutdown` message with a `shutdown`
   - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
