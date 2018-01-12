@@ -130,8 +130,8 @@ HTLCs, which allows a node to limit its exposure to HTLCs; similarly,
 `max_accepted_htlcs` limits the number of outstanding HTLCs the other
 node can offer.
 
-`feerate_per_kw` indicates the initial fee rate by 1000-weight
-(i.e. 1/4 the more normally-used 'fee rate per kilobyte') that this
+`feerate_per_kw` indicates the initial fee rate in satoshi per 1000-weight
+(i.e. 1/4 the more normally-used 'satoshi per 1000 vbytes') that this
 side will pay for commitment and HTLC transactions, as described in
 [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted
 later with an `update_fee` message).
@@ -433,9 +433,9 @@ Nodes can negotiate a mutual close of the connection, which unlike a
 unilateral close, allows them to access their funds immediately and
 can be negotiated with lower fees.
 
-Closing happens in two stages: 1) one side indicates it wants to clear the channel
-(and thus will accept no new HTLCs) 2) once all HTLCs are resolved, the final channel close
-negotiation begins.
+Closing happens in two stages:
+1. one side indicates it wants to clear the channel (and thus will accept no new HTLCs)
+2. once all HTLCs are resolved, the final channel close negotiation begins.
 
         +-------+                              +-------+
         |       |--(1)-----  shutdown  ------->|       |
