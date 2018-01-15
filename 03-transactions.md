@@ -192,12 +192,12 @@ The commitment transaction:
 less than `dust_limit_satoshis` set by the transaction owner:
     - MUST NOT contain that output.
   - otherwise:
-    - MUST be generated as specified in [`to_local` Output](#to-local-output).
+    - MUST be generated as specified in [`to_local` Output](#to_local-output).
   - if the amount of the commitment transaction `to_remote` output would be
 less than `dust_limit_satoshis` set by the transaction owner:
     - MUST NOT contain that output.
   - otherwise:
-    - MUST be generated as specified in [`to_remote` Output](#to-remote-output).
+    - MUST be generated as specified in [`to_remote` Output](#to_remote-output).
   - for every offered HTLC:
     - if the HTLC amount minus the HTLC-timeout fee would be less than
     `dust_limit_satoshis` set by the transaction owner:
