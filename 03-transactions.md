@@ -1,6 +1,6 @@
 # BOLT #3: Bitcoin Transaction and Script Formats
 
-This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. That is, the funding transaction output script, commitment transactions, and the HTLC transactions.
+This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. This consists of the funding transaction output script, the commitment transactions, and the HTLC transactions.
 
 # Table of Contents
 
@@ -52,7 +52,7 @@ Most transaction outputs used here are P2WSH outputs: the Segwit version of P2SH
 
 * The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
    * `2 <key1> <key2> 2 OP_CHECKMULTISIG`
-* Where `key1` is the numerically lesser of the two DER-encoded `funding_pubkey` and `key2` is the greater.
+* Where `key1` is the numerically lesser of the two DER-encoded `funding_pubkey` and where `key2` is the numerically greater of the two.
 
 ## Commitment Transaction
 
@@ -75,7 +75,7 @@ commitment transaction.
 
 ### Commitment Transaction Outputs
 
-To allow an opportunity for penalty transactions, in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (a.k.a. "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
+To allow an opportunity for penalty transactions, in case of a revoked commitment transaction, all outputs that return funds to the owner of the commitment transaction (a.k.a. the "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second-stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can timeout or be fulfilled even though they are within the `to_self_delay` delay.
 Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
@@ -84,7 +84,7 @@ The amounts for each output MUST be rounded down to whole satoshis. If this amou
 
 #### `to_local` Output
 
-This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation key. The output is a version-0 P2WSH, with a witness script:
 
     OP_IF
         # Penalty transaction
@@ -97,9 +97,9 @@ This output sends funds back to the owner of this commitment transaction and thu
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed), and witness:
+The output is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed) and witness:
 
-	<local_delayedsig> 0
+    <local_delayedsig> 0
 
 If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness:
 
@@ -111,19 +111,19 @@ This output sends funds to the other peer and thus is a simple P2WPKH to `remote
 
 #### Offered HTLC Outputs
 
-This output sends funds to either a HTLC-timeout transaction after the HTLC-timeout or to the remote peer using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
+This output sends funds to either a HTLC-timeout transaction after the HTLC-timeout or to the remote node using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
 
-    # To you with revocation key
+    # To remote node with revocation key
     OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationkey))> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
         <remote_htlckey> OP_SWAP OP_SIZE 32 OP_EQUAL
         OP_NOTIF
-            # To me via HTLC-timeout transaction (timelocked).
+            # To local node via HTLC-timeout transaction (timelocked).
             OP_DROP 2 OP_SWAP <local_htlckey> 2 OP_CHECKMULTISIG
         OP_ELSE
-            # To you with preimage.
+            # To remote node with preimage.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
             OP_CHECKSIG
         OP_ENDIF
@@ -141,9 +141,9 @@ The sending node can use the HTLC-timeout transaction to timeout the HTLC once t
 
 #### Received HTLC Outputs
 
-This output sends funds to either the remote peer after the HTLC-timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
+This output sends funds to either the remote node after the HTLC-timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
 
-    # To you with revocation key
+    # To remote node with revocation key
     OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationkey))> OP_EQUAL
     OP_IF
         OP_CHECKSIG
@@ -151,11 +151,11 @@ This output sends funds to either the remote peer after the HTLC-timeout or usin
         <remote_htlckey> OP_SWAP
             OP_SIZE 32 OP_EQUAL
         OP_IF
-            # To me via HTLC-success transaction.
+            # To local node via HTLC-success transaction.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
             2 OP_SWAP <local_htlckey> 2 OP_CHECKMULTISIG
         OP_ELSE
-            # To you after timeout.
+            # To remote node after timeout.
             OP_DROP <cltv_expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
             OP_CHECKSIG
         OP_ENDIF
@@ -173,8 +173,8 @@ To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
 ### Trimmed Outputs
 
-Each peer specifies `dust_limit_satoshis` below which outputs should
-not be produced; these outputs are termed "trimmed". A trimmed output is
+Each peer specifies a `dust_limit_satoshis` below which outputs should
+not be produced; these outputs that are not produced are termed "trimmed". A trimmed output is
 considered too small to be worth creating and is instead added
 to the commitment transaction fee. For HTLCs, it needs to be taken into
 account that the second-stage HTLC transaction may also be below the
@@ -215,7 +215,7 @@ less than `dust_limit_satoshis` set by the transaction owner:
 
 ## HTLC-Timeout and HTLC-Success Transactions
 
-These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. The HTLC-timeout transaction is also the transaction which can be spent by a valid penalty transaction.
+These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. The HTLC-timeout transaction is also the transaction that can be spent by a valid penalty transaction.
 
 * version: 2
 * locktime: `0` for HTLC-success, `cltv_expiry` for HTLC-timeout
@@ -226,7 +226,7 @@ These HTLC transactions are almost identical, except the HTLC-timeout transactio
    * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-success, `0 <remotehtlcsig> <localhtlcsig> 0` for HTLC-timeout
 * txout count: 1
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation))
-   * `txout[0]` script: version 0 P2WSH with witness script as shown below
+   * `txout[0]` script: version-0 P2WSH with witness script as shown below
 
 The witness script for the output is:
 
@@ -294,7 +294,7 @@ transactions is based on the current `feerate_per_kw` and the
 
 The actual and expected weights vary for several reasons:
 
-* Bitcoin uses DER-encoded signatures which vary in size.
+* Bitcoin uses DER-encoded signatures, which vary in size.
 * Bitcoin also uses variable-length integers, so a large number of outputs will take 3 bytes to encode rather than 1.
 * The `to_remote` output may be below the dust limit.
 * The `to_local` output may be below the dust limit once fees are extracted.
@@ -345,20 +345,20 @@ The commitment transaction `weight` is calculated as follows:
 
 * The offered HTLC of 5000 satoshis is above 546 + 3315 and results in:
   * an output of 5000 satoshi in the commitment transaction
-  * a HTLC-timeout transaction of 5000 - 3145 satoshis which spends this output
+  * a HTLC-timeout transaction of 5000 - 3145 satoshis that spends this output
   * `weight` increases to 896
 
 * The offered HTLC of 1000 satoshis is below 546 + 3315 so is trimmed.
 
 * The received HTLC of 7000 satoshis is above 546 + 3590 and results in:
   * an output of 7000 satoshi in the commitment transaction
-  * a HTLC-success transaction of 7000 - 3590 satoshis which spends this output
+  * a HTLC-success transaction of 7000 - 3590 satoshis that spends this output
   * `weight` increases to 1068
 
 * The received HTLC of 800 satoshis is below 546 + 3515 so is trimmed.
 
 The base commitment transaction fee is 5340 satoshi; the actual
-fee (adding the 1000 and 800 satoshi HTLCs which would make dust
+fee (which adds the 1000 and 800 satoshi HTLCs that would make dust
 outputs) is 7140 satoshi. The final fee may be even higher if the
 `to_local` or `to_remote` outputs fall below `dust_limit_satoshis`.
 
@@ -366,7 +366,7 @@ outputs) is 7140 satoshi. The final fee may be even higher if the
 
 Base commitment transaction fees are extracted from the funder's amount; if that amount is insufficient, the entire amount of the funder's output is used.
 
-Note that if after the fee amount is subtracted from the to-funder output,
+Note that after the fee amount is subtracted from the to-funder output,
 that output may be below `dust_limit_satoshis`, and thus will also
 contribute to fees.
 
@@ -405,6 +405,7 @@ committed HTLCs:
 Each commitment transaction uses a unique set of keys: `localkey` and `remotekey`.
 The HTLC-success and HTLC-timeout transactions use `local_delayedkey` and `revocationkey`.
 These are changed every time depending on the `per_commitment_point`.
+[ FIXME: "every time" means "for every transaction"? Or "every time that ... "? ]
 
 The reason for key change is so that trustless watching for revoked
 transactions can be outsourced. Such a _watcher_ should not be able to
@@ -454,13 +455,13 @@ secrets are known (i.e. `localkey`, `local_htlckey`, and `local_delayedkey` only
 The `revocationkey` is a blinded key: when the local node wishes to create a new
 commitment for the remote node, it uses its own `revocation_basepoint` and the remote
 node's `per_commitment_point` to derive a new `revocationkey` for the
-commitment. After the remote node reveals (thereby revoking that commitment) the
-`per_commitment_secret` used, the local node
+commitment. After the remote node reveals the
+`per_commitment_secret` used (thereby revoking that commitment), the local node
 can then derive the `revocationsecretkey`, as it now knows the two secrets
 necessary to derive the key (`revocation_basepoint_secret` and
 `per_commitment_secret`).
 
-The `per_commitment_point` is generated using EC multiplication:
+The `per_commitment_point` is generated using elliptic-curve multiplication:
 
 	per_commitment_point = per_commitment_secret * G
 
@@ -484,7 +485,7 @@ A node:
   - MUST select an unguessable 256-bit seed for each connection,
   - MUST NOT reveal the seed.
 
-Up to 2^48 - 1 per-commitment secrets can be generated.
+Up to (2^48 - 1) per-commitment secrets can be generated.
 
 The first secret used:
   - MUST be index 281474976710655,
@@ -518,7 +519,7 @@ and secrets are always received in descending order starting at
 
 In binary, it's helpful to think of any index in terms of a *prefix*,
 followed by some trailing 0s. You can derive the secret for any
-index which matches this *prefix*.
+index that matches this *prefix*.
 
 For example, secret `0xFFFFFFFFFFF0` allows the secrets to be derived for
 `0xFFFFFFFFFFF1` through `0xFFFFFFFFFFFF`, inclusive; and secret `0xFFFFFFFFFF08`
@@ -629,12 +630,12 @@ The *expected weight* of a commitment transaction is calculated as follows:
 	 			from the witness data.
 		- sequence: 4 bytes
 
-	output_paying_to_us: 43 bytes
+	output_paying_to_local: 43 bytes
 		- value: 8 bytes
 		- var_int: 1 byte (pk_script length)
 		- pk_script (p2wsh): 34 bytes
 
-	output_paying_to_them: 31 bytes
+	output_paying_to_remote: 31 bytes
 		- value: 8 bytes
 		- var_int: 1 byte (pk_script length)
 		- pk_script (p2wpkh): 22 bytes
@@ -656,8 +657,8 @@ The *expected weight* of a commitment transaction is calculated as follows:
 			funding_input
 		- count_tx_out: 1 byte
 		- tx_out: 74 + 43 * num-htlc-outputs bytes
-			output_paying_to_them,
-			output_paying_to_us,
+			output_paying_to_remote,
+			output_paying_to_local,
 			....htlc_output's...
 		- lock_time: 4 bytes
 
@@ -1263,7 +1264,7 @@ And, here are the test vectors themselves:
 
 # Appendix D: Per-commitment Secret Generation Test Vectors
 
-These test the generation algorithm which all nodes use.
+These test the generation algorithm that all nodes use.
 
 ## Generation Tests
 
@@ -1297,7 +1298,9 @@ These test the generation algorithm which all nodes use.
 These test the optional compact storage system. In many cases, an
 incorrect entry cannot be determined until its parent is revealed; an entry is
 specifically corrupted, along with all its children (except for the
-last test, which would require another eight samples to be detected). For
+last test, which would require another eight samples to be detected). 
+[ FIXME: I can't tell what's intended here. When you say "an entry is specifically corrupted ..." do you mean that an entry that can't be detected is specifically corrupted ... or ...? And how does that parenthetical "except" relate? ]
+For
 these tests a seed of `0xFFF...FF` is used, and incorrect entries are
 seeded with `0x000...00`.
 
