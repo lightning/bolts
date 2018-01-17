@@ -258,7 +258,7 @@ typical exchanges without applying any true updates to their respective
 channels.
 
 When combined with the onion routing protocol defined in
-[BOLT #4](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md),
+[BOLT #4](04-onion-routing.md),
 careful statistically driven synthetic traffic can serve to further bolster the
 privacy of participants within the network.
 
@@ -268,7 +268,7 @@ of incoming traffic flooding (e.g. sending _odd_ unknown message types, or paddi
 every message maximally).
 
 Finally, the usage of periodic `ping` messages serves to promote frequent key
-rotations as specified within [BOLT #8](https://github.com/lightningnetwork/lightning-rfc/blob/master/08-transport.md).
+rotations as specified within [BOLT #8](08-transport.md).
 
 ## Acknowledgments
 

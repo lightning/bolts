@@ -35,7 +35,7 @@ consists of the funding node (funder) sending an `open_channel` message,
 followed by the responding node (fundee) sending `accept_channel`. With the
 channel parameters locked in, the funder is able to create the funding
 transaction and both versions of the commitment transaction, as described in
-[BOLT #3](https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#bolt-3-bitcoin-transaction-and-script-formats).
+[BOLT #3](03-transactions.md#bolt-3-bitcoin-transaction-and-script-formats).
 The funder then sends the outpoint of the funding output with the `funding_created`
 message, along with the signature for the fundee's version of the commitment
 transaction. Once the fundee learns the funding outpoint, it's able to
@@ -158,7 +158,7 @@ Only the least-significant bit of `channel_flags` is currently
 defined: `announce_channel`. This indicates whether the initiator of
 the funding flow wishes to advertise this channel publicly to the
 network, as detailed within [BOLT
-#7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
+#7](07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
 
 The `shutdown_scriptpubkey` allows the sending node to commit to where
 funds will go on mutual close, which the remote node should enforce
@@ -520,7 +520,7 @@ reason to pay a premium for rapid processing.
 
 ## Normal Operation
 
-Once both nodes have exchanged `funding_locked` (and optionally [`announcement_signatures`](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hash TimeLocked Contracts.
+Once both nodes have exchanged `funding_locked` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hash TimeLocked Contracts.
 
 Changes are sent in batches: one or more `update_` messages are sent before a
 `commitment_signed` message, as in the following diagram:

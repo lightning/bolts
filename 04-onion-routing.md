@@ -205,7 +205,7 @@ Field descriptions:
         incoming_htlc_amt - fee >= amt_to_forward
 
      Where `fee` is either calculated according to the receiving peer's advertised fee
-     schema (as described in [BOLT 7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#htlc-fees))
+     schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
      or is 0, if the processing node is the final node.
 
    * `outgoing_cltv_value`: The CLTV value that the _outgoing_ HTLC carrying
