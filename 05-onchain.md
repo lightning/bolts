@@ -264,7 +264,7 @@ prevent the remote node fulfilling it and claiming the funds) before the
 local node can back-fail any corresponding incoming HTLC, using
 `update_fail_htlc` (presumably with reason `permanent_channel_failure`), as
 detailed in
-[BOLT 02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
+[BOLT #2](02-peer-protocol.md#forwarding-htlcs).
 If the incoming HTLC is also on-chain, a node must simply wait for it to
 timeout: there is no way to signal early failure.
 
@@ -420,7 +420,7 @@ Once it has timed out, the local node needs to spend the HTLC output (to prevent
 the remote node from using the HTLC-success transaction) before it can
 back-fail any corresponding incoming HTLC, using `update_fail_htlc`
 (presumably with reason `permanent_channel_failure`), as detailed in
-[BOLT 02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
+[BOLT #2](02-peer-protocol.md#forwarding-htlcs).
 If the incoming HTLC is also on-chain, a node simply waits for it to
 timeout, as there's no way to signal early failure.
 
