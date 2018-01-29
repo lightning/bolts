@@ -261,6 +261,7 @@ Note that there are two possible variants for each node.
 ### Requirements
 
 Each node offering a signature:
+  - MUST round each output down to whole satoshis.
   - MUST subtract the fee given by `fee_satoshis` from the output to the funder.
   - MUST remove any output below its own `dust_limit_satoshis`.
   - MAY eliminate its own output.
