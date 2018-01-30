@@ -417,6 +417,8 @@ A sending node:
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
+  - if no HTLCs remain in either commitment transaction:
+	- MUST NOT send any `update` message after a `shutdown`.
   - SHOULD fail to route any HTLC added after it has sent `shutdown`.
   - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
     - MUST send the same value in `scriptpubkey`.
@@ -447,7 +449,10 @@ shutdown starts, the question of how to behave if it wasn't is avoided:
 the sender always sends a `commitment_signed` first.
 
 As shutdown implies a desire to terminate, it implies that no new
-HTLCs will be added or accepted.
+HTLCs will be added or accepted.  Once any HTLCs are cleared, the peer
+may immediately begin closing negotiation, so we ban further updates
+to the commitment transaction (in particular, `update_fee` would be
+possible otherwise).
 
 The `scriptpubkey` forms include only standard forms accepted by the
 Bitcoin network, which ensures the resulting transaction will
