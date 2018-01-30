@@ -390,8 +390,8 @@ Closing happens in two stages:
         |       | <complete all pending HTLCs> |       |
         |   A   |                 ...          |   B   |
         |       |                              |       |
-        |       |<-(3)-- closing_signed  F1----|       |
-        |       |--(4)-- closing_signed  F2--->|       |
+        |       |--(3)-- closing_signed  F1--->|       |
+        |       |<-(4)-- closing_signed  F2----|       |
         |       |              ...             |       |
         |       |--(?)-- closing_signed  Fn--->|       |
         |       |<-(?)-- closing_signed  Fn----|       |
@@ -466,10 +466,11 @@ The `shutdown` response requirement implies that the node sends `commitment_sign
 
 Once shutdown is complete and the channel is empty of HTLCs, the final
 current commitment transactions will have no HTLCs, and closing fee
-negotiation begins. Each node chooses a fee it thinks is fair, and
+negotiation begins.  The funder chooses a fee it thinks is fair, and
 signs the close transaction with the `scriptpubkey` fields from the
-`shutdown` messages (along with its chosen fee) and sends the signature. The
-process terminates when both agree on the same fee or when one side fails
+`shutdown` messages (along with its chosen fee) and sends the signature;
+the other node then replies similarly, using a fee it thinks is fair.  This
+exchange continues until both agree on the same fee or when one side fails
 the channel.
 
 1. type: 39 (`closing_signed`)
@@ -480,9 +481,11 @@ the channel.
 
 #### Requirements
 
-A sending node:
+The funding node:
   - after `shutdown` has been received, AND no HTLCs remain in either commitment transaction:
     - SHOULD send a `closing_signed` message.
+
+The sending node:
   - MUST set `fee_satoshis` less than or equal to the
  base fee of the final commitment transaction, as calculated in [BOLT #3](03-transactions.md#fee-calculation).
   - SHOULD set the initial `fee_satoshis` according to its
@@ -491,8 +494,6 @@ A sending node:
  transaction, as specified in [BOLT #3](03-transactions.md#closing-transaction).
 
 The receiving node:
-  - after `shutdown` has been received, AND no HTLCs remain in either commitment transaction:
-    - SHOULD send a `closing_signed` message.
   - if the `signature` is not valid for either variant of close transaction
   specified in [BOLT #3](03-transactions.md#closing-transaction):
     - MUST fail the connection.
@@ -1147,11 +1148,8 @@ A node:
         - Note: this is particularly important if the node does not simply
         retransmit the exact `update_` messages as previously sent.
   - upon reconnection:
-    - if it has sent a previous `closing_signed`:
-      - MUST send another `closing_signed`.
-    - otherwise:
-      - if it has sent a previous `shutdown`:
-        - MUST retransmit `shutdown`.
+    - if it has sent a previous `shutdown`: 
+      - MUST retransmit `shutdown`.
 
 ### Rationale
 
