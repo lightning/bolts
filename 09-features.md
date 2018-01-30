@@ -28,7 +28,7 @@ There are currently no `globalfeatures` flags.
 
 The requirements for receiving specific bits are defined in the linked sections in the table above.
 The requirements for feature bits that are not defined
-above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-message). 
+above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 
 ## Rationale
 

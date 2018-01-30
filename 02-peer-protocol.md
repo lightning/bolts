@@ -614,13 +614,13 @@ Consider the following scenario, where A sends an HTLC to B, who
 forwards to C, who delivers the goods as soon as the payment is
 received.
 
-1.  C needs to be sure that the HTLC from B cannot time out, even if B becomes
-    unresponsive; i.e. C can fulfill the incoming HTLC on-chain before B can
-    time it out on-chain.
+1. C needs to be sure that the HTLC from B cannot time out, even if B becomes
+   unresponsive; i.e. C can fulfill the incoming HTLC on-chain before B can
+   time it out on-chain.
 
-2.  B needs to be sure that if C fulfills the HTLC from B, it can fulfill the
-    incoming HTLC from A; i.e. B can get the preimage from C and fulfill the incoming
-    HTLC on-chain before A can time it out on-chain.
+2. B needs to be sure that if C fulfills the HTLC from B, it can fulfill the
+   incoming HTLC from A; i.e. B can get the preimage from C and fulfill the incoming
+   HTLC on-chain before A can time it out on-chain.
 
 The critical settings here are the `cltv_expiry_delta` in
 [BOLT #7](07-routing-gossip.md#the-channel_update-message) and the

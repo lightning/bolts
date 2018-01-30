@@ -186,7 +186,7 @@ hop in the path.
 
 Using this end-to-end authentication,
 each
-hop is able to 
+hop is able to
 cross-check the HTLC parameters with the `per_hop`'s specified values
 and to ensure that the sending peer hasn't forwarded an
 ill-crafted HTLC.

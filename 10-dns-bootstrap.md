@@ -21,7 +21,7 @@ The conditions are key-value pairs with a single-letter key; the remainder of th
 The following key-value pairs MUST be supported by a DNS seed:
 
  - `r`: realm byte, used to specify what realm the returned nodes must support (default value: 0, Bitcoin)
- - `a`: address types, used to specify what address types should be returned for `SRV` queries. This is a bitfield that uses the types from [BOLT #7](07-routing-gossip.md) as bit index. This condition MAY only be used for `SRV` queries. (default value: 6, i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and IPv6, respectively) 
+ - `a`: address types, used to specify what address types should be returned for `SRV` queries. This is a bitfield that uses the types from [BOLT #7](07-routing-gossip.md) as bit index. This condition MAY only be used for `SRV` queries. (default value: 6, i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and IPv6, respectively)
  - `l`: `node_id`, the bech32-encoded `node_id` of a specific node, used to ask for a single node instead of a random selection. (default: null)
  - `n`: the number of desired reply records (default: 25)
 

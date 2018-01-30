@@ -61,7 +61,7 @@ The authenticated key agreement (`Noise_XK`) is performed in three distinct
 steps. During each "act" of the handshake the following occurs: some (possibly encrypted) keying
 material is sent to the other party; an ECDH is performed based on exactly
 which act is being executed, with the result mixed into the current set of
-encryption keys (`ck` the chaining key and `k` the encryption key); and 
+encryption keys (`ck` the chaining key and `k` the encryption key); and
 an AEAD payload with a zero-length cipher text is sent. As this payload has no length, only a MAC is sent across. The mixing of ECDH outputs into
 a hash digest forms an incremental TripleDH handshake.
 
@@ -106,7 +106,7 @@ three abstract cryptographic objects: the hash function, the elliptic curve,
 and the AEAD cipher scheme. For Lightning, `SHA-256` is
 chosen as the hash function, `secp256k1` as the elliptic curve, and
 `ChaChaPoly-1305` as the AEAD construction. The composition of `ChaCha20`
-and `Poly1305` that are used MUST conform to `RFC 7539`<sup>[1](#reference-1)</sup>. 
+and `Poly1305` that are used MUST conform to `RFC 7539`<sup>[1](#reference-1)</sup>.
 
 The official protocol name for the Lightning variant of Noise is
 `Noise_XK_secp256k1_ChaChaPoly_SHA256`. The ASCII string representation of
@@ -168,11 +168,11 @@ The following functions will also be referenced:
        arguments, with nonce `n` encoded as 32 zero bits, followed by a *little-endian* 64-bit value.
 
   * `generateKey()`: generates and returns a fresh `secp256k1` keypair
-     * where the object returned by `generateKey` has two attributes: 
+     * where the object returned by `generateKey` has two attributes:
          * `.pub`, which returns an abstract object representing the public key
          * `.priv`, which represents the private key used to generate the
            public key
-     * where the object also has a single method: 
+     * where the object also has a single method:
          * `.serializeCompressed()`
 
   * `a || b` denotes the concatenation of two byte strings `a` and `b`
@@ -408,7 +408,7 @@ another AEAD ciphertext, which encodes the total length of the following Lightni
 message (not counting its MAC).
 
 The *maximum* size of _any_ Lightning message MUST NOT exceed `65535` bytes. A
-maximum size of `65535` simplifies testing, makes memory management 
+maximum size of `65535` simplifies testing, makes memory management
 easier, and helps mitigate memory-exhaustion attacks.
 
 In order to make traffic analysis more difficult, the length prefix for
@@ -495,7 +495,7 @@ Key rotation for a key `k` is performed according to the following:
 3. Reset the nonce for the key to `n = 0`.
 4. `k = k'`
 5. `ck = ck'`
-  
+
 # Security Considerations
 
 It is strongly recommended that existing, commonly-used, validated
@@ -696,7 +696,7 @@ The responder should produce the given output when fed this input.
     input: 0x00b9e3a702e93e3a9948c2ed6e5fd7590a6e1c3a0344cfc9d5b57357049aa22355361aa02e55a8fc28fef5bd6d71ad0c38228dc68b1c466263b47fdf31e560e139
     output: ERROR (ACT3_READ_FAILED)
 
-    name: transport-responder act3 bad MAC for ciphertext test 
+    name: transport-responder act3 bad MAC for ciphertext test
     ls.priv=2121212121212121212121212121212121212121212121212121212121212121
     ls.pub=028d7500dd4c12685d1f568b4c2b5048e8534b873319f3a8daa612b469132ec7f7
     e.priv=0x2222222222222222222222222222222222222222222222222222222222222222
