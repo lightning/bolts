@@ -18,7 +18,7 @@ This details the exact format of on-chain transactions, which both sides need to
     * [HTLC-timeout and HTLC-success Transactions](#htlc-timeout-and-htlc-success-transactions)
 	* [Closing Transaction](#closing-transaction)
     * [Fees](#fees)
-        * [Fee Calculation](#fee-calculation)   
+        * [Fee Calculation](#fee-calculation)
         * [Fee Payment](#fee-payment)
   * [Keys](#keys)
     * [Key Derivation](#key-derivation)
@@ -26,7 +26,7 @@ This details the exact format of on-chain transactions, which both sides need to
         * [`revocationkey` Derivation](#revocationkey-derivation)
         * [Per-commitment Secret Requirements](#per-commitment-secret-requirements)
     * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
-  * [Appendix A: Expected Weights](#appendix-a-expected-weights)    
+  * [Appendix A: Expected Weights](#appendix-a-expected-weights)
       * [Expected Weight of the Commitment Transaction](#expected-weight-of-the-commitment-transaction)
       * [Expected Weight of HTLC-timeout and HTLC-success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
   * [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
@@ -35,8 +35,8 @@ This details the exact format of on-chain transactions, which both sides need to
     * [Generation Tests](#generation-tests)
     * [Storage Tests](#storage-tests)
   * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
-  * [References](#references)   
-  * [Authors](#authors)   
+  * [References](#references)
+  * [Authors](#authors)
 
 # Transactions
 

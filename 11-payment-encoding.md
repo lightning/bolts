@@ -14,7 +14,7 @@ over Lightning.
   * [Implementation](#implementation)
   * [Examples](#examples)
   * [Authors](#authors)
-  
+
 # Encoding Overview
 
 The format for a Lightning invoice uses
@@ -125,7 +125,7 @@ Currently defined tagged fields are:
 * `r` (3): `data_length` variable. One or more entries containing extra routing information for a private route; there may be more than one `r` field
    * `pubkey` (264 bits)
    * `short_channel_id` (64 bits)
-   * `fee_base_msat` (32 bits, big-endian) 
+   * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
 
@@ -135,7 +135,7 @@ A writer MUST include exactly one `p` field, and set `payment_hash` to
 the SHA-2 256-bit hash of the `payment_preimage` that will be given
 in return for payment.
 
-A writer MUST include either exactly one `d` or exactly one `h` field. If included, a 
+A writer MUST include either exactly one `d` or exactly one `h` field. If included, a
 writer SHOULD make `d` a complete description of
 the purpose of the payment, and MUST use a valid UTF-8 string. If included, a writer MUST make the preimage
 of the hashed description in `h` available through some unspecified means,
@@ -206,10 +206,10 @@ to be reasonable for most payments and to allow sufficient time for
 on-chain payment if necessary.
 
 The `c` field gives a way for the destination node to require a specific
-minimum CLTV expiry for its incoming HTLC. Destination nodes may use this 
+minimum CLTV expiry for its incoming HTLC. Destination nodes may use this
 to require a higher, more conservative value than the default one, depending
-on their fee estimation policy and their sensitivity to time locks. Note 
-that remote nodes in the route specify their required `cltv_expiry_delta` 
+on their fee estimation policy and their sensitivity to time locks. Note
+that remote nodes in the route specify their required `cltv_expiry_delta`
 in the `channel_update` message, which they can update at all times.
 
 The `f` field allows on-chain fallback. This may not make sense for

@@ -377,7 +377,7 @@ double-SHA256 of the entire remaining packet after `signature`, using its own `n
 
 The creating node MUST set `chain_hash` and `short_channel_id` to match the
 32-byte hash and 8-byte channel ID that uniquely identifies the channel within
-the `channel_announcement` message.  
+the `channel_announcement` message.
 
 The creating node MUST set the `direction` bit of `flags` to 0 if the creating node is `node_id_1` in that message, otherwise 1.
 Bits which are not assigned a meaning must be set to 0.
