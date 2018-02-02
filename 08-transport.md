@@ -53,7 +53,7 @@ The transcript between two nodes is separated into two distinct segments:
 The handshake chosen for the authenticated key exchange is `Noise_XK`. As a
 pre-message, the initiator must know the identity public key of
 the responder. This provides a degree of identity hiding for the
-responder, as its public key is _never_ transmitted during the handshake. Instead,
+responder, as its static public key is _never_ transmitted during the handshake. Instead,
 authentication is achieved implicitly via a series of Elliptic-Curve
 Diffie-Hellman (ECDH) operations followed by a MAC check.
 
