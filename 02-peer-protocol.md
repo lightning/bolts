@@ -157,8 +157,7 @@ for the first commitment transaction,
 Only the least-significant bit of `channel_flags` is currently
 defined: `announce_channel`. This indicates whether the initiator of
 the funding flow wishes to advertise this channel publicly to the
-network, as detailed within [BOLT
-#7](07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
+network, as detailed within [BOLT #7](07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
 
 The `shutdown_scriptpubkey` allows the sending node to commit to where
 funds will go on mutual close, which the remote node should enforce
