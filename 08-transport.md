@@ -268,7 +268,7 @@ and 16 bytes for the `poly1305` tag.
       connection without any further messages.
 8. `h = SHA-256(h || c)`
      * The received ciphertext is mixed into the handshake digest. This step serves
-       to ensure the payload wasn't modified by a MiTM.
+       to ensure the payload wasn't modified by a MITM.
 
 
 #### Act Two
@@ -327,7 +327,7 @@ for the `poly1305` tag.
       terminate the connection without any further messages.
 8. `h = SHA-256(h || c)`
      * The received ciphertext is mixed into the handshake digest. This step serves
-       to ensure the payload wasn't modified by a MiTM.
+       to ensure the payload wasn't modified by a MITM.
 
 
 #### Act Three
