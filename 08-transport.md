@@ -152,7 +152,7 @@ The following functions will also be referenced:
       * The returned value is the SHA256 of the DER-compressed format of the
 	    generated point.
 
-  * `HKDF(salt,ikm)`: a function defined in [3](#reference-3), evaluated with a
+  * `HKDF(salt,ikm)`: a function defined in `RFC 5869`<sup>[3](#reference-3)</sup>, evaluated with a
     zero-length `info` field
      * All invocations of `HKDF` implicitly return 64 bytes of
        cryptographic randomness using the extract-and-expand component of the
