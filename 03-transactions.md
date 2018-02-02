@@ -404,8 +404,7 @@ committed HTLCs:
 
 Each commitment transaction uses a unique set of keys: `localkey` and `remotekey`.
 The HTLC-success and HTLC-timeout transactions use `local_delayedkey` and `revocationkey`.
-These are changed every time depending on the `per_commitment_point`.
-[ FIXME: "every time" means "for every transaction"? Or "every time that ... "? ]
+These are changed for every transaction based on the `per_commitment_point`.
 
 The reason for key change is so that trustless watching for revoked
 transactions can be outsourced. Such a _watcher_ should not be able to
@@ -1296,10 +1295,9 @@ These test the generation algorithm that all nodes use.
 ## Storage Tests
 
 These test the optional compact storage system. In many cases, an
-incorrect entry cannot be determined until its parent is revealed; an entry is
-specifically corrupted, along with all its children (except for the
-last test, which would require another eight samples to be detected). 
-[ FIXME: I can't tell what's intended here. When you say "an entry is specifically corrupted ..." do you mean that an entry that can't be detected is specifically corrupted ... or ...? And how does that parenthetical "except" relate? ]
+incorrect entry cannot be determined until its parent is revealed: an entry is
+specifically corrupted, along with all its children.
+
 For
 these tests a seed of `0xFFF...FF` is used, and incorrect entries are
 seeded with `0x000...00`.
