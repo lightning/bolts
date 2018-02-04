@@ -316,3 +316,10 @@ Implementers
 sanitization
 ek
 reblind
+ephemeralKey
+ephemeralPrivKey
+ephemeralPubKey
+ecdhResult
+scalarMult
+blindingFactor
+Mul

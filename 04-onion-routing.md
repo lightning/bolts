@@ -336,22 +336,32 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 	hopsData []HopData, assocData []byte) (*OnionPacket, error) {
 
 	numHops := len(paymentPath)
-	hopEphemeralPubKeys := make([]*btcec.PublicKey, numHops)
 	hopSharedSecrets := make([][sha256.Size]byte, numHops)
-	hopBlindingFactors := make([][sha256.Size]byte, numHops)
 
-	hopEphemeralPubKeys[0] = sessionKey.PubKey()
-	hopSharedSecrets[0] = generateSharedSecret(paymentPath[0], sessionKey)
-	hopBlindingFactors[0] = computeBlindingFactor(hopEphemeralPubKeys[0], hopSharedSecrets[0][:])
+	// Initialize ephemeral key for the first hop to the session key.
+	var ephemeralKey big.Int
+	ephemeralKey.Set(sessionKey.D)
 
-	for i := 1; i <= numHops-1; i++ {
-		hopEphemeralPubKeys[i] = blindGroupElement(hopEphemeralPubKeys[i-1],
-			hopBlindingFactors[i-1][:])
-		yToX := blindGroupElement(paymentPath[i], sessionKey.D.Bytes())
-		hopSharedSecrets[i] = sha256.Sum256(multiScalarMult(yToX, hopBlindingFactors[:i]).SerializeCompressed())
+	for i := 0; i < numHops; i++ {
+		// Perform ECDH and hash the result.
+		ecdhResult := scalarMult(paymentPath[i], ephemeralKey)
+		hopSharedSecrets[i] = sha256.Sum256(ecdhResult.SerializeCompressed())
 
-		hopBlindingFactors[i] = computeBlindingFactor(hopEphemeralPubKeys[i],
-			hopSharedSecrets[i][:])
+		// Derive ephemeral public key from private key.
+		ephemeralPrivKey := btcec.PrivKeyFromBytes(btcec.S256(), ephemeralKey.Bytes())
+		ephemeralPubKey := ephemeralPrivKey.PubKey()
+
+		// Compute blinding factor.
+		sha := sha256.New()
+		sha.Write(ephemeralPubKey.SerializeCompressed())
+		sha.Write(hopSharedSecrets[i])
+
+		var blindingFactor big.Int
+		blindingFactor.SetBytes(sha.Sum(nil))
+
+		// Blind ephemeral key for next hop.
+		ephemeralKey.Mul(&ephemeralKey, &blindingFactor)
+		ephemeralKey.Mod(&ephemeralKey, btcec.S256().Params().N)
 	}
 
 	// Generate the padding, called "filler strings" in the paper.
@@ -389,7 +399,7 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 
 	packet := &OnionPacket{
 		Version:      0x00,
-		EphemeralKey: hopEphemeralPubKeys[0],
+		EphemeralKey: sessionKey.PubKey(),
 		RoutingInfo:  mixHeader,
 		HeaderMAC:    nextHmac,
 	}
