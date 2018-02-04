@@ -284,8 +284,8 @@ The transformations at hop `k` are as follows:
  obtain a group element. The shared secret `ss_k` is then calculated as the
  `SHA256` hash of the ECDH output, serialized in the compressed format.
  - The blinding factor is the `SHA256` hash of the concatenation between the
- hop's public key `nodepk_k` and its shared secret `ss_k`. Before
- concatenation, the hop's public key is serialized in the compressed format.
+ ephemeral public key `epk_k` and the shared secret `ss_k`. Before
+ concatenation, the ephemeral public key is serialized in the compressed format.
  - The ephemeral public key `epk_k` is computed by blinding the hop's sending
  peer's ephemeral public key `epk_{k-1}` with the hop's sending peer's blinding
  factor `b_{k-1}`.
@@ -559,15 +559,15 @@ any further and thus need not extract an HMAC either.
 
 In order to vary the ephemeral public key (the EC point) between hops, it's
 blinded at each hop.
-The inputs for the blinding process are the EC point to be blinded, the hop's
-public key, and a 32-byte shared secret. The output is a single EC point, which
-represents the blinded element.
+The inputs for the blinding process are the EC point to be blinded and a 32-byte
+shared secret. The output is a single EC point, which represents the blinded
+element.
 
-Blinding is accomplished by computing a blinding factor from the hop's public
-key and the shared secret for that hop.
+Blinding is accomplished by computing a blinding factor from the ephemeral
+public key and the shared secret for that hop.
 The blinding factor is the computed `SHA256` hash value of the result of
-serializing the hop's public key into its compressed format and appending the
-shared secret.
+serializing the ephemeral public key into its compressed format and appending
+the shared secret.
 The blinded EC point, in turn, is the result of the scalar multiplication of the
 EC point and the blinding factor.
 
