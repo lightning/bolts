@@ -280,7 +280,9 @@ The transformations at hop `k` are as follows:
 
  - The shared secret `ss_k` is computed by first blinding the hop's public key
  `nodepk_k` with all previous blinding factors `{b_1, ..., b_{k-1}}` (if any),
- and second, executing ECDH with the blinded public key and the `sessionkey`.
+ and second, executing ECDH with the blinded public key and the `sessionkey` to
+ obtain a group element. The shared secret `ss_k` is then calculated as the
+ `SHA256` hash of the ECDH output, serialized in the compressed format.
  - The blinding factor is the `SHA256` hash of the concatenation between the
  hop's public key `nodepk_k` and its shared secret `ss_k`. Before
  concatenation, the hop's public key is serialized in the compressed format.
