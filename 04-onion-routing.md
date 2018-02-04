@@ -265,38 +265,33 @@ packet commits to but that is not included in the packet itself. Associated
 data will be included in the HMACs and must match the associated data provided
 during integrity verification at each hop.
 
-Next, for each hop along the route, the sender computes an
-_ephemeral public key_, a _shared secret_, and a _blinding factor_. The blinding
-factor is used at each hop to blind the ephemeral public key for the next hop.
-The hop receiving the header will perform ECDH with the ephemeral public key
-and its own private key in order to derive the same shared secret.
-However, when generating the packet, the sending node doesn't have access to the
-other nodes' private keys. So instead, it uses the commutative property of
-multiplication to blind each hop's public key with all previous blinding
-factors and performs ECDH, using each hop's blinded public key and the
-`sessionkey`.
+Each hop along the route sees a blinded _ephemeral public key_ belonging to the
+sender, from which it derives a _shared secret_ and a _blinding factor_, used to
+reblind the ephemeral public key for the next hop. The shared secret is a hash
+of the ECDH output element of the hop's node key and the sender's ephemeral key.
+The blinding factor is then derived from the secret key and multiplied with the
+ephemeral key to generate the ephemeral key for the next hop.  Because the
+blinding of a public key is a scalar multiplication with a group element, by
+virtue of the commutative property, the sender can generate the corresponding
+private key for the next hop by multiplying the blinding factor by its ephemeral
+private key.
 
-The transformations at hop `k` are as follows:
+To construct the onion, the sender initializes the ephemeral private key for the
+first hop `ek_1` to the `sessionkey` and derives from it the corresponding
+ephemeral public key `epk_1` by multiplying with the `secp256k1` generator
+point. The sender then iteratively computes the shared secret for each of the
+`k` hops as follows:
 
- - The shared secret `ss_k` is computed by first blinding the hop's public key
- `nodepk_k` with all previous blinding factors `{b_1, ..., b_{k-1}}` (if any),
- and second, executing ECDH with the blinded public key and the `sessionkey` to
- obtain a group element. The shared secret `ss_k` is then calculated as the
- `SHA256` hash of the ECDH output, serialized in the compressed format.
+ - The sender computes a curve point executing ECDH with the hop's public key
+ and the ephemeral private key. The shared secret `ss_k` is then calculated as
+ the `SHA256` hash of the resulting point, serialized in the compressed format.
  - The blinding factor is the `SHA256` hash of the concatenation between the
  ephemeral public key `epk_k` and the shared secret `ss_k`. Before
  concatenation, the ephemeral public key is serialized in the compressed format.
- - The ephemeral public key `epk_k` is computed by blinding the hop's sending
- peer's ephemeral public key `epk_{k-1}` with the hop's sending peer's blinding
- factor `b_{k-1}`.
-
-This recursive algorithm is initialized by setting the first hop's (`k=1`)
-ephemeral public key to the public key corresponding to the `sessionkey`, i.e.
-`secp256k1` is used to derive a public key for the randomly selected
-`sessionkey`.
-
-The origin node then iteratively computes the ephemeral public keys, shared
-secrets, and blinding factors for hops `{n_2, ..., n_r}`.
+ - The ephemeral private key for the next hop `ek_{k+1}` is computed by
+ multiplying the current ephemeral private key `ek_k` by the blinding factor.
+ - The ephemeral public key for the next hop `epk_{k+1}` is derived from the
+ ephemeral private key `ek_k` by multiplying with the generator.
 
 Once the sender has all the required information above, it can construct the
 packet. Constructing a packet routed over `r` hops requires `r` 32-byte
