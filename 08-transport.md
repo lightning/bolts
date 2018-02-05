@@ -245,8 +245,8 @@ and 16 bytes for the `poly1305` tag.
 **Receiver Actions:**
 
 1. Read _exactly_ 50 bytes from the network buffer.
-2. Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]`, and `c = m[34:]`.
-    * where `m[0]` is the _first_ byte of `m`, `m[1:33]` is the next 33
+2. Parse out the read message (`m`) into `v = m[0]`, `re = m[1:34]`, and `c = m[34:]`.
+    * where `m[0]` is the _first_ byte of `m`, `m[1:34]` is the next 33
       bytes of `m`, and `m[34:]` is the last 16 bytes of `m`
     * The raw bytes of the remote party's ephemeral public key (`e`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
@@ -308,8 +308,8 @@ for the `poly1305` tag.
 **Receiver Actions:**
 
 1. Read _exactly_ 50 bytes from the network buffer.
-2. Parse out the read message (`m`) into `v = m[0]`, `re = m[1:33]`, and `c = m[34:]`.
-    * where `m[0]` is the _first_ byte of `m`, `m[1:33]` is the next 33
+2. Parse out the read message (`m`) into `v = m[0]`, `re = m[1:34]`, and `c = m[34:]`.
+    * where `m[0]` is the _first_ byte of `m`, `m[1:34]` is the next 33
       bytes of `m`, and `m[34:]` is the last 16 bytes of `m`
 3. If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
@@ -374,7 +374,9 @@ construction, and 16 bytes for a final authenticating tag.
 **Receiver Actions:**
 
 1. Read _exactly_ 66 bytes from the network buffer.
-2. Parse out the read message (`m`) into `v = m[0]`, `c = m[1:49]` and `t = m[50:]`
+2. Parse out the read message (`m`) into `v = m[0]`, `c = m[1:50]` and `t = m[50:]`
+    * where `m[0]` is the _first_ byte of `m`, `m[1:50]` is the next 49
+      bytes of `m`, and `m[50:]` is the last 16 bytes of `m`
 3. If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 4. `rs = decryptWithAD(temp_k2, 1, h, c)`
