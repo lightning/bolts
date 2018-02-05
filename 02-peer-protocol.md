@@ -215,6 +215,10 @@ The receiving node MUST NOT:
 
 #### Rationale
 
+The requirement for `funding_satoshi` to be less than 2^24 satoshi is a temporary self-imposed limit while implementations are not yet considered stable.
+It can be lifted at any point in time, or adjusted for other currencies, since it is solely enforced by the endpoints of a channel.
+Specifically, [the routing gossip protocol](07-routing-gossip.md) does not discard channels that have a larger capacity.
+
 The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% of the channel total is suggested. Each side of a channel maintains this reserve so it always has something to lose if it were to try to broadcast an old, revoked commitment transaction. Initially, this reserve may not be met, as only one side has funds; but the protocol ensures that there is always progress toward meeting this reserve, and once met, it is maintained.
 
 The sender can unconditionally give initial funds to the receiver using a non-zero `push_msat` — this is one case where the normal reserve mechanism doesn't apply. However, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (with a danger of double-spend until this occurs) and may require a separate method to prove payment via on-chain confirmation.
