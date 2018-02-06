@@ -57,7 +57,7 @@ It is constructed as follows:
   3. the least significant 2 bytes: indicating the output index that pays to the channel.
 
 A node:
-  - if the `open_channel` message has the `announce_channel` bit set:
+  - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
       - MUST NOT send `announcement_signatures` messages until `funding_locked`
       has been sent AND the funding transaction has at least six confirmations.
