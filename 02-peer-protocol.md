@@ -885,7 +885,7 @@ A node that sends `update_fulfill_htlc`, before the sender, is also
 committed to the HTLC and risks losing funds.
 
 If the onion is malformed, the upstream node won't be able to extract
-a key to generate a response — hence the special failure message, which
+the shared key to generate a response — hence the special failure message, which
 makes this node do it.
 
 The node can check that the SHA256 that the upstream is complaining about
