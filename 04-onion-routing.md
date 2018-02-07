@@ -30,6 +30,11 @@ the packet) and a number of _keys_ (which are used to encrypt the payload and
 compute the HMACs). The HMACs are then in turn used to ensure the integrity of
 the packet at each hop.
 
+Each hop along the route only sees an ephemeral key for the origin node, in
+order to hide the sender's identity. The ephemeral key is blinded by each
+intermediate hop before forwarding to the next, making the onions unlinkable
+along the route.
+
 This specification describes _version 0_ of the packet format and routing
 mechanism.
 
@@ -45,11 +50,11 @@ A node:
   * [Pseudo Random Byte Stream](#pseudo-random-byte-stream)
   * [Packet Structure](#packet-structure)
     * [Payload for the Last Node](#payload-for-the-last-node)
+  * [Shared Secret](#shared-secret)
+  * [Blinding Ephemeral Keys](#blinding-ephemeral-keys)
   * [Packet Construction](#packet-construction)
   * [Packet Forwarding](#packet-forwarding)
-  * [Shared Secret](#shared-secret)
   * [Filler Generation](#filler-generation)
-  * [Blinding EC Points](#blinding-ec-points)
   * [Returning Errors](#returning-errors)
     * [Failure Messages](#failure-messages)
     * [Receiving Failure Codes](#receiving-failure-codes)
@@ -252,6 +257,41 @@ compare its values against those of the HTLC. See the
 If not for the above, since it need not forward payments, the final node could
 simply discard its payload.
 
+# Shared Secret
+
+The origin node establishes a shared secret with each hop along the route using
+Elliptic-curve Diffie-Hellman between the sender's ephemeral key at that hop and
+the hop's node ID key. The resulting curve point is serialized to the
+DER-compressed representation and hashed using `SHA256`. The hash output is used
+as the 32-byte shared secret.
+
+Elliptic-curve Diffie-Hellman (ECDH) is an operation on an EC private key and
+an EC public key that outputs a curve point. For this protocol, the ECDH
+variant implemented in `libsecp256k1` is used, which is defined over the
+`secp256k1` elliptic curve. During packet construction, the sender uses the
+ephemeral private key and the hop's public key as inputs to ECDH, whereas
+during packet forwarding, the hop uses the ephemeral public key and its own
+node ID private key. Because of the properties of ECDH, they will both derive
+the same value.
+
+# Blinding Ephemeral Keys
+
+In order to ensure multiple hops along the route cannot be linked by the
+ephemeral public keys they see, the key is blinded at each hop. The blinding is
+done in a deterministic way that the allows the sender to compute the
+corresponding blinded private keys during packet construction.
+
+The blinding of an EC public key is a single scalar multiplication of
+the EC point representing the public key with a 32-byte blinding factor. Due to
+the commutative property of scalar multiplication, the blinded private key is
+the multiplicative product of the input's corresponding private key with the
+same blinding factor.
+
+The blinding factor itself is computed as a function of the ephemeral public key
+and the 32-byte shared secret. Concretely, is the `SHA256` hash value of the
+concatenation of the public key serialized in its compressed format and the
+shared secret.
+
 # Packet Construction
 
 In the following example, it's assumed that a _sending node_ (origin node),
@@ -265,33 +305,21 @@ packet commits to but that is not included in the packet itself. Associated
 data will be included in the HMACs and must match the associated data provided
 during integrity verification at each hop.
 
-Each hop along the route sees a blinded _ephemeral public key_ belonging to the
-sender, from which it derives a _shared secret_ and a _blinding factor_, used to
-reblind the ephemeral public key for the next hop. The shared secret is a hash
-of the ECDH output element of the hop's node key and the sender's ephemeral key.
-The blinding factor is then derived from the secret key and multiplied with the
-ephemeral key to generate the ephemeral key for the next hop.  Because the
-blinding of a public key is a scalar multiplication with a group element, by
-virtue of the commutative property, the sender can generate the corresponding
-private key for the next hop by multiplying the blinding factor by its ephemeral
-private key.
-
 To construct the onion, the sender initializes the ephemeral private key for the
 first hop `ek_1` to the `sessionkey` and derives from it the corresponding
-ephemeral public key `epk_1` by multiplying with the `secp256k1` generator
-point. The sender then iteratively computes the shared secret for each of the
-`k` hops as follows:
+ephemeral public key `epk_1` by multiplying with the `secp256k1` base point. For
+each of the `k` hops along the route, the sender then iteratively computes the
+shared secret `ss_k` and ephemeral key for the next hop `ek_{k+1}` as follows:
 
- - The sender computes a curve point executing ECDH with the hop's public key
- and the ephemeral private key. The shared secret `ss_k` is then calculated as
- the `SHA256` hash of the resulting point, serialized in the compressed format.
+ - The sender executes ECDH with the hop's public key and the ephemeral private
+ key to obtain a curve point, which is hashed using `SHA256` to produce the
+ shared secret `ss_k`.
  - The blinding factor is the `SHA256` hash of the concatenation between the
- ephemeral public key `epk_k` and the shared secret `ss_k`. Before
- concatenation, the ephemeral public key is serialized in the compressed format.
+ ephemeral public key `epk_k` and the shared secret `ss_k`.
  - The ephemeral private key for the next hop `ek_{k+1}` is computed by
  multiplying the current ephemeral private key `ek_k` by the blinding factor.
  - The ephemeral public key for the next hop `epk_{k+1}` is derived from the
- ephemeral private key `ek_k` by multiplying with the generator.
+ ephemeral private key `ek_k` by multiplying with the base point.
 
 Once the sender has all the required information above, it can construct the
 packet. Constructing a packet routed over `r` hops requires `r` 32-byte
@@ -481,24 +509,6 @@ The processing node:
     - MUST drop the packet.
     - MUST signal a route failure.
 
-# Shared Secret
-
-The origin node performs ECDH with each hop of the route, in order to establish a secret.
-A new _sessionkey_, a 32-byte EC private key, is generated for each message.
-The shared secret builder function takes a public key and a 32-byte secret,
-as inputs, and returns a 32-byte secret, as output.
-
-During the packet-generation phase, the secret is the `sessionkey`, and the
-public key is the hop's public key, which is blinded by all previous blinding
-factors.
-During the processing phase, the secret is the hop's (processing node's) private
-key, while the public key is the ephemeral public key from the packet, which has
-been incrementally blinded by its predecessors.
-
-The public key is multiplied by the secret, using the `secp256k1` curve.
-The DER-compressed representation of the multiplication result is serialized and
-hashed using `SHA256`, and the resulting hash is returned as the shared secret.
-Notice that this is the ECDH variant implemented in `libsecp256k1`.
 
 # Filler Generation
 
@@ -559,22 +569,6 @@ Note that this example implementation is for demonstration purposes only; the
 `filler` can be generated much more efficiently.
 The last hop need not obfuscate the `filler`, since it won't forward the packet
 any further and thus need not extract an HMAC either.
-
-# Blinding EC Points
-
-In order to vary the ephemeral public key (the EC point) between hops, it's
-blinded at each hop.
-The inputs for the blinding process are the EC point to be blinded and a 32-byte
-shared secret. The output is a single EC point, which represents the blinded
-element.
-
-Blinding is accomplished by computing a blinding factor from the ephemeral
-public key and the shared secret for that hop.
-The blinding factor is the computed `SHA256` hash value of the result of
-serializing the ephemeral public key into its compressed format and appending
-the shared secret.
-The blinded EC point, in turn, is the result of the scalar multiplication of the
-EC point and the blinding factor.
 
 # Returning Errors
 
