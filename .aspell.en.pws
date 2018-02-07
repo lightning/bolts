@@ -324,3 +324,4 @@ ecdhResult
 scalarMult
 blindingFactor
 Mul
+unlinkable
