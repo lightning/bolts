@@ -19,8 +19,8 @@ of a node.
     * [Handshake State Initialization](#handshake-state-initialization)
     * [Handshake Exchange](#handshake-exchange)
   * [Lightning Message Specification](#lightning-message-specification)
-    * [Encrypting Messages](#encrypting-messages)
-    * [Decrypting Messages](#decrypting-messages)
+    * [Encrypting and Sending Messages](#encrypting-messages)
+    * [Receiving and Decrypting Messages](#decrypting-messages)
   * [Lightning Message Key Rotation](#lightning-message-key-rotation)
   * [Security Considerations](#security-considerations)
   * [Appendix A: Transport Test Vectors](#appendix-a-transport-test-vectors)
@@ -438,10 +438,10 @@ The structure of packets on the wire resembles the following:
 The prefixed message length is encoded as a 2-byte big-endian integer,
 for a total maximum packet length of `2 + 16 + 65535 + 16` = `65569` bytes.
 
-### Encrypting Messages
+### Encrypting and Sending Messages
 
-In order to encrypt a Lightning message (`m`), given a sending key (`sk`) and a nonce
-(`sn`), the following is done:
+In order to encrypt and send a Lightning message (`m`) to the network stream,
+given a sending key (`sk`) and a nonce (`sn`), the following is done:
 
 1. let `l = len(m)`
     * where `len` obtains the length in bytes of the Lightning message
@@ -459,7 +459,7 @@ In order to encrypt a Lightning message (`m`), given a sending key (`sk`) and a 
 5. Send `lc || c` over the network buffer.
 
 
-### Decrypting Messages
+### Receiving and Decrypting Messages
 
 In order to decrypt the _next_ message in the network stream, the following is
 done:
