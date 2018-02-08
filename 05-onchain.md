@@ -426,7 +426,7 @@ timeout, as there's no way to signal early failure.
 
 If an HTLC is too small to appear in *any commitment transaction*, it
 can be safely failed immediately. Otherwise,
-if a HTLC isn't in the *local commitment transaction* a node needs to make sure
+if an HTLC isn't in the *local commitment transaction* a node needs to make sure
 that a blockchain reorganization or race does not switch to a
 commitment transaction that does contain it before the node fails it: hence
 the wait. The requirement that the incoming HTLC be failed before its

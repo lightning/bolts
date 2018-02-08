@@ -111,7 +111,7 @@ This output sends funds to the other peer and thus is a simple P2WPKH to `remote
 
 #### Offered HTLC Outputs
 
-This output sends funds to either a HTLC-timeout transaction after the HTLC-timeout or to the remote node using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
+This output sends funds to either an HTLC-timeout transaction after the HTLC-timeout or to the remote node using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
 
     # To remote node with revocation key
     OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationkey))> OP_EQUAL
@@ -345,14 +345,14 @@ The commitment transaction `weight` is calculated as follows:
 
 * The offered HTLC of 5000 satoshis is above 546 + 3315 and results in:
   * an output of 5000 satoshi in the commitment transaction
-  * a HTLC-timeout transaction of 5000 - 3145 satoshis that spends this output
+  * an HTLC-timeout transaction of 5000 - 3145 satoshis that spends this output
   * `weight` increases to 896
 
 * The offered HTLC of 1000 satoshis is below 546 + 3315 so is trimmed.
 
 * The received HTLC of 7000 satoshis is above 546 + 3590 and results in:
   * an output of 7000 satoshi in the commitment transaction
-  * a HTLC-success transaction of 7000 - 3590 satoshis that spends this output
+  * an HTLC-success transaction of 7000 - 3590 satoshis that spends this output
   * `weight` increases to 1068
 
 * The received HTLC of 800 satoshis is below 546 + 3515 so is trimmed.

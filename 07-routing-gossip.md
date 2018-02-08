@@ -576,7 +576,7 @@ here for simplicity:
      * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-**A->B->C.** If A were to send an 4,999,999 millisatoshi to C via B, it needs to
+**A->B->C.** If A were to send 4,999,999 millisatoshi to C via B, it needs to
 pay B the fee it specified in the B->C `channel_update`, calculated as
 per [HTLC Fees](#htlc_fees):
 
