@@ -334,7 +334,7 @@ frameworks. Similarly, consider using prepared statements, input validation,
 and escaping to protect against injection vulnerabilities and persistence
 engines that support SQL or other dynamically interpreted querying languages.
 
-* [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)_
+* [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
 * [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
 * [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
 
@@ -454,45 +454,68 @@ The final node:
 
 ### Rationale
 
-The `timestamp` field is used by nodes for pruning (either if it's too
-far in the future, or if it's been two weeks with no update), so it
-makes sense to have it be a UNIX timestamp (ie. seconds since UTC
-1970-01-01).  It can't be a hard requirement, however, given the possible case
-of two `channel_update`s within a second.
+The `timestamp` field is used by nodes for pruning `channel_update`s that are
+either too far in the future or have not been updated in two weeks; so it
+makes sense to have it be a UNIX timestamp (i.e. seconds since UTC
+1970-01-01). This cannot be a hard requirement, however, given the possible case
+of two `channel_update`s within a single second.
 
 ## Initial Sync
 
-Upon establishing a connection, the two endpoints negotiate whether to perform an initial sync by setting the `initial_routing_sync` flags in the `init` message.
-The endpoint SHOULD set the `initial_routing_sync` flag if it requires a full copy of the other endpoint's routing state.
-Upon receiving an `init` message with the `initial_routing_sync` flag set, the node sends `channel_announcement`s, `channel_update`s and `node_announcement`s for all known channels and nodes as if they were just received.
+### Requirements
 
-If the `initial_routing_sync` flag is not set, or initial sync was completed, then the node resumes normal operation: see the _Rebroadcasting_ section for details.
+An endpoint node:
+  - upon establishing a connection:
+    - SHOULD set the `init` message's `initial_routing_sync` flag to 1, to
+    negotiate an initial sync.
+  - if it requires a full copy of the other endpoint's routing state:
+    - SHOULD set the `initial_routing_sync` flag to 1.
+  - upon receiving an `init` message with the `initial_routing_sync` flag set to
+  1:
+    - SHOULD send `channel_announcement`s, `channel_update`s and
+    `node_announcement`s for all known channels and nodes, as if they were just
+    received.
+  - if the `initial_routing_sync` flag is set to 0, OR if the initial sync was
+  completed:
+    - SHOULD resume normal operation, as specified in the following
+    [Rebroadcasting](#rebroadcasting) section.
 
 ## Rebroadcasting
 
-Nodes receiving a new `channel_announcement` or a `channel_update` or
-`node_announcement` with an updated timestamp SHOULD update their local view of the network's topology accordingly.
-
-If, after applying the changes from the announcement, there are no channels associated with the announcing node, then the final node MAY purge the announcing node from the set of known nodes.
-Otherwise the final node updates the metadata and stores the signature associated with the announcement.
-This will later allow the final node to rebuild the announcement for its peers.
-
-Once the announcement has been processed, it is added to a list of outgoing announcements for the processing node's peers, perhaps replacing older updates. This list will be flushed at regular intervals.
-This store-and-delayed-forward broadcast is called a _staggered broadcast_
-
 ### Requirements
 
-Each node SHOULD flush outgoing announcements once every 60 seconds, independently of the arrival times of announcements, resulting in a staggered announcement and deduplication of announcements.
+The final node:
+  - upon receiving a new `channel_announcement` or a `channel_update` or
+  `node_announcement` with an updated `timestamp`:
+    - SHOULD update its local view of the network's topology accordingly.
+  - after applying the changes from the announcement:
+    - if there are no channels associated with the corresponding origin node:
+      - MAY purge the origin node from its set of known nodes.
+    - otherwise:
+      - SHOULD update the appropriate metadata AND store the signature
+      associated with the announcement.
+        - Note: this will later allow the final node to rebuild the announcement
+        for its peers.
 
-Nodes MAY re-announce their channels regularly, however this is discouraged in order to keep the resource requirements low.
-
-Nodes SHOULD send all `channel_announcement` messages followed by the
-latest `node_announcement` and `channel_update` messages upon
-connection establishment.
+An endpoint node:
+  - SHOULD flush outgoing announcements once every 60 seconds, independently of
+  the arrival times of announcements.
+    - Note: this results in staggered announcements that are unique (not
+    duplicated).
+  - MAY re-announce its channels regularly.
+    - Note: this is discouraged, in order to keep the resource requirements low.
+  - upon connection establishment:
+    - SHOULD send all `channel_announcement` messages, followed by the latest
+    `node_announcement` AND `channel_update` messages.
 
 ### Rationale
 
-Batching announcements forms a natural rate limit with low overhead.
+Once the announcement has been processed, it's added to a list of outgoing
+announcements, destined for the processing node's peers, and replaces any older
+updates from the origin node. This list of announcements will be flushed at
+regular intervals: such a store-and-delayed-forward broadcast is called a
+_staggered broadcast_. Also, such batching of announcements forms a natural rate
+limit with low overhead.
 
 The sending of all announcements on reconnection is naive, but simple,
 and allows bootstrapping for new nodes as well as updating for nodes that
@@ -500,30 +523,52 @@ have been offline for some time.
 
 ## HTLC Fees
 
-The node creating `channel_update` SHOULD accept HTLCs that pay a fee equal or greater than:
+### Requirements
 
-    fee_base_msat + ( amount_msat * fee_proportional_millionths / 1000000 )
-
-The node creating `channel_update` SHOULD accept HTLCs that pay an
-older fee for some time after sending `channel_update`, to allow for
-propagation delay.
+The origin node:
+  - SHOULD accept HTLCs that pay a fee equal to or greater than:
+    - fee_base_msat + ( amount_msat * fee_proportional_millionths / 1000000 )
+  - SHOULD accept HTLCs that pay an older fee, for some reasonable time after
+  sending `channel_update`.
+    - Note: this allows for any propagation delay.
 
 ## Pruning the Network View
 
-Nodes SHOULD monitor the funding transactions in the blockchain to identify channels that are being closed.
-If the funding output of a channel is being spent, then the channel is to be considered closed and SHOULD be removed from the local network view.
+### Requirements
 
-Nodes MAY prune nodes added through `node_announcement` messages from their local view if the announced node no longer has any associated open channels.
-This is a direct result from the dependency of a `node_announcement` being preceded by a `channel_announcement`.
+A node:
+  - SHOULD monitor the funding transactions in the blockchain, to identify
+  channels that are being closed.
+  - if the funding output of a channel is being spent:
+    - SHOULD be removed from the local network view AND be considered closed.
+  - if the announced node no longer has any associated open channels:
+    - MAY prune nodes added through `node_announcement` messages from their
+    local view.
+      - Note: this is a direct result of the dependency of a `node_announcement`
+      being preceded by a `channel_announcement`.
 
 ### Recommendation on Pruning Stale Entries
 
-Several scenarios may result in channels becoming unusable and the endpoints unable to send updates for these channels.
-For example, this happens in the case where both endpoints lose access to their private keys and cannot sign a `channel_update` nor close the channel on-chain.
-These channels are unlikely to be part of a computed route since they would be partitioned off from the rest of the network, however they would remain in the local network view and information on them would be forwarded to other nodes forever.
-For this reason, nodes MAY prune channels should the timestamp of the latest `channel_update` be older than 2 weeks (1209600 seconds).
-In addition nodes MAY ignore channels with a timestamp older than 2 weeks.
-Notice that this is a node policy and MUST NOT be enforced by peers, e.g., by closing channels when receiving outdated gossip messages.
+#### Requirements
+
+An endpoint node:
+  - if a channel's latest `channel_update`s `timestamp` is older than two weeks
+  (1209600 seconds):
+    - MAY prune the channel.
+    - MAY ignore the channel.
+    - Note: this is an endpoint node policy and MUST NOT be enforced by
+    forwarding peers, e.g. by closing channels when receiving outdated gossip
+    messages. [ FIXME: is this intended meaning? ]
+
+#### Rationale
+
+Several scenarios may result in channels becoming unusable and its endpoints
+becoming unable to send updates for these channels. For example, this occurs if
+both endpoints lose access to their private keys and can neither sign
+`channel_update`s nor close the channel on-chain. In this case, the channels are
+unlikely to be part of a computed route, since they would be partitioned off
+from the rest of the network; however, they would remain in the local network
+view would be forwarded to other peers indefinitely.
 
 ## Recommendations for Routing
 
