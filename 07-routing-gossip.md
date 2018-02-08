@@ -572,20 +572,30 @@ view would be forwarded to other peers indefinitely.
 
 ## Recommendations for Routing
 
-When calculating a route for an HTLC, the `cltv_expiry_delta` and the fee both
-need to be considered: the `cltv_expiry_delta` contributes to the time that funds
-will be unavailable on worst-case failure. The tradeoff between these
-two is unclear, as it depends on the reliability of nodes.
+When calculating a route for an HTLC, both the `cltv_expiry_delta` and the fee
+need to be considered: the `cltv_expiry_delta` contributes to the time that
+funds will be unavailable in the event of a worst-case failure. The relationship
+between these two attributes is unclear, as it depends on the reliability of the
+nodes involved.
 
-If a route is computed by simply routing to the intended recipient, summing up the `cltv_expiry_delta`s, then nodes along the route may guess their position in the route.
-Knowing the CLTV of the HTLC and the surrounding topology with the `cltv_expiry_delta`s gives an attacker a way to guess the intended recipient.
-Therefore it is highly suggested to add a random offset to the CLTV that the intended recipient will receive, bumping all CLTVs along the route.
-In order to create a plausible offset the sender MAY start a limited random walk on the graph, starting from the intended recipient, sum the `cltv_expiry_delta`s, and then use the sum as the offset.
-This effectively creates a _shadow route extension_ to the actual route, providing better protection against this kind of attack than simply picking a random offset.
+If a route is computed by simply routing to the intended recipient and summing
+the `cltv_expiry_delta`s, then it's possible for intermediate nodes to guess
+their position in the route. Knowing the CLTV of the HTLC, the surrounding
+network topology, and the `cltv_expiry_delta`s gives an attacker a way to guess
+the intended recipient. Therefore, it's highly desirable to add a random offset
+to the CLTV that the intended recipient will receive, which bumps all CLTVs
+along the route.
 
-Other more advanced considerations involve diversity of routes to
-avoid single points of failure and detection and channel balance
-of local channels.
+In order to create a plausible offset, the origin node MAY start a limited
+random walk on the graph, starting from the intended recipient and summing the
+`cltv_expiry_delta`s, and use the resulting sum as the offset.
+This effectively creates a _shadow route extension_ to the actual route and
+provides better protection against this attack vector than simply picking a
+random offset would.
+
+Other more advanced considerations involve diversification of route selection,
+to avoid single points of failure and detection, and balancing of local
+channels.
 
 ### Routing Example
 
@@ -610,7 +620,7 @@ channel:
 3. C: 30 blocks
 4. D: 40 blocks
 
-C also uses a`min_final_cltv_expiry` of 9 (the default) when requesting
+C also uses a `min_final_cltv_expiry` of 9 (the default) when requesting
 payments.
 
 Also, each node has a set fee scheme that it uses for each of its
@@ -632,12 +642,12 @@ The network will see eight `channel_update` messages:
 1. C->B: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
 1. C->D: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
 
-**B->C.** If B were to send 4,999,999 millisatoshi directly to C, it wouldn't
-charge itself a fee nor add its own `cltv_expiry_delta`, so it would
-use C's requested `min_final_cltv_expiry` of 9. Assume it also adds a
-"shadow route" to give an extra CLTV of 42. It could additionally add extra
-CLTV deltas at other hops, as these values are a minimum, but it doesn't
-here for simplicity:
+**B->C.** If B were to send 4,999,999 millisatoshi directly to C, it would
+neither charge itself a fee nor add its own `cltv_expiry_delta`, so it would
+use C's requested `min_final_cltv_expiry` of 9. Presumably it would also add a
+_shadow route_ to give an extra CLTV of 42. Additionally, it could add extra
+CLTV deltas at other hops, as these values represent a minimum, but chooses not
+to do so here, for the sake of simplicity:
 
    * `amount_msat`: 4999999
    * `cltv_expiry`: current-block-height + 9 + 42
@@ -653,10 +663,9 @@ per [HTLC Fees](#htlc_fees):
 
 	200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
-Similarly, it would need to add the `cltv_expiry` from B->C's
-`channel_update` (20), plus C's requested `min_final_cltv_expiry` (9), plus 42 for the
-"shadow route".  Thus the `update_add_htlc` message from A to B would
-be:
+Similarly, it would need to add B->C's `channel_update` `cltv_expiry` (20), C's
+requested `min_final_cltv_expiry` (9), and the cost for the _shadow route_ (42).
+Thus, A->B's `update_add_htlc` message would be:
 
    * `amount_msat`: 5010198
    * `cltv_expiry`: current-block-height + 20 + 9 + 42
@@ -664,11 +673,10 @@ be:
      * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-The `update_add_htlc` from B to C would be the same as the B->C direct
-payment above.
+B->C's `update_add_htlc` would be the same as B->C's direct payment above.
 
-**A->D->C.** Finally, if for some reason A chose the more expensive route via D, it
-would send the following `update_add_htlc` to D:
+**A->D->C.** Finally, if for some reason A chose the more expensive route via D,
+A->D's `update_add_htlc` message would be:
 
    * `amount_msat`: 5020398
    * `cltv_expiry`: current-block-height + 40 + 9 + 42
@@ -676,8 +684,8 @@ would send the following `update_add_htlc` to D:
 	 * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-And the `update_add_htlc` from D to C would be the same as the B->C
-direct payment again.
+And D->C's `update_add_htlc` would again be the same as B->C's direct payment
+above.
 
 ## References
 
