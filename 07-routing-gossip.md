@@ -260,7 +260,7 @@ The origin node:
   remaining packet after `signature` (using the key given by `node_id`).
   - MAY set `alias` AND `rgb_color` to customize its appearance in maps and
   graphs.
-    - Note: the first byte of `rgb` is the red value, the second byte is the
+    - Note: the first byte of `rgb_color` is the red value, the second byte is the
     green value, and the last byte is the blue value.
   - MUST set `alias` to a valid UTF-8 string, with any `alias` trailing-bytes
   equal to 0.
