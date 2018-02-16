@@ -228,7 +228,7 @@ nodes not associated with an already known channel are ignored.
 
 `timestamp` allows for the ordering of messages, in the case of multiple
 announcements. `rgb_color` and `alias` allow intelligence services to assign
-nodes colors (e.g. black) and cool monikers like 'IRATEMONK' and 'WISTFULTOLL'.
+nodes colors like black and cool monikers like 'IRATEMONK' and 'WISTFULTOLL'.
 
 `addresses` allows a node to announce its willingness to accept incoming network
 connections: it contains a series of `address descriptor`s for connecting to the
@@ -404,7 +404,7 @@ The origin node:
     - MUST set the `direction` bit of `flags` to 0.
   - otherwise:
     - MUST set the `direction` bit of `flags` to 1.
-  - MUST set bits which are not assigned a meaning to 0.
+  - MUST set bits that are not assigned a meaning to 0.
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
@@ -511,7 +511,7 @@ An endpoint node:
 ### Rationale
 
 Once the announcement has been processed, it's added to a list of outgoing
-announcements, destined for the processing node's peers, and replaces any older
+announcements, destined for the processing node's peers, replacing any older
 updates from the origin node. This list of announcements will be flushed at
 regular intervals: such a store-and-delayed-forward broadcast is called a
 _staggered broadcast_. Also, such batching of announcements forms a natural rate
