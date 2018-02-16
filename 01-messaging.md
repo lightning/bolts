@@ -7,7 +7,7 @@ This protocol assumes an underlying authenticated and ordered transport mechanis
 
 The default TCP port is 9735. This corresponds to hexadecimal `0x2607`: the Unicode code point for LIGHTNING.<sup>[1](#reference-1)</sup>
 
-All data fields are big-endian unless otherwise specified.
+All data fields are unsigned big-endian unless otherwise specified.
 
 ## Table of Contents
 
