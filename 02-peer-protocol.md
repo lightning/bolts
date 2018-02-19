@@ -174,6 +174,7 @@ The sending node:
   - MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.
   - MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid DER-encoded, compressed, secp256k1 pubkeys.
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+  - MUST `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
   - MUST set undefined bits in `channel_flags` to 0.
   - if both nodes advertised the `option_upfront_shutdown_script` feature:
     - MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
@@ -209,6 +210,7 @@ The receiving node MUST fail the channel if:
   - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
 are not valid DER-encoded compressed secp256k1 pubkeys.
+  - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
 
 The receiving node MUST NOT:
   - consider funds received, using `push_msat`, to be received until the funding transaction has reached sufficient depth.
@@ -226,6 +228,10 @@ The sender can unconditionally give initial funds to the receiver using a non-ze
 The `feerate_per_kw` is generally only of concern to the sender (who pays the fees), but there is also the fee rate paid by HTLC transactions; thus, unreasonably large fee rates can also penalize the recipient.
 
 Separating the `htlc_basepoint` from the `payment_basepoint` improves security: a node needs the secret associated with the `htlc_basepoint` to produce HTLC signatures for the protocol, but the secret for the `payment_basepoint` can be in cold storage.
+
+The requirement that `channel_reserve_satoshis` is not considered dust
+according to `dust_limit_satoshis` eliminates cases where all outputs
+would be eliminated as dust.
 
 #### Future
 
