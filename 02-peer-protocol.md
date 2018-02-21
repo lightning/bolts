@@ -1106,6 +1106,12 @@ The sending node:
   next `commitment_signed` it expects to receive.
   - MUST set `next_remote_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
+  - if it supports `option-data-loss-protect`:
+    - if `next_remote_revocation_number` equals 0:
+      - MUST set `your_last_per_commitment_secret` to all zeroes
+    - otherwise:
+      - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret`
+    it received
 
 A node:
   - if `next_local_commitment_number` is 1 in both the `channel_reestablish` it
