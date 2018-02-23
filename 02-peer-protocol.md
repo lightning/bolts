@@ -1064,8 +1064,8 @@ messages are), they are independent of requirements here.
    * [`32`:`channel_id`]
    * [`8`:`next_local_commitment_number`]
    * [`8`:`next_remote_revocation_number`]
-   * [`32`:`your_last_per_commitment_secret`] (option-data-loss-protect)
-   * [`33`:`my_current_per_commitment_point`] (option-data-loss-protect)
+   * [`32`:`your_last_per_commitment_secret`] (option_data_loss_protect)
+   * [`33`:`my_current_per_commitment_point`] (option_data_loss_protect)
 
 ### Requirements
 
@@ -1106,7 +1106,7 @@ The sending node:
   next `commitment_signed` it expects to receive.
   - MUST set `next_remote_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
-  - if it supports `option-data-loss-protect`:
+  - if it supports `option_data_loss_protect`:
     - if `next_remote_revocation_number` equals 0:
       - MUST set `your_last_per_commitment_secret` to all zeroes
     - otherwise:
@@ -1142,7 +1142,7 @@ A node:
       - SHOULD fail the channel.
 
  A receiving node:
-  - if it supports `option-data-loss-protect`, AND the `option-data-loss-protect`
+  - if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
   fields are present:
     - if `next_remote_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
@@ -1222,7 +1222,7 @@ Similarly, for the fundee's `funding_signed` message: it's better to
 remember a channel that never opens (and times out) than to let the
 funder open it while the fundee has forgotten it.
 
-`option-data-loss-protect` was added to allow a node, which has somehow fallen behind
+`option_data_loss_protect` was added to allow a node, which has somehow fallen behind
 (e.g. has been restored from old backup), to detect that it's fallen-behind. A fallen-behind
 node must know it cannot broadcast its current commitment transaction — which would lead to
 total loss of funds — as the remote node can prove it knows the
