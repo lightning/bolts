@@ -5,7 +5,7 @@ provide confidentiality for all transcripts between nodes and is authenticated i
 avoid malicious interference. Each node has a known long-term identifier that
 is a public key on Bitcoin's `secp256k1` curve. This long-term public key is
 used within the protocol to establish an encrypted and authenticated connection
-with peers, and also to authenticate any information advertised on behalf
+with peers and also to authenticate any information advertised on behalf
 of a node.
 
 # Table of Contents
@@ -41,7 +41,7 @@ conventions.
 
 The transcript between two nodes is separated into two distinct segments:
 
-1. First, before any actual data transfer, both nodes participate in an
+1. Before any actual data transfer, both nodes participate in an
    authenticated key agreement handshake, which is based on the Noise
    Protocol Framework<sup>[2](#reference-2)</sup>.
 2. If the initial handshake is successful, then nodes enter the Lightning
@@ -58,11 +58,12 @@ authentication is achieved implicitly via a series of Elliptic-Curve
 Diffie-Hellman (ECDH) operations followed by a MAC check.
 
 The authenticated key agreement (`Noise_XK`) is performed in three distinct
-steps. During each "act" of the handshake the following occurs: some (possibly encrypted) keying
-material is sent to the other party; an ECDH is performed based on exactly
+steps (acts). During each act of the handshake the following occurs: some (possibly encrypted) keying
+material is sent to the other party; an ECDH is performed, based on exactly
 which act is being executed, with the result mixed into the current set of
 encryption keys (`ck` the chaining key and `k` the encryption key); and
-an AEAD payload with a zero-length cipher text is sent. As this payload has no length, only a MAC is sent across. The mixing of ECDH outputs into
+an AEAD payload with a zero-length cipher text is sent. As this payload has no
+length, only a MAC is sent across. The mixing of ECDH outputs into
 a hash digest forms an incremental TripleDH handshake.
 
 Using the language of the Noise Protocol, `e` and `s` (both public keys)
@@ -78,7 +79,7 @@ ECDH operation between two keys. The handshake is laid out as follows:
 ```
 All of the handshake data sent across the wire, including the keying material, is
 incrementally hashed into a session-wide "handshake digest", `h`. Note that the
-handshake state `h`, is never transmitted during the handshake; instead, digest
+handshake state `h` is never transmitted during the handshake; instead, digest
 is used as the Associated Data within the zero-length AEAD messages.
 
 Authenticating each message sent ensures that a man-in-the-middle (MITM) hasn't modified
@@ -96,8 +97,9 @@ Each message sent during the initial handshake starts with a single leading
 byte, which indicates the version used for the current handshake. A version of 0
 indicates that no change is necessary, while a non-zero version indicate that the
 client has deviated from the protocol originally specified within this
-document. Clients MUST reject handshake attempts initiated with an unknown
-version.
+document.
+
+Clients MUST reject handshake attempts initiated with an unknown version.
 
 ### Noise Protocol Instantiation
 
@@ -105,8 +107,10 @@ Concrete instantiations of the Noise Protocol require the definition of
 three abstract cryptographic objects: the hash function, the elliptic curve,
 and the AEAD cipher scheme. For Lightning, `SHA-256` is
 chosen as the hash function, `secp256k1` as the elliptic curve, and
-`ChaChaPoly-1305` as the AEAD construction. The composition of `ChaCha20`
-and `Poly1305` that are used MUST conform to `RFC 7539`<sup>[1](#reference-1)</sup>.
+`ChaChaPoly-1305` as the AEAD construction.
+
+The composition of `ChaCha20` and `Poly1305` that are used MUST conform to
+`RFC 7539`<sup>[1](#reference-1)</sup>.
 
 The official protocol name for the Lightning variant of Noise is
 `Noise_XK_secp256k1_ChaChaPoly_SHA256`. The ASCII string representation of
@@ -118,7 +122,7 @@ process fails immediately.
 
 The handshake proceeds in three acts, taking 1.5 round trips. Each handshake is
 a _fixed_ sized payload without any header or additional meta-data attached.
-The exact size of each Act is as follows:
+The exact size of each act is as follows:
 
    * **Act One**: 50 bytes
    * **Act Two**: 50 bytes
@@ -128,18 +132,19 @@ The exact size of each Act is as follows:
 
 Throughout the handshake process, each side maintains these variables:
 
- * `ck`: The **chaining key**. This value is the accumulated hash of all
+ * `ck`: the **chaining key**. This value is the accumulated hash of all
    previous ECDH outputs. At the end of the handshake, `ck` is used to derive
    the encryption keys for Lightning messages.
 
- * `h`: The **handshake hash**. This value is the accumulated hash of _all_
+ * `h`: the **handshake hash**. This value is the accumulated hash of _all_
    handshake data that has been sent and received so far during the handshake
    process.
 
- * `temp_k1`, `temp_k2`, `temp_k3`: **intermediate keys**. These are used to encrypt and decrypt the
-   zero-length AEAD payloads at the end of each handshake message.
+ * `temp_k1`, `temp_k2`, `temp_k3`: the **intermediate keys**. These are used to
+   encrypt and decrypt the zero-length AEAD payloads at the end of each handshake
+   message.
 
- * `e`: A party's **ephemeral keypair**. For each session a node MUST generate a
+ * `e`: a party's **ephemeral keypair**. For each session, a node MUST generate a
    new ephemeral key with strong cryptographic randomness.
 
  * `s`: a party's **static public key** (`ls` for local, `rs` for remote)
@@ -148,35 +153,36 @@ The following functions will also be referenced:
 
   * `ECDH(rk, k)`: performs an Elliptic-Curve Diffie-Hellman operation using
     `rk`, which is a `secp256k1` public key, and `k`, which is a valid private key
-    within the finite field as defined by the curve parameters
+    within the finite field, as defined by the curve parameters
       * The returned value is the SHA256 of the DER-compressed format of the
 	    generated point.
 
-  * `HKDF(salt,ikm)`: a function defined in `RFC 5869`<sup>[3](#reference-3)</sup>, evaluated with a
-    zero-length `info` field
+  * `HKDF(salt,ikm)`: a function defined in `RFC 5869`<sup>[3](#reference-3)</sup>,
+    evaluated with a zero-length `info` field
      * All invocations of `HKDF` implicitly return 64 bytes of
        cryptographic randomness using the extract-and-expand component of the
        `HKDF`.
 
   * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n, ad, plaintext)`
-     * where `encrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant) with the passed
-       arguments, with nonce `n` encoded as 32 zero bits, followed by a *little-endian* 64-bit value (this
-	   follows the Noise Protocol convention, rather than our normal endian).
+     * Where `encrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant)
+       with the passed arguments, with nonce `n` encoded as 32 zero bits,
+       followed by a *little-endian* 64-bit value. Note: this follows the Noise
+       Protocol convention, rather than our normal endian).
 
   * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n, ad, ciphertext)`
-     * where `decrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant) with the passed
-       arguments, with nonce `n` encoded as 32 zero bits, followed by a *little-endian* 64-bit value.
+     * Where `decrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant)
+       with the passed arguments, with nonce `n` encoded as 32 zero bits,
+       followed by a *little-endian* 64-bit value.
 
   * `generateKey()`: generates and returns a fresh `secp256k1` keypair
-     * where the object returned by `generateKey` has two attributes:
+     * Where the object returned by `generateKey` has two attributes:
          * `.pub`, which returns an abstract object representing the public key
          * `.priv`, which represents the private key used to generate the
            public key
-     * where the object also has a single method:
+     * Where the object also has a single method:
          * `.serializeCompressed()`
 
   * `a || b` denotes the concatenation of two byte strings `a` and `b`
-
 
 ### Handshake State Initialization
 
@@ -189,10 +195,8 @@ state as follows:
 
  2. `ck = h`
 
-
  3. `h = SHA-256(h || prologue)`
     * where `prologue` is the ASCII string: `lightning`.
-
 
 As a concluding step, both sides mix the responder's public key into the
 handshake digest:
@@ -205,11 +209,9 @@ handshake digest:
    Bitcoin's DER-compressed format:
    * `h = SHA-256(h || ls.pub.serializeCompressed())`
 
-
 ### Handshake Exchange
 
 #### Act One
-
 
 ```
     -> e, es
@@ -270,8 +272,8 @@ and 16 bytes for the `poly1305` tag.
      * The received ciphertext is mixed into the handshake digest. This step serves
        to ensure the payload wasn't modified by a MITM.
 
-
 #### Act Two
+
 ```
    <- e, ee
 ```
@@ -304,7 +306,6 @@ for the `poly1305` tag.
        handshake digest.
 7. Send `m = 0 || e.pub.serializeCompressed() || c` to the initiator over the network buffer.
 
-
 **Receiver Actions:**
 
 1. Read _exactly_ 50 bytes from the network buffer.
@@ -329,8 +330,8 @@ for the `poly1305` tag.
      * The received ciphertext is mixed into the handshake digest. This step serves
        to ensure the payload wasn't modified by a MITM.
 
-
 #### Act Three
+
 ```
    -> s, se
 ```
@@ -369,7 +370,6 @@ construction, and 16 bytes for a final authenticating tag.
 7. `rn = 0, sn = 0`
      * The sending and receiving nonces are initialized to zero.
 8. Send `m = 0 || c || t` over the network buffer.
-
 
 **Receiver Actions:**
 
@@ -420,6 +420,7 @@ that the packet length hasn't been modified when in-flight and also to avoid
 creating a decryption oracle.
 
 The structure of packets on the wire resembles the following:
+
 ```
 +-------------------------------
 |2-byte encrypted message length|
@@ -437,6 +438,7 @@ The structure of packets on the wire resembles the following:
 |      Lightning message        |
 +-------------------------------
 ```
+
 The prefixed message length is encoded as a 2-byte big-endian integer,
 for a total maximum packet length of `2 + 16 + 65535 + 16` = `65569` bytes.
 
@@ -460,7 +462,6 @@ given a sending key (`sk`) and a nonce (`sn`), the following is done:
     * The nonce `sn` MUST be incremented after this step.
 5. Send `lc || c` over the network buffer.
 
-
 ### Receiving and Decrypting Messages
 
 In order to decrypt the _next_ message in the network stream, the following is
@@ -477,7 +478,6 @@ done:
 5. Decrypt `c` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain decrypted
     plaintext packet `p`.
     * The nonce `rn` MUST be incremented after this step.
-
 
 ## Lightning Message Key Rotation
 
@@ -514,6 +514,7 @@ is a violation of the spec, which requires randomness.
 
 The initiator should produce the given output when fed this input.
 The comments reflect internal state for debugging.
+
 ```
     name: transport-initiator successful handshake
     rs.pub: 0x028d7500dd4c12685d1f568b4c2b5048e8534b873319f3a8daa612b469132ec7f7
@@ -596,9 +597,11 @@ The comments reflect internal state for debugging.
     input: 0x0002466d7fcae563e5cb09a0d1870bb580344804617879a14949cf22285f1bae3f276e2470b93aac583c9ef6eafca3f730af
     output: ERROR (ACT2_BAD_TAG)
 ```
+
 ## Responder Tests
 
 The responder should produce the given output when fed this input.
+
 ```
     name: transport-responder successful handshake
     ls.priv=2121212121212121212121212121212121212121212121212121212121212121
@@ -739,6 +742,7 @@ The responder should produce the given output when fed this input.
     input: 0x00b9e3a702e93e3a9948c2ed6e5fd7590a6e1c3a0344cfc9d5b57357049aa22355361aa02e55a8fc28fef5bd6d71ad0c38228dc68b1c466263b47fdf31e560e139bb
     output: ERROR (ACT3_BAD_TAG)
 ```
+
 ## Message Encryption Tests
 
 In this test, the initiator sends length 5 messages containing "hello"
@@ -772,7 +776,6 @@ TODO(roasbeef); fin
 1. <a id="reference-1">https://tools.ietf.org/html/rfc7539</a>
 2. <a id="reference-2">http://noiseprotocol.org/noise.html</a>
 3. <a id="reference-3">https://tools.ietf.org/html/rfc5869</a>
-
 
 # Authors
 
