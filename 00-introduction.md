@@ -29,8 +29,8 @@ This is version 0.
    * A gossip message sent between *peers* intended to aid the discovery of a *channel* or a *node*.
 
 * `chain_hash`:
-   * The genesis hash of a
-     target blockchain. This allows *nodes* to create and reference *channels* on
+   * The uniquely identifying hash of the target blockchain (usually the genesis hash).
+     This allows *nodes* to create and reference *channels* on
      several blockchains. Nodes are to ignore any messages that reference a
      `chain_hash` that are unknown to them. Unlike `bitcoin-cli`, the hash is
      not reversed but is used directly.
@@ -42,7 +42,7 @@ This is version 0.
 * *Channel*:
    * A fast, off-chain method of mutual exchange between two *peers*.
    To transact funds, peers exchange signatures to create an updated *commitment transaction*.
-   * _See closure methods: mutal close, revoked transaction close, unilateral close_
+   * _See closure methods: mutual close, revoked transaction close, unilateral close_
 
 * *Closing transaction*:
    * A transaction generated as part of a _mutual close_. A closing transaction is similar to a _commitment transaction_, but with no pending payments.
@@ -83,7 +83,7 @@ This is version 0.
    * _See related: closing transaction, commitment transaction, penalty transaction_
 
 * *Hop*:
-   * A *node*. Generally, an intermmediate node lying between an *origin node* and a *final node*.
+   * A *node*. Generally, an intermediate node lying between an *origin node* and a *final node*.
    * _See category: node_
 
 * *HTLC*: Hashed Time Locked Contract.
@@ -178,7 +178,7 @@ This is version 0.
    * An invalid close of a *channel*, accomplished by broadcasting a *revoked
     commitment transaction*. Since the other *peer* knows the
     *commitment revocation secret key*, it can create a *penalty transaction*.
-   * _See related: mutal close, unilateral close_
+   * _See related: mutual close, unilateral close_
 
 * *Sending node*: 
    * A *node* that is sending a message.
