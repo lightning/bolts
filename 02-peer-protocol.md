@@ -231,7 +231,9 @@ Separating the `htlc_basepoint` from the `payment_basepoint` improves security: 
 
 The requirement that `channel_reserve_satoshis` is not considered dust
 according to `dust_limit_satoshis` eliminates cases where all outputs
-would be eliminated as dust.
+would be eliminated as dust.  The similar requirements in
+`accept_channel` ensure that both sides' `channel_reserve_satoshis`
+are above both `dust_limit_satoshis`.
 
 #### Future
 
@@ -272,6 +274,8 @@ the `open_channel` message.
 The sender:
   - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to
 avoid double-spending of the funding transaction.
+  - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
+  - MUST set `dust_limit_satoshis` less than `channel_reserve_satoshis` from th `open_channel` message.
 
 The receiver:
   - if the `chain_hash` value, within the `open_channel`, message is set to a hash
@@ -279,7 +283,10 @@ The receiver:
     - MUST reject the channel.
   - if `minimum_depth` is unreasonably large:
     - MAY reject the channel.
-
+  - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
+	- MUST reject the channel.
+  - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:
+	- MUST reject the channel.
 Other fields have the same requirements as their counterparts in `open_channel`.
 
 ### The `funding_created` Message
