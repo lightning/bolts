@@ -174,7 +174,7 @@ The sending node:
   - MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.
   - MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid DER-encoded, compressed, secp256k1 pubkeys.
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
-  - MUST `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
+  - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
   - MUST set undefined bits in `channel_flags` to 0.
   - if both nodes advertised the `option_upfront_shutdown_script` feature:
     - MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
