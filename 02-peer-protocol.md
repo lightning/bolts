@@ -277,7 +277,7 @@ The sender:
   - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to
 avoid double-spending of the funding transaction.
   - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
-  - MUST set `dust_limit_satoshis` less than `channel_reserve_satoshis` from th `open_channel` message.
+  - MUST set `dust_limit_satoshis` less than `channel_reserve_satoshis` from the `open_channel` message.
 
 The receiver:
   - if the `chain_hash` value, within the `open_channel`, message is set to a hash
