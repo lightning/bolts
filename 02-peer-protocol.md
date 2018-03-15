@@ -211,7 +211,7 @@ The receiving node MUST fail the channel if:
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
 are not valid DER-encoded compressed secp256k1 pubkeys.
   - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
-  - the funder's amount for the initial commitment transaction is sufficient for [fee payment](03-transactions.md#fee-payment).
+  - the funder's amount for the initial commitment transaction is not sufficient for full [fee payment](03-transactions.md#fee-payment).
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis`.
 
 The receiving node MUST NOT:
