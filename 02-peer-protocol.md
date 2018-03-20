@@ -1182,7 +1182,7 @@ because there are also occasions where a node can simply forget the
 channel altogether.
 
 `closing_signed` also has no acknowledgment so must be retransmitted
-upon reconnection (though negotiation restarts on reconnection, so it need
+upon reconnection (though negotiation restarts on reconnection, so it needs
 not be an exact retransmission).
 The only acknowledgment for `shutdown` is `closing_signed`, so one or the other
 needs to be retransmitted.
