@@ -25,6 +25,12 @@ The following key-value pairs MUST be supported by a DNS seed:
  - `l`: `node_id`, the bech32-encoded `node_id` of a specific node, used to ask for a single node instead of a random selection. (default: null)
  - `n`: the number of desired reply records (default: 25)
 
+Conditions are passed in the DNS seed query as individual, dot-separated subdomain components.
+
+A query for `r0.a2.n10.lseed.bitcoinstats.com` would mean: Return 10 (`n10`) IPv4 (`a2`) records  for nodes supporting Bitcoin (`r0`).
+
+The DNS seed MUST evaluate the conditions from the _seed root domain_ and going up-the-tree, meaning right-to-left in a fully qualified domain name. In the example above, that would be: `n10`, then `a2`, then `r0`.
+If a condition (key) is specified more than once, the DNS seed MUST discard any earlier value for that condition and use the new value instead. For `n5.r0.a2.n10.lseed.bitcoinstats.com`, the result is then: ~~`n10`~~, `a2`, `r0`, `n5`.
 Results returned by the DNS seed SHOULD match all conditions.
 If the DNS seed does not implement filtering by a given condition it MAY ignore the condition altogether (i.e. the seed filtering is best effort only).
 Clients MUST NOT rely on any given condition being met by the results.
@@ -78,6 +84,18 @@ Querying for the `A` for the first virtual hostname from the previous example:
 
 	$dig ln1qwktpe6jxltmpphyl578eax6fcjc2m807qalr76a5gfmx7k9qqfjwy4mctz.lseed.bitcoinstats.com A
 	ln1qwktpe6jxltmpphyl578eax6fcjc2m807qalr76a5gfmx7k9qqfjwy4mctz.lseed.bitcoinstats.com. 60 IN A 139.59.143.87
+
+Querying for only IPv4 nodes (`a2`) via seed filtering:
+
+	$dig a2.lseed.bitcoinstats.com SRV
+	a2.lseed.bitcoinstats.com. 59	IN	SRV	10 10 9735 ln1q2jy22cg2nckgxttjf8txmamwe9rtw325v4m04ug2dm9sxlrh9cagrrpy86.lseed.bitcoinstats.com.
+	a2.lseed.bitcoinstats.com. 59	IN	SRV	10 10 9735 ln1qfrkq32xayuq63anmc2zp5vtd2jxafhdzzudmuws0hvxshtgd2zd7jsqv7f.lseed.bitcoinstats.com.
+
+Querying for only IPv6 nodes (`a4`) supporting Bitcoin (`r0`) via seed filtering:
+
+	$dig r0.a4.lseed.bitcoinstats.com SRV
+	r0.a4.lseed.bitcoinstats.com. 59 IN	SRV	10 10 9735 ln1qwx3prnvmxuwsnaqhzwsrrpwy4pjf5m8fv4m8kcjkdvyrzymlcmj5dakwrx.lseed.bitcoinstats.com.
+	r0.a4.lseed.bitcoinstats.com. 59 IN	SRV	10 10 9735 ln1qwr7x7q2gvj7kwzzr7urqq9x7mq0lf9xn6svs8dn7q8gu5q4e852znqj3j7.lseed.bitcoinstats.com.
 
 ## References
 - <a id="ref-1">[RFC 1035 - Domain Names](https://www.ietf.org/rfc/rfc1035.txt)</a>
