@@ -46,12 +46,14 @@ Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/
 
 ## Use of Segwit
 
-Most transaction outputs used here are P2WSH outputs: the Segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
+Most transaction outputs used here are pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> (P2WSH) outputs: the Segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
 
 ## Funding Transaction Output
 
-* The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
-   * `2 <pubkey1> <pubkey2> 2 OP_CHECKMULTISIG`
+* The funding output script is a P2WSH to:
+
+`2 <pubkey1> <pubkey2> 2 OP_CHECKMULTISIG`
+
 * Where `pubkey1` is the numerically lesser of the two DER-encoded `funding_pubkey` and where `pubkey2` is the numerically greater of the two.
 
 ## Commitment Transaction
