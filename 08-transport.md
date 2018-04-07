@@ -33,7 +33,7 @@ of a node.
 
 ## Cryptographic Messaging Overview
 
-Prior to sending any Lightning messages, nodes must first initiate the
+Prior to sending any Lightning messages, nodes MUST first initiate the
 cryptographic session state that is used to encrypt and authenticate all
 messages sent between nodes. The initialization of this cryptographic session
 state is completely distinct from any inner protocol message header or
@@ -186,17 +186,17 @@ The following functions will also be referenced:
 
 ### Handshake State Initialization
 
-Before the start of the first act, both sides initialize their per-sessions
+Before the start of Act One, both sides initialize their per-sessions
 state as follows:
 
  1. `h = SHA-256(protocolName)`
     * where `protocolName = "Noise_XK_secp256k1_ChaChaPoly_SHA256"` encoded as
-      an ASCII string.
+      an ASCII string
 
  2. `ck = h`
 
  3. `h = SHA-256(h || prologue)`
-    * where `prologue` is the ASCII string: `lightning`.
+    * where `prologue` is the ASCII string: `lightning`
 
 As a concluding step, both sides mix the responder's public key into the
 handshake digest:
@@ -219,7 +219,7 @@ handshake digest:
 
 Act One is sent from initiator to responder. During Act One, the initiator
 attempts to satisfy an implicit challenge by the responder. To complete this
-challenge, the initiator _must_ know the static public key of the responder.
+challenge, the initiator must know the static public key of the responder.
 
 The handshake message is _exactly_ 50 bytes: 1 byte for the handshake
 version, 33 bytes for the compressed ephemeral public key of the initiator,
@@ -247,9 +247,9 @@ and 16 bytes for the `poly1305` tag.
 **Receiver Actions:**
 
 1. Read _exactly_ 50 bytes from the network buffer.
-2. Parse the read message (`m`) into `v`, `re` and `c`:
+2. Parse the read message (`m`) into `v`, `re`, and `c`:
     * where `v` is the _first_ byte of `m`, `re` is the next 33
-      bytes of `m`, and `c` is the last 16 bytes of `m`.
+      bytes of `m`, and `c` is the last 16 bytes of `m`
     * The raw bytes of the remote party's ephemeral public key (`e`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
@@ -266,8 +266,8 @@ and 16 bytes for the `poly1305` tag.
       shortly be used to check the authenticating MAC.
 7. `p = decryptWithAD(temp_k1, 0, h, c)`
     * If the MAC check in this operation fails, then the initiator does _not_
-      know the responder's static public key. If so, then the responder MUST terminate the
-      connection without any further messages.
+      know the responder's static public key. If this is the case, then the
+      responder MUST terminate the connection without any further messages.
 8. `h = SHA-256(h || c)`
      * The received ciphertext is mixed into the handshake digest. This step serves
        to ensure the payload wasn't modified by a MITM.
@@ -309,7 +309,7 @@ for the `poly1305` tag.
 **Receiver Actions:**
 
 1. Read _exactly_ 50 bytes from the network buffer.
-2. Parse the read message (`m`) into `v`, `re` and `c`:
+2. Parse the read message (`m`) into `v`, `re`, and `c`:
     * where `v` is the _first_ byte of `m`, `re` is the next 33
       bytes of `m`, and `c` is the last 16 bytes of `m`.
 3. If `v` is an unrecognized handshake version, then the responder MUST
@@ -354,7 +354,7 @@ construction, and 16 bytes for a final authenticating tag.
     * where `s` is the static public key of the initiator
 2. `h = SHA-256(h || c)`
 3. `ss = ECDH(re, s.priv)`
-    * where `re` is the ephemeral public key of the responder.
+    * where `re` is the ephemeral public key of the responder
 4. `ck, temp_k3 = HKDF(ck, ss)`
     * The final intermediate shared secret is mixed into the running chaining key.
 5. `t = encryptWithAD(temp_k3, 0, h, zero)`
@@ -365,18 +365,18 @@ construction, and 16 bytes for a final authenticating tag.
        responder,
        and `rk` is the key to be used by the initiator to decrypt messages sent by
        the responder
-     * The final encryption keys to be used for sending and
-       receiving messages for the duration of the session are generated.
+     * The final encryption keys, to be used for sending and
+       receiving messages for the duration of the session, are generated.
 7. `rn = 0, sn = 0`
-     * The sending and receiving nonces are initialized to zero.
+     * The sending and receiving nonces are initialized to 0.
 8. Send `m = 0 || c || t` over the network buffer.
 
 **Receiver Actions:**
 
 1. Read _exactly_ 66 bytes from the network buffer.
-2. Parse the read message (`m`) into `v`, `c` and `t`:
+2. Parse the read message (`m`) into `v`, `c`, and `t`:
     * where `v` is the _first_ byte of `m`, `c` is the next 49
-      bytes of `m`, and `t` is the last 16 bytes of `m`.
+      bytes of `m`, and `t` is the last 16 bytes of `m`
 3. If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 4. `rs = decryptWithAD(temp_k2, 1, h, c)`
@@ -395,19 +395,20 @@ construction, and 16 bytes for a final authenticating tag.
        by the initiator,
        and `sk` is the key to be used by the responder to encrypt messages to
        the initiator
-     * The final encryption keys to be used for sending and
-       receiving messages for the duration of the session are generated.
+     * The final encryption keys, to be used for sending and
+       receiving messages for the duration of the session, are generated.
 10. `rn = 0, sn = 0`
-     * The sending and receiving nonces are initialized to zero.
+     * The sending and receiving nonces are initialized to 0.
 
 ## Lightning Message Specification
 
-At the conclusion of Act Three, both sides have derived the encryption keys, which will be used to encrypt and decrypt messages for the remainder of the
+At the conclusion of Act Three, both sides have derived the encryption keys, which
+will be used to encrypt and decrypt messages for the remainder of the
 session.
 
-The actual Lightning protocol messages are encapsulated within AEAD ciphertexts. Each message is prefixed with
-another AEAD ciphertext, which encodes the total length of the following Lightning
-message (not counting its MAC).
+The actual Lightning protocol messages are encapsulated within AEAD ciphertexts.
+Each message is prefixed with another AEAD ciphertext, which encodes the total
+length of the following Lightning message (not including its MAC).
 
 The *maximum* size of _any_ Lightning message MUST NOT exceed `65535` bytes. A
 maximum size of `65535` simplifies testing, makes memory management
@@ -445,16 +446,16 @@ for a total maximum packet length of `2 + 16 + 65535 + 16` = `65569` bytes.
 ### Encrypting and Sending Messages
 
 In order to encrypt and send a Lightning message (`m`) to the network stream,
-given a sending key (`sk`) and a nonce (`sn`), the following is done:
+given a sending key (`sk`) and a nonce (`sn`), the following steps are completed:
 
-1. let `l = len(m)`
+1. Let `l = len(m)`.
     * where `len` obtains the length in bytes of the Lightning message
 2. Serialize `l` into 2 bytes encoded as a big-endian integer.
 3. Encrypt `l` (using `ChaChaPoly-1305`, `sn`, and `sk`), to obtain `lc`
     (18 bytes)
     * The nonce `sn` is encoded as a 96-bit little-endian number. As the
       decoded nonce is 64 bits, the 96-bit nonce is encoded as: 32 bits
-      of leading zeroes followed by a 64-bit value.
+      of leading 0s followed by a 64-bit value.
         * The nonce `sn` MUST be incremented after this step.
     * A zero-length byte slice is to be passed as the AD (associated data).
 4. Finally, encrypt the message itself (`m`) using the same procedure used to
@@ -464,17 +465,17 @@ given a sending key (`sk`) and a nonce (`sn`), the following is done:
 
 ### Receiving and Decrypting Messages
 
-In order to decrypt the _next_ message in the network stream, the following is
-done:
+In order to decrypt the _next_ message in the network stream, the following
+steps are completed:
 
 1. Read _exactly_ 18 bytes from the network buffer.
-2. Let the encrypted length prefix be known as `lc`
+2. Let the encrypted length prefix be known as `lc`.
 3. Decrypt `lc` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain the size of
     the encrypted packet `l`.
     * A zero-length byte slice is to be passed as the AD (associated data).
     * The nonce `rn` MUST be incremented after this step.
-4. Read _exactly_ `l+16` bytes from the network buffer, let the bytes be known as
-    `c`.
+4. Read _exactly_ `l+16` bytes from the network buffer, and let the bytes be
+    known as `c`.
 5. Decrypt `c` (using `ChaCha20-Poly1305`, `rn`, and `rk`), to obtain decrypted
     plaintext packet `p`.
     * The nonce `rn` MUST be incremented after this step.
@@ -490,7 +491,7 @@ is to be rotated after a party sends or decrypts 1000 messages with it.
 This can be properly accounted for by rotating the key once the nonce dedicated
 to it exceeds 1000.
 
-Key rotation for a key `k` is performed according to the following:
+Key rotation for a key `k` is performed according to the following steps:
 
 1. Let `ck` be the chaining key obtained at the end of Act Three.
 2. `ck', k' = HKDF(ck, k)`
@@ -501,8 +502,8 @@ Key rotation for a key `k` is performed according to the following:
 # Security Considerations
 
 It is strongly recommended that existing, commonly-used, validated
-libraries be used for encryption and decryption, to avoid the many
-implementation pitfalls possible.
+libraries be used for encryption and decryption, to avoid the many possible
+implementation pitfalls.
 
 # Appendix A: Transport Test Vectors
 
@@ -512,8 +513,8 @@ is a violation of the spec, which requires randomness.
 
 ## Initiator Tests
 
-The initiator should produce the given output when fed this input.
-The comments reflect internal state for debugging.
+The initiator SHOULD produce the given output when fed this input.
+The comments reflect internal states, for debugging purposes.
 
 ```
     name: transport-initiator successful handshake
@@ -600,7 +601,7 @@ The comments reflect internal state for debugging.
 
 ## Responder Tests
 
-The responder should produce the given output when fed this input.
+The responder SHOULD produce the given output when fed this input.
 
 ```
     name: transport-responder successful handshake
