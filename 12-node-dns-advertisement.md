@@ -21,13 +21,13 @@ clients MUST NOT use DNS records as defined in this BOLT for bootstrapping purpo
 
 A client MAY issue a `SRV` query for `_lightning._tcp.example.com`.  The DNS server
 SHOULD respond with a record containing a list of one or more nodes they intend to advertise.
-The target record MUST be a `CNAME` that resolves to an `A` or `AAAA` record
-as per RFC2782<sup>[1](#ref-1)</sup>.  The `CNAME` record MUST be a sub-domain
+The target record MUST be a `SRV` record that resolves to an `A` or `AAAA` record
+as per RFC2782<sup>[1](#ref-1)</sup>.  The `SRV` record MUST be a sub-domain
 of the root domain that the `bech32` encoded `node_id` of the corresponding node
 for the record.
 
 The client SHOULD respect the priority of targets presented per RFC2782.
-The `CNAME` MAY be more than one sub-domain deep, for example to provide a
+The `SRV` MAY be more than one sub-domain deep, for example to provide a
 human-identifiable intermediary sub-domain.
 
 If intermediary sub-domains are used, the client SHOULD allow the user to choose
