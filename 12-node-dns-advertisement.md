@@ -16,6 +16,9 @@ the Lightning Network.
 
 # DNS Records
 
+A client MUST use DNS seeds as defined in BOLT #10 to bootstrap new nodes, and 
+clients MUST NOT use DNS records as defined in this BOLT for bootstrapping purposes.
+
 A client MAY issue a `SRV` query for `_lightning._tcp.example.com`.  The DNS server
 SHOULD respond with a record containing a list of one or more nodes they intend to advertise.
 The target record MUST be a `CNAME` that resolves to an `A` or `AAAA` record
