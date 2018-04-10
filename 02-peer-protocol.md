@@ -101,7 +101,7 @@ the funding transaction and both versions of the commitment transaction.
    * [`33`:`first_per_commitment_point`]
    * [`1`:`channel_flags`]
    * [`2`:`shutdown_len`] (`option_upfront_shutdown_script`)
-   * [`shutdown_len`: `shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
+   * [`shutdown_len`:`shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
 The `chain_hash` value denotes the exact blockchain that the opened channel will
 reside within. This is usually the genesis hash of the respective blockchain.
@@ -256,7 +256,7 @@ funding transaction and both versions of the commitment transaction.
    * [`33`:`htlc_basepoint`]
    * [`33`:`first_per_commitment_point`]
    * [`2`:`shutdown_len`] (`option_upfront_shutdown_script`)
-   * [`shutdown_len`: `shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
+   * [`shutdown_len`:`shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
 #### Requirements
 
