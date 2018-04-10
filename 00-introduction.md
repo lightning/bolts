@@ -114,7 +114,7 @@ This is version 0.
    * A cooperative close of a *channel*, accomplished by broadcasting an unconditional
     spend of the *funding transaction* with an output to each *peer*
     (unless one output is too small, and thus is not included).
-   * _See related: revoked transaction close, unilateral close__
+   * _See related: revoked transaction close, unilateral close_
 
 * *Node*:
    * A computer or other device that is part of the Lightning network.
@@ -179,7 +179,7 @@ This is version 0.
 * *Revoked commitment transaction*:
    * An old *commitment transaction* that has been revoked because a new commitment transaction has been negotiated.
    * _See category: commitment transaction_
-   
+
 * *Revoked transaction close*:
    * An invalid close of a *channel*, accomplished by broadcasting a *revoked
     commitment transaction*. Since the other *peer* knows the
@@ -191,12 +191,12 @@ This is version 0.
     *hops*.
   * _See related: channel_
 
-* *Sending node*: 
+* *Sending node*:
    * A *node* that is sending a message.
    * _See category: node_
    * _See related: receiving node_
 
-* *Sending peer*: 
+* *Sending peer*:
    * A *node* that is sending a message to a directly connected *peer*.
    * _See category: peer_
    * _See related: receiving peer_.
