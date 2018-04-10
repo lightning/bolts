@@ -210,8 +210,8 @@ _See [Bolt #2](02-peer-protocol.md#channel-establishment) for more on
 channel establishment and [Bolt
 #3](03-transactions.md#funding-transaction-output) for the format of
 the funding transaction. Also see [Bolt #1](01-messaging.md) for the
-basics of Lightning messaging and [Bolt #8] for Lightning message
-encryption._
+basics of Lightning messaging and [Bolt #8](08-transport.md) for
+Lightning message encryption._
 
 #### Using a Lightning Channel
 
@@ -261,8 +261,8 @@ identify distant participants
 
 _See [Bolt #7](7-routing-gossip.md) for Node and Channel
 Discovery. Also see [Bolt #10](10-dns-bootstrap.md) for DNS Bootstrap
-and Assisted Node Discovery and finally [Bolt #9] for flags that
-identify features on channels and nodes._
+and Assisted Node Discovery and finally [Bolt #9](09-features.md) for
+flags that identify features on channels and nodes._
 
 Once a participant has identified a distant participant and a _route_
 to get to them, he can send his payment from his _origin node_ to the
@@ -286,7 +286,7 @@ funds are transferred.)
 
 _See [Bolt #2](02-peer-protocol.md#normal-operation) for the normal
 operation of the Lightning network and [Bolt #4](04-onion-routing.md)
-for the Onion Routing Protocol.
+for the Onion Routing Protocol._
 
 #### Invoicing for Lightning Payments
 
@@ -421,7 +421,7 @@ transaction's timelock expires.
    * A cooperative close of a *channel*, accomplished by broadcasting an unconditional
     spend of the *funding transaction* with an output to each *peer*
     (unless one output is too small, and thus is not included).
-   * _See related: revoked transaction close, unilateral close__
+   * _See related: revoked transaction close, unilateral close_
 
 * *Node*:
    * A computer or other device that is part of the Lightning network.
