@@ -330,6 +330,8 @@ blockchain. Their peer on the channel will be able to claim all of the
 funds as a _penalty transaction_ if they do so before the
 transaction's timelock expires.
 
+_Again see [Bolt #5](05-onchain.md#revoked-transaction-close-handling) for _revoked transaction closing_.
+
 ## Glossary and Terminology Guide
 
 * *Announcement*:
