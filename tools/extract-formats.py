@@ -122,9 +122,9 @@ def main(options, args=None, output=sys.stdout, lines=None):
                         match.group('name'),
                         match.group('size')), file=output, end='')
                     if match.group('option'):
-                        print(",{}".format(match.group('option')))
+                        print(",{}".format(match.group('option')), file=output)
                     else:
-                        print('')
+                        print('', file=output)
 
                 # Size can be variable.
                 try:
