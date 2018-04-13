@@ -850,6 +850,7 @@ An _intermediate hop_ MUST NOT, but the _final node_:
     - MAY succeed in accepting the HTLC.
   - if the amount paid is less than the amount expected:
     - MUST fail the HTLC.
+    - MUST return an `incorrect_payment_amount` error.
   - if the payment hash is unknown:
     - MUST fail the HTLC.
     - MUST return an `unknown_payment_hash` error.
