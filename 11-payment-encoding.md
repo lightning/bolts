@@ -54,7 +54,7 @@ The following `multiplier` letters are defined:
 
 ## Requirements
 
-A writer MUST include `amount` if payments will be refused if less
+A writer MUST include `amount` so that payments will be refused if less
 than that. A writer MUST encode `amount` as a positive decimal
 integer with no leading zeroes and SHOULD use the shortest representation
 possible.
