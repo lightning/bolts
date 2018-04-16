@@ -54,10 +54,8 @@ The following `multiplier` letters are defined:
 
 ## Requirements
 
-A writer MUST include `amount` so that payments will be refused if less
-than that. A writer MUST encode `amount` as a positive decimal
-integer with no leading zeroes and SHOULD use the shortest representation
-possible.
+A writer MUST include `amount` unless it will accept any payment amount.
+A writer MUST encode `amount` as a positive decimal integer with no leading zeroes and SHOULD use the shortest representation possible.
 
 A reader MUST fail if it does not understand the `prefix`. A reader
 SHOULD fail if `amount` contains a non-digit or is followed by
@@ -225,7 +223,7 @@ assist in future partial-knowledge routing.
 ### Security Considerations for Payment Descriptions
 
 Payment descriptions are user-defined and provide a potential avenue for
-injection attacks, both in the process of rendering and persistence. 
+injection attacks, both in the process of rendering and persistence.
 
 Payment descriptions should always be sanitized before being displayed in
 HTML/Javascript contexts, or any other dynamically interpreted rendering
