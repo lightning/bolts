@@ -43,6 +43,7 @@ This is version 0.
    * A fast, off-chain method of mutual exchange between two *peers*.
    To transact funds, peers exchange signatures to create an updated *commitment transaction*.
    * _See closure methods: mutual close, revoked transaction close, unilateral close_
+   * _See related: route_
 
 * *Closing transaction*:
    * A transaction generated as part of a _mutual close_. A closing transaction is similar to a _commitment transaction_, but with no pending payments.
@@ -94,6 +95,11 @@ This is version 0.
     *commitment transaction*.
    * _See container: commitment transaction_
    * _See parts: Payment hash, Payment preimage_
+
+* *Invoice*: A request for funds on the Lightning Network, possibly
+    including payment type, payment amount, expiry, and other
+    information. This is how payments are made on the Lightning
+    Network, rather than using Bitcoin-style addresses.
 
 * *It's ok to be odd*:
    * A rule applied to some numeric fields that indicates either optional or
@@ -179,6 +185,11 @@ This is version 0.
     commitment transaction*. Since the other *peer* knows the
     *commitment revocation secret key*, it can create a *penalty transaction*.
    * _See related: mutual close, unilateral close_
+
+* *Route*: A path across the Lightning Network that enables a payment
+    from an *origin node* to a *final node* across one or more
+    *hops*.
+  * _See related: channel_
 
 * *Sending node*: 
    * A *node* that is sending a message.
