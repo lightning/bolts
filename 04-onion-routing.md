@@ -655,6 +655,8 @@ The top byte of `failure_code` can be read as a set of flags:
 * 0x2000 (NODE): node failure (otherwise channel)
 * 0x1000 (UPDATE): new channel update enclosed
 
+Please note that the `channel_update` field is mandatory in `UPDATE` messages.
+
 The following `failure_code`s are defined:
 
 1. type: PERM|1 (`invalid_realm`)
