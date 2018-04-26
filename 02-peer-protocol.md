@@ -30,8 +30,8 @@ operation, and closing.
 
 ## Channel Establishment
 
-Channel establishment begins immediately after authentication and
-consists of the funding node (funder) sending an `open_channel` message,
+After authentication and initializing a connection, channel establishment may begin.
+This consists of the funding node (funder) sending an `open_channel` message,
 followed by the responding node (fundee) sending `accept_channel`. With the
 channel parameters locked in, the funder is able to create the funding
 transaction and both versions of the commitment transaction, as described in
