@@ -330,7 +330,7 @@ A transaction with all Segregated Witness inputs is not malleable, hence the fun
 ### The `funding_signed` Message
 
 This message gives the funder the signature it needs for the first
-commitment transaction, so it can broadcast the signature knowing that funds
+commitment transaction, so it can broadcast the transaction knowing that funds
 can be redeemed, if need be.
 
 This message introduces the `channel_id` to identify the channel. It's derived from the funding transaction by combining the `funding_txid` and the `funding_output_index`, using big-endian exclusive-OR (i.e. `funding_output_index` alters the last 2 bytes).
