@@ -9,50 +9,6 @@ import re
 import fileinput
 
 
-# Figure out if we can determine type from size.
-def guess_alignment(message, name, sizestr):
-    # Exceptions:
-    # - Padding has no alignment requirements.
-    # - channel-id is size 8, but has alignment 4.
-    # - node_announcement.ipv6 has size 16, but alignment 4 (to align IPv4).
-    # - node_announcement.alias is a string, so alignment 1
-    # - signatures have no alignment requirement.
-    if name.startswith('pad'):
-        return 1
-
-    if name == 'channel-id':
-        return 4
-
-    if message == 'node_announcement' and name == 'ipv6':
-        return 4
-
-    if message == 'node_announcement' and name == 'alias':
-        return 1
-
-    if 'signature' in name:
-        return 1
-
-    # Size can be variable.
-    try:
-        size = int(sizestr)
-    except ValueError:
-        # If it contains a "*xxx" factor, that's our per-unit size.
-        s = re.search('\*([0-9]*)$', sizestr)
-        if s is None:
-            size = 1
-        else:
-            size = int(s.group(1))
-
-    if size % 8 == 0:
-        return 8
-    elif size % 4 == 0:
-        return 4
-    elif size % 2 == 0:
-        return 2
-
-    return 1
-
-
 def main(options, args=None, output=sys.stdout, lines=None):
     # Example inputs:
     # 1. type: 17 (`error`)
@@ -87,7 +43,6 @@ def main(options, args=None, output=sys.stdout, lines=None):
                     match.group('name'),
                     match.group('value')), file=output)
             havedata = None
-            alignoff = False
         elif message is not None and havedata is None:
             if line != '2. data:':
                 message = None
@@ -97,23 +52,6 @@ def main(options, args=None, output=sys.stdout, lines=None):
         elif message is not None and havedata is not None:
             match = dataline.fullmatch(line)
             if match:
-                align = guess_alignment(message, match.group('name'),
-                                        match.group('size'))
-
-                # Do not check alignment if we previously had a variable
-                # length field in the message
-                if off_extraterms != "":
-                    alignoff = True
-
-                if not alignoff and options.check_alignment and dataoff % align != 0:
-                    raise ValueError('{}:message {} field {} Offset {} not '
-                                     'aligned on {} boundary:'.format(
-                                         linenum,
-                                         message,
-                                         match.group('name'),
-                                         dataoff,
-                                         align))
-
                 if options.output_fields:
                     print("{},{}{},{},{}".format(
                         message,
@@ -144,13 +82,6 @@ if __name__ == "__main__":
         dest="output_types",
         default=False,
         help="Output MESSAGENAME,VALUE for every message"
-    )
-    parser.add_option(
-        "--check-alignment",
-        action="store_true",
-        dest="check_alignment",
-        default=False,
-        help="Check alignment for every member of each message"
     )
     parser.add_option(
         "--message-fields",
