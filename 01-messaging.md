@@ -160,13 +160,13 @@ A sending node:
   - when failure was caused by an invalid signature check:
     - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
   - when `channel_id` is 0:
-    - MUST fail all channels.
+    - MUST fail all channels with the receiving node.
     - MUST close the connection.
   - MUST set `len` equal to the length of `data`.
 
 The receiving node:
   - upon receiving `error`:
-    - MUST fail the channel referred to by the error message.
+    - MUST fail the channel referred to by the error message, if that channel is with the sending node.
   - if no existing channel is referred to by the message:
     - MUST ignore the message.
   - MUST truncate `len` to the remainder of the packet (if it's larger).
