@@ -347,17 +347,17 @@ The commitment transaction `weight` is calculated as follows:
 
 * The offered HTLC of 5000 satoshis is above 546 + 3315 and results in:
   * an output of 5000 satoshi in the commitment transaction
-  * an HTLC-timeout transaction of 5000 - 3145 satoshis that spends this output
+  * an HTLC-timeout transaction of 5000 - 3315 satoshis that spends this output
   * `weight` increases to 896
 
-* The offered HTLC of 1000 satoshis is below 546 + 3315 so is trimmed.
+* The offered HTLC of 1000 satoshis is below 546 + 3315 so it is trimmed.
 
-* The received HTLC of 7000 satoshis is above 546 + 3590 and results in:
+* The received HTLC of 7000 satoshis is above 546 + 3515 and results in:
   * an output of 7000 satoshi in the commitment transaction
-  * an HTLC-success transaction of 7000 - 3590 satoshis that spends this output
+  * an HTLC-success transaction of 7000 - 3515 satoshis that spends this output
   * `weight` increases to 1068
 
-* The received HTLC of 800 satoshis is below 546 + 3515 so is trimmed.
+* The received HTLC of 800 satoshis is below 546 + 3515 so it is trimmed.
 
 The base commitment transaction fee is 5340 satoshi; the actual
 fee (which adds the 1000 and 800 satoshi HTLCs that would make dust
