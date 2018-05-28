@@ -487,7 +487,7 @@ prevent the decryption of old messages, in the case of later key leakage (i.e.
 backwards secrecy).
 
 Key rotation is performed for _each_ key (`sk` and `rk`) _individually_. A key
-is to be rotated after a party sends or decrypts 1000 messages with it.
+is to be rotated after a party encrypts or decrypts 1000 times with it (i.e. every 500 messages).
 This can be properly accounted for by rotating the key once the nonce dedicated
 to it exceeds 1000.
 
