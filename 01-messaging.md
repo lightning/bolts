@@ -6,6 +6,7 @@ This protocol assumes an underlying authenticated and ordered transport mechanis
 [BOLT #8](08-transport.md) specifies the canonical transport layer used in Lightning, though it can be replaced by any transport that fulfills the above guarantees.
 
 The default TCP port is 9735. This corresponds to hexadecimal `0x2607`: the Unicode code point for LIGHTNING.<sup>[1](#reference-1)</sup>
+The default test network TCP port is 19735.
 
 All data fields are unsigned big-endian unless otherwise specified.
 
