@@ -20,6 +20,9 @@ The subdomains consist of a number of dot-separated _conditions_ that further na
 A client MAY issue queries using the `A`, `AAAA`, or `SRV` query types,
 specifying conditions for the desired results the seed should return.
 
+Queries distinguish between _wildcard_ queries and _node_ queries, depending on
+whether the `l`-key is set or not.
+
 ### Query Semantics
 
 The conditions are key-value pairs: the key is a single-letter, while the
@@ -48,22 +51,36 @@ Conditions are passed in the DNS seed query as individual, dot-separated subdoma
 For example, a query for `r0.a2.n10.lseed.bitcoinstats.com` would imply: return
 10 (`n10`) IPv4 (`a2`) records for nodes supporting Bitcoin (`r0`).
 
-The DNS seed MUST evaluate the conditions from the _seed root domain_ by
-'going up-the-tree', i.e. evaluating right-to-left in a fully qualified domain
-name. For the example above: `n10`, then `a2`, then `r0`.
+### Requirements
 
-If a condition (key) is specified more than once, the DNS seed MUST discard any earlier value for that condition and use the new value instead. For `n5.r0.a2.n10.lseed.bitcoinstats.com`, the result is then: ~~`n10`~~, `a2`, `r0`, `n5`.
-Results returned by the DNS seed SHOULD match all conditions.
-If the DNS seed does not implement filtering by a given condition it MAY ignore the condition altogether (i.e. the seed filtering is best effort only).
-Clients MUST NOT rely on any given condition being met by the results.
+The DNS seed:
+  - MUST evaluate the conditions from the _seed root domain_ by
+  'going up-the-tree', i.e. evaluating right-to-left in a fully qualified domain
+name.
+    - E.g. evaluate the above case: first `n10`, then `a2`, and finally `r0`.
+  - if a condition (key) is specified more than once:
+    - MUST discard any earlier value for that condition AND use the new value
+    instead.
+      - E.g. for `n5.r0.a2.n10.lseed.bitcoinstats.com`, the result is:
+      ~~`n10`~~, `a2`, `r0`, `n5`.
+  - SHOULD return results that match all conditions.
+  - if it does NOT implement filtering by a given condition:
+    - MAY ignore the condition altogether (i.e. the seed filtering is best effort only).
+  - for `A` and `AAAA` queries:
+    - MUST return only nodes listening on the default port 9735, as defined in
+    [BOLT #1](01-messaging.md).
+  - for `SRV` queries:
+    - MAY return nodes that are listening on non-default ports, since `SRV`
+    records return a _(hostname,port)_-tuple.
+  - upon receiving a _wildcard_ query:
+    - MUST select a random subset of up to `n` IPv4 or IPv6 addresses of nodes
+    that are listening for incoming connections.
+  - upon receiving a _node_ query:
+    - MUST select the record matching the `node_id`, if any, AND return all
+    addresses associated with that node.
 
-Queries distinguish between _wildcard_ queries and _node_ queries, depending on whether the `l`-key is set or not.
-
-Upon receiving a wildcard query, the DNS seed MUST select a random subset of up to `n` IPv4 or IPv6 addresses of nodes that are listening for incoming connections.
-For `A` and `AAAA` queries, only nodes listening on the default port 9735, as defined in [BOLT #1](01-messaging.md), MUST be returned.
-Since `SRV` records return a _(hostname,port)_-tuple, nodes that are listening on non-default ports MAY be returned.
-
-Upon receiving a node query, the seed MUST select the record matching the `node_id`, if any, and return all addresses associated with that node.
+Querying clients:
+  - MUST NOT rely on any given condition being met by the results.
 
 ### Reply Construction
 
