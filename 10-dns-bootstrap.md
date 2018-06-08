@@ -1,5 +1,7 @@
 # BOLT #10: DNS Bootstrap and Assisted Node Location
 
+## Overview
+
 This specification describes a node discovery mechanism based on the Domain Name System (DNS).
 Its purpose is twofold:
 
@@ -14,6 +16,16 @@ The DNS server is authoritative for a subdomain, referred to as a
 _seed root domain_, and clients may query it for subdomains.
 
 The subdomains consist of a number of dot-separated _conditions_ that further narrow the desired results.
+
+## Table of Contents
+
+  * [DNS Seed Queries](#dns-seed-queries)
+    * [Query Semantics](#query-semantics)
+  * [Reply Construction](#reply-construction)
+  * [Policies](#policies)
+  * [Examples](#examples)
+  * [References](#references)
+  * [Authors](#authors)
 
 ## DNS Seed Queries
 
@@ -158,3 +170,11 @@ Querying for only IPv6 nodes (`a4`) supporting Bitcoin (`r0`) via seed filtering
 - <a id="ref-2">[RFC 3596 - DNS Extensions to Support IP Version 6](https://tools.ietf.org/html/rfc3596)</a>
 - <a id="ref-3">[RFC 2782 - A DNS RR for specifying the location of services (DNS SRV)](https://www.ietf.org/rfc/rfc2782.txt)</a>
 - <a id="ref-4">[Expectations for DNS Seed operators](https://github.com/bitcoin/bitcoin/blob/master/doc/dnsseed-policy.md)</a>
+
+## Authors
+
+[ FIXME: Insert Author List ]
+
+![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+<br>
+This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
