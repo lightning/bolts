@@ -1,14 +1,20 @@
 # BOLT #9: Assigned Feature Flags
 
-This document tracks the assignment of `localfeatures` and `globalfeatures` flags in the `init` message ([BOLT #1](01-messaging.md)), as well as the `features` field in the `channel_announcement` message and `node_announcement` message ([BOLT #7](07-routing-gossip.md)).
-They are tracked separately since new flags will likely be added over time.
+This document tracks the assignment of `localfeatures` and `globalfeatures`
+flags in the `init` message ([BOLT #1](01-messaging.md)) along with the
+`features` flag fields in the `channel_announcement` and `node_announcement`
+messages ([BOLT #7](07-routing-gossip.md)).
+The flags are tracked separately, since new flags will likely be added over time.
 
-The `features` flags in the routing messages are a subset of the `globalfeatures` flags, since the `localfeatures` are by definition only of interest to direct peers.
+The `features` flags in the routing messages are a subset of the
+`globalfeatures` flags, as `localfeatures`, by definition, are only of interest
+to direct peers.
 
 Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1,
-an even bit). They are generally assigned in pairs so that features
-can be introduced as optional (odd bits) and later upgraded to be compulsory, refusing
-old nodes (even bits). See [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
+an _even_ bit). They are generally assigned in pairs so that features
+can be introduced as optional (_odd_ bits) and later upgraded to be compulsory
+(_even_ bits), which will be refused by outdated nodes:
+see [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 
 ## Assigned `localfeatures` flags
 
@@ -18,7 +24,7 @@ These flags may only be used in the `init` message:
 |------|------------------|------------------------------------------------|---------------------------------------------------------------------|
 | 0/1  | `option_data_loss_protect` | Requires or supports extra `channel_reestablish` fields | [BOLT #2](02-peer-protocol.md#message-retransmission) |
 | 3  | `initial_routing_sync` | Indicates that the sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
-| 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
+| 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 
 ## Assigned `globalfeatures` flags
 
@@ -32,9 +38,9 @@ above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-mes
 
 ## Rationale
 
-There's little point in insisting on an `initial_routing_sync`. You can't
-tell if the remote node complies, and it has to know what the flag means as
-it's defined in the initial spec. So, there's no even bit for this.
+There is no _even_ bit for `initial_routing_sync`, as there would be little
+point: a local node can't determine if a remote node complies, and it must
+interpret the flag, as defined in the initial spec.
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
