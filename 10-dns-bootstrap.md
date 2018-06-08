@@ -84,24 +84,41 @@ Querying clients:
 
 ### Reply Construction
 
-The results are serialized in a reply with a query type matching the client's query type, i.e. `A` queries result in `A` replies, `AAAA` queries result in `AAAA` replies, and `SRV` queries result in `SRV` replies, but they may be augmented with additional records (e.g. to add `A` or `AAAA` records matching the returned `SRV` records).
+The results are serialized in a reply with a query type matching the client's
+query type. For example, `A`, `AAAA`, and `SRV` queries respectively result in
+`A`, `AAAA`, and `SRV` replies. Additionally, replies may be augmented with
+additional records (e.g. to add `A` or `AAAA` records matching the returned
+`SRV` records).
 
-For `A` and `AAAA` queries, the reply contains the domain name and the IP address of the results.
-The domain name MUST match the domain in the query in order not to be filtered by intermediate resolvers.
+For `A` and `AAAA` queries, the reply contains the domain name and the IP
+address of the results.
+
+The domain name MUST match the domain in the query, in order not to be filtered
+by intermediate resolvers.
 
 For `SRV` queries, the reply consists of (_virtual hostnames_, port)-tuples.
-A virtual hostname is a subdomain of the seed root domain that uniquely identifies a node in the network.
+A virtual hostname is a subdomain of the seed root domain that uniquely
+identifies a node in the network.
 It is constructed by prepending the `node_id` condition to the seed root domain.
-The DNS seed MAY additionally return the corresponding `A` and `AAAA` records that indicate the IP address for the `SRV` entries in the Extra section of the reply.
-Due to the large size of the resulting reply, the reply may be dropped by intermediate resolvers, hence the DNS seed MAY omit these additional records upon detecting a repeated query.
 
-Should no entries match all the conditions then an empty reply MUST be returned.
+The DNS seed:
+  - MAY additionally return the corresponding `A` and `AAAA` records that
+  indicate the IP address for the `SRV` entries in the Extra section [FIXME: not sure what this refers to, is 'Extra section' defined elsewhere?] of the reply.
+- MAY omit these additional records upon detecting a repeated query.
+  - Reason: due to the large size of the resulting reply, the reply may be
+  dropped by intermediate resolvers.
+- if no entries match all the conditions:
+  - MUST return an empty reply.
 
 ## Policies
 
-The DNS seed MUST NOT return replies with a TTL lower than 60 seconds.
-The DNS seed MAY filter nodes from its local views for various reasons, including faulty nodes, flaky nodes, or spam prevention.
-In accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup>, replies to random queries (i.e. queries to the seed root domain and to the `_nodes._tcp.` alias for `SRV` queries) MUST be random samples from the set of all known good nodes and MUST NOT be biased.
+The DNS seed:
+  - MUST NOT return replies with a TTL less than 60 seconds.
+  - MAY filter nodes from its local views for various reasons, including faulty
+  nodes, flaky nodes, or spam prevention.
+  - MUST reply to random queries (i.e. queries to the seed root domain and to
+    the `_nodes._tcp.` alias for `SRV` queries) with _random and unbiased_
+    samples from the set of all known good nodes, in accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup>.
 
 ## Examples
 
