@@ -6,30 +6,52 @@ Its purpose is twofold:
  - Bootstrap: providing the initial node discovery for nodes that have no known contacts in the network
  - Assisted Node Location: supporting nodes in discovery of the current network address of previously known peers
 
-A domain name server implementing this specification is called a _DNS Seed_, and answers incoming DNS queries of type `A`, `AAAA`, or `SRV` as specified in RFCs 1035<sup>[1](#ref-1)</sup>, 3596<sup>[2](#ref-2)</sup> and 2782<sup>[3](#ref-3)</sup> respectively.
-The DNS server is authoritative for a subdomain, called a _seed root domain_, and clients may query it for subdomains.
+A domain name server implementing this specification is referred to as a
+_DNS Seed_ and answers incoming DNS queries of type `A`, `AAAA`, or `SRV`, as
+specified in RFCs 1035<sup>[1](#ref-1)</sup>, 3596<sup>[2](#ref-2)</sup>, and
+2782<sup>[3](#ref-3)</sup>, respectively.
+The DNS server is authoritative for a subdomain, referred to as a
+_seed root domain_, and clients may query it for subdomains.
 
 The subdomains consist of a number of dot-separated _conditions_ that further narrow the desired results.
 
 ## DNS Seed Queries
 
-A client MAY issue queries using the `A`, `AAAA`, or `SRV` query types, specifying conditions for the desired results that the seed should return.
+A client MAY issue queries using the `A`, `AAAA`, or `SRV` query types,
+specifying conditions for the desired results the seed should return.
 
 ### Query Semantics
 
-The conditions are key-value pairs with a single-letter key; the remainder of the key-value pair is the value.
+The conditions are key-value pairs: the key is a single-letter, while the
+remainder of the key-value pair is the value.
 The following key-value pairs MUST be supported by a DNS seed:
 
- - `r`: realm byte, used to specify what realm the returned nodes must support (default value: 0, Bitcoin)
- - `a`: address types, used to specify what address types should be returned for `SRV` queries. This is a bitfield that uses the types from [BOLT #7](07-routing-gossip.md) as bit index. This condition MAY only be used for `SRV` queries. (default value: 6, i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and IPv6, respectively)
- - `l`: `node_id`, the bech32-encoded `node_id` of a specific node, used to ask for a single node instead of a random selection. (default: null)
- - `n`: the number of desired reply records (default: 25)
+ - `r`: realm byte
+   - used to specify what realm the returned nodes must support
+   - default value: 0 (Bitcoin)
+ - `a`: address types
+   - used to specify what address types should be returned for `SRV` queries
+   - a bitfield that uses the types from [BOLT #7](07-routing-gossip.md) as bit
+   index
+   - MAY only be used for `SRV` queries
+   - default value: 6 (i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and
+     IPv6, respectively)
+ - `l`: `node_id`
+   - bech32-encoded `node_id` of a specific node
+   - used to ask for a single node instead of a random selection
+   - default value: null
+ - `n`: number of desired reply records
+   - default value: 25
 
 Conditions are passed in the DNS seed query as individual, dot-separated subdomain components.
 
-A query for `r0.a2.n10.lseed.bitcoinstats.com` would mean: Return 10 (`n10`) IPv4 (`a2`) records  for nodes supporting Bitcoin (`r0`).
+For example, a query for `r0.a2.n10.lseed.bitcoinstats.com` would imply: return
+10 (`n10`) IPv4 (`a2`) records for nodes supporting Bitcoin (`r0`).
 
-The DNS seed MUST evaluate the conditions from the _seed root domain_ and going up-the-tree, meaning right-to-left in a fully qualified domain name. In the example above, that would be: `n10`, then `a2`, then `r0`.
+The DNS seed MUST evaluate the conditions from the _seed root domain_ by
+'going up-the-tree', i.e. evaluating right-to-left in a fully qualified domain
+name. For the example above: `n10`, then `a2`, then `r0`.
+
 If a condition (key) is specified more than once, the DNS seed MUST discard any earlier value for that condition and use the new value instead. For `n5.r0.a2.n10.lseed.bitcoinstats.com`, the result is then: ~~`n10`~~, `a2`, `r0`, `n5`.
 Results returned by the DNS seed SHOULD match all conditions.
 If the DNS seed does not implement filtering by a given condition it MAY ignore the condition altogether (i.e. the seed filtering is best effort only).
