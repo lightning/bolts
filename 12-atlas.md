@@ -8,6 +8,7 @@ advertising human meaningful data.
   * [Rationale](#rationale)
   * [Example Scenario](#example-scenario)
   * [Data Types Table](#data-types-table)
+  * [Additional Usage](#additional-usage)
 
 # Overview
 
