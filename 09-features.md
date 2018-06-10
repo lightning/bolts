@@ -19,10 +19,12 @@ These flags may only be used in the `init` message:
 | 0/1  | `option_data_loss_protect` | Requires or supports extra `channel_reestablish` fields | [BOLT #2](02-peer-protocol.md#message-retransmission) |
 | 3  | `initial_routing_sync` | Indicates that the sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
 | 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
+| 6/7  | `atlas`          | Atlas peer-to-peer name mapping system         | [BOLT #12](12-atlas.md)
 
 ## Assigned `globalfeatures` flags
-
-There are currently no `globalfeatures` flags.
+| Bits | Name             |Description                                     | Link                                                                |
+|------|------------------|------------------------------------------------|---------------------------------------------------------------------|
+| 0/1  | `atlas`          | Atlas peer-to-peer name mapping system         | [BOLT #12](12-atlas.md)
 
 ## Requirements
 
