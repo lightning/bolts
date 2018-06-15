@@ -45,14 +45,14 @@ The following key-value pairs MUST be supported by a DNS seed:
    - used to specify what realm the returned nodes must support
    - default value: 0 (Bitcoin)
  - `a`: address types
-   - used to specify what address types should be returned for `SRV` queries
    - a bitfield that uses the types from [BOLT #7](07-routing-gossip.md) as bit
    index
+   - used to specify what address types should be returned for `SRV` queries
    - MAY only be used for `SRV` queries
    - default value: 6 (i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and
      IPv6, respectively)
  - `l`: `node_id`
-   - bech32-encoded `node_id` of a specific node
+   - a bech32-encoded `node_id` of a specific node
    - used to ask for a single node instead of a random selection
    - default value: null
  - `n`: number of desired reply records
@@ -69,7 +69,7 @@ The DNS seed:
   - MUST evaluate the conditions from the _seed root domain_ by
   'going up-the-tree', i.e. evaluating right-to-left in a fully qualified domain
 name.
-    - E.g. evaluate the above case: first `n10`, then `a2`, and finally `r0`.
+    - E.g. to evaluate the above case: first evaluate `n10`, then `a2`, and finally `r0`.
   - if a condition (key) is specified more than once:
     - MUST discard any earlier value for that condition AND use the new value
     instead.
