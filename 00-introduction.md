@@ -25,27 +25,28 @@ This is version 0.
 
 ## The Spark: A Short Introduction to Lightning
 
-Lightning is a protocol for fast payments using Bitcoin, using a
+Lightning is a protocol for making fast payments with Bitcoin using a
 network of channels.
 
 ### Channels
 
-Lightning works by establishing *channels*: two participants share
-custody of some bitcoin (e.g. 0.1 bitcoin), spendable only with both
-their signatures.
+Lightning works by establishing *channels*: two participants create a
+Lightning payment channel that contains some amount of bitcoin (e.g.,
+0.1 bitcoin) that they've locked up on the Bitcoin network. It is
+spendable only with both their signatures.
 
-Initially they each hold a bitcoin transaction which sends all the
-bitcoin (e.g. 0.1) back to one party.  They can sign a new bitcoin
-transaction which splits these funds differently, e.g. 0.09 to one
-party, 0.01 to the other, and invalidate the previous bitcoin
+Initially they each hold a bitcoin transaction that sends all the
+bitcoin (e.g. 0.1 bitcoin) back to one party.  They can later sign a new bitcoin
+transaction that splits these funds differently, e.g. 0.09 bitcoin to one
+party, 0.01 bitcoin to the other, and invalidate the previous bitcoin
 transaction so it won't be spent.
 
 See [BOLT #2: Channel Establishment](02-peer-protocol.md#channel-establishment) for more on
-channel establishment and [BOLT #3: Funding Transaction Output](03-transactions.md#funding-transaction-output) for the format of the bitcoin transaction which creates the channel.  See [BOLT #5: Recommendations for On-chain Transaction Handling](05-onchain.md) for the requirements when peers disagree or fail, and the cross-signed bitcoin transaction must be spent.
+channel establishment and [BOLT #3: Funding Transaction Output](03-transactions.md#funding-transaction-output) for the format of the bitcoin transaction that creates the channel.  See [BOLT #5: Recommendations for On-chain Transaction Handling](05-onchain.md) for the requirements when participants disagree or fail, and the cross-signed bitcoin transaction must be spent.
 
 ### Conditional Payments
 
-The participants can add a conditional payment to the channel,
+A Lightning channel only allows payment between two participants, but channels can be connected together to form a network that allows payments between all members of the network. This requires the technology of a conditional payment, which can be added to a channel,
 e.g. "you get 0.01 bitcoin if you reveal the secret within 6 hours".
 Once the recipient presents the secret, that bitcoin transaction is
 replaced with one lacking the conditional payment and adding the funds
@@ -57,8 +58,8 @@ complete format of the bitcoin transaction.
 ### Forwarding
 
 Such a conditional payment can be safely forwarded to another
-participant, e.g. "you get 0.01 bitcoin if you reveal the secret
-within 5 hours".  This allows channels to be chained for payments
+participant with a lower time limit, e.g. "you get 0.01 bitcoin if you reveal the secret
+within 5 hours".  This allows channels to be chained into a network
 without trusting the intermediaries.
 
 See [BOLT #2: Forwarding HTLCs](02-peer-protocol.md#forwarding-htlcs) for details on forwarding payments, [BOLT #4: Packet Structure](04-onion-routing.md#packet-structure) for how payment instructions are transported.
@@ -76,7 +77,9 @@ network bootstrap.
 
 ### Payment Invoicing
 
-To know what payments to make, [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) presents the protocol for describing the destination and purpose of a payment such that the payer can later prove successful payment.
+A participant receives invoices that tell her what payments to make.
+
+See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) for the protocol describing the destination and purpose of a payment such that the payer can later prove successful payment.
 
 
 ## Glossary and Terminology Guide
