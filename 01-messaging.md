@@ -60,7 +60,7 @@ A node:
   - MUST ignore any additional data within a message beyond the length that it expects for that type.
   - upon receiving a known message with insufficient length for the contents:
     - MUST fail the channels.
-  - that understands an option in this specification:
+  - that negotiates an option in this specification:
     - MUST include all the fields annotated with that option.
 
 ### Rationale
