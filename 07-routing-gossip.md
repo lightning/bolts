@@ -24,6 +24,7 @@ multiple `node_announcement` messages, in order to update the node information.
   * [The `channel_announcement` Message](#the-channel_announcement-message)
   * [The `node_announcement` Message](#the-node_announcement-message)
   * [The `channel_update` Message](#the-channel_update-message)
+  * [Query Messages](#query-messages)
   * [Initial Sync](#initial-sync)
   * [Rebroadcasting](#rebroadcasting)
   * [HTLC Fees](#htlc-fees)
@@ -462,23 +463,30 @@ of two `channel_update`s within a single second.
 
 ## Initial Sync
 
+Note that the `initial_routing_sync` feature is overridden (and should
+be considered equal to 0) by the `gossip_queries` feature if the
+latter is negotiated.
+
+Note that `gossip_queries` won't work with older nodes, so the
+value of `initial_routing_sync` is still important to control
+interactions with them.
+
 ### Requirements
 
 An endpoint node:
-  - upon establishing a connection:
-    - SHOULD set the `init` message's `initial_routing_sync` flag to 1, to
-    negotiate an initial sync.
-  - if it requires a full copy of the other endpoint's routing state:
-    - SHOULD set the `initial_routing_sync` flag to 1.
-  - upon receiving an `init` message with the `initial_routing_sync` flag set to
-  1:
-    - SHOULD send `channel_announcement`s, `channel_update`s and
-    `node_announcement`s for all known channels and nodes, as if they were just
-    received.
-  - if the `initial_routing_sync` flag is set to 0, OR if the initial sync was
-  completed:
-    - SHOULD resume normal operation, as specified in the following
-    [Rebroadcasting](#rebroadcasting) section.
+  - if the `gossip_queries` feature is negotiated:
+	- MUST NOT relay any gossip messages unless explicitly requested.
+  - otherwise:
+    - if it requires a full copy of the other endpoint's routing state:
+      - SHOULD set the `initial_routing_sync` flag to 1.
+    - upon receiving an `init` message with the `initial_routing_sync` flag set to
+    1:
+      - SHOULD send gossip messages for all known channels and nodes, as if they were just
+      received.
+    - if the `initial_routing_sync` flag is set to 0, OR if the initial sync was
+    completed:
+      - SHOULD resume normal operation, as specified in the following
+      [Rebroadcasting](#rebroadcasting) section.
 
 ## Rebroadcasting
 
@@ -498,6 +506,8 @@ The final node:
         for its peers.
 
 An endpoint node:
+  - if the `gossip_queries` feature is negotiated:
+	- MUST not send gossip until it receives `gossip_timestamp_range`.
   - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
   the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not
@@ -519,7 +529,186 @@ limit with low overhead.
 
 The sending of all gossip on reconnection is naive, but simple,
 and allows bootstrapping for new nodes as well as updating for nodes that
-have been offline for some time.
+have been offline for some time.  The `gossip_queries` option
+allows for more refined synchronization.
+
+## Query Messages
+
+Negotiating the `gossip_queries` option enables a number of extended
+queries for gossip synchronization.  These explicitly request what
+gossip should be received.
+
+There are several messages which contain a long array of
+`short_channel_id`s (called `encoded_short_ids`) so we utilize a
+simple compression scheme: the first byte indicates the encoding, the
+rest contains the data.
+
+Encoding types:
+* `0`: uncompressed array of `short_channel_id` types, in ascending order.
+
+### The `query_short_channel_ids`/`reply_short_channel_ids_done` Messages
+
+1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`2`:`len`]
+    * [`len`:`encoded_short_ids`]
+
+1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`1`:`complete`]
+
+This is general mechanism which lets a node query for
+`channel_announcement` and `channel_update`s for specific `short_channel_id`s;
+usually either because it sees a `channel_update` for which it has no
+`channel_announcement` or because it has obtained them from
+`reply_channel_range`.
+
+#### Requirements
+
+The sender:
+  - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
+  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
+  that the `short_channel_id`s refer to.
+  - MUST set the first byte of `encoded_short_ids` to zero
+  - MUST append a whole number of `short_channel_id`s to `encoded_short_ids`
+  - MAY send this if it receives a `channel_update` for a
+   `short_channel_id` for which it has no `channel_announcement`.
+  - SHOULD NOT send this if the channel referred to is not an unspent output.
+
+The receiver:
+  - if the first byte of `encoded_short_ids` is not zero:
+    - MAY fail the connection
+  - if `encoded_short_ids` does not decode into a whole number of `short_channel_id`:
+    - MAY fail the connection.
+  - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
+    - MAY fail the connection.
+  - MUST respond to each known `short_channel_id` with a `channel_announcement`
+    and the latest `channel_update`s for each end
+	- SHOULD NOT wait for the next outgoing gossip flush to send these.
+  - MUST follow with any `node_announcement`s for each `channel_announcement`
+	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
+  - MUST follow these responses with `reply_short_channel_ids_end`.
+  - if does not maintain up-to-date channel information for `chain_hash`:
+	- MUST set `complete` to 0.
+  - otherwise:
+	- SHOULD set `complete` to 1.
+
+#### Rationale
+
+Future nodes may not have complete information; they certainly won't have
+complete information on unknown `chain_hash` chains.  While this `complete`
+field cannot be trusted, a 0 does indicate that the sender should search
+elsewhere for additional data.
+
+The explicit `reply_short_channel_ids_end` message means that the receiver can
+indicate it doesn't know anything, and the sender doesn't need to rely on
+timeouts.  It also causes a natural ratelimiting of queries.
+
+### The `query_channel_range` and `reply_channel_range` Messages
+
+1. type: 263 (`query_channel_range`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`4`:`first_blocknum`]
+    * [`4`:`number_of_blocks`]
+
+1. type: 264 (`reply_channel_range`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`4`:`first_blocknum`]
+    * [`4`:`number_of_blocks`]
+    * [`1`:`complete`]
+    * [`2`:`len`]
+    * [`len`:`encoded_short_ids`]
+
+This allows a query for channels within specific blocks.
+
+#### Requirements
+
+The sender of `query_channel_range`:
+  - MUST NOT send this if it has sent a previous `query_channel_range` to this peer and not received all `reply_channel_range` replies.
+  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
+  that it wants the `reply_channel_range` to refer to
+  - MUST set `first_blocknum` to the first block it wants to know channels for
+  - MUST set `number_of_blocks` to 1 or greater.
+
+The receiver of `query_channel_range`:
+  - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
+    - MAY fail the connection.
+  - MUST respond with one or more `reply_channel_range` whose combined range
+	cover the requested `first_blocknum` to `first_blocknum` plus
+	`number_of_blocks` minus one.
+  - For each `reply_channel_range`:
+    - MUST set with `chain_hash` equal to that of `query_channel_range`,
+    - MUST encode a `short_channel_id` for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
+    - MUST limit `number_of_blocks` to the maximum number of blocks whose
+      results could fit in `encoded_short_ids`
+    - if does not maintain up-to-date channel information for `chain_hash`:
+      - MUST set `complete` to 0.
+    - otherwise:
+      - SHOULD set `complete` to 1.
+
+#### Rationale
+
+A single response might be too large for a single packet, and also a peer can
+store canned results for (say) 1000-block ranges, and simply offer each reply
+which overlaps the ranges of the request.
+
+### The `gossip_timestamp_filter` Message
+
+1. type: 265 (`gossip_timestamp_filter`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`4`:`first_timestamp`]
+    * [`4`:`timestamp_range`]
+
+This message allows a node to constrain future gossip messages to
+a specific range.  A node which wants any gossip messages would have
+to send this, otherwise `gossip_queries` negotiation means no gossip
+messages would be received.
+
+Note that this filter replaces any previous one, so it can be used
+multiple times to change the gossip from a peer.
+
+#### Requirements
+
+The sender`:
+  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
+  that it wants the gossip to refer to.
+
+The receiver:
+  - SHOULD send all gossip messages whose `timestamp` is greater or
+    equal to `first_timestamp`, and less than `first_timestamp` plus
+    `timestamp_range`.
+	- MAY wait for the next outgoing gossip flush to send these.
+  - SHOULD restrict future gossip messages to those whose `timestamp`
+    is greater or equal to `first_timestamp`, and less than
+    `first_timestamp` plus `timestamp_range`.
+  - If a `channel_announcement` has no corresponding `channel_update`s:
+	- MUST NOT send the `channel_announcement`.
+  - Otherwise:
+	  - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
+	  - MUST consider whether to send the `channel_announcement` after receiving the first corresponding `channel_update`.
+  - If a `channel_announcement` is sent:
+	  - MUST send the `channel_announcement` prior to any corresponding `channel_update`s and `node_announcement`s.
+
+#### Rationale
+
+Since `channel_announcement` doesn't have a timestamp, we generate a likely
+one.  If there's no `channel_update` then it is not sent at all, which is most
+likely in the case of pruned channels.
+
+Otherwise the `channel_announcement` is usually followed immediately by a
+`channel_update`, which serves as a fairly good timestamp for new channels.
+Ideally we would specify that the first `channel_update` is to be used, but
+new nodes on the network wouldn't know that, and would require that timestamp
+to be stored.  Instead, we allow any update to be used, which is simple to
+implement.
+
+In the case where the `channel_announcement` is nonetheless missed,
+`query_short_channel_ids` can be used to retrieve it.
 
 ## HTLC Fees
 

@@ -325,3 +325,4 @@ blindingFactor
 Mul
 unlinkable
 regtest
+ratelimiting
