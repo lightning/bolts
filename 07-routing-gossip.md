@@ -7,7 +7,7 @@ Node and channel discovery serve two different purposes:
  - Channel discovery allows the creation and maintenance of a local view of the network's topology, so that a node can discover routes to desired destinations.
  - Node discovery allows nodes to broadcast their ID, host, and port, so that other nodes can open connections and establish payment channels with them.
 
-To support channel discovery, peers in the network exchange
+To support channel discovery, three *gossip messages* are supported.   Peers in the network exchange
 `channel_announcement` messages containing information regarding new
 channels between the two nodes. They can also exchange `channel_update`
 messages, which update information about a channel. There can only be
@@ -77,7 +77,7 @@ A recipient node:
 
 ## The `channel_announcement` Message
 
-This message contains ownership information regarding a channel. It ties
+This gossip message contains ownership information regarding a channel. It ties
 each on-chain Bitcoin key to the associated Lightning node key, and vice-versa.
 The channel is not practically usable until at least one side has announced
 its fee levels and expiry, using `channel_update`.
@@ -210,7 +210,7 @@ nodes that do not understand them.
 
 ## The `node_announcement` Message
 
-This message allows a node to indicate extra data associated with it, in
+This gossip message allows a node to indicate extra data associated with it, in
 addition to its public key. To avoid trivial denial of service attacks,
 nodes not associated with an already known channel are ignored.
 
@@ -349,7 +349,7 @@ through this channel. Each uses the 8-byte channel shortid that matches the
 channel it's on (origin or final). A node can do this multiple times, in
 order to change fees.
 
-Note that the `channel_update` message is only useful in the context
+Note that the `channel_update` gossip message is only useful in the context
 of *relaying* payments, not *sending* payments. When making a payment
  `A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels
  `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will
@@ -498,8 +498,8 @@ The final node:
         for its peers.
 
 An endpoint node:
-  - SHOULD flush outgoing announcements once every 60 seconds, independently of
-  the arrival times of announcements.
+  - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
+  the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not
     duplicated).
   - MAY re-announce its channels regularly.
@@ -510,14 +510,14 @@ An endpoint node:
 
 ### Rationale
 
-Once the announcement has been processed, it's added to a list of outgoing
-announcements, destined for the processing node's peers, replacing any older
-updates from the origin node. This list of announcements will be flushed at
+Once the gossip message has been processed, it's added to a list of outgoing
+messages, destined for the processing node's peers, replacing any older
+updates from the origin node. This list of gossip messages will be flushed at
 regular intervals: such a store-and-delayed-forward broadcast is called a
-_staggered broadcast_. Also, such batching of announcements forms a natural rate
+_staggered broadcast_. Also, such batching forms a natural rate
 limit with low overhead.
 
-The sending of all announcements on reconnection is naive, but simple,
+The sending of all gossip on reconnection is naive, but simple,
 and allows bootstrapping for new nodes as well as updating for nodes that
 have been offline for some time.
 
