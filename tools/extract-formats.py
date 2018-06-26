@@ -11,7 +11,7 @@ import fileinput
 
 def main(options, args=None, output=sys.stdout, lines=None):
     # Example inputs:
-    # 1. type: 17 (`error`)
+    # 1. type: 17 (`error`) (`optionXXX`)
     # 2. data:
     #    * [`8`:`channel_id`]
     #    * [`4`:`len`]
@@ -21,7 +21,7 @@ def main(options, args=None, output=sys.stdout, lines=None):
     message = None
     havedata = None
     typeline = re.compile(
-        '1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z_]+)`\)')
+        '1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z_]+)`\)( \(`?(?P<option>[^)`]*)`?\))?')
     dataline = re.compile(
         '\s+\* \[`(?P<size>[_a-z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]( \(`?(?P<option>[^)`]*)`?\))?')
 
