@@ -545,6 +545,13 @@ rest contains the data.
 
 Encoding types:
 * `0`: uncompressed array of `short_channel_id` types, in ascending order.
+* `1`: array of `short_channel_id` types, in ascending order, compressed with zlib deflate<sup>[1](#reference-1)</sup>
+
+Note that a 65535-byte zlib message can decompress into 67632120
+bytes<sup>[2](#reference-2)</sup>, but since the only valid contents 
+are unique 8-byte values, no more than 14 bytes can be duplicated
+across the stream: as each duplicate takes at least 2 bits, no valid
+contents could decompress to more then 3669960 bytes.
 
 ### The `query_short_channel_ids`/`reply_short_channel_ids_done` Messages
 
@@ -571,14 +578,14 @@ The sender:
   - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that the `short_channel_id`s refer to.
-  - MUST set the first byte of `encoded_short_ids` to zero
-  - MUST append a whole number of `short_channel_id`s to `encoded_short_ids`
+  - MUST set the first byte of `encoded_short_ids` to the encoding type.
+  - MUST encode a whole number of `short_channel_id`s to `encoded_short_ids`
   - MAY send this if it receives a `channel_update` for a
    `short_channel_id` for which it has no `channel_announcement`.
   - SHOULD NOT send this if the channel referred to is not an unspent output.
 
 The receiver:
-  - if the first byte of `encoded_short_ids` is not zero:
+  - if the first byte of `encoded_short_ids` is not a known encoding type:
     - MAY fail the connection
   - if `encoded_short_ids` does not decode into a whole number of `short_channel_id`:
     - MAY fail the connection.
@@ -877,6 +884,9 @@ And D->C's `update_add_htlc` would again be the same as B->C's direct payment
 above.
 
 ## References
+
+1. <a id="reference-1">[RFC 1950 "ZLIB Compressed Data Format Specification version 3.3](https://www.ietf.org/rfc/rfc1950.txt)</a>
+2. <a id="reference-2">[Maximum Compression Factor](https://zlib.net/zlib_tech.html)</a>
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
