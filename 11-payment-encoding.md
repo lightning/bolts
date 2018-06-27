@@ -54,21 +54,31 @@ The following `multiplier` letters are defined:
 
 ## Requirements
 
-A writer MUST include `amount` unless it will accept any payment amount.
-A writer MUST encode `amount` as a positive decimal integer with no leading zeroes and SHOULD use the shortest representation possible.
+A writer:
+  - MUST encode `prefix` using the currency it requires for successful payment
+  - If it requires a specific minimum amount for successful payment:
+	- MUST include that `amount`
+	- MUST encode `amount` as a positive decimal integer with no leading zeroes
+	- SHOULD use the shortest representation possible by using the largest
+	  multiplier or omitting the multiplier
 
-A reader MUST fail if it does not understand the `prefix`. A reader
-SHOULD fail if `amount` contains a non-digit or is followed by
-anything except a `multiplier` in the table above.
-
-A reader SHOULD indicate if amount is unspecified, otherwise it MUST
-multiply `amount` by the `multiplier` value (if any) to derive the
-amount required for payment.
+A reader:
+  - MUST fail if it does not understand the `prefix`
+  - If the `amount` is empty:
+	- SHOULD indicate if amount is unspecified
+  - Otherwise:
+	- MUST fail if `amount` contains a non-digit or is followed by
+      anything except a `multiplier` in the table above
+    - If the `multiplier` is present:
+	  - MUST multiply `amount` by the `multiplier` value to derive the
+        amount required for payment
 
 ## Rationale
 
 The `amount` is encoded into the human readable part, as it's fairly
 readable and a useful indicator of how much is being requested.
+The `multiplier` allows a more compressed representation for large
+amounts than presenting everything in millisatoshi.
 
 Donation addresses often don't have an associated amount, so `amount`
 is optional in that case. Usually a minimum payment is required for
