@@ -167,7 +167,7 @@ The following functions will also be referenced:
      * Where `encrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant)
        with the passed arguments, with nonce `n` encoded as 32 zero bits,
        followed by a *little-endian* 64-bit value. Note: this follows the Noise
-       Protocol convention, rather than our normal endian).
+       Protocol convention, rather than our normal endian.
 
   * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n, ad, ciphertext)`
      * Where `decrypt` is an evaluation of `ChaCha20-Poly1305` (IETF variant)
