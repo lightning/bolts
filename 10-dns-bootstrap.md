@@ -115,7 +115,8 @@ It is constructed by prepending the `node_id` condition to the seed root domain.
 
 The DNS seed:
   - MAY additionally return the corresponding `A` and `AAAA` records that
-  indicate the IP address for the `SRV` entries in the Extra section [FIXME: not sure what this refers to, is 'Extra section' defined elsewhere?] of the reply.
+  indicate the IP address for the `SRV` entries in the additional section of the
+  reply.
 - MAY omit these additional records upon detecting a repeated query.
   - Reason: due to the large size of the resulting reply, the reply may be
   dropped by intermediate resolvers.
