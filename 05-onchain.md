@@ -92,9 +92,9 @@ The local and remote nodes each hold a *commitment transaction*. Each of these
 commitment transactions has four types of outputs:
 
 1. _local node's main output_: Zero or one output, to pay to the *local node's*
-commitment key.
+commitment pubkey.
 2. _remote node's main output_: Zero or one output, to pay to the *remote node's*
-commitment key.
+commitment pubkey.
 3. _local node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to pay
 the *remote node* in return for a payment preimage.
 4. _remote node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to
@@ -264,7 +264,7 @@ prevent the remote node fulfilling it and claiming the funds) before the
 local node can back-fail any corresponding incoming HTLC, using
 `update_fail_htlc` (presumably with reason `permanent_channel_failure`), as
 detailed in
-[BOLT 02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
+[BOLT #2](02-peer-protocol.md#forwarding-htlcs).
 If the incoming HTLC is also on-chain, a node must simply wait for it to
 timeout: there is no way to signal early failure.
 
@@ -363,8 +363,8 @@ In the case of data loss, a local node may reach a state where it doesn't
 recognize all of the *remote node's* commitment transaction HTLC outputs. It can
 detect the data loss state, because it has signed the transaction, and the
 commitment number is greater than expected. If both nodes support
-`option-data-loss-protect`, the local node will possess the remote's
-`per_commitment_point`, and thus can derive its own `remotekey` for the
+`option_data_loss_protect`, the local node will possess the remote's
+`per_commitment_point`, and thus can derive its own `remotepubkey` for the
 transaction, in order to salvage its own funds. Note: in this scenario, the node
 will be unable to salvage the HTLCs.
 
@@ -420,13 +420,13 @@ Once it has timed out, the local node needs to spend the HTLC output (to prevent
 the remote node from using the HTLC-success transaction) before it can
 back-fail any corresponding incoming HTLC, using `update_fail_htlc`
 (presumably with reason `permanent_channel_failure`), as detailed in
-[BOLT 02](https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#forwarding-htlcs).
+[BOLT #2](02-peer-protocol.md#forwarding-htlcs).
 If the incoming HTLC is also on-chain, a node simply waits for it to
 timeout, as there's no way to signal early failure.
 
 If an HTLC is too small to appear in *any commitment transaction*, it
 can be safely failed immediately. Otherwise,
-if a HTLC isn't in the *local commitment transaction* a node needs to make sure
+if an HTLC isn't in the *local commitment transaction* a node needs to make sure
 that a blockchain reorganization or race does not switch to a
 commitment transaction that does contain it before the node fails it: hence
 the wait. The requirement that the incoming HTLC be failed before its
@@ -476,34 +476,34 @@ If not otherwise resolved, once the HTLC output has expired, it is considered
 
 If any node tries to cheat by broadcasting an outdated commitment transaction
 (any previous commitment transaction besides the most current one), the other
-node in the channel can use its revocation key to claim all the funds from the
+node in the channel can use its revocation private key to claim all the funds from the
 channel's original funding transaction.
 
 ## Requirements
 
 Once a node discovers a commitment transaction for which *it* has a
-revocation key, the funding transaction output is *resolved*.
+revocation private key, the funding transaction output is *resolved*.
 
 A local node:
   - MUST NOT broadcast a commitment transaction for which *it* has exposed the
-  revocation key.
+  `per_commitment_secret`.
   - MAY take no action regarding the _local node's main output_, as this is a
   simple P2WPKH output to itself.
     - Note: this output is considered *resolved* by the commitment transaction
       itself.
   - MUST *resolve* the _remote node's main output_ by spending it using the
-  revocation key.
+  revocation private key.
   - MUST *resolve* the _local node's offered HTLCs_ in one of three ways:
-    * spend the *commitment tx* using the payment revocation key.
+    * spend the *commitment tx* using the payment revocation private key.
     * spend the *commitment tx* using the payment preimage (if known).
     * spend the *HTLC-timeout tx*, if the remote node has published it.
   - MUST *resolve* the _remote node's offered HTLCs_ in one of two ways:
     * spend the *commitment tx* using the payment revocation key.
     * spend the *commitment tx* once the HTLC timeout has passed.
   - MUST *resolve* the _remote node's HTLC-timeout transaction_ by spending it
-  using the revocation key.
+  using the revocation private key.
   - MUST *resolve* the _remote node's HTLC-success transaction_ by spending it
-  using the revocation key.
+  using the revocation private key.
   - SHOULD extract the payment preimage from the transaction input witness, if
   it's not already known.
   - MAY use a single transaction to *resolve* all the outputs.
@@ -583,22 +583,22 @@ A node:
 As described in [BOLT #3](03-transactions.md), the witness for this transaction
 is:
 
-    <sig> 1 { OP_IF <key> OP_ELSE to_self_delay OP_CSV OP_DROP <key> OP_ENDIF OP_CHECKSIG }
+    <sig> 1 { OP_IF <revocationpubkey> OP_ELSE to_self_delay OP_CSV OP_DROP <local_delayedpubkey> OP_ENDIF OP_CHECKSIG }
 
 The *expected weight* of the `to_local` penalty transaction witness is
 calculated as follows:
 
     to_local_script: 83 bytes
         - OP_IF: 1 byte
-            - OP_DATA: 1 byte (revocationkey length)
-            - revocationkey: 33 bytes
+            - OP_DATA: 1 byte (revocationpubkey length)
+            - revocationpubkey: 33 bytes
         - OP_ELSE: 1 byte
             - OP_DATA: 1 byte (delay length)
             - delay: 8 bytes
             - OP_CHECKSEQUENCEVERIFY: 1 byte
             - OP_DROP: 1 byte
-            - OP_DATA: 1 byte (localkey length)
-            - localkey: 33 bytes
+            - OP_DATA: 1 byte (local_delayedpubkey length)
+            - local_delayedpubkey: 33 bytes
         - OP_ENDIF: 1 byte
         - OP_CHECKSIG: 1 byte
 
@@ -639,8 +639,8 @@ calculated as follows (some calculations have already been made in
         - number_of_witness_elements: 1 byte
         - revocation_sig_length: 1 byte
         - revocation_sig: 73 bytes
-        - revocation_key_length: 1 byte
-        - revocation_key: 33 bytes
+        - revocationpubkey_length: 1 byte
+        - revocationpubkey: 33 bytes
         - witness_script_length: 1 byte
         - witness_script (accepted_htlc_script)
 

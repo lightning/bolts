@@ -7,7 +7,7 @@ This protocol assumes an underlying authenticated and ordered transport mechanis
 
 The default TCP port is 9735. This corresponds to hexadecimal `0x2607`: the Unicode code point for LIGHTNING.<sup>[1](#reference-1)</sup>
 
-All data fields are big-endian unless otherwise specified.
+All data fields are unsigned big-endian unless otherwise specified.
 
 ## Table of Contents
 
@@ -60,7 +60,7 @@ A node:
   - MUST ignore any additional data within a message beyond the length that it expects for that type.
   - upon receiving a known message with insufficient length for the contents:
     - MUST fail the channels.
-  - that understands an option in this specification:
+  - that negotiates an option in this specification:
     - MUST include all the fields annotated with that option.
 
 ### Rationale
@@ -160,13 +160,13 @@ A sending node:
   - when failure was caused by an invalid signature check:
     - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
   - when `channel_id` is 0:
-    - MUST fail all channels.
+    - MUST fail all channels with the receiving node.
     - MUST close the connection.
   - MUST set `len` equal to the length of `data`.
 
 The receiving node:
   - upon receiving `error`:
-    - MUST fail the channel referred to by the error message.
+    - MUST fail the channel referred to by the error message, if that channel is with the sending node.
   - if no existing channel is referred to by the message:
     - MUST ignore the message.
   - MUST truncate `len` to the remainder of the packet (if it's larger).
@@ -187,7 +187,7 @@ it leak information — hence, the optional `data` field.
 
 ### The `ping` and `pong` Messages
 
-In order to allow for the existence of very long-lived TCP connections, at
+In order to allow for the existence of long-lived TCP connections, at
 times it may be required that both ends keep alive the TCP connection at the
 application level. Such messages also allow obfuscation of traffic patterns.
 
@@ -241,7 +241,7 @@ The largest possible message is 65535 bytes; thus, the maximum sensible `bytesle
 is 65531 — in order to account for the type field (`pong`) and the `byteslen` itself. This allows
 a convenient cutoff for `num_pong_bytes` to indicate that no reply should be sent.
 
-Connections between nodes within the network may be very long lived, as payment
+Connections between nodes within the network may be long lived, as payment
 channels have an indefinite lifetime. However, it's likely that
 no new data will be
 exchanged for a
@@ -258,7 +258,7 @@ typical exchanges without applying any true updates to their respective
 channels.
 
 When combined with the onion routing protocol defined in
-[BOLT #4](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md),
+[BOLT #4](04-onion-routing.md),
 careful statistically driven synthetic traffic can serve to further bolster the
 privacy of participants within the network.
 
@@ -268,7 +268,7 @@ of incoming traffic flooding (e.g. sending _odd_ unknown message types, or paddi
 every message maximally).
 
 Finally, the usage of periodic `ping` messages serves to promote frequent key
-rotations as specified within [BOLT #8](https://github.com/lightningnetwork/lightning-rfc/blob/master/08-transport.md).
+rotations as specified within [BOLT #8](08-transport.md).
 
 ## Acknowledgments
 

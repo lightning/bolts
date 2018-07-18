@@ -21,10 +21,16 @@ The conditions are key-value pairs with a single-letter key; the remainder of th
 The following key-value pairs MUST be supported by a DNS seed:
 
  - `r`: realm byte, used to specify what realm the returned nodes must support (default value: 0, Bitcoin)
- - `a`: address types, used to specify what address types should be returned for `SRV` queries. This is a bitfield that uses the types from [BOLT 7](07-routing-gossip.md) as bit index. This condition MAY only be used for `SRV` queries. (default value: 6, i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and IPv6, respectively) 
+ - `a`: address types, used to specify what address types should be returned for `SRV` queries. This is a bitfield that uses the types from [BOLT #7](07-routing-gossip.md) as bit index. This condition MAY only be used for `SRV` queries. (default value: 6, i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and IPv6, respectively)
  - `l`: `node_id`, the bech32-encoded `node_id` of a specific node, used to ask for a single node instead of a random selection. (default: null)
  - `n`: the number of desired reply records (default: 25)
 
+Conditions are passed in the DNS seed query as individual, dot-separated subdomain components.
+
+A query for `r0.a2.n10.lseed.bitcoinstats.com` would mean: Return 10 (`n10`) IPv4 (`a2`) records  for nodes supporting Bitcoin (`r0`).
+
+The DNS seed MUST evaluate the conditions from the _seed root domain_ and going up-the-tree, meaning right-to-left in a fully qualified domain name. In the example above, that would be: `n10`, then `a2`, then `r0`.
+If a condition (key) is specified more than once, the DNS seed MUST discard any earlier value for that condition and use the new value instead. For `n5.r0.a2.n10.lseed.bitcoinstats.com`, the result is then: ~~`n10`~~, `a2`, `r0`, `n5`.
 Results returned by the DNS seed SHOULD match all conditions.
 If the DNS seed does not implement filtering by a given condition it MAY ignore the condition altogether (i.e. the seed filtering is best effort only).
 Clients MUST NOT rely on any given condition being met by the results.
@@ -32,7 +38,7 @@ Clients MUST NOT rely on any given condition being met by the results.
 Queries distinguish between _wildcard_ queries and _node_ queries, depending on whether the `l`-key is set or not.
 
 Upon receiving a wildcard query, the DNS seed MUST select a random subset of up to `n` IPv4 or IPv6 addresses of nodes that are listening for incoming connections.
-For `A` and `AAAA` queries, only nodes listening on the default port 9735, as defined in [BOLT 01](01-messaging.md), MUST be returned.
+For `A` and `AAAA` queries, only nodes listening on the default port 9735, as defined in [BOLT #1](01-messaging.md), MUST be returned.
 Since `SRV` records return a _(hostname,port)_-tuple, nodes that are listening on non-default ports MAY be returned.
 
 Upon receiving a node query, the seed MUST select the record matching the `node_id`, if any, and return all addresses associated with that node.
@@ -44,7 +50,7 @@ The results are serialized in a reply with a query type matching the client's qu
 For `A` and `AAAA` queries, the reply contains the domain name and the IP address of the results.
 The domain name MUST match the domain in the query in order not to be filtered by intermediate resolvers.
 
-For `SRV` queries, the reply consists of (_virtual hostnames_, port)-tuples
+For `SRV` queries, the reply consists of (_virtual hostnames_, port)-tuples.
 A virtual hostname is a subdomain of the seed root domain that uniquely identifies a node in the network.
 It is constructed by prepending the `node_id` condition to the seed root domain.
 The DNS seed MAY additionally return the corresponding `A` and `AAAA` records that indicate the IP address for the `SRV` entries in the Extra section of the reply.
@@ -76,8 +82,20 @@ Querying for `SRV` records:
 
 Querying for the `A` for the first virtual hostname from the previous example:
 
-	$dig ln1qwktpe6jxltmpphyl578eax6fcjc2m807qalr76a5gfmx7k9qqfjwy4mctz.lseed.bitcoinstats.com A
+	$ dig ln1qwktpe6jxltmpphyl578eax6fcjc2m807qalr76a5gfmx7k9qqfjwy4mctz.lseed.bitcoinstats.com A
 	ln1qwktpe6jxltmpphyl578eax6fcjc2m807qalr76a5gfmx7k9qqfjwy4mctz.lseed.bitcoinstats.com. 60 IN A 139.59.143.87
+
+Querying for only IPv4 nodes (`a2`) via seed filtering:
+
+	$dig a2.lseed.bitcoinstats.com SRV
+	a2.lseed.bitcoinstats.com. 59	IN	SRV	10 10 9735 ln1q2jy22cg2nckgxttjf8txmamwe9rtw325v4m04ug2dm9sxlrh9cagrrpy86.lseed.bitcoinstats.com.
+	a2.lseed.bitcoinstats.com. 59	IN	SRV	10 10 9735 ln1qfrkq32xayuq63anmc2zp5vtd2jxafhdzzudmuws0hvxshtgd2zd7jsqv7f.lseed.bitcoinstats.com.
+
+Querying for only IPv6 nodes (`a4`) supporting Bitcoin (`r0`) via seed filtering:
+
+	$dig r0.a4.lseed.bitcoinstats.com SRV
+	r0.a4.lseed.bitcoinstats.com. 59 IN	SRV	10 10 9735 ln1qwx3prnvmxuwsnaqhzwsrrpwy4pjf5m8fv4m8kcjkdvyrzymlcmj5dakwrx.lseed.bitcoinstats.com.
+	r0.a4.lseed.bitcoinstats.com. 59 IN	SRV	10 10 9735 ln1qwr7x7q2gvj7kwzzr7urqq9x7mq0lf9xn6svs8dn7q8gu5q4e852znqj3j7.lseed.bitcoinstats.com.
 
 ## References
 - <a id="ref-1">[RFC 1035 - Domain Names](https://www.ietf.org/rfc/rfc1035.txt)</a>

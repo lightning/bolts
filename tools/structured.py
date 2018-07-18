@@ -40,11 +40,12 @@ for line in csv:
         typenum = parts[1]
         continue
     assert currentmsgname == parts[0], line
-    assert len(parts) == 4, line
+    assert len(parts) in [4, 5], line
     position = parts[1]
     length = parts[3]
     fieldname = parts[2]
     currentmsgfields[fieldname] = {"position": position, "length": length}
+    if len(parts) == 5: currentmsgfields[fieldname]["feature"] = parts[4]
 
 if __name__ == "__main__":
     print(json.dumps(resmap, indent=True))

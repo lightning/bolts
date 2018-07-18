@@ -1,6 +1,6 @@
 # BOLT #3: Bitcoin Transaction and Script Formats
 
-This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. That is, the funding transaction output script, commitment transactions, and the HTLC transactions.
+This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. This consists of the funding transaction output script, the commitment transactions, and the HTLC transactions.
 
 # Table of Contents
 
@@ -10,23 +10,23 @@ This details the exact format of on-chain transactions, which both sides need to
     * [Funding Transaction Output](#funding-transaction-output)
     * [Commitment Transaction](#commitment-transaction)
         * [Commitment Transaction Outputs](#commitment-transaction-outputs)
-        * [`to_local` Output](#to_local-output)
-        * [`to_remote` Output](#to_remote-output)
-        * [Offered HTLC Outputs](#offered-htlc-outputs)
-        * [Received HTLC Outputs](#received-htlc-outputs)
+          * [`to_local` Output](#to_local-output)
+          * [`to_remote` Output](#to_remote-output)
+          * [Offered HTLC Outputs](#offered-htlc-outputs)
+          * [Received HTLC Outputs](#received-htlc-outputs)
         * [Trimmed Outputs](#trimmed-outputs)
     * [HTLC-timeout and HTLC-success Transactions](#htlc-timeout-and-htlc-success-transactions)
 	* [Closing Transaction](#closing-transaction)
     * [Fees](#fees)
-        * [Fee Calculation](#fee-calculation)   
+        * [Fee Calculation](#fee-calculation)
         * [Fee Payment](#fee-payment)
   * [Keys](#keys)
     * [Key Derivation](#key-derivation)
-        * [`localkey`, `remotekey`, `local_htlckey`, `remote_htlckey`, `local_delayedkey`, and `remote_delayedkey` Derivation](#localkey-remotekey-local_delayedkey-and-remote_delayedkey-derivation)
-        * [`revocationkey` Derivation](#revocationkey-derivation)
+        * [`localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation](#localpubkey-remotepubkey-local_htlcpubkey-remote_htlcpubkey-local_delayedpubkey-and-remote_delayedpubkey-derivation)
+        * [`revocationpubkey` Derivation](#revocationpubkey-derivation)
         * [Per-commitment Secret Requirements](#per-commitment-secret-requirements)
     * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
-  * [Appendix A: Expected Weights](#appendix-a-expected-weights)    
+  * [Appendix A: Expected Weights](#appendix-a-expected-weights)
       * [Expected Weight of the Commitment Transaction](#expected-weight-of-the-commitment-transaction)
       * [Expected Weight of HTLC-timeout and HTLC-success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
   * [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
@@ -35,8 +35,8 @@ This details the exact format of on-chain transactions, which both sides need to
     * [Generation Tests](#generation-tests)
     * [Storage Tests](#storage-tests)
   * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
-  * [References](#references)   
-  * [Authors](#authors)   
+  * [References](#references)
+  * [Authors](#authors)
 
 # Transactions
 
@@ -46,13 +46,15 @@ Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/
 
 ## Use of Segwit
 
-Most transaction outputs used here are P2WSH outputs: the Segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
+Most transaction outputs used here are pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> (P2WSH) outputs: the Segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
 
 ## Funding Transaction Output
 
-* The funding output script is a pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> to:
-   * `2 <key1> <key2> 2 OP_CHECKMULTISIG`
-* Where `key1` is the numerically lesser of the two DER-encoded `funding_pubkey` and `key2` is the greater.
+* The funding output script is a P2WSH to:
+
+`2 <pubkey1> <pubkey2> 2 OP_CHECKMULTISIG`
+
+* Where `pubkey1` is the numerically lesser of the two DER-encoded `funding_pubkey` and where `pubkey2` is the numerically greater of the two.
 
 ## Commitment Transaction
 
@@ -62,7 +64,7 @@ Most transaction outputs used here are P2WSH outputs: the Segwit version of P2SH
    * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
    * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits of the obscured commitment transaction number
    * `txin[0]` script bytes: 0
-   * `txin[0]` witness: `0 <signature_for_key1> <signature_for_key2>`
+   * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
 
 The 48-bit commitment transaction number is obscured by `XOR` with the lower 48 bits of:
 
@@ -75,7 +77,7 @@ commitment transaction.
 
 ### Commitment Transaction Outputs
 
-To allow an opportunity for penalty transactions, in case of a revoked commitment transaction, all outputs which return funds to the owner of the commitment transaction (a.k.a. "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
+To allow an opportunity for penalty transactions, in case of a revoked commitment transaction, all outputs that return funds to the owner of the commitment transaction (a.k.a. the "local node") must be delayed for `to_self_delay` blocks. This delay is done in a second-stage HTLC transaction (HTLC-success for HTLCs accepted by the local node, HTLC-timeout for HTLCs offered by the local node).
 
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can timeout or be fulfilled even though they are within the `to_self_delay` delay.
 Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
@@ -84,22 +86,22 @@ The amounts for each output MUST be rounded down to whole satoshis. If this amou
 
 #### `to_local` Output
 
-This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation key. The output is a version 0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
 
     OP_IF
         # Penalty transaction
-        <revocationkey>
+        <revocationpubkey>
     OP_ELSE
         `to_self_delay`
         OP_CSV
         OP_DROP
-        <local_delayedkey>
+        <local_delayedpubkey>
     OP_ENDIF
     OP_CHECKSIG
 
-It is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed), and witness:
+The output is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed) and witness:
 
-	<local_delayedsig> 0
+    <local_delayedsig> 0
 
 If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness:
 
@@ -107,23 +109,23 @@ If a revoked commitment transaction is published, the other party can spend this
 
 #### `to_remote` Output
 
-This output sends funds to the other peer and thus is a simple P2WPKH to `remotekey`.
+This output sends funds to the other peer and thus is a simple P2WPKH to `remotepubkey`.
 
 #### Offered HTLC Outputs
 
-This output sends funds to either a HTLC-timeout transaction after the HTLC-timeout or to the remote peer using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
+This output sends funds to either an HTLC-timeout transaction after the HTLC-timeout or to the remote node using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
 
-    # To you with revocation key
-    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationkey))> OP_EQUAL
+    # To remote node with revocation key
+    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
-        <remote_htlckey> OP_SWAP OP_SIZE 32 OP_EQUAL
+        <remote_htlcpubkey> OP_SWAP OP_SIZE 32 OP_EQUAL
         OP_NOTIF
-            # To me via HTLC-timeout transaction (timelocked).
-            OP_DROP 2 OP_SWAP <local_htlckey> 2 OP_CHECKMULTISIG
+            # To local node via HTLC-timeout transaction (timelocked).
+            OP_DROP 2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
         OP_ELSE
-            # To you with preimage.
+            # To remote node with preimage.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
             OP_CHECKSIG
         OP_ENDIF
@@ -135,27 +137,27 @@ The remote node can redeem the HTLC with the witness:
 
 If a revoked commitment transaction is published, the remote node can spend this output immediately with the following witness:
 
-    <revocation_sig> <revocationkey>
+    <revocation_sig> <revocationpubkey>
 
 The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below.
 
 #### Received HTLC Outputs
 
-This output sends funds to either the remote peer after the HTLC-timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
+This output sends funds to either the remote node after the HTLC-timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
 
-    # To you with revocation key
-    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationkey))> OP_EQUAL
+    # To remote node with revocation key
+    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
-        <remote_htlckey> OP_SWAP
+        <remote_htlcpubkey> OP_SWAP
             OP_SIZE 32 OP_EQUAL
         OP_IF
-            # To me via HTLC-success transaction.
+            # To local node via HTLC-success transaction.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
-            2 OP_SWAP <local_htlckey> 2 OP_CHECKMULTISIG
+            2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
         OP_ELSE
-            # To you after timeout.
+            # To remote node after timeout.
             OP_DROP <cltv_expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
             OP_CHECKSIG
         OP_ENDIF
@@ -167,14 +169,14 @@ To timeout the HTLC, the remote node spends it with the witness:
 
 If a revoked commitment transaction is published, the remote node can spend this output immediately with the following witness:
 
-    <revocation_sig> <revocationkey>
+    <revocation_sig> <revocationpubkey>
 
 To redeem the HTLC, the HTLC-success transaction is used as detailed below.
 
 ### Trimmed Outputs
 
-Each peer specifies `dust_limit_satoshis` below which outputs should
-not be produced; these outputs are termed "trimmed". A trimmed output is
+Each peer specifies a `dust_limit_satoshis` below which outputs should
+not be produced; these outputs that are not produced are termed "trimmed". A trimmed output is
 considered too small to be worth creating and is instead added
 to the commitment transaction fee. For HTLCs, it needs to be taken into
 account that the second-stage HTLC transaction may also be below the
@@ -192,12 +194,12 @@ The commitment transaction:
 less than `dust_limit_satoshis` set by the transaction owner:
     - MUST NOT contain that output.
   - otherwise:
-    - MUST be generated as specified in [`to_local` Output](#to-local-output).
+    - MUST be generated as specified in [`to_local` Output](#to_local-output).
   - if the amount of the commitment transaction `to_remote` output would be
 less than `dust_limit_satoshis` set by the transaction owner:
     - MUST NOT contain that output.
   - otherwise:
-    - MUST be generated as specified in [`to_remote` Output](#to-remote-output).
+    - MUST be generated as specified in [`to_remote` Output](#to_remote-output).
   - for every offered HTLC:
     - if the HTLC amount minus the HTLC-timeout fee would be less than
     `dust_limit_satoshis` set by the transaction owner:
@@ -215,7 +217,7 @@ less than `dust_limit_satoshis` set by the transaction owner:
 
 ## HTLC-Timeout and HTLC-Success Transactions
 
-These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. The HTLC-timeout transaction is also the transaction which can be spent by a valid penalty transaction.
+These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. The HTLC-timeout transaction is also the transaction that can be spent by a valid penalty transaction.
 
 * version: 2
 * locktime: `0` for HTLC-success, `cltv_expiry` for HTLC-timeout
@@ -226,18 +228,18 @@ These HTLC transactions are almost identical, except the HTLC-timeout transactio
    * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-success, `0 <remotehtlcsig> <localhtlcsig> 0` for HTLC-timeout
 * txout count: 1
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation))
-   * `txout[0]` script: version 0 P2WSH with witness script as shown below
+   * `txout[0]` script: version-0 P2WSH with witness script as shown below
 
 The witness script for the output is:
 
     OP_IF
         # Penalty transaction
-        <revocationkey>
+        <revocationpubkey>
     OP_ELSE
         `to_self_delay`
         OP_CSV
         OP_DROP
-        <local_delayedkey>
+        <local_delayedpubkey>
     OP_ENDIF
     OP_CHECKSIG
 
@@ -253,7 +255,7 @@ Note that there are two possible variants for each node.
    * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
    * `txin[0]` sequence: 0xFFFFFFFF
    * `txin[0]` script bytes: 0
-   * `txin[0]` witness: `0 <signature_for_key1> <signature_for_key2>`
+   * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
 * txout count: 0, 1 or 2
    * `txout` amount: final balance to be paid to one node (minus `fee_satoshis` from `closing_signed`, if this peer funded the channel)
    * `txout` script: as specified in that node's `scriptpubkey` in its `shutdown` message
@@ -261,6 +263,7 @@ Note that there are two possible variants for each node.
 ### Requirements
 
 Each node offering a signature:
+  - MUST round each output down to whole satoshis.
   - MUST subtract the fee given by `fee_satoshis` from the output to the funder.
   - MUST remove any output below its own `dust_limit_satoshis`.
   - MAY eliminate its own output.
@@ -293,7 +296,7 @@ transactions is based on the current `feerate_per_kw` and the
 
 The actual and expected weights vary for several reasons:
 
-* Bitcoin uses DER-encoded signatures which vary in size.
+* Bitcoin uses DER-encoded signatures, which vary in size.
 * Bitcoin also uses variable-length integers, so a large number of outputs will take 3 bytes to encode rather than 1.
 * The `to_remote` output may be below the dust limit.
 * The `to_local` output may be below the dust limit once fees are extracted.
@@ -344,20 +347,20 @@ The commitment transaction `weight` is calculated as follows:
 
 * The offered HTLC of 5000 satoshis is above 546 + 3315 and results in:
   * an output of 5000 satoshi in the commitment transaction
-  * a HTLC-timeout transaction of 5000 - 3145 satoshis which spends this output
+  * an HTLC-timeout transaction of 5000 - 3315 satoshis that spends this output
   * `weight` increases to 896
 
-* The offered HTLC of 1000 satoshis is below 546 + 3315 so is trimmed.
+* The offered HTLC of 1000 satoshis is below 546 + 3315 so it is trimmed.
 
-* The received HTLC of 7000 satoshis is above 546 + 3590 and results in:
+* The received HTLC of 7000 satoshis is above 546 + 3515 and results in:
   * an output of 7000 satoshi in the commitment transaction
-  * a HTLC-success transaction of 7000 - 3590 satoshis which spends this output
+  * an HTLC-success transaction of 7000 - 3515 satoshis that spends this output
   * `weight` increases to 1068
 
-* The received HTLC of 800 satoshis is below 546 + 3515 so is trimmed.
+* The received HTLC of 800 satoshis is below 546 + 3515 so it is trimmed.
 
 The base commitment transaction fee is 5340 satoshi; the actual
-fee (adding the 1000 and 800 satoshi HTLCs which would make dust
+fee (which adds the 1000 and 800 satoshi HTLCs that would make dust
 outputs) is 7140 satoshi. The final fee may be even higher if the
 `to_local` or `to_remote` outputs fall below `dust_limit_satoshis`.
 
@@ -365,7 +368,7 @@ outputs) is 7140 satoshi. The final fee may be even higher if the
 
 Base commitment transaction fees are extracted from the funder's amount; if that amount is insufficient, the entire amount of the funder's output is used.
 
-Note that if after the fee amount is subtracted from the to-funder output,
+Note that after the fee amount is subtracted from the to-funder output,
 that output may be below `dust_limit_satoshis`, and thus will also
 contribute to fees.
 
@@ -401,9 +404,9 @@ committed HTLCs:
 
 ## Key Derivation
 
-Each commitment transaction uses a unique set of keys: `localkey` and `remotekey`.
-The HTLC-success and HTLC-timeout transactions use `local_delayedkey` and `revocationkey`.
-These are changed every time depending on the `per_commitment_point`.
+Each commitment transaction uses a unique set of keys: `localpubkey` and `remotepubkey`.
+The HTLC-success and HTLC-timeout transactions use `local_delayedpubkey` and `revocationpubkey`.
+These are changed for every transaction based on the `per_commitment_point`.
 
 The reason for key change is so that trustless watching for revoked
 transactions can be outsourced. Such a _watcher_ should not be able to
@@ -416,57 +419,57 @@ avoid storage of every commitment transaction, a _watcher_ can be given the
 the scripts required for the penalty transaction; thus, a _watcher_ need only be
 given (and store) the signatures for each penalty input.
 
-Changing the `localkey` and `remotekey` every time ensures that commitment
+Changing the `localpubkey` and `remotepubkey` every time ensures that commitment
 transaction ID cannot be guessed; every commitment transaction uses an ID
-in its output script. Splitting the `local_delayedkey`, which is required for
+in its output script. Splitting the `local_delayedpubkey`, which is required for
 the penalty transaction, allows it to be shared with the _watcher_ without
-revealing `localkey`; even if both peers use the same _watcher_, nothing is revealed.
+revealing `localpubkey`; even if both peers use the same _watcher_, nothing is revealed.
 
 Finally, even in the case of normal unilateral close, the HTLC-success
 and/or HTLC-timeout transactions do not reveal anything to the
 _watcher_, as it does not know the corresponding `per_commitment_secret` and
-cannot relate the `local_delayedkey` or `revocationkey` with their bases.
+cannot relate the `local_delayedpubkey` or `revocationpubkey` with their bases.
 
 For efficiency, keys are generated from a series of per-commitment secrets
 that are generated from a single seed, which allows the receiver to compactly
 store them (see [below](#efficient-per-commitment-secret-storage)).
 
-### `localkey`, `remotekey`, `local_htlckey`, `remote_htlckey`, `local_delayedkey`, and `remote_delayedkey` Derivation
+### `localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation
 
-These keys are simply generated by addition from their base points:
+These pubkeys are simply generated by addition from their base points:
 
 	pubkey = basepoint + SHA256(per_commitment_point || basepoint) * G
 
-The `localkey` uses the local node's `payment_basepoint`; the `remotekey`
-uses the remote node's `payment_basepoint`; the `local_delayedkey`
-uses the local node's `delayed_payment_basepoint`; the `local_htlckey` uses the
-local node's `htlc_basepoint`; and the `remote_delayedkey` uses the remote
+The `localpubkey` uses the local node's `payment_basepoint`; the `remotepubkey`
+uses the remote node's `payment_basepoint`; the `local_delayedpubkey`
+uses the local node's `delayed_payment_basepoint`; the `local_htlcpubkey` uses the
+local node's `htlc_basepoint`; and the `remote_delayedpubkey` uses the remote
 node's `delayed_payment_basepoint`.
 
 The corresponding private keys can be similarly derived, if the basepoint
-secrets are known (i.e. `localkey`, `local_htlckey`, and `local_delayedkey` only):
+secrets are known (i.e. the private keys corresponding to `localpubkey`, `local_htlcpubkey`, and `local_delayedpubkey` only):
 
-    secretkey = basepoint_secret + SHA256(per_commitment_point || basepoint)
+    privkey = basepoint_secret + SHA256(per_commitment_point || basepoint)
 
-### `revocationkey` Derivation
+### `revocationpubkey` Derivation
 
-The `revocationkey` is a blinded key: when the local node wishes to create a new
+The `revocationpubkey` is a blinded key: when the local node wishes to create a new
 commitment for the remote node, it uses its own `revocation_basepoint` and the remote
-node's `per_commitment_point` to derive a new `revocationkey` for the
-commitment. After the remote node reveals (thereby revoking that commitment) the
-`per_commitment_secret` used, the local node
-can then derive the `revocationsecretkey`, as it now knows the two secrets
+node's `per_commitment_point` to derive a new `revocationpubkey` for the
+commitment. After the remote node reveals the
+`per_commitment_secret` used (thereby revoking that commitment), the local node
+can then derive the `revocationprivkey`, as it now knows the two secrets
 necessary to derive the key (`revocation_basepoint_secret` and
 `per_commitment_secret`).
 
-The `per_commitment_point` is generated using EC multiplication:
+The `per_commitment_point` is generated using elliptic-curve multiplication:
 
 	per_commitment_point = per_commitment_secret * G
 
-And this is used to derive the revocation key from the remote node's
+And this is used to derive the revocation pubkey from the remote node's
 `revocation_basepoint`:
 
-	revocationkey = revocation_basepoint * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_point * SHA256(per_commitment_point || revocation_basepoint)
+	revocationpubkey = revocation_basepoint * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_point * SHA256(per_commitment_point || revocation_basepoint)
 
 This construction ensures that neither the node providing the
 basepoint nor the node providing the `per_commitment_point` can know the
@@ -475,7 +478,7 @@ private key without the other node's secret.
 The corresponding private key can be derived once the `per_commitment_secret`
 is known:
 
-    revocationsecretkey = revocation_basepoint_secret * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_secret * SHA256(per_commitment_point || revocation_basepoint)
+    revocationprivkey = revocation_basepoint_secret * SHA256(revocation_basepoint || per_commitment_point) + per_commitment_secret * SHA256(per_commitment_point || revocation_basepoint)
 
 ### Per-commitment Secret Requirements
 
@@ -483,7 +486,7 @@ A node:
   - MUST select an unguessable 256-bit seed for each connection,
   - MUST NOT reveal the seed.
 
-Up to 2^48 - 1 per-commitment secrets can be generated.
+Up to (2^48 - 1) per-commitment secrets can be generated.
 
 The first secret used:
   - MUST be index 281474976710655,
@@ -517,7 +520,7 @@ and secrets are always received in descending order starting at
 
 In binary, it's helpful to think of any index in terms of a *prefix*,
 followed by some trailing 0s. You can derive the secret for any
-index which matches this *prefix*.
+index that matches this *prefix*.
 
 For example, secret `0xFFFFFFFFFFF0` allows the secrets to be derived for
 `0xFFFFFFFFFFF1` through `0xFFFFFFFFFFFF`, inclusive; and secret `0xFFFFFFFFFF08`
@@ -628,12 +631,12 @@ The *expected weight* of a commitment transaction is calculated as follows:
 	 			from the witness data.
 		- sequence: 4 bytes
 
-	output_paying_to_us: 43 bytes
+	output_paying_to_local: 43 bytes
 		- value: 8 bytes
 		- var_int: 1 byte (pk_script length)
 		- pk_script (p2wsh): 34 bytes
 
-	output_paying_to_them: 31 bytes
+	output_paying_to_remote: 31 bytes
 		- value: 8 bytes
 		- var_int: 1 byte (pk_script length)
 		- pk_script (p2wpkh): 22 bytes
@@ -655,8 +658,8 @@ The *expected weight* of a commitment transaction is calculated as follows:
 			funding_input
 		- count_tx_out: 1 byte
 		- tx_out: 74 + 43 * num-htlc-outputs bytes
-			output_paying_to_them,
-			output_paying_to_us,
+			output_paying_to_remote,
+			output_paying_to_local,
 			....htlc_output's...
 		- lock_time: 4 bytes
 
@@ -677,14 +680,14 @@ The *expected weight* of an HTLC transaction is calculated as follows:
     accepted_htlc_script: 139 bytes
         - OP_DUP: 1 byte
         - OP_HASH160: 1 byte
-        - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationkey)) length)
-        - RIPEMD160(SHA256(revocationkey)): 20 bytes
+        - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationpubkey)) length)
+        - RIPEMD160(SHA256(revocationpubkey)): 20 bytes
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_CHECKSIG: 1 byte
         - OP_ELSE: 1 byte
-        - OP_DATA: 1 byte (remotekey length)
-        - remotekey: 33 bytes
+        - OP_DATA: 1 byte (remotepubkey length)
+        - remotepubkey: 33 bytes
         - OP_SWAP: 1 byte
         - OP_SIZE: 1 byte
         - 32: 2 bytes
@@ -696,8 +699,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_EQUALVERIFY: 1 byte
         - 2: 1 byte
         - OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localkey length)
-		- localkey: 33 bytes
+		- OP_DATA: 1 byte (localpubkey length)
+		- localpubkey: 33 bytes
         - 2: 1 byte
         - OP_CHECKMULTISIG: 1 byte
         - OP_ELSE: 1 byte
@@ -713,14 +716,14 @@ The *expected weight* of an HTLC transaction is calculated as follows:
     offered_htlc_script: 133 bytes
         - OP_DUP: 1 byte
         - OP_HASH160: 1 byte
-        - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationkey)) length)
-        - RIPEMD160(SHA256(revocationkey)): 20 bytes
+        - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationpubkey)) length)
+        - RIPEMD160(SHA256(revocationpubkey)): 20 bytes
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_CHECKSIG: 1 byte
         - OP_ELSE: 1 byte
-		- OP_DATA: 1 byte (remotekey length)
-		- remotekey: 33 bytes
+		- OP_DATA: 1 byte (remotepubkey length)
+		- remotepubkey: 33 bytes
 		- OP_SWAP: 1 byte
 		- OP_SIZE: 1 byte
 		- OP_DATA: 1 byte (32 length)
@@ -730,8 +733,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_DROP: 1 byte
 		- 2: 1 byte
 		- OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localkey length)
-		- localkey: 33 bytes
+		- OP_DATA: 1 byte (localpubkey length)
+		- localpubkey: 33 bytes
 		- 2: 1 byte
 		- OP_CHECKMULTISIG: 1 byte
 		- OP_ELSE: 1 byte
@@ -816,7 +819,7 @@ coinbase (note that such a P2PKH input is inadvisable, as detailed in [BOLT #2](
     # privkey in base58: cRCH7YNcarfvaiY1GWUKQrRGmoezvfAiqHtdRvxe16shzbd7LDMz
     # pubkey in base68: mm3aPLSv9fBrbS68JzurAMp4xGoddJ6pSf
 
-The funding transaction is paid to the following keys:
+The funding transaction is paid to the following pubkeys:
 
     local_funding_pubkey: 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb
     remote_funding_pubkey: 030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1
@@ -892,9 +895,9 @@ INTERNAL: remote_revocation_basepoint: 02466d7fcae563e5cb09a0d1870bb580344804617
 # From local_delayed_payment_basepoint_secret
 INTERNAL: local_delayed_payment_basepoint: 023c72addb4fdf09af94f0c94d7fe92a386a7e70cf8a1d85916386bb2535c7b1b1
 INTERNAL: local_per_commitment_point: 025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486
-INTERNAL: remote_secretkey: 8deba327a7cc6d638ab0eb025770400a6184afcba6713c210d8d10e199ff2fda01
+INTERNAL: remote_privkey: 8deba327a7cc6d638ab0eb025770400a6184afcba6713c210d8d10e199ff2fda01
 # From local_delayed_payment_basepoint_secret, local_per_commitment_point and local_delayed_payment_basepoint
-INTERNAL: local_delayed_secretkey: adf3464ce9c2f230fd2582fda4c6965e4993ca5524e8c9580e3df0cf226981ad01
+INTERNAL: local_delayed_privkey: adf3464ce9c2f230fd2582fda4c6965e4993ca5524e8c9580e3df0cf226981ad01
 -->
 
 Here are the points used to derive the obscuring factor for the commitment number:
@@ -908,11 +911,11 @@ And, here are the keys needed to create the transactions:
     local_funding_privkey: 30ff4956bbdd3222d44cc5e8a1261dab1e07957bdac5ae88fe3261ef321f374901
     local_funding_pubkey: 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb
     remote_funding_pubkey: 030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c1
-    local_secretkey: bb13b121cdc357cd2e608b0aea294afca36e2b34cf958e2e6451a2f27469449101
-    localkey: 030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e7
-    remotekey: 0394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b
-    local_delayedkey: 03fd5960528dc152014952efdb702a88f71e3c1653b2314431701ec77e57fde83c
-    local_revocation_key: 0212a140cd0c6539d07cd08dfe09984dec3251ea808b892efeac3ede9402bf2b19
+    local_privkey: bb13b121cdc357cd2e608b0aea294afca36e2b34cf958e2e6451a2f27469449101
+    localpubkey: 030d417a46946384f88d5f3337267c5e579765875dc4daca813e21734b140639e7
+    remotepubkey: 0394854aa6eab5b2a8122cc726e9dded053a2184d88256816826d6231c068d4a5b
+    local_delayedpubkey: 03fd5960528dc152014952efdb702a88f71e3c1653b2314431701ec77e57fde83c
+    local_revocation_pubkey: 0212a140cd0c6539d07cd08dfe09984dec3251ea808b892efeac3ede9402bf2b19
     # funding wscript = 5221023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb21030e9f7b623d2ccc7c9bd44d66d5ce21ce504c0acf6385a132cec6d3c39fa711c152ae
 
 And, here are the test vectors themselves:
@@ -1262,7 +1265,7 @@ And, here are the test vectors themselves:
 
 # Appendix D: Per-commitment Secret Generation Test Vectors
 
-These test the generation algorithm which all nodes use.
+These test the generation algorithm that all nodes use.
 
 ## Generation Tests
 
@@ -1294,9 +1297,10 @@ These test the generation algorithm which all nodes use.
 ## Storage Tests
 
 These test the optional compact storage system. In many cases, an
-incorrect entry cannot be determined until its parent is revealed; an entry is
-specifically corrupted, along with all its children (except for the
-last test, which would require another eight samples to be detected). For
+incorrect entry cannot be determined until its parent is revealed: an entry is
+specifically corrupted, along with all its children.
+
+For
 these tests a seed of `0xFFF...FF` is used, and incorrect entries are
 seeded with `0x000...00`.
 
@@ -1488,8 +1492,8 @@ seeded with `0x000...00`.
 
 # Appendix E: Key Derivation Test Vectors
 
-These test the derivation for `localkey`, `remotekey`, `local_delayedkey`, and
-`remote_delayedkey` (which use the formula), as well as the `revocationkey`.
+These test the derivation for `localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and
+`remote_delayedpubkey` (which use the same formula), as well as the `revocationpubkey`.
 
 All of them use the following secrets (and thus the derived points):
 
@@ -1498,15 +1502,15 @@ All of them use the following secrets (and thus the derived points):
     base_point: 0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2
     per_commitment_point: 0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486
 
-    name: derivation of key from basepoint and per_commitment_point
+    name: derivation of pubkey from basepoint and per_commitment_point
     # SHA256(per_commitment_point || basepoint)
     # => SHA256(0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486 || 0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2)
     # = 0xcbcdd70fcfad15ea8e9e5c5a12365cf00912504f08ce01593689dd426bca9ff0
     # + basepoint (0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2)
     # = 0x0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5
-    localkey: 0x0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5
+    localpubkey: 0x0235f2dbfaa89b57ec7b055afe29849ef7ddfeb1cefdb9ebdc43f5494984db29e5
 
-    name: derivation of secret key from basepoint secret and per_commitment_secret
+    name: derivation of private key from basepoint secret and per_commitment_secret
 	# SHA256(per_commitment_point || basepoint)
     # => SHA256(0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486 || 0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2)
     # = 0xcbcdd70fcfad15ea8e9e5c5a12365cf00912504f08ce01593689dd426bca9ff0
@@ -1514,7 +1518,7 @@ All of them use the following secrets (and thus the derived points):
     # = 0xcbced912d3b21bf196a766651e436aff192362621ce317704ea2f75d87e7be0f
     localprivkey: 0xcbced912d3b21bf196a766651e436aff192362621ce317704ea2f75d87e7be0f
 
-    name: derivation of revocation key from basepoint and per_commitment_point
+    name: derivation of revocation pubkey from basepoint and per_commitment_point
     # SHA256(revocation_basepoint || per_commitment_point)
     # => SHA256(0x036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2 || 0x025f7117a78150fe2ef97db7cfc83bd57b2e2c0d0dd25eaf467a4a1c2a45ce1486)
     # = 0xefbf7ba5a074276701798376950a64a90f698997cce0dff4d24a6d2785d20963
@@ -1524,7 +1528,7 @@ All of them use the following secrets (and thus the derived points):
     # = 0xcbcdd70fcfad15ea8e9e5c5a12365cf00912504f08ce01593689dd426bca9ff0
     # x per_commitment_point = 0x0325ee7d3323ce52c4b33d4e0a73ab637711057dd8866e3b51202a04112f054c43
     # 0x02c00c4aadc536290422a807250824a8d87f19d18da9d610d45621df22510db8ce + 0x0325ee7d3323ce52c4b33d4e0a73ab637711057dd8866e3b51202a04112f054c43 => 0x02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0
-    revocationkey: 0x02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0
+    revocationpubkey: 0x02916e326636d19c33f13e8c0c3a03dd157f332f3e99c317c141dd865eb01f8ff0
 
     name: derivation of revocation secret from basepoint_secret and per_commitment_secret
     # SHA256(revocation_basepoint || per_commitment_point)

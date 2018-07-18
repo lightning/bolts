@@ -4,19 +4,19 @@ This specification describes simple node discovery, channel discovery, and chann
 
 Node and channel discovery serve two different purposes:
 
- - Channel discovery allows the creation and maintenance of a local view of the network's topology, so that the node can discover routes to the desired destination.
- - Node discovery allows nodes to broadcast their ID, host, and port, so that other nodes can open connections and establish payment channels.
- 
-To support channel discovery, peers in the network exchange
-`channel_announcement` messages, which contain information about new
-channels between two nodes. They can also exchange `channel_update`
+ - Channel discovery allows the creation and maintenance of a local view of the network's topology, so that a node can discover routes to desired destinations.
+ - Node discovery allows nodes to broadcast their ID, host, and port, so that other nodes can open connections and establish payment channels with them.
+
+To support channel discovery, three *gossip messages* are supported.   Peers in the network exchange
+`channel_announcement` messages containing information regarding new
+channels between the two nodes. They can also exchange `channel_update`
 messages, which update information about a channel. There can only be
 one valid `channel_announcement` for any channel, but at least two
 `channel_update` messages are expected.
 
 To support node discovery, peers exchange `node_announcement`
-messages, which supply additional information about nodes. There can be
-multiple `node_announcement` messages, to update node information.
+messages, which supply additional information about the nodes. There may be
+multiple `node_announcement` messages, in order to update the node information.
 
 # Table of Contents
 
@@ -24,6 +24,7 @@ multiple `node_announcement` messages, to update node information.
   * [The `channel_announcement` Message](#the-channel_announcement-message)
   * [The `node_announcement` Message](#the-node_announcement-message)
   * [The `channel_update` Message](#the-channel_update-message)
+  * [Query Messages](#query-messages)
   * [Initial Sync](#initial-sync)
   * [Rebroadcasting](#rebroadcasting)
   * [HTLC Fees](#htlc-fees)
@@ -33,8 +34,8 @@ multiple `node_announcement` messages, to update node information.
 
 ## The `announcement_signatures` Message
 
-This is a direct message between two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
-It contains the necessary signatures by the sender to construct the `channel_announcement` message.
+This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
+It contains the necessary signatures, by the sender, to construct the `channel_announcement` message.
 
 1. type: 259 (`announcement_signatures`)
 2. data:
@@ -47,52 +48,60 @@ The willingness of the initiating node to announce the channel is signaled durin
 
 ### Requirements
 
-The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. The message is then sent using an `announcement_signatures`.
+The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. After it's signed, the
+`announcement_signatures` message may be sent.
 
 The `short_channel_id` is the unique description of the funding transaction.
-It is constructed with the most significant 3 bytes indicating the block
-height, the next 3 bytes indicating the transaction index within the
-block, and the least significant two bytes indicating the output
-index that pays to the channel.
+It is constructed as follows:
+  1. the most significant 3 bytes: indicating the block height
+  2. the next 3 bytes: indicating the transaction index within the block
+  3. the least significant 2 bytes: indicating the output index that pays to the channel.
 
-If the `open_channel` message had the `announce_channel` bit set, then both nodes MUST send the `announcement_signatures` message, otherwise they MUST NOT.
+A node:
+  - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
+    - MUST send the `announcement_signatures` message.
+      - MUST NOT send `announcement_signatures` messages until `funding_locked`
+      has been sent AND the funding transaction has at least six confirmations.
+  - otherwise:
+    - MUST NOT send the `announcement_signatures` message.
+  - upon reconnection:
+    - MUST respond to the first `announcement_signatures` message with its own
+    `announcement_signatures` message.
+    - if it has NOT received an `announcement_signatures` message:
+      - SHOULD retransmit the `announcement_signatures` message.
 
-If sent, `announcement_signatures` messages MUST NOT be sent until `funding_locked` has been sent and the funding transaction has at least six confirmations.
-
-The recipient MAY fail the channel if the `node_signature` or `bitcoin_signature` is incorrect.
-The recipient SHOULD queue the `channel_announcement` message for its peers if it has sent and received a valid `announcement_signatures` message.
-
-On reconnection, a node SHOULD retransmit the `announcement_signatures` message if it has not received an `announcement_signatures` message, and MUST respond to the first `announcement_signatures` message after reconnection with its own `announcement_signatures` message.
+A recipient node:
+  - if the `node_signature` OR the `bitcoin_signature` is NOT correct:
+    - MAY fail the channel.
+  - if it has sent AND received a valid `announcement_signatures` message:
+    - SHOULD queue the `channel_announcement` message for its peers.
 
 ## The `channel_announcement` Message
 
-This message contains ownership information about a channel. It ties
-each on-chain Bitcoin key to the Lightning node key, and vice-versa.
-The channel is not really usable until at least one side has announced
-its fee levels and expiry using `channel_update`.
+This gossip message contains ownership information regarding a channel. It ties
+each on-chain Bitcoin key to the associated Lightning node key, and vice-versa.
+The channel is not practically usable until at least one side has announced
+its fee levels and expiry, using `channel_update`.
 
-Proving the existence of a channel between `node_1` and
-`node_2` requires:
+Proving the existence of a channel between `node_1` and `node_2` requires:
 
 1. proving that the funding transaction pays to `bitcoin_key_1` and
    `bitcoin_key_2`
 2. proving that `node_1` owns `bitcoin_key_1`
 3. proving that `node_2` owns `bitcoin_key_2`
 
-The first proof is accomplished by assuming that all nodes know the unspent
-transaction outputs, and thus can find the output given by
-`short_channel_id` and validate that it is indeed a P2WSH funding
-transaction output for those keys specified in
-[BOLT #3](03-transactions.md#funding-transaction-output).
+Assuming that all nodes know the unspent transaction outputs, the first proof is
+accomplished by a node finding the output given by the `short_channel_id` and
+verifying that it is indeed a P2WSH funding transaction output for those keys
+specified in [BOLT #3](03-transactions.md#funding-transaction-output).
 
-The second two proofs are accomplished through explicit signatures (`bitcoin_signature_1`
-and `bitcoin_signature_2`, generated by each `bitcoin_key` and signing
-the corresponding `node_id`).
+The last two proofs are accomplished through explicit signatures:
+`bitcoin_signature_1` and `bitcoin_signature_2` are generated for each
+`bitcoin_key` and each of the corresponding `node_id`s are signed.
 
-It is also necessary to prove that `node_1` and `node_2` both agree on this
-announcement message; this is accomplished by having a signature from each
-`node_id` signing the message (`node_signature_1` and
-`node_signature_2`).
+It's also necessary to prove that `node_1` and `node_2` both agree on the
+announcement message: this is accomplished by having a signature from each
+`node_id` (`node_signature_1` and `node_signature_2`) signing the message.
 
 1. type: 256 (`channel_announcement`)
 2. data:
@@ -111,90 +120,100 @@ announcement message; this is accomplished by having a signature from each
 
 ### Requirements
 
-The creating node MUST set `chain_hash` to the 32-byte hash that uniquely
-identifies the chain that the channel was opened within. For the Bitcoin
-blockchain, the `chain_hash` value MUST be (encoded in hex):
-`000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f`.
+The origin node:
+  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
+  that the channel was opened within:
+    - for the _Bitcoin blockchain_:
+      - MUST set `chain_hash` value (encoded in hex) equal to `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
+  - MUST set `short_channel_id` to refer to the confirmed funding transaction,
+  as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).
+    - Note: the corresponding output MUST be a P2WSH, as described in [BOLT #3](03-transactions.md#funding-transaction-output).
+  - MUST set `node_id_1` and `node_id_2` to the public keys of the two nodes
+  operating the channel, such that `node_id_1` is the numerically-lesser of the
+  two DER-encoded keys sorted in ascending numerical order.
+  - MUST set `bitcoin_key_1` and `bitcoin_key_2` to `node_id_1` and `node_id_2`'s
+  respective `funding_pubkey`s.
+  - MUST compute the double-SHA256 hash `h` of the message, beginning at offset
+  256, up to the end of the message.
+    - Note: the hash skips the 4 signatures but hashes the rest of the message,
+    including any future fields appended to the end.
+  - MUST set `node_signature_1` and `node_signature_2` to valid
+    signatures of the hash `h` (using `node_id_1` and `node_id_2`'s respective
+    secrets).
+  - MUST set `bitcoin_signature_1` and `bitcoin_signature_2` to valid
+  signatures of the hash `h` (using `bitcoin_key_1` and `bitcoin_key_2`'s
+  respective secrets).
+  - SHOULD set `len` to the minimum length required to hold the `features` bits
+  it sets.
 
-The creating node MUST set `short_channel_id` to refer to the confirmed
-funding transaction as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message). The corresponding output MUST be a
-P2WSH as described in [BOLT #3](03-transactions.md#funding-transaction-output).
-
-The creating node MUST set `node_id_1` and `node_id_2` to the public
-keys of the two nodes who are operating the channel, such that
-`node_id_1` is the numerically-lesser of the two DER-encoded keys sorted in
-ascending numerical order, and MUST set `bitcoin_key_1` and
-`bitcoin_key_2` to `funding_pubkey`s of `node_id_1` and `node_id_2`
-respectively.
-
-The creating node MUST compute the double-SHA256 hash `h` of the message, starting at offset 256, up to the end of the message.
-Thus the hash skips the 4 signatures, but hashes the rest of the message, including any future fields appended to the end.
-`node_signature_1` and `node_signature_2` MUST be valid signatures of the hash `h` using the secret associated with `node_id_1` and `node_id_2` respectively.
-`bitcoin_signature_1` and `bitcoin_signature_2` MUST be valid signatures of the hash `h` using the secret associated with `bitcoin_key_1` and `bitcoin_key_2` respectively.
-
-The creating node SHOULD set `len` to the minimum length required to
-hold the `features` bits it sets.
-
-The receiving node MUST verify the integrity and authenticity of the message by verifying the signatures.
-If there is an unknown even bit in the `features` field the receiving node MUST NOT parse the remainder of the message and MUST NOT add the channel to its local network view, and SHOULD NOT forward the announcement.
-
-The receiving node MUST ignore the message if the output specified
-by `short_channel_id` does not
-correspond to a P2WSH using `bitcoin_key_1` and `bitcoin_key_2` as
-specified in [BOLT #3](03-transactions.md#funding-transaction-output).
-The receiving node MUST ignore the message if this output is spent.
-
-The receiving node MUST ignore the message if the specified `chain_hash`
-is unknown to the receiver.
-
-Otherwise, the receiving node SHOULD fail the connection if
-`bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` or
-`node_signature_2` are invalid or not correct.
-
-Otherwise, if `node_id_1` or `node_id_2` are blacklisted, it SHOULD
-ignore the message.
-
-Otherwise, if the transaction referred to was not previously announced
-as a channel, the receiving node SHOULD queue the message for
-rebroadcasting, but MAY choose not to for messages longer than
-the minimum expected length. If it has previously received a valid
-`channel_announcement` for the same transaction in the same block, but
-for a different `node_id_1` or `node_id_2`, it SHOULD blacklist the
-previous message's `node_id_1` and `node_id_2` as well as this
-`node_id_1` and `node_id_2` and forget channels connected to them,
-otherwise it SHOULD store this `channel_announcement`.
-
-The receiving node SHOULD forget a channel once its funding output has
-been spent or reorganized out.
+The final node:
+  - MUST verify the integrity AND authenticity of the message by verifying the
+  signatures.
+  - if there is an unknown even bit in the `features` field:
+    - MUST NOT parse the remainder of the message.
+    - MUST NOT add the channel to its local network view.
+    - SHOULD NOT forward the announcement.
+  - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using
+    `bitcoin_key_1` and `bitcoin_key_2`, as specified in
+    [BOLT #3](03-transactions.md#funding-transaction-output)) OR the output is
+    spent:
+    - MUST ignore the message.
+  - if the specified `chain_hash` is unknown to the receiver:
+    - MUST ignore the message.
+  - otherwise:
+    - if `bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` OR
+    `node_signature_2` are invalid OR NOT correct:
+      - SHOULD fail the connection.
+    - otherwise:
+      - if `node_id_1` OR `node_id_2` are blacklisted:
+        - SHOULD ignore the message.
+      - otherwise:
+        - if the transaction referred to was NOT previously announced as a
+        channel:
+          - SHOULD queue the message for rebroadcasting.
+          - MAY choose NOT to for messages longer than the minimum expected
+          length.
+      - if it has previously received a valid `channel_announcement`, for the
+      same transaction, in the same block, but for a different `node_id_1` or
+      `node_id_2`:
+        - SHOULD blacklist the previous message's `node_id_1` and `node_id_2`,
+        as well as this `node_id_1` and `node_id_2` AND forget any channels
+        connected to them.
+      - otherwise:
+        - SHOULD store this `channel_announcement`.
+  - once its funding output has been spent OR reorganized out:
+    - SHOULD forget a channel.
 
 ### Rationale
 
-Requiring both nodes to sign indicates they are both willing to route
-other payments via this channel (i.e. be part of the public network).
-Requiring the Bitcoin signatures proves that they control the channel.
+Both nodes are required to sign to indicate they are willing to route other
+payments via this channel (i.e. be part of the public network); requiring their
+Bitcoin signatures proves that they control the channel.
 
-The blacklisting of conflicting nodes disallows multiple
-different announcements: no node should ever do this, as it implies
-that keys have leaked.
+The blacklisting of conflicting nodes disallows multiple different
+announcements. Such conflicting announcements should never be broadcast by any
+node, as this implies that keys have leaked.
 
-While channels shouldn't be advertised before they are sufficiently
-deep, the requirement against rebroadcasting only applies if the
-transaction hasn't moved to a different block.
+While channels should not be advertised before they are sufficiently deep, the
+requirement against rebroadcasting only applies if the transaction has not moved
+to a different block.
 
-To avoid having to store excessive-sized messages, yet allow
-reasonable expansion in future, nodes are allowed to restrict
-rebroadcasting (perhaps statistically).
+In order to avoid storing excessively large messages, yet still allow for
+reasonable future expansion, nodes are permitted to restrict rebroadcasting
+(perhaps statistically).
 
-New channel features are possible in future; backwards compatible (or
-optional) ones will have odd feature bits, incompatible ones will have
-even feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
-Incompatible features will result in the announcement not being forwarded by nodes that don't understand them.
+New channel features are possible in the future: backwards compatible (or
+optional) features will have _odd_ feature bits, while incompatible features
+will have _even_ feature bits
+(["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
+Incompatible features will result in the announcement not being forwarded by
+nodes that do not understand them.
 
 ## The `node_announcement` Message
 
-This allows a node to indicate extra data associated with it, in
+This gossip message allows a node to indicate extra data associated with it, in
 addition to its public key. To avoid trivial denial of service attacks,
-nodes for which a channel is not already known are ignored.
+nodes not associated with an already known channel are ignored.
 
 1. type: 257 (`node_announcement`)
 2. data:
@@ -208,121 +227,138 @@ nodes for which a channel is not already known are ignored.
    * [`2`:`addrlen`]
    * [`addrlen`:`addresses`]
 
-The `timestamp` allows ordering in the case of multiple announcements;
-the `rgb_color` and `alias` allow
-intelligence services to give their nodes cool monikers like IRATEMONK
-and WISTFULTOLL and use the color black.
+`timestamp` allows for the ordering of messages, in the case of multiple
+announcements. `rgb_color` and `alias` allow intelligence services to assign
+nodes colors like black and cool monikers like 'IRATEMONK' and 'WISTFULTOLL'.
 
-`addresses` allows the node to announce its willingness to accept
-incoming network connections: it contains series of `address
-descriptor`s for connecting to the node. The first byte describes the
-address type, followed by the appropriate number of bytes for that type.
+`addresses` allows a node to announce its willingness to accept incoming network
+connections: it contains a series of `address descriptor`s for connecting to the
+node. The first byte describes the address type and is followed by the
+appropriate number of bytes for that type.
 
 The following `address descriptor` types are defined:
 
-   * `0`: padding. data = none (length 0).
-   * `1`: ipv4. data = `[4:ipv4_addr][2:port]` (length 6)
-   * `2`: ipv6. data = `[16:ipv6_addr][2:port]` (length 18)
-   * `3`: tor v2 onion service. data = `[10:onion_addr][2:port]` (length 12)
-       * Version 2 onion service addresses. Encodes an 80-bit truncated `SHA-1` hash
-         of a 1024-bit `RSA` public key for the onion service (a.k.a. Tor hidden service).
-   * `4`: tor v3 onion service. data `[35:onion_addr][2:port]`  (length 37)
-       * Version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt))
-         onion service addresses. Encodes: `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`. 
-             where `checksum = sha3(".onion checksum" | pubkey || version)[:2]`
+   * `0`: padding; data = none (length 0)
+   * `1`: ipv4; data = `[4:ipv4_addr][2:port]` (length 6)
+   * `2`: ipv6; data = `[16:ipv6_addr][2:port]` (length 18)
+   * `3`: Tor v2 onion service; data = `[10:onion_addr][2:port]` (length 12)
+       * version 2 onion service addresses; Encodes an 80-bit, truncated `SHA-1`
+       hash of a 1024-bit `RSA` public key for the onion service (a.k.a. Tor
+       hidden service).
+   * `4`: Tor v3 onion service; data = `[35:onion_addr][2:port]` (length 37)
+       * version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt))
+         onion service addresses; Encodes:
+         `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where
+         `checksum = sha3(".onion checksum" | pubkey || version)[:2]`.
 
 ### Requirements
 
-The creating node MUST set `timestamp` to be greater than that for any previous
-`node_announcement` it has created. It MAY base it on a UNIX
-timestamp. It MUST set `signature` to the signature of
-the double-SHA256 of the entire remaining packet after `signature`, using the
-key given by `node_id`. It MAY set `alias` and `rgb_color` to customize the node's appearance in maps and graphs, where the first byte of `rgb` is the red value, the second byte is the green value and the last byte is the blue value. It MUST set `alias` to a valid UTF-8 string, with any `alias` bytes following equal to zero.
+The origin node:
+  - MUST set `timestamp` to be greater than that of any previous
+  `node_announcement` it has previously created.
+    - MAY base it on a UNIX timestamp.
+  - MUST set `signature` to the signature of the double-SHA256 of the entire
+  remaining packet after `signature` (using the key given by `node_id`).
+  - MAY set `alias` AND `rgb_color` to customize its appearance in maps and
+  graphs.
+    - Note: the first byte of `rgb_color` is the red value, the second byte is the
+    green value, and the last byte is the blue value.
+  - MUST set `alias` to a valid UTF-8 string, with any `alias` trailing-bytes
+  equal to 0.
+  - SHOULD fill `addresses` with an address descriptor for each public network
+  address that expects incoming connections.
+  - MUST set `addrlen` to the number of bytes in `addresses`.
+  - MUST place non-zero typed address descriptors in ascending order.
+  - MAY place any number of zero-typed address descriptors anywhere.
+  - SHOULD use placement only for aligning fields that follow `addresses`.
+  - MUST NOT create a `type 1` OR `type 2` address descriptor with `port` equal
+  to 0.
+  - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
+  - MUST NOT include more than one `address descriptor` of the same type.
+  - SHOULD set `flen` to the minimum length required to hold the `features`
+  bits it sets.
 
-The creating node SHOULD fill `addresses` with an address descriptor
-for each public network address that expects incoming connections,
-and MUST set `addrlen` to the number of bytes in `addresses`.
-Non-zero typed address descriptors MUST be placed in ascending order;
-any number of zero-typed address descriptors MAY be placed anywhere,
-but SHOULD only be used for aligning fields following `addresses`.
-
-The creating node MUST NOT create a type 1 or type 2 address
-descriptor with `port` equal to zero, and SHOULD ensure `ipv4_addr`
-and `ipv6_addr` are routable addresses. The creating node MUST NOT include
-more than one `address descriptor` of the same type.
-
-The creating node SHOULD set `flen` to the minimum length required to
-hold the `features` bits it sets.
-
-The receiving node SHOULD fail the connection if `node_id` is not a valid
-compressed public key, and MUST NOT further process the message.
-
-The receiving node SHOULD fail the connection if `signature` is not a
-valid signature using `node_id` of the double-SHA256 of the entire
-message following the `signature` field (including unknown fields
-following `alias`), and MUST NOT further process the message.
-
-If the `features` field contains unknown even bits the receiving node MUST NOT parse the remainder of the message and MAY discard the message altogether.
-The node MAY forward `node_announcement`s that contain unknown `features` bit set, even though it hasn't parsed the announcement.
-
-The receiving node SHOULD ignore the first `address descriptor` that
-does not match the types defined above. The receiving node SHOULD
-fail the connection if `addrlen` is insufficient to hold the address
-descriptors of the known types.
-
-The receiving node SHOULD ignore `ipv6_addr` or `ipv4_addr`
-if `port` is zero.
-
-The receiving node SHOULD ignore the message if `node_id` is not
-previously known from a `channel_announcement` message, or if
-`timestamp` is not greater than the last-received
-`node_announcement` from this `node_id`. Otherwise, if the
-`timestamp` is greater than the last-received `node_announcement` from
-this `node_id` the receiving node SHOULD queue the message for
-rebroadcasting, but MAY choose not to for messages longer than
-the minimum expected length.
-
-The receiving node SHOULD NOT connect to a node which has an unknown
-`features` bit set in the `node_announcement` that is even.
-
-The receiving node MAY use `rgb_color` and `alias` to reference nodes in interfaces, but SHOULD insinuate their self-signed origin.
+The final node:
+  - if `node_id` is NOT a valid compressed public key:
+    - SHOULD fail the connection.
+    - MUST NOT process the message further.
+  - if `signature` is NOT a valid signature (using `node_id` of the
+  double-SHA256 of the entire message following the `signature` field, including
+  unknown fields following `alias`):
+    - SHOULD fail the connection.
+    - MUST NOT process the message further.
+  - if `features` field contains _unknown even bits_:
+    - MUST NOT parse the remainder of the message.
+    - MAY discard the message altogether.
+    - SHOULD NOT connect to the node.
+  - MAY forward `node_announcement`s that contain an _unknown_ `features` _bit_,
+  regardless of if it has parsed the announcement or not.
+  - SHOULD ignore the first `address descriptor` that does NOT match the types
+  defined above.
+  - if `addrlen` is insufficient to hold the address descriptors of the
+  known types:
+    - SHOULD fail the connection.
+  - if `port` is equal to 0:
+    - SHOULD ignore `ipv6_addr` OR `ipv4_addr`.
+  - if `node_id` is NOT previously known from a `channel_announcement` message,
+  OR if `timestamp` is NOT greater than the last-received `node_announcement`
+  from this `node_id`:
+    - SHOULD ignore the message.
+  - otherwise:
+    - if `timestamp` is greater than the last-received `node_announcement` from
+    this `node_id`:
+      - SHOULD queue the message for rebroadcasting.
+      - MAY choose NOT to queue messages longer than the minimum expected length.
+  - MAY use `rgb_color` AND `alias` to reference nodes in interfaces.
+    - SHOULD insinuate their self-signed origins.
 
 ### Rationale
 
-New node features are possible in the future; backwards compatible (or
-optional) ones will have odd feature bits, incompatible ones will have
-even feature bits. These may be propagated by nodes even if they
-can't use the announcements themselves.
+New node features are possible in the future: backwards compatible (or
+optional) ones will have _odd_ `feature` _bits_, incompatible ones will have
+_even_ `feature` _bits_. These may be propagated by nodes even if they
+cannot process the announcements themselves.
 
-New address types can be added in the future; as address descriptors have
+New address types may be added in the future; as address descriptors have
 to be ordered in ascending order, unknown ones can be safely ignored.
-Future fields beyond `addresses` can still be added, optionally with
-padding within `addresses` if they require certain alignment.
+Additional fields beyond `addresses` may also be added in the future—with
+optional padding within `addresses`, if they require certain alignment.
+
+### Security Considerations for Node Aliases
+
+Node aliases are user-defined and provide a potential avenue for injection
+attacks, both during the process of rendering and during persistence.
+
+Node aliases should always be sanitized before being displayed in
+HTML/Javascript contexts or any other dynamically interpreted rendering
+frameworks. Similarly, consider using prepared statements, input validation,
+and escaping to protect against injection vulnerabilities and persistence
+engines that support SQL or other dynamically interpreted querying languages.
+
+* [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
+* [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
+* [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
+
+Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
 
 ## The `channel_update` Message
 
 After a channel has been initially announced, each side independently
 announces the fees and minimum expiry delta it requires to relay HTLCs
-through this channel. Each uses the 8-byte
-channel shortid that matches the `channel_announcement` and 1 bit
-in the `flags` field
-to indicate which end this is. A node can do this multiple times, if
-it wants to change fees.
+through this channel. Each uses the 8-byte channel shortid that matches the
+`channel_announcement` and the 1-bit `flags` field to indicate which end of the
+channel it's on (origin or final). A node can do this multiple times, in
+order to change fees.
 
-Note that the `channel_update` message is only useful in the context 
+Note that the `channel_update` gossip message is only useful in the context
 of *relaying* payments, not *sending* payments. When making a payment
- `A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels 
- `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will 
+ `A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels
+ `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will
  come into play. When building the route, amounts and expiries for HTLCs need
- to be calculated backward from the destination to the source. The initial
- exact value for `amount_msat` and minimal value for `cltv_expiry`, which are
-  to be used for the last HTLC in the route, are provided in the payment request
+ to be calculated backward from the destination to the source. The exact initial
+ value for `amount_msat` and the minimal value for `cltv_expiry`, to be used for
+ the last HTLC in the route, are provided in the payment request
  (see [BOLT #11](11-payment-encoding.md#tagged-fields)).
-
-A node MAY still create a `channel_update` to communicate the channel parameters to the other endpoint, even though the channel has not been announced, e.g., because the `announce_channel` bit was not set.
-
-For further privacy such a `channel_update` MUST NOT be forwarded to other peers.
-Note that such a `channel_update` that is not preceded by a `channel_announcement` is invalid to any other peer and would be discarded.
 
 1. type: 258 (`channel_update`)
 2. data:
@@ -336,135 +372,426 @@ Note that such a `channel_update` that is not preceded by a `channel_announcemen
     * [`4`:`fee_base_msat`]
     * [`4`:`fee_proportional_millionths`]
 
-The `flags` bitfield is used to indicate the direction of the channel this update concerns: it identifies the node that this update originated from and signals various options concerning the channel.
-The following table specifies the meaning of the individual bits:
+The `flags` bitfield is used to indicate the direction of the channel: it
+identifies the node that this update originated from and signals various options
+concerning the channel. The following table specifies the meaning of its
+individual bits:
 
 | Bit Position  | Name        | Meaning                          |
 | ------------- | ----------- | -------------------------------- |
 | 0             | `direction` | Direction this update refers to. |
 | 1             | `disable`   | Disable the channel.             |
 
-### Requirements
-
-The creating node MUST set `signature` to the signature of the
-double-SHA256 of the entire remaining packet after `signature`, using its own `node_id`.
-
-The creating node MUST set `chain_hash` and `short_channel_id` to match the
-32-byte hash and 8-byte channel ID that uniquely identifies the channel within
-the `channel_announcement` message.  
-
-The creating node MUST set the `direction` bit of `flags` to 0 if the creating node is `node_id_1` in that message, otherwise 1.
-Bits which are not assigned a meaning must be set to 0.
-
-A node MAY create and send a `channel_update` with the `disable` bit set to signal the temporary unavailability of a channel, e.g., due to loss of connectivity, or the permanent unavailability, e.g., ahead of an on-chain settlement.
-A subsequent `channel_update` with the `disable` bit unset MAY re-enable the channel.
-
-The creating node MUST set `timestamp` to greater than zero, and MUST set it to greater than any previously-sent `channel_update` for this `short_channel_id`.
-It MUST set `cltv_expiry_delta` to the number of blocks it will subtract from an incoming HTLCs `cltv_expiry`. It MUST set `htlc_minimum_msat` to the minimum HTLC value the other end of the channel will accept, in millisatoshi. It MUST set `fee_base_msat` to the base fee it will charge for any HTLC, in millisatoshi, and `fee_proportional_millionths` to the amount it will charge per transferred satoshi in millionths of a satoshi.
-
-The receiving nodes MUST ignore the `channel_update` if it does not correspond to one of its own channels, if the `short_channel_id` does not match a previous `channel_announcement`, or if the channel has been closed in the meantime.
-It SHOULD accept `channel_update`s for its own channels in order to learn the other end's forwarding parameters, even for non-public channels.
-
-The `node_id` for the signature verification is taken from the corresponding `channel_announcement`: `node_id_1` if the least-significant bit of flags is 0 or `node_id_2` otherwise.
-The receiving node SHOULD fail the connection if `signature` is not a
-valid signature using `node_id` of the double-SHA256 of the entire
-message following the `signature` field (including unknown fields
-following `fee_proportional_millionths`), and MUST NOT further process the message.
-
-The receiving node MUST ignore the channel update if the specified
-`chain_hash` value is unknown, meaning it isn't active on the specified
-chain.
-
-The receiving node SHOULD ignore the message if `timestamp`
-is not greater than that of the last-received `channel_announcement` for
-this `short_channel_id` and `node_id`. Otherwise, if the `timestamp` is equal to
-the last-received `channel_announcement` and the fields other than
-`signature` differ, the node MAY blacklist this `node_id` and forget all
-channels associated with it. Otherwise the receiving node SHOULD
-queue the message for rebroadcasting, but MAY choose not to for
-messages longer than the minimum expected length.
-
-## Initial Sync
-
-Upon establishing a connection, the two endpoints negotiate whether to perform an initial sync by setting the `initial_routing_sync` flags in the `init` message.
-The endpoint SHOULD set the `initial_routing_sync` flag if it requires a full copy of the other endpoint's routing state.
-Upon receiving an `init` message with the `initial_routing_sync` flag set, the node sends `channel_announcement`s, `channel_update`s and `node_announcement`s for all known channels and nodes as if they were just received. 
-
-If the `initial_routing_sync` flag is not set, or initial sync was completed, then the node resumes normal operation: see the _Rebroadcasting_ section for details.
-
-## Rebroadcasting
-
-Nodes receiving a new `channel_announcement` or a `channel_update` or
-`node_announcement` with an updated timestamp SHOULD update their local view of the network's topology accordingly.
-
-If, after applying the changes from the announcement, there are no channels associated with the announcing node, then the receiving node MAY purge the announcing node from the set of known nodes.
-Otherwise the receiving node updates the metadata and stores the signature associated with the announcement.
-This will later allow the receiving node to rebuild the announcement for its peers.
-
-Once the announcement has been processed, it is added to a list of outgoing announcements for the processing node's peers, perhaps replacing older updates. This list will be flushed at regular intervals.
-This store-and-delayed-forward broadcast is called a _staggered broadcast_
+The `node_id` for the signature verification is taken from the corresponding
+`channel_announcement`: `node_id_1` if the least-significant bit of flags is 0
+or `node_id_2` otherwise.
 
 ### Requirements
 
-Each node SHOULD flush outgoing announcements once every 60 seconds, independently of the arrival times of announcements, resulting in a staggered announcement and deduplication of announcements.
+The origin node:
+  - MAY create a `channel_update` to communicate the channel parameters to the
+  final node, even though the channel has not yet been announced (i.e. the
+  `announce_channel` bit was not set).
+    - MUST NOT forward such a `channel_update` to other peers, for privacy
+    reasons.
+    - Note: such a `channel_update`, one not preceded by a
+    `channel_announcement`, is invalid to any other peer and would be discarded.
+  - MUST set `signature` to the signature of the double-SHA256 of the entire
+  remaining packet after `signature`, using its own `node_id`.
+  - MUST set `chain_hash` AND `short_channel_id` to match the 32-byte hash AND
+  8-byte channel ID that uniquely identifies the channel specified in the
+  `channel_announcement` message.
+  - if the origin node is `node_id_1` in the message:
+    - MUST set the `direction` bit of `flags` to 0.
+  - otherwise:
+    - MUST set the `direction` bit of `flags` to 1.
+  - MUST set bits that are not assigned a meaning to 0.
+  - MAY create and send a `channel_update` with the `disable` bit set to 1, to
+  signal a channel's temporary unavailability (e.g. due to a loss of
+  connectivity) OR permanent unavailability (e.g. prior to an on-chain
+  settlement).
+    - MAY sent a subsequent `channel_update` with the `disable` bit  set to 0 to
+    re-enable the channel.
+  - MUST set `timestamp` to greater than 0, AND to greater than any
+  previously-sent `channel_update` for this `short_channel_id`.
+    - SHOULD base `timestamp` on a UNIX timestamp.
+  - MUST set `cltv_expiry_delta` to the number of blocks it will subtract from
+  an incoming HTLC's `cltv_expiry`.
+  - MUST set `htlc_minimum_msat` to the minimum HTLC value (in millisatoshi)
+  that the final node will accept.
+  - MUST set `fee_base_msat` to the base fee (in millisatoshi) it will charge
+  for any HTLC.
+  - MUST set `fee_proportional_millionths` to the amount (in millionths of a
+  satoshi) it will charge per transferred satoshi.
 
-Nodes MAY re-announce their channels regularly, however this is discouraged in order to keep the resource requirements low.
-
-Nodes SHOULD send all `channel_announcement` messages followed by the
-latest `node_announcement` and `channel_update` messages upon
-connection establishment.
+The final node:
+  - if the `short_channel_id` does NOT match a previous `channel_announcement`,
+  OR if the channel has been closed in the meantime:
+    - MUST ignore `channel_update`s that do NOT correspond to one of its own
+    channels.
+  - SHOULD accept `channel_update`s for its own channels (even if non-public),
+  in order to learn the associated origin nodes' forwarding parameters.
+  - if `signature` is not a valid signature, using `node_id` of the
+  double-SHA256 of the entire message following the `signature` field (including
+  unknown fields following `fee_proportional_millionths`):
+    - MUST NOT process the message further.
+    - SHOULD fail the connection.
+  - if the specified `chain_hash` value is unknown (meaning it isn't active on
+  the specified chain):
+    - MUST ignore the channel update.
+  - if `timestamp` is NOT greater than that of the last-received
+  `channel_announcement` for this `short_channel_id` AND for `node_id`:
+    - SHOULD ignore the message.
+  - otherwise:
+    - if the `timestamp` is equal to the last-received `channel_announcement`
+    AND the fields (other than `signature`) differ:
+      - MAY blacklist this `node_id`.
+      - MAY forget all channels associated with it.
+  - if the `timestamp` is unreasonably far in the future:
+    - MAY discard the `channel_announcement`.
+  - otherwise:
+    - SHOULD queue the message for rebroadcasting.
+    - MAY choose NOT to for messages longer than the minimum expected length.
 
 ### Rationale
 
-Batching announcements forms a natural rate limit with low overhead.
+The `timestamp` field is used by nodes for pruning `channel_update`s that are
+either too far in the future or have not been updated in two weeks; so it
+makes sense to have it be a UNIX timestamp (i.e. seconds since UTC
+1970-01-01). This cannot be a hard requirement, however, given the possible case
+of two `channel_update`s within a single second.
 
-The sending of all announcements on reconnection is naive, but simple,
+## Initial Sync
+
+Note that the `initial_routing_sync` feature is overridden (and should
+be considered equal to 0) by the `gossip_queries` feature if the
+latter is negotiated.
+
+Note that `gossip_queries` won't work with older nodes, so the
+value of `initial_routing_sync` is still important to control
+interactions with them.
+
+### Requirements
+
+An endpoint node:
+  - if the `gossip_queries` feature is negotiated:
+	- MUST NOT relay any gossip messages unless explicitly requested.
+  - otherwise:
+    - if it requires a full copy of the other endpoint's routing state:
+      - SHOULD set the `initial_routing_sync` flag to 1.
+    - upon receiving an `init` message with the `initial_routing_sync` flag set to
+    1:
+      - SHOULD send gossip messages for all known channels and nodes, as if they were just
+      received.
+    - if the `initial_routing_sync` flag is set to 0, OR if the initial sync was
+    completed:
+      - SHOULD resume normal operation, as specified in the following
+      [Rebroadcasting](#rebroadcasting) section.
+
+## Rebroadcasting
+
+### Requirements
+
+The final node:
+  - upon receiving a new `channel_announcement` or a `channel_update` or
+  `node_announcement` with an updated `timestamp`:
+    - SHOULD update its local view of the network's topology accordingly.
+  - after applying the changes from the announcement:
+    - if there are no channels associated with the corresponding origin node:
+      - MAY purge the origin node from its set of known nodes.
+    - otherwise:
+      - SHOULD update the appropriate metadata AND store the signature
+      associated with the announcement.
+        - Note: this will later allow the final node to rebuild the announcement
+        for its peers.
+
+An endpoint node:
+  - if the `gossip_queries` feature is negotiated:
+	- MUST not send gossip until it receives `gossip_timestamp_range`.
+  - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
+  the arrival times of the messages.
+    - Note: this results in staggered announcements that are unique (not
+    duplicated).
+  - MAY re-announce its channels regularly.
+    - Note: this is discouraged, in order to keep the resource requirements low.
+  - upon connection establishment:
+    - SHOULD send all `channel_announcement` messages, followed by the latest
+    `node_announcement` AND `channel_update` messages.
+
+### Rationale
+
+Once the gossip message has been processed, it's added to a list of outgoing
+messages, destined for the processing node's peers, replacing any older
+updates from the origin node. This list of gossip messages will be flushed at
+regular intervals: such a store-and-delayed-forward broadcast is called a
+_staggered broadcast_. Also, such batching forms a natural rate
+limit with low overhead.
+
+The sending of all gossip on reconnection is naive, but simple,
 and allows bootstrapping for new nodes as well as updating for nodes that
-have been offline for some time.
+have been offline for some time.  The `gossip_queries` option
+allows for more refined synchronization.
+
+## Query Messages
+
+Negotiating the `gossip_queries` option enables a number of extended
+queries for gossip synchronization.  These explicitly request what
+gossip should be received.
+
+There are several messages which contain a long array of
+`short_channel_id`s (called `encoded_short_ids`) so we utilize a
+simple compression scheme: the first byte indicates the encoding, the
+rest contains the data.
+
+Encoding types:
+* `0`: uncompressed array of `short_channel_id` types, in ascending order.
+* `1`: array of `short_channel_id` types, in ascending order, compressed with zlib deflate<sup>[1](#reference-1)</sup>
+
+Note that a 65535-byte zlib message can decompress into 67632120
+bytes<sup>[2](#reference-2)</sup>, but since the only valid contents 
+are unique 8-byte values, no more than 14 bytes can be duplicated
+across the stream: as each duplicate takes at least 2 bits, no valid
+contents could decompress to more then 3669960 bytes.
+
+### The `query_short_channel_ids`/`reply_short_channel_ids_done` Messages
+
+1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`2`:`len`]
+    * [`len`:`encoded_short_ids`]
+
+1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`1`:`complete`]
+
+This is general mechanism which lets a node query for
+`channel_announcement` and `channel_update`s for specific `short_channel_id`s;
+usually either because it sees a `channel_update` for which it has no
+`channel_announcement` or because it has obtained them from
+`reply_channel_range`.
+
+#### Requirements
+
+The sender:
+  - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
+  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
+  that the `short_channel_id`s refer to.
+  - MUST set the first byte of `encoded_short_ids` to the encoding type.
+  - MUST encode a whole number of `short_channel_id`s to `encoded_short_ids`
+  - MAY send this if it receives a `channel_update` for a
+   `short_channel_id` for which it has no `channel_announcement`.
+  - SHOULD NOT send this if the channel referred to is not an unspent output.
+
+The receiver:
+  - if the first byte of `encoded_short_ids` is not a known encoding type:
+    - MAY fail the connection
+  - if `encoded_short_ids` does not decode into a whole number of `short_channel_id`:
+    - MAY fail the connection.
+  - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
+    - MAY fail the connection.
+  - MUST respond to each known `short_channel_id` with a `channel_announcement`
+    and the latest `channel_update`s for each end
+	- SHOULD NOT wait for the next outgoing gossip flush to send these.
+  - MUST follow with any `node_announcement`s for each `channel_announcement`
+	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
+  - MUST follow these responses with `reply_short_channel_ids_end`.
+  - if does not maintain up-to-date channel information for `chain_hash`:
+	- MUST set `complete` to 0.
+  - otherwise:
+	- SHOULD set `complete` to 1.
+
+#### Rationale
+
+Future nodes may not have complete information; they certainly won't have
+complete information on unknown `chain_hash` chains.  While this `complete`
+field cannot be trusted, a 0 does indicate that the sender should search
+elsewhere for additional data.
+
+The explicit `reply_short_channel_ids_end` message means that the receiver can
+indicate it doesn't know anything, and the sender doesn't need to rely on
+timeouts.  It also causes a natural ratelimiting of queries.
+
+### The `query_channel_range` and `reply_channel_range` Messages
+
+1. type: 263 (`query_channel_range`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`4`:`first_blocknum`]
+    * [`4`:`number_of_blocks`]
+
+1. type: 264 (`reply_channel_range`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`4`:`first_blocknum`]
+    * [`4`:`number_of_blocks`]
+    * [`1`:`complete`]
+    * [`2`:`len`]
+    * [`len`:`encoded_short_ids`]
+
+This allows a query for channels within specific blocks.
+
+#### Requirements
+
+The sender of `query_channel_range`:
+  - MUST NOT send this if it has sent a previous `query_channel_range` to this peer and not received all `reply_channel_range` replies.
+  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
+  that it wants the `reply_channel_range` to refer to
+  - MUST set `first_blocknum` to the first block it wants to know channels for
+  - MUST set `number_of_blocks` to 1 or greater.
+
+The receiver of `query_channel_range`:
+  - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
+    - MAY fail the connection.
+  - MUST respond with one or more `reply_channel_range` whose combined range
+	cover the requested `first_blocknum` to `first_blocknum` plus
+	`number_of_blocks` minus one.
+  - For each `reply_channel_range`:
+    - MUST set with `chain_hash` equal to that of `query_channel_range`,
+    - MUST encode a `short_channel_id` for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
+    - MUST limit `number_of_blocks` to the maximum number of blocks whose
+      results could fit in `encoded_short_ids`
+    - if does not maintain up-to-date channel information for `chain_hash`:
+      - MUST set `complete` to 0.
+    - otherwise:
+      - SHOULD set `complete` to 1.
+
+#### Rationale
+
+A single response might be too large for a single packet, and also a peer can
+store canned results for (say) 1000-block ranges, and simply offer each reply
+which overlaps the ranges of the request.
+
+### The `gossip_timestamp_filter` Message
+
+1. type: 265 (`gossip_timestamp_filter`) (`gossip_queries`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`4`:`first_timestamp`]
+    * [`4`:`timestamp_range`]
+
+This message allows a node to constrain future gossip messages to
+a specific range.  A node which wants any gossip messages would have
+to send this, otherwise `gossip_queries` negotiation means no gossip
+messages would be received.
+
+Note that this filter replaces any previous one, so it can be used
+multiple times to change the gossip from a peer.
+
+#### Requirements
+
+The sender`:
+  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
+  that it wants the gossip to refer to.
+
+The receiver:
+  - SHOULD send all gossip messages whose `timestamp` is greater or
+    equal to `first_timestamp`, and less than `first_timestamp` plus
+    `timestamp_range`.
+	- MAY wait for the next outgoing gossip flush to send these.
+  - SHOULD restrict future gossip messages to those whose `timestamp`
+    is greater or equal to `first_timestamp`, and less than
+    `first_timestamp` plus `timestamp_range`.
+  - If a `channel_announcement` has no corresponding `channel_update`s:
+	- MUST NOT send the `channel_announcement`.
+  - Otherwise:
+	  - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
+	  - MUST consider whether to send the `channel_announcement` after receiving the first corresponding `channel_update`.
+  - If a `channel_announcement` is sent:
+	  - MUST send the `channel_announcement` prior to any corresponding `channel_update`s and `node_announcement`s.
+
+#### Rationale
+
+Since `channel_announcement` doesn't have a timestamp, we generate a likely
+one.  If there's no `channel_update` then it is not sent at all, which is most
+likely in the case of pruned channels.
+
+Otherwise the `channel_announcement` is usually followed immediately by a
+`channel_update`, which serves as a fairly good timestamp for new channels.
+Ideally we would specify that the first `channel_update` is to be used, but
+new nodes on the network wouldn't know that, and would require that timestamp
+to be stored.  Instead, we allow any update to be used, which is simple to
+implement.
+
+In the case where the `channel_announcement` is nonetheless missed,
+`query_short_channel_ids` can be used to retrieve it.
 
 ## HTLC Fees
 
-The node creating `channel_update` SHOULD accept HTLCs that pay a fee equal or greater than:
+### Requirements
 
-    fee_base_msat + ( amount_msat * fee_proportional_millionths / 1000000 )
-
-The node creating `channel_update` SHOULD accept HTLCs that pay an
-older fee for some time after sending `channel_update`, to allow for
-propagation delay.
+The origin node:
+  - SHOULD accept HTLCs that pay a fee equal to or greater than:
+    - fee_base_msat + ( amount_msat * fee_proportional_millionths / 1000000 )
+  - SHOULD accept HTLCs that pay an older fee, for some reasonable time after
+  sending `channel_update`.
+    - Note: this allows for any propagation delay.
 
 ## Pruning the Network View
 
-Nodes SHOULD monitor the funding transactions in the blockchain to identify channels that are being closed.
-If the funding output of a channel is being spent, then the channel is to be considered closed and SHOULD be removed from the local network view.
+### Requirements
 
-Nodes MAY prune nodes added through `node_announcement` messages from their local view if the announced node no longer has any associated open channels.
-This is a direct result from the dependency of a `node_announcement` being preceded by a `channel_announcement`.
+A node:
+  - SHOULD monitor the funding transactions in the blockchain, to identify
+  channels that are being closed.
+  - if the funding output of a channel is being spent:
+    - SHOULD be removed from the local network view AND be considered closed.
+  - if the announced node no longer has any associated open channels:
+    - MAY prune nodes added through `node_announcement` messages from their
+    local view.
+      - Note: this is a direct result of the dependency of a `node_announcement`
+      being preceded by a `channel_announcement`.
 
 ### Recommendation on Pruning Stale Entries
 
-Several scenarios may result in channels becoming unusable and the endpoints unable to send updates for these channels.
-For example, this happens in the case where both endpoints lose access to their private keys and cannot sign a `channel_update` nor close the channel on-chain.
-These channels are unlikely to be part of a computed route since they would be partitioned off from the rest of the network, however they would remain in the local network view and information on them would be forwarded to other nodes forever.
-For this reason, nodes MAY prune channels should the timestamp of the latest `channel_update` be older than 2 weeks (1209600 seconds).
-In addition nodes MAY ignore channels with a timestamp older than 2 weeks.
-Notice that this is a node policy and MUST NOT be enforced by peers, e.g., by closing channels when receiving outdated gossip messages.
+#### Requirements
+
+An endpoint node:
+  - if a channel's latest `channel_update`s `timestamp` is older than two weeks
+  (1209600 seconds):
+    - MAY prune the channel.
+    - MAY ignore the channel.
+    - Note: this is an endpoint node policy and MUST NOT be enforced by
+    forwarding peers, e.g. by closing channels when receiving outdated gossip
+    messages. [ FIXME: is this intended meaning? ]
+
+#### Rationale
+
+Several scenarios may result in channels becoming unusable and its endpoints
+becoming unable to send updates for these channels. For example, this occurs if
+both endpoints lose access to their private keys and can neither sign
+`channel_update`s nor close the channel on-chain. In this case, the channels are
+unlikely to be part of a computed route, since they would be partitioned off
+from the rest of the network; however, they would remain in the local network
+view would be forwarded to other peers indefinitely.
 
 ## Recommendations for Routing
 
-When calculating a route for an HTLC, the `cltv_expiry_delta` and the fee both
-need to be considered: the `cltv_expiry_delta` contributes to the time that funds
-will be unavailable on worst-case failure. The tradeoff between these
-two is unclear, as it depends on the reliability of nodes.
+When calculating a route for an HTLC, both the `cltv_expiry_delta` and the fee
+need to be considered: the `cltv_expiry_delta` contributes to the time that
+funds will be unavailable in the event of a worst-case failure. The relationship
+between these two attributes is unclear, as it depends on the reliability of the
+nodes involved.
 
-If a route is computed by simply routing to the intended recipient, summing up the `cltv_expiry_delta`s, then nodes along the route may guess their position in the route.
-Knowing the CLTV of the HTLC and the surrounding topology with the `cltv_expiry_delta`s gives an attacker a way to guess the intended recipient.
-Therefore it is highly suggested to add a random offset to the CLTV that the intended recipient will receive, bumping all CLTVs along the route.
-In order to create a plausible offset the sender MAY start a limited random walk on the graph, starting from the intended recipient, sum the `cltv_expiry_delta`s, and then use the sum as the offset.
-This effectively creates a _shadow route extension_ to the actual route, providing better protection against this kind of attack than simply picking a random offset.
+If a route is computed by simply routing to the intended recipient and summing
+the `cltv_expiry_delta`s, then it's possible for intermediate nodes to guess
+their position in the route. Knowing the CLTV of the HTLC, the surrounding
+network topology, and the `cltv_expiry_delta`s gives an attacker a way to guess
+the intended recipient. Therefore, it's highly desirable to add a random offset
+to the CLTV that the intended recipient will receive, which bumps all CLTVs
+along the route.
 
-Other more advanced considerations involve diversity of routes to
-avoid single points of failure and detection and channel balance
-of local channels.
+In order to create a plausible offset, the origin node MAY start a limited
+random walk on the graph, starting from the intended recipient and summing the
+`cltv_expiry_delta`s, and use the resulting sum as the offset.
+This effectively creates a _shadow route extension_ to the actual route and
+provides better protection against this attack vector than simply picking a
+random offset would.
+
+Other more advanced considerations involve diversification of route selection,
+to avoid single points of failure and detection, and balancing of local
+channels.
 
 ### Routing Example
 
@@ -475,7 +802,7 @@ Consider four nodes:
    B
   / \
  /   \
-A     C 
+A     C
  \   /
   \ /
    D
@@ -489,7 +816,7 @@ channel:
 3. C: 30 blocks
 4. D: 40 blocks
 
-C also uses a`min_final_cltv_expiry` of 9 (the default) when requesting
+C also uses a `min_final_cltv_expiry` of 9 (the default) when requesting
 payments.
 
 Also, each node has a set fee scheme that it uses for each of its
@@ -511,12 +838,12 @@ The network will see eight `channel_update` messages:
 1. C->B: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
 1. C->D: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
 
-**B->C.** If B were to send 4,999,999 millisatoshi directly to C, it wouldn't
-charge itself a fee nor add its own `cltv_expiry_delta`, so it would
-use C's requested `min_final_cltv_expiry` of 9. Assume it also adds a
-"shadow route" to give an extra CLTV of 42. It could additionally add extra
-CLTV deltas at other hops, as these values are a minimum, but it doesn't
-here for simplicity:
+**B->C.** If B were to send 4,999,999 millisatoshi directly to C, it would
+neither charge itself a fee nor add its own `cltv_expiry_delta`, so it would
+use C's requested `min_final_cltv_expiry` of 9. Presumably it would also add a
+_shadow route_ to give an extra CLTV of 42. Additionally, it could add extra
+CLTV deltas at other hops, as these values represent a minimum, but chooses not
+to do so here, for the sake of simplicity:
 
    * `amount_msat`: 4999999
    * `cltv_expiry`: current-block-height + 9 + 42
@@ -524,7 +851,7 @@ here for simplicity:
      * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-**A->B->C.** If A were to send an 4,999,999 millisatoshi to C via B, it needs to
+**A->B->C.** If A were to send 4,999,999 millisatoshi to C via B, it needs to
 pay B the fee it specified in the B->C `channel_update`, calculated as
 per [HTLC Fees](#htlc_fees):
 
@@ -532,10 +859,9 @@ per [HTLC Fees](#htlc_fees):
 
 	200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
-Similarly, it would need to add the `cltv_expiry` from B->C's
-`channel_update` (20), plus C's requested `min_final_cltv_expiry` (9), plus 42 for the
-"shadow route".  Thus the `update_add_htlc` message from A to B would
-be:
+Similarly, it would need to add B->C's `channel_update` `cltv_expiry` (20), C's
+requested `min_final_cltv_expiry` (9), and the cost for the _shadow route_ (42).
+Thus, A->B's `update_add_htlc` message would be:
 
    * `amount_msat`: 5010198
    * `cltv_expiry`: current-block-height + 20 + 9 + 42
@@ -543,11 +869,10 @@ be:
      * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-The `update_add_htlc` from B to C would be the same as the B->C direct
-payment above.
+B->C's `update_add_htlc` would be the same as B->C's direct payment above.
 
-**A->D->C.** Finally, if for some reason A chose the more expensive route via D, it
-would send the following `update_add_htlc` to D:
+**A->D->C.** Finally, if for some reason A chose the more expensive route via D,
+A->D's `update_add_htlc` message would be:
 
    * `amount_msat`: 5020398
    * `cltv_expiry`: current-block-height + 40 + 9 + 42
@@ -555,10 +880,13 @@ would send the following `update_add_htlc` to D:
 	 * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-And the `update_add_htlc` from D to C would be the same as the B->C
-direct payment again.
+And D->C's `update_add_htlc` would again be the same as B->C's direct payment
+above.
 
 ## References
+
+1. <a id="reference-1">[RFC 1950 "ZLIB Compressed Data Format Specification version 3.3](https://www.ietf.org/rfc/rfc1950.txt)</a>
+2. <a id="reference-2">[Maximum Compression Factor](https://zlib.net/zlib_tech.html)</a>
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>

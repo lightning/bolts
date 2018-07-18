@@ -1,6 +1,6 @@
 # BOLT #11: Invoice Protocol for Lightning Payments
 
-A simple, extensible QR-code-ready protocol for requesting payments
+A simple, extendable QR-code-ready protocol for requesting payments
 over Lightning.
 
 # Table of Contents
@@ -14,7 +14,7 @@ over Lightning.
   * [Implementation](#implementation)
   * [Examples](#examples)
   * [Authors](#authors)
-  
+
 # Encoding Overview
 
 The format for a Lightning invoice uses
@@ -41,7 +41,7 @@ and MUST fail if the checksum is incorrect.
 # Human-Readable Part
 
 The human-readable part of a Lightning invoice consists of two sections:
-1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for bitcoins or `lntb` for testnet bitcoins)
+1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for bitcoin mainnet, `lntb` for bitcoin testnet and `lnbcrt` for bitcoin regtest)
 1. `amount`: optional number in that currency, followed by an optional
    `multiplier` letter
 
@@ -54,10 +54,8 @@ The following `multiplier` letters are defined:
 
 ## Requirements
 
-A writer MUST include `amount` if payments will be refused if less
-than that. A writer MUST encode `amount` as a positive decimal
-integer with no leading zeroes and SHOULD use the shortest representation
-possible.
+A writer MUST include `amount` unless it will accept any payment amount.
+A writer MUST encode `amount` as a positive decimal integer with no leading zeroes and SHOULD use the shortest representation possible.
 
 A reader MUST fail if it does not understand the `prefix`. A reader
 SHOULD fail if `amount` contains a non-digit or is followed by
@@ -116,16 +114,16 @@ Each Tagged Field is of the form:
 Currently defined tagged fields are:
 
 * `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment
-* `d` (13): `data_length` variable. Short description of purpose of payment (ASCII),  e.g. '1 cup of coffee'
+* `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8),  e.g. '1 cup of coffee' or 'ナンセンス 1杯'
 * `n` (19): `data_length` 53. 33-byte public key of the payee node
-* `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is too long to fit, such as on a web page.
+* `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is over 639 bytes, but the transport mechanism for the description in that case is transport specific and not defined here.
 * `x` (6): `data_length` variable. `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
 * `c` (24): `data_length` variable. `min_final_cltv_expiry` to use for the last HTLC in the route. Default is 9 if not specified.
 * `f` (9): `data_length` variable, depending on version. Fallback on-chain address: for bitcoin, this starts with a 5-bit `version` and contains a witness program or P2PKH or P2SH address.
 * `r` (3): `data_length` variable. One or more entries containing extra routing information for a private route; there may be more than one `r` field
    * `pubkey` (264 bits)
    * `short_channel_id` (64 bits)
-   * `fee_base_msat` (32 bits, big-endian) 
+   * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
 
@@ -135,9 +133,9 @@ A writer MUST include exactly one `p` field, and set `payment_hash` to
 the SHA-2 256-bit hash of the `payment_preimage` that will be given
 in return for payment.
 
-A writer MUST include either exactly one `d` or exactly one `h` field. If included, a 
+A writer MUST include either exactly one `d` or exactly one `h` field. If included, a
 writer SHOULD make `d` a complete description of
-the purpose of the payment. If included, a writer MUST make the preimage
+the purpose of the payment, and MUST use a valid UTF-8 string. If included, a writer MUST make the preimage
 of the hashed description in `h` available through some unspecified means,
 which SHOULD be a complete description of the purpose of the payment.
 
@@ -200,20 +198,20 @@ by changing the length, so readers ignore it if it's not 256 bits.
 The `n` field can be used to explicitly specify the destination node ID,
 instead of requiring signature recovery.
 
-The `x` field gives advance warning as to when a payment will be
+The `x` field gives warning as to when a payment will be
 refused; this is mainly to avoid confusion. The default was chosen
 to be reasonable for most payments and to allow sufficient time for
 on-chain payment if necessary.
 
 The `c` field gives a way for the destination node to require a specific
-minimum CLTV expiry for its incoming HTLC. Destination nodes may use this 
+minimum CLTV expiry for its incoming HTLC. Destination nodes may use this
 to require a higher, more conservative value than the default one, depending
-on their fee estimation policy and their sensitivity to time locks. Note 
-that remote nodes in the route specify their required `cltv_expiry_delta` 
+on their fee estimation policy and their sensitivity to time locks. Note
+that remote nodes in the route specify their required `cltv_expiry_delta`
 in the `channel_update` message, which they can update at all times.
 
 The `f` field allows on-chain fallback. This may not make sense for
-tiny or very time-sensitive payments, however. It's possible that new
+tiny or time-sensitive payments, however. It's possible that new
 address forms will appear, and so multiple `f` fields in an implied
 preferred order help with transition, and `f` fields with versions 19-31
 will be ignored by readers.
@@ -221,6 +219,28 @@ will be ignored by readers.
 The `r` field allows limited routing assistance: as specified it only
 allows minimum information to use private channels, but it could also
 assist in future partial-knowledge routing.
+
+### Security Considerations for Payment Descriptions
+
+Payment descriptions are user-defined and provide a potential avenue for
+injection attacks, both in the process of rendering and persistence.
+
+Payment descriptions should always be sanitized before being displayed in
+HTML/Javascript contexts, or any other dynamically interpreted rendering
+frameworks. Implementers should be extra perceptive to the possibility of
+reflected XSS attacks when decoding and displaying payment descriptions. Avoid
+optimistically rendering the contents of the payment request until all
+validation, verification, and sanitization have been successfully completed.
+
+Furthermore, consider using prepared statements, input validation, and/or
+escaping to protect against injection vulnerabilities against persistence
+engines that support SQL or other dynamically interpreted querying languages.
+
+* [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
+* [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
+* [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
+
+Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
 
 # Payer / Payee Interactions
 
@@ -304,6 +324,30 @@ Breakdown:
   * `6c6e626332353030750b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a0a189031bab81031b7b33332b2818020f00` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `3cd6ef07744040556e01be64f68fd9e1565fb47d78c42308b1ee005aca5a0d86` hex of SHA256 of the preimage
 
+> ### Please send 0.0025 BTC for a cup of nonsense (ナンセンス 1杯) to the same peer, within 1 minute
+> lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuyk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esqchsrny
+
+Breakdown:
+
+* `lnbc`: prefix, lightning on bitcoin mainnet
+* `2500u`: amount (2500 micro-bitcoin)
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `p`: payment hash...
+* `d`: short description
+  * `pq`: `data_length` (`p` = 1, `q` = 0; 1 * 32 + 0 == 32)
+  * `uwpc4curk03c9wlrswe78q4eyqc7d8d0`: 'ナンセンス 1杯'
+* `x`: expiry time
+  * `qz`: `data_length` (`q` = 0, `z` = 2; 0 * 32 + 2 == 2)
+  * `pu`: 60 seconds (`p` = 1, `u` = 28; 1 * 32 + 28 == 60)
+* `yk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esq`: signature
+* `chsrny`: Bech32 checksum
+* Signature breakdown:
+  * `259f04511e7ef2aa77f6ff04d51b4ae9209504843e5ab9672ce32a153681f687515b73ce57ee309db588a10eb8e41b5a2d2bc17144ddf398033faa49ffe95ae6` hex of signature data (32-byte r, 32-byte s)
+  * `0` (int) recovery flag contained in `signature`
+  * `6c6e626332353030750b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a1071c1c571c1d9f1c15df1c1d9f1c15c9018f34ed798020f0` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `197a3061f4f333d86669b8054592222b488f3c657a9d3e74f34f586fb3e7931c` hex of SHA256 of the preimage
+
 > ### Now send $24 for an entire list of things (hashed)
 > lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqscc6gd6ql3jrc5yzme8v4ntcewwz5cnw92tz0pc8qcuufvq7khhr8wpald05e92xw006sq94mg8v2ndf4sefvf9sygkshp5zfem29trqq2yxxz7
 
@@ -365,7 +409,17 @@ Breakdown:
   * `qjmp7lwpagxun9pygexvgpjdc4jdj85f`: 160 bit P2PKH address
 * `r`: tagged field: route information
   * `9y`: `data_length` (`9` = 5, `y` = 4; 5 * 32 + 4 = 164)
-    `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqqqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqqqqqqq7qqzq`: pubkey `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `short_channel_id` 0102030405060708, `fee_base_msat` 1 millisatoshi, `fee_proportional_millionths` 20, `cltv_expiry_delta` 3. pubkey `039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`, `short_channel_id` 030405060708090a, `fee_base_msat` 2 millisatoshi, `fee_proportional_millionths` 30, `cltv_expiry_delta` 4.
+    * `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzq`: 
+      * pubkey: `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`
+      * `short_channel_id`: 0102030405060708
+      * `fee_base_msat`: 1 millisatoshi
+      * `fee_proportional_millionths`: 20
+      * `cltv_expiry_delta`: 3
+      * pubkey: `039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`
+      * `short_channel_id`: 030405060708090a
+      * `fee_base_msat`: 2 millisatoshi
+      * `fee_proportional_millionths`: 30
+      * `cltv_expiry_delta`: 4
 * `j9n4evl6mr5aj9f58zp6fyjzup6ywn3x6sk8akg5v4tgn2q8g4fhx05wf6juaxu9760yp46454gpg5mtzgerlzezqcqvjnhjh8z3g2qq`: signature
 * `dhhwkj`: Bech32 checksum
 * Signature breakdown:
