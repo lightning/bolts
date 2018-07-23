@@ -204,6 +204,7 @@ The receiving node MAY fail the channel if:
   - it considers `dust_limit_satoshis` too small and plans to rely on the sending node publishing its commitment transaction in the event of a data loss (see [message-retransmission](02-peer-protocol.md#message-retransmission)).
 
 The receiving node MUST fail the channel if:
+  - the `chain_hash` value is set to a hash of a chain that is unknown to the receiver.
   - `push_msat` is greater than `funding_satoshis` * 1000.
   - `to_self_delay` is unreasonably large.
   - `max_accepted_htlcs` is greater than 483.
@@ -280,9 +281,6 @@ avoid double-spending of the funding transaction.
   - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
 
 The receiver:
-  - if the `chain_hash` value, within the `open_channel`, message is set to a hash
- of a chain that is unknown to the receiver:
-    - MUST reject the channel.
   - if `minimum_depth` is unreasonably large:
     - MAY reject the channel.
   - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
