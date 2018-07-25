@@ -77,8 +77,6 @@ A reader:
 
 The `amount` is encoded into the human readable part, as it's fairly
 readable and a useful indicator of how much is being requested.
-The `multiplier` allows a more compressed representation for large
-amounts than presenting everything in millisatoshi.
 
 Donation addresses often don't have an associated amount, so `amount`
 is optional in that case. Usually a minimum payment is required for
