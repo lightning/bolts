@@ -430,7 +430,7 @@ along with the `scriptpubkey` it wants to be paid to.
 A sending node:
   - if it hasn't sent a `funding_created` (if it is a funder) or a `funding_signed` (if it is a fundee):
     - MUST NOT send a `shutdown`
-  - MAY send a `shutdown` before a `funding_locked`, i.e. before the funding transaction has reached `min_depth`.
+  - MAY send a `shutdown` before a `funding_locked`, i.e. before the funding transaction has reached `minimum_depth`.
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
