@@ -1,0 +1,230 @@
+This file is a summary of [[01-messaging.md|BOLT1]], [[02-peer-protocol.md|BOLT2]] and [[07-routing-gossip.md|BOLT7]] which specify all the messanges that can be sent via the gossip protocol. 
+
+{| class="wikitable"
+! type !! name !! BOLT !! Length of payload !! format of data  (fields)
+|-
+| 16|| [[01-messaging.md#the-init-message|init]] || 1 || 4 - 65533 ||
+* [2:gflen]
+* [gflen:globalfeatures]
+* [2:lflen]
+* [lflen:localfeatures]
+|-
+| 17 || [[01-messaging.md#the-error-message|error]] || 1 || 34 - 65533 || 
+* [32:channel_id]
+* [2:len]
+* [len:data]
+|-
+| 18
+| [[01-messaging.md#the-ping-and-pong-messages|ping]] || 1 || 4 - 65533 || 
+*  [2:num_pong_bytes]
+*  [2:byteslen]
+*  [byteslen:ignored]
+|-
+| 19
+| [[01-messaging.md#the-ping-and-pong-messages|pong]] || 1 || 2 - 65533 || 
+*  [2:byteslen]
+*  [byteslen:ignored]
+|-
+| 32
+| [[02-peer-protocol.md#the-open_channel-message|open_channel]] || 2 || 325 - 10325 || 
+* [32:chain_hash]
+* [32:temporary_channel_id]
+* [8:funding_satoshis]
+* [8:push_msat]
+* [8:dust_limit_satoshis]
+* [8:max_htlc_value_in_flight_msat]
+* [8:channel_reserve_satoshis]
+* [8:htlc_minimum_msat]
+* [4:feerate_per_kw]
+* [2:to_self_delay]
+* [2:max_accepted_htlcs]
+* [33:funding_pubkey]
+* [33:revocation_basepoint]
+* [33:payment_basepoint]
+* [33:delayed_payment_basepoint]
+* [33:htlc_basepoint]
+* [33:first_per_commitment_point]
+* [1:channel_flags]
+* [2:shutdown_len] (option_upfront_shutdown_script)
+* [shutdown_len:shutdown_scriptpubkey] (option_upfront_shutdown_script)
+|-
+| 33
+| [[02-peer-protocol.md#the-accept_channel-message|accept_channel]] || 2 || 272-10272 || 
+* [32:temporary_channel_id]
+* [8:dust_limit_satoshis]
+* [8:max_htlc_value_in_flight_msat]
+* [8:channel_reserve_satoshis]
+* [8:htlc_minimum_msat]
+* [4:minimum_depth]
+* [2:to_self_delay]
+* [2:max_accepted_htlcs]
+* [33:funding_pubkey]
+* [33:revocation_basepoint]
+* [33:payment_basepoint]
+* [33:delayed_payment_basepoint]
+* [33:htlc_basepoint]
+* [33:first_per_commitment_point]
+* [2:shutdown_len] (option_upfront_shutdown_script)
+* [shutdown_len:shutdown_scriptpubkey] (option_upfront_shutdown_script)
+|-
+| 34
+| [[02-peer-protocol.md#the-funding_created-message|funding_created]] || 2 || 130 || 
+* [32:temporary_channel_id]
+* [32:funding_txid]
+* [2:funding_output_index]
+* [64:signature]
+|-
+| 35
+| [[02-peer-protocol.md#the-funding_signed-message|funding_signed]] || 2 || 96 || 
+* [32:channel_id]
+* [64:signature]
+|-
+| 36
+| [[02-peer-protocol.md#the-funding_locked-message|funding_locked]] || 2 || 65 || 
+* [32:channel_id]
+* [33:next_per_commitment_point]
+|-
+| 38
+| [[02-peer-protocol.md#closing-initiation-shutdown|shutdown]] || 2 || 34 - 10034 || 
+* [32:channel_id]
+* [2:len]
+* [len:scriptpubkey]
+|-
+| 39
+| [[02-peer-protocol.md#closing-negotiation-closing_signed|closing_signed]] || 2 || 104 || 
+* [32:channel_id]
+* [8:fee_satoshis]
+* [64:signature]
+|-
+| 128
+| [[02-peer-protocol.md#adding-an-htlc-update_add_htlc|update_add_htlc]] || 2 || 1450 || 
+* [32:channel_id]
+* [8:id]
+* [8:amount_msat]
+* [32:payment_hash]
+* [4:cltv_expiry]
+* [1366:onion_routing_packet]
+|-
+| 130
+| [[02-peer-protocol.md#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc|update_fulfill_htlc]] || 2 || 72 || 
+* [32:channel_id]
+* [8:id]
+* [32:payment_preimage]
+|-
+| 131
+| [[02-peer-protocol.md#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc|update_fail_htlc]] || 2 || 42-65533 || 
+* [32:channel_id]
+* [8:id]
+* [2:len]
+* [len:reason]
+|-
+| 132
+| [[02-peer-protocol.md#committing-updates-so-far-commitment_signed|commitment_signed]] || 2 || 98 - 61986 || 
+* [32:channel_id]
+* [64:signature]
+* [2:num_htlcs]
+* [num_htlcs*64:htlc_signature]
+|-
+| 133
+| [[02-peer-protocol.md#completing-the-transition-to-the-updated-state-revoke_and_ack|revoke_and_ack]] || 2 || 97 || 
+* [32:channel_id]
+* [32:per_commitment_secret]
+* [33:next_per_commitment_point]
+|-
+| 134
+| [[02-peer-protocol.md#updating-fees-update_fee|update_fee]] || 2 || 36 || 
+* [32:channel_id]
+* [4:feerate_per_kw]
+|-
+| 135
+| [[02-peer-protocol.md#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc|update_fail_malformed_htlc]] || 2 || 74 || 
+* [32:channel_id]
+* [8:id]
+* [32:sha256_of_onion]
+* [2:failure_code]
+|-
+| 136
+| [[02-peer-protocol.md#message-retransmission|channel_reestablish]] || 2 || 113 || 
+* [32:channel_id]
+* [8:next_local_commitment_number]
+* [8:next_remote_revocation_number]
+* [32:your_last_per_commitment_secret] (option_data_loss_protect)
+* [33:my_current_per_commitment_point] (option_data_loss_protect)
+|-
+| 256
+| [[07-routing-gossip.md#the-channel_announcement-message|channel_accouncement]] || 7 || 430 - 65533 || 
+* [64:node_signature_1]
+* [64:node_signature_2]
+* [64:bitcoin_signature_1]
+* [64:bitcoin_signature_2]
+* [2:len]
+* [len:features]
+* [32:chain_hash]
+* [8:short_channel_id]
+* [33:node_id_1]
+* [33:node_id_2]
+* [33:bitcoin_key_1]
+* [33:bitcoin_key_2]
+|-
+| 257
+| [[07-routing-gossip.md#the-node_announcement-message|node_announcement]] || 7 || 140 - 65533 || 
+* [64:signature]
+* [2:flen]
+* [flen:features]
+* [4:timestamp]
+* [33:node_id]
+* [3:rgb_color]
+* [32:alias]
+* [2:addrlen]
+* [addrlen:addresses]
+|-
+| 258
+| [[07-routing-gossip.md#the-channel_update-message|channel_update]] || 7 || 128 || 
+* [64:signature]
+* [32:chain_hash]
+* [8:short_channel_id]
+* [4:timestamp]
+* [2:flags]
+* [2:cltv_expiry_delta]
+* [8:htlc_minimum_msat]
+* [4:fee_base_msat]
+* [4:fee_proportional_millionths]
+|-
+| 259
+| [[07-routing-gossip.md#the-announcement_signatures-message|announcement_signatures]] || 7 || 168 || 
+* [32:channel_id]
+* [8:short_channel_id]
+* [64:node_signature]
+* [64:bitcoin_signature]|-
+| 261
+| [[07-routing-gossip.md#query-messages|query_short_channel_ids]] || 7 || 34 - 3669960 || 
+* [32:chain_hash]
+* [2:len]
+* [len:encoded_short_ids]
+|-
+| 262
+| [[07-routing-gossip.md#query-messages|reply_short_channel_ids]] || 7 || 33 || 
+* [32:chain_hash]
+* [1:complete]
+|-
+| 263
+| [[07-routing-gossip.md#query-messages|query_channel_range]] || 7 || 40 || 
+* [32:chain_hash]
+* [4:first_blocknum]
+* [4:number_of_blocks]
+|-
+| 264
+| [[07-routing-gossip.md#query-messages|reply_channel_range]] || 7 || 43 - 3669960 || 
+* [32:chain_hash]
+* [4:first_blocknum]
+* [4:number_of_blocks]
+* [1:complete]
+* [2:len]
+* [len:encoded_short_ids]
+|-
+| 265
+| [[07-routing-gossip.md#rebroadcasting|gossip_timestamp_filter]] || 7 || 40 || 
+* [32:chain_hash]
+* [4:first_timestamp]
+* [4:timestamp_range]
+|}
