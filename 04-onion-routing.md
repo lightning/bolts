@@ -813,7 +813,7 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
     - return an `invalid_onion_hmac` error.
   - if the ephemeral key in the onion is unparsable:
     - return an `invalid_onion_key` error.
-  - if, during forwarding to its receiving peer, an otherwise unspecified,
+  - if during forwarding to its receiving peer, an otherwise unspecified,
   transient error occurs in the outgoing channel (e.g. channel capacity reached,
   too many in-flight HTLCs, etc.):
     - return a `temporary_channel_failure` error.
