@@ -395,9 +395,9 @@ committed HTLCs:
 4. For every received HTLC, if it is not trimmed, add an
    [received HTLC output](#received-htlc-outputs).
 5. If the `to_local` amount is greater or equal to `dust_limit_satoshis`,
-   add a [`to_local` output](#to-local-output).
+   add a [`to_local` output](#to_local-output).
 6. If the `to_remote` amount is greater or equal to `dust_limit_satoshis`,
-   add a [`to_remote` output](#to-remote-output).
+   add a [`to_remote` output](#to_remote-output).
 7. Sort the outputs into [BIP 69 order](#transaction-input-and-output-ordering).
 
 # Keys
