@@ -123,7 +123,8 @@ This output sends funds to either an HTLC-timeout transaction after the HTLC-tim
         <remote_htlcpubkey> OP_SWAP OP_SIZE 32 OP_EQUAL
         OP_NOTIF
             # To local node via HTLC-timeout transaction (timelocked).
-            OP_DROP 2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
+            OP_DROP <cltv_expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
+            2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
         OP_ELSE
             # To remote node with preimage.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
@@ -1551,4 +1552,3 @@ All of them use the following secrets (and thus the derived points):
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
-
