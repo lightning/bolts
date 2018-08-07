@@ -1,68 +1,137 @@
 # BOLT #10: DNS Bootstrap and Assisted Node Location
 
+## Overview
+
 This specification describes a node discovery mechanism based on the Domain Name System (DNS).
 Its purpose is twofold:
 
  - Bootstrap: providing the initial node discovery for nodes that have no known contacts in the network
  - Assisted Node Location: supporting nodes in discovery of the current network address of previously known peers
 
-A domain name server implementing this specification is called a _DNS Seed_, and answers incoming DNS queries of type `A`, `AAAA`, or `SRV` as specified in RFCs 1035<sup>[1](#ref-1)</sup>, 3596<sup>[2](#ref-2)</sup> and 2782<sup>[3](#ref-3)</sup> respectively.
-The DNS server is authoritative for a subdomain, called a _seed root domain_, and clients may query it for subdomains.
+A domain name server implementing this specification is referred to as a
+_DNS Seed_ and answers incoming DNS queries of type `A`, `AAAA`, or `SRV`, as
+specified in RFCs 1035<sup>[1](#ref-1)</sup>, 3596<sup>[2](#ref-2)</sup>, and
+2782<sup>[3](#ref-3)</sup>, respectively.
+The DNS server is authoritative for a subdomain, referred to as a
+_seed root domain_, and clients may query it for subdomains.
 
 The subdomains consist of a number of dot-separated _conditions_ that further narrow the desired results.
 
+## Table of Contents
+
+  * [DNS Seed Queries](#dns-seed-queries)
+    * [Query Semantics](#query-semantics)
+  * [Reply Construction](#reply-construction)
+  * [Policies](#policies)
+  * [Examples](#examples)
+  * [References](#references)
+  * [Authors](#authors)
+
 ## DNS Seed Queries
 
-A client MAY issue queries using the `A`, `AAAA`, or `SRV` query types, specifying conditions for the desired results that the seed should return.
+A client MAY issue queries using the `A`, `AAAA`, or `SRV` query types,
+specifying conditions for the desired results the seed should return.
+
+Queries distinguish between _wildcard_ queries and _node_ queries, depending on
+whether the `l`-key is set or not.
 
 ### Query Semantics
 
-The conditions are key-value pairs with a single-letter key; the remainder of the key-value pair is the value.
+The conditions are key-value pairs: the key is a single-letter, while the
+remainder of the key-value pair is the value.
 The following key-value pairs MUST be supported by a DNS seed:
 
- - `r`: realm byte, used to specify what realm the returned nodes must support (default value: 0, Bitcoin)
- - `a`: address types, used to specify what address types should be returned for `SRV` queries. This is a bitfield that uses the types from [BOLT #7](07-routing-gossip.md) as bit index. This condition MAY only be used for `SRV` queries. (default value: 6, i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and IPv6, respectively)
- - `l`: `node_id`, the bech32-encoded `node_id` of a specific node, used to ask for a single node instead of a random selection. (default: null)
- - `n`: the number of desired reply records (default: 25)
+ - `r`: realm byte
+   - used to specify what realm the returned nodes must support
+   - default value: 0 (Bitcoin)
+ - `a`: address types
+   - a bitfield that uses the types from [BOLT #7](07-routing-gossip.md) as bit
+   index
+   - used to specify what address types should be returned for `SRV` queries
+   - MAY only be used for `SRV` queries
+   - default value: 6 (i.e. `2 || 4`, since bit 1 and bit 2 are set for IPv4 and
+     IPv6, respectively)
+ - `l`: `node_id`
+   - a bech32-encoded `node_id` of a specific node
+   - used to ask for a single node instead of a random selection
+   - default value: null
+ - `n`: number of desired reply records
+   - default value: 25
 
 Conditions are passed in the DNS seed query as individual, dot-separated subdomain components.
 
-A query for `r0.a2.n10.lseed.bitcoinstats.com` would mean: Return 10 (`n10`) IPv4 (`a2`) records  for nodes supporting Bitcoin (`r0`).
+For example, a query for `r0.a2.n10.lseed.bitcoinstats.com` would imply: return
+10 (`n10`) IPv4 (`a2`) records for nodes supporting Bitcoin (`r0`).
 
-The DNS seed MUST evaluate the conditions from the _seed root domain_ and going up-the-tree, meaning right-to-left in a fully qualified domain name. In the example above, that would be: `n10`, then `a2`, then `r0`.
-If a condition (key) is specified more than once, the DNS seed MUST discard any earlier value for that condition and use the new value instead. For `n5.r0.a2.n10.lseed.bitcoinstats.com`, the result is then: ~~`n10`~~, `a2`, `r0`, `n5`.
-Results returned by the DNS seed SHOULD match all conditions.
-If the DNS seed does not implement filtering by a given condition it MAY ignore the condition altogether (i.e. the seed filtering is best effort only).
-Clients MUST NOT rely on any given condition being met by the results.
+### Requirements
 
-Queries distinguish between _wildcard_ queries and _node_ queries, depending on whether the `l`-key is set or not.
+The DNS seed:
+  - MUST evaluate the conditions from the _seed root domain_ by
+  'going up-the-tree', i.e. evaluating right-to-left in a fully qualified domain
+name.
+    - E.g. to evaluate the above case: first evaluate `n10`, then `a2`, and finally `r0`.
+  - if a condition (key) is specified more than once:
+    - MUST discard any earlier value for that condition AND use the new value
+    instead.
+      - E.g. for `n5.r0.a2.n10.lseed.bitcoinstats.com`, the result is:
+      ~~`n10`~~, `a2`, `r0`, `n5`.
+  - SHOULD return results that match all conditions.
+  - if it does NOT implement filtering by a given condition:
+    - MAY ignore the condition altogether (i.e. the seed filtering is best effort only).
+  - for `A` and `AAAA` queries:
+    - MUST return only nodes listening on the default port 9735, as defined in
+    [BOLT #1](01-messaging.md).
+  - for `SRV` queries:
+    - MAY return nodes that are listening on non-default ports, since `SRV`
+    records return a _(hostname,port)_-tuple.
+  - upon receiving a _wildcard_ query:
+    - MUST select a random subset of up to `n` IPv4 or IPv6 addresses of nodes
+    that are listening for incoming connections.
+  - upon receiving a _node_ query:
+    - MUST select the record matching the `node_id`, if any, AND return all
+    addresses associated with that node.
 
-Upon receiving a wildcard query, the DNS seed MUST select a random subset of up to `n` IPv4 or IPv6 addresses of nodes that are listening for incoming connections.
-For `A` and `AAAA` queries, only nodes listening on the default port 9735, as defined in [BOLT #1](01-messaging.md), MUST be returned.
-Since `SRV` records return a _(hostname,port)_-tuple, nodes that are listening on non-default ports MAY be returned.
-
-Upon receiving a node query, the seed MUST select the record matching the `node_id`, if any, and return all addresses associated with that node.
+Querying clients:
+  - MUST NOT rely on any given condition being met by the results.
 
 ### Reply Construction
 
-The results are serialized in a reply with a query type matching the client's query type, i.e. `A` queries result in `A` replies, `AAAA` queries result in `AAAA` replies, and `SRV` queries result in `SRV` replies, but they may be augmented with additional records (e.g. to add `A` or `AAAA` records matching the returned `SRV` records).
+The results are serialized in a reply with a query type matching the client's
+query type. For example, `A`, `AAAA`, and `SRV` queries respectively result in
+`A`, `AAAA`, and `SRV` replies. Additionally, replies may be augmented with
+additional records (e.g. to add `A` or `AAAA` records matching the returned
+`SRV` records).
 
-For `A` and `AAAA` queries, the reply contains the domain name and the IP address of the results.
-The domain name MUST match the domain in the query in order not to be filtered by intermediate resolvers.
+For `A` and `AAAA` queries, the reply contains the domain name and the IP
+address of the results.
+
+The domain name MUST match the domain in the query, in order not to be filtered
+by intermediate resolvers.
 
 For `SRV` queries, the reply consists of (_virtual hostnames_, port)-tuples.
-A virtual hostname is a subdomain of the seed root domain that uniquely identifies a node in the network.
+A virtual hostname is a subdomain of the seed root domain that uniquely
+identifies a node in the network.
 It is constructed by prepending the `node_id` condition to the seed root domain.
-The DNS seed MAY additionally return the corresponding `A` and `AAAA` records that indicate the IP address for the `SRV` entries in the Extra section of the reply.
-Due to the large size of the resulting reply, the reply may be dropped by intermediate resolvers, hence the DNS seed MAY omit these additional records upon detecting a repeated query.
 
-Should no entries match all the conditions then an empty reply MUST be returned.
+The DNS seed:
+  - MAY additionally return the corresponding `A` and `AAAA` records that
+  indicate the IP address for the `SRV` entries in the additional section of the
+  reply.
+- MAY omit these additional records upon detecting a repeated query.
+  - Reason: due to the large size of the resulting reply, the reply may be
+  dropped by intermediate resolvers.
+- if no entries match all the conditions:
+  - MUST return an empty reply.
 
 ## Policies
 
-The DNS seed MUST NOT return replies with a TTL lower than 60 seconds.
-The DNS seed MAY filter nodes from its local views for various reasons, including faulty nodes, flaky nodes, or spam prevention.
-In accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup>, replies to random queries (i.e. queries to the seed root domain and to the `_nodes._tcp.` alias for `SRV` queries) MUST be random samples from the set of all known good nodes and MUST NOT be biased.
+The DNS seed:
+  - MUST NOT return replies with a TTL less than 60 seconds.
+  - MAY filter nodes from its local views for various reasons, including faulty
+  nodes, flaky nodes, or spam prevention.
+  - MUST reply to random queries (i.e. queries to the seed root domain and to
+    the `_nodes._tcp.` alias for `SRV` queries) with _random and unbiased_
+    samples from the set of all known good nodes, in accordance with the Bitcoin DNS Seed policy<sup>[4](#ref-4)</sup>.
 
 ## Examples
 
@@ -102,3 +171,11 @@ Querying for only IPv6 nodes (`a4`) supporting Bitcoin (`r0`) via seed filtering
 - <a id="ref-2">[RFC 3596 - DNS Extensions to Support IP Version 6](https://tools.ietf.org/html/rfc3596)</a>
 - <a id="ref-3">[RFC 2782 - A DNS RR for specifying the location of services (DNS SRV)](https://www.ietf.org/rfc/rfc2782.txt)</a>
 - <a id="ref-4">[Expectations for DNS Seed operators](https://github.com/bitcoin/bitcoin/blob/master/doc/dnsseed-policy.md)</a>
+
+## Authors
+
+[ FIXME: Insert Author List ]
+
+![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+<br>
+This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
