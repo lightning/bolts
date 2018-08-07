@@ -346,7 +346,7 @@ Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
 After a channel has been initially announced, each side independently
 announces the fees and minimum expiry delta it requires to relay HTLCs
 through this channel. Each uses the 8-byte channel shortid that matches the
-`channel_announcement` and the 1-bit `flags` field to indicate which end of the
+`channel_announcement` and the 1-bit `channel_flags` field to indicate which end of the
 channel it's on (origin or final). A node can do this multiple times, in
 order to change fees.
 
@@ -366,13 +366,14 @@ of *relaying* payments, not *sending* payments. When making a payment
     * [`32`:`chain_hash`]
     * [`8`:`short_channel_id`]
     * [`4`:`timestamp`]
-    * [`2`:`flags`]
+    * [`1`:`message_flags`]
+    * [`1`:`channel_flags`]
     * [`2`:`cltv_expiry_delta`]
     * [`8`:`htlc_minimum_msat`]
     * [`4`:`fee_base_msat`]
     * [`4`:`fee_proportional_millionths`]
 
-The `flags` bitfield is used to indicate the direction of the channel: it
+The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
 concerning the channel. The following table specifies the meaning of its
 individual bits:
@@ -402,9 +403,9 @@ The origin node:
   8-byte channel ID that uniquely identifies the channel specified in the
   `channel_announcement` message.
   - if the origin node is `node_id_1` in the message:
-    - MUST set the `direction` bit of `flags` to 0.
+    - MUST set the `direction` bit of `channel_flags` to 0.
   - otherwise:
-    - MUST set the `direction` bit of `flags` to 1.
+    - MUST set the `direction` bit of `channel_flags` to 1.
   - MUST set bits that are not assigned a meaning to 0.
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
   signal a channel's temporary unavailability (e.g. due to a loss of
