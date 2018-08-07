@@ -391,6 +391,12 @@ fields in the `channel_update` message:
 | ------------- | ------------------------- | -------------------------------- |
 | 0             | `option_channel_htlc_max` | `htlc_maximum_msat`              |
 
+Note that the `htlc_maximum_msat` field is static in the current
+protocol over the life of the channel: it is *not* designed to be
+indicative of real-time channel capacity in each direction, which
+would be both a massive data leak and uselessly spam the network (it
+takes an average of 30 seconds for gossip to propagate each hop).
+
 The `node_id` for the signature verification is taken from the corresponding
 `channel_announcement`: `node_id_1` if the least-significant bit of flags is 0
 or `node_id_2` otherwise.
@@ -440,6 +446,7 @@ The origin node:
   for any HTLC.
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
   satoshi) it will charge per transferred satoshi.
+  - SHOULD NOT create redundant `channel_update`s
 
 The final node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
@@ -491,6 +498,13 @@ of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
 by the message length) allows us to extend the `channel_update`
 with different fields in future.
 
+The recommendation against redundant minimizes spamming the network,
+however it is sometimes inevitable.  For example, a channel with a
+peer which is unreachable will eventually cause a `channel_update` to
+indicate that the channel is disabled, with another update re-enabling
+the channel when the peer reestablishes contact.  Because gossip
+messages are batched and replace previous ones, the result may be a
+single seemingly-redundant update.
 
 ## Initial Sync
 
