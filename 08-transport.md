@@ -250,7 +250,7 @@ and 16 bytes for the `poly1305` tag.
 2. Parse the read message (`m`) into `v`, `re`, and `c`:
     * where `v` is the _first_ byte of `m`, `re` is the next 33
       bytes of `m`, and `c` is the last 16 bytes of `m`
-    * The raw bytes of the remote party's ephemeral public key (`e`) are to be
+    * The raw bytes of the remote party's ephemeral public key (`re`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
 3. If `v` is an unrecognized handshake version, then the responder MUST
