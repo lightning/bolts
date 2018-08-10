@@ -151,8 +151,8 @@ Throughout the handshake process, each side maintains these variables:
 
 The following functions will also be referenced:
 
-  * `ECDH(rk, k)`: performs an Elliptic-Curve Diffie-Hellman operation using
-    `rk`, which is a `secp256k1` public key, and `k`, which is a valid private key
+  * `ECDH(k, rk)`: performs an Elliptic-Curve Diffie-Hellman operation using
+    `k`, which is a valid private key, and `rk`, which is a `secp256k1` public key
     within the finite field, as defined by the curve parameters
       * The returned value is the SHA256 of the DER-compressed format of the
 	    generated point.
@@ -231,7 +231,7 @@ and 16 bytes for the `poly1305` tag.
 2. `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into the running
        handshake digest.
-3. `es = ECDH(rs, e.priv)`
+3. `es = ECDH(e.priv, rs)`
      * The initiator performs an ECDH between its newly generated ephemeral
        key and the remote node's static public key.
 4. `ck, temp_k1 = HKDF(ck, es)`
@@ -258,7 +258,7 @@ and 16 bytes for the `poly1305` tag.
 4. `h = SHA-256(h || re.serializeCompressed())`
     * The responder accumulates the initiator's ephemeral key into the authenticating
       handshake digest.
-5. `es = ECDH(re, s.priv)`
+5. `es = ECDH(s.priv, re)`
     * The responder performs an ECDH between its static private key and the
       initiator's ephemeral public key.
 6. `ck, temp_k1 = HKDF(ck, es)`
@@ -293,7 +293,7 @@ for the `poly1305` tag.
 2. `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into the running
        handshake digest.
-3. `ee = ECDH(re, e.priv)`
+3. `ee = ECDH(e.priv, re)`
      * where `re` is the ephemeral key of the initiator, which was received
        during Act One
 4. `ck, temp_k2 = HKDF(ck, ee)`
@@ -315,7 +315,7 @@ for the `poly1305` tag.
 3. If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 4. `h = SHA-256(h || re.serializeCompressed())`
-5. `ee = ECDH(re, e.priv)`
+5. `ee = ECDH(e.priv, re)`
     * where `re` is the responder's ephemeral public key
     * The raw bytes of the remote party's ephemeral public key (`re`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
@@ -353,7 +353,7 @@ construction, and 16 bytes for a final authenticating tag.
 1. `c = encryptWithAD(temp_k2, 1, h, s.pub.serializeCompressed())`
     * where `s` is the static public key of the initiator
 2. `h = SHA-256(h || c)`
-3. `se = ECDH(re, s.priv)`
+3. `se = ECDH(s.priv, re)`
     * where `re` is the ephemeral public key of the responder
 4. `ck, temp_k3 = HKDF(ck, se)`
     * The final intermediate shared secret is mixed into the running chaining key.
@@ -383,7 +383,7 @@ construction, and 16 bytes for a final authenticating tag.
      * At this point, the responder has recovered the static public key of the
        initiator.
 5. `h = SHA-256(h || c)`
-6. `se = ECDH(rs, e.priv)`
+6. `se = ECDH(e.priv, rs)`
      * where `e` is the responder's original ephemeral key
 7. `ck, temp_k3 = HKDF(ck, se)`
 8. `p = decryptWithAD(temp_k3, 0, h, t)`
