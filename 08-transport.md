@@ -147,7 +147,7 @@ Throughout the handshake process, each side maintains these variables:
  * `e`: a party's **ephemeral keypair**. For each session, a node MUST generate a
    new ephemeral key with strong cryptographic randomness.
 
- * `s`: a party's **static public key** (`ls` for local, `rs` for remote)
+ * `s`: a party's **static keypair** (`ls` for local, `rs` for remote)
 
 The following functions will also be referenced:
 
