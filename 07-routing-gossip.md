@@ -768,7 +768,7 @@ In the case where the `channel_announcement` is nonetheless missed,
 
 The origin node:
   - SHOULD accept HTLCs that pay a fee equal to or greater than:
-    - fee_base_msat + ( amount_msat * fee_proportional_millionths / 1000000 )
+    - fee_base_msat + ( amount_to_forward * fee_proportional_millionths / 1000000 )
   - SHOULD accept HTLCs that pay an older fee, for some reasonable time after
   sending `channel_update`.
     - Note: this allows for any propagation delay.
@@ -900,7 +900,7 @@ to do so here, for the sake of simplicity:
 pay B the fee it specified in the B->C `channel_update`, calculated as
 per [HTLC Fees](#htlc-fees):
 
-        fee_base_msat + ( amount_msat * fee_proportional_millionths / 1000000 )
+        fee_base_msat + ( amount_to_forward * fee_proportional_millionths / 1000000 )
 
 	200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
