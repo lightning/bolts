@@ -238,7 +238,6 @@ appropriate number of bytes for that type.
 
 The following `address descriptor` types are defined:
 
-   * `0`: padding; data = none (length 0)
    * `1`: ipv4; data = `[4:ipv4_addr][2:port]` (length 6)
    * `2`: ipv6; data = `[16:ipv6_addr][2:port]` (length 18)
    * `3`: Tor v2 onion service; data = `[10:onion_addr][2:port]` (length 12)
@@ -268,8 +267,8 @@ The origin node:
   - SHOULD fill `addresses` with an address descriptor for each public network
   address that expects incoming connections.
   - MUST set `addrlen` to the number of bytes in `addresses`.
-  - MUST place non-zero typed address descriptors in ascending order.
-  - MAY place any number of zero-typed address descriptors anywhere.
+  - MUST place address descriptors in ascending order.
+  - SHOULD NOT place any zero-typed address descriptors anywhere.
   - SHOULD use placement only for aligning fields that follow `addresses`.
   - MUST NOT create a `type 1` OR `type 2` address descriptor with `port` equal
   to 0.
