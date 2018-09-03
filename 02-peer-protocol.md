@@ -565,6 +565,9 @@ Changes are sent in batches: one or more `update_` messages are sent before a
         |       |<-(6)----   commit   -------|       |
         |       |                            |       |
         |       |--(7)--- revoke_and_ack---->|       |
+        |       |--(8)----   commit   ------>|       |
+        |       |                            |       |
+        |       |<-(9)--- revoke_and_ack-----|       |
         +-------+                            +-------+
 
 Counter-intuitively, these updates apply to the *other node's*
