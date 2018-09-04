@@ -62,9 +62,11 @@ A node:
     - MUST send the `announcement_signatures` message.
       - MUST NOT send `announcement_signatures` messages until `funding_locked`
       has been sent AND the funding transaction has at least six confirmations.
+      - SHOULD NOT send `announcement_signatures` messages until `funding_locked`
+      has been received from its counterparty.
   - otherwise:
     - MUST NOT send the `announcement_signatures` message.
-  - upon reconnection:
+  - upon reconnection (once the above timing requirements have been met):
     - MUST respond to the first `announcement_signatures` message with its own
     `announcement_signatures` message.
     - if it has NOT received an `announcement_signatures` message:
@@ -75,6 +77,9 @@ A recipient node:
     - MAY fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
     - SHOULD queue the `channel_announcement` message for its peers.
+  - MAY rely on its counterparty not sending an `announcement_signatures`
+  until after both sending AND receiving a `funding_locked` to comply with
+  the above.
 
 ## The `channel_announcement` Message
 
