@@ -70,10 +70,10 @@ A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
       - MUST NOT send `announcement_signatures` messages until `funding_locked`
-      has been sent AND the funding transaction has at least six confirmations.
+      has been sent and received AND the funding transaction has at least six confirmations.
   - otherwise:
     - MUST NOT send the `announcement_signatures` message.
-  - upon reconnection:
+  - upon reconnection (once the above timing requirements have been met):
     - MUST respond to the first `announcement_signatures` message with its own
     `announcement_signatures` message.
     - if it has NOT received an `announcement_signatures` message:
@@ -84,6 +84,19 @@ A recipient node:
     - MAY fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
     - SHOULD queue the `channel_announcement` message for its peers.
+  - if it has not sent funding_locked:
+    - MAY defer handling the announcement_signatures until after it has sent funding_locked
+	- otherwise:
+	  - MUST ignore it.
+
+
+### Rationale
+
+The reason for allowing deferring of a premature announcement_signatures is
+that an earlier version of the spec did not require waiting for receipt of
+funding locked: deferring rather than ignoring it allows compatibility with
+this behavior.
+
 
 #### Rationale
 
