@@ -740,7 +740,11 @@ processing node.
    * [`2`:`len`]
    * [`len`:`channel_update`]
 
-The CLTV expiry in the HTLC doesn't match the value in the onion.
+The `cltv_expiry` does not comply with the `cltv_expiry_delta` required by
+the channel from the processing node: it does not satisfy the following
+requirement:
+
+        cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
 
 1. type: UPDATE|14 (`expiry_too_soon`)
 2. data:
@@ -833,8 +837,8 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
     - report the amount of the incoming HTLC and the current channel setting for
     the outgoing channel.
     - return a `fee_insufficient` error.
-  - if the `outgoing_cltv_value` does NOT match the `update_add_htlc`'s
-  `cltv_expiry` minus the `cltv_expiry_delta` for the outgoing channel:
+ -  if the incoming `cltv_expiry` minus the `outgoing_cltv_value` is below the
+    `cltv_expiry_delta` for the outgoing channel:
     - report the `cltv_expiry` and the current channel setting for the outgoing
     channel.
     - return an `incorrect_cltv_expiry` error.
