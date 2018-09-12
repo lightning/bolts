@@ -683,11 +683,11 @@ one.  If there's no `channel_update` then it is not sent at all, which is most
 likely in the case of pruned channels.
 
 Otherwise the `channel_announcement` is usually followed immediately by a
-`channel_update`, which serves as a fairly good timestamp for new channels.
-Ideally we would specify that the first `channel_update` is to be used, but
-new nodes on the network wouldn't know that, and would require that timestamp
-to be stored.  Instead, we allow any update to be used, which is simple to
-implement.
+`channel_update`. Ideally we would specify that the first (oldest) `channel_update`'s
+timestamp is to be used as the time of the `channel_announcement`, but new nodes on
+the network will not have this, and further would require the first `channel_update`
+timestamp to be stored. Instead, we allow any update to be used, which
+is simple to implement.
 
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
