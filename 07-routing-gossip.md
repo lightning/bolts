@@ -656,7 +656,7 @@ multiple times to change the gossip from a peer.
 
 #### Requirements
 
-The sender`:
+The sender:
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that it wants the gossip to refer to.
 
