@@ -507,9 +507,9 @@ single seemingly-redundant update.
 
 ## Query Messages
 
-Negotiating the `gossip_queries` option enables a number of extended
-queries for gossip synchronization.  These explicitly request what
-gossip should be received.
+Negotiating the `gossip_queries` option via `init` enables a number
+of extended queries for gossip synchronization.  These explicitly
+request what gossip should be received.
 
 There are several messages which contain a long array of
 `short_channel_id`s (called `encoded_short_ids`) so we utilize a
