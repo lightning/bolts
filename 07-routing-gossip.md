@@ -539,7 +539,7 @@ contents could decompress to more then 3669960 bytes.
     * [`32`:`chain_hash`]
     * [`1`:`complete`]
 
-This is general mechanism which lets a node query for
+This is a general mechanism which lets a node query for
 `channel_announcement` and `channel_update`s for specific `short_channel_id`s;
 usually either because it sees a `channel_update` for which it has no
 `channel_announcement` or because it has obtained them from
