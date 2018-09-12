@@ -506,80 +506,6 @@ the channel when the peer reestablishes contact.  Because gossip
 messages are batched and replace previous ones, the result may be a
 single seemingly-redundant update.
 
-## Initial Sync
-
-If a node requires an initial sync of gossip messages, it will be flagged
-in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
-
-Note that the `initial_routing_sync` feature is overridden (and should
-be considered equal to 0) by the `gossip_queries` feature if the
-latter is negotiated via `init`.
-
-Note that `gossip_queries` does not work with older nodes, so the
-value of `initial_routing_sync` is still important to control
-interactions with them.
-
-### Requirements
-
-An endpoint node:
-  - if the `gossip_queries` feature is negotiated:
-	- MUST NOT relay any gossip messages unless explicitly requested.
-  - otherwise:
-    - if it requires a full copy of the other endpoint's routing state:
-      - SHOULD set the `initial_routing_sync` flag to 1.
-    - upon receiving an `init` message with the `initial_routing_sync` flag set to
-    1:
-      - SHOULD send gossip messages for all known channels and nodes, as if they were just
-      received.
-    - if the `initial_routing_sync` flag is set to 0, OR if the initial sync was
-    completed:
-      - SHOULD resume normal operation, as specified in the following
-      [Rebroadcasting](#rebroadcasting) section.
-
-## Rebroadcasting
-
-### Requirements
-
-The final node:
-  - upon receiving a new `channel_announcement` or a `channel_update` or
-  `node_announcement` with an updated `timestamp`:
-    - SHOULD update its local view of the network's topology accordingly.
-  - after applying the changes from the announcement:
-    - if there are no channels associated with the corresponding origin node:
-      - MAY purge the origin node from its set of known nodes.
-    - otherwise:
-      - SHOULD update the appropriate metadata AND store the signature
-      associated with the announcement.
-        - Note: this will later allow the final node to rebuild the announcement
-        for its peers.
-
-An endpoint node:
-  - if the `gossip_queries` feature is negotiated:
-	- MUST not send gossip until it receives `gossip_timestamp_range`.
-  - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
-  the arrival times of the messages.
-    - Note: this results in staggered announcements that are unique (not
-    duplicated).
-  - MAY re-announce its channels regularly.
-    - Note: this is discouraged, in order to keep the resource requirements low.
-  - upon connection establishment:
-    - SHOULD send all `channel_announcement` messages, followed by the latest
-    `node_announcement` AND `channel_update` messages.
-
-### Rationale
-
-Once the gossip message has been processed, it's added to a list of outgoing
-messages, destined for the processing node's peers, replacing any older
-updates from the origin node. This list of gossip messages will be flushed at
-regular intervals; such a store-and-delayed-forward broadcast is called a
-_staggered broadcast_. Also, such batching forms a natural rate
-limit with low overhead.
-
-The sending of all gossip on reconnection is naive, but simple,
-and allows bootstrapping for new nodes as well as updating for nodes that
-have been offline for some time.  The `gossip_queries` option
-allows for more refined synchronization.
-
 ## Query Messages
 
 Negotiating the `gossip_queries` option enables a number of extended
@@ -764,6 +690,80 @@ implement.
 
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
+
+## Initial Sync
+
+If a node requires an initial sync of gossip messages, it will be flagged
+in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
+
+Note that the `initial_routing_sync` feature is overridden (and should
+be considered equal to 0) by the `gossip_queries` feature if the
+latter is negotiated via `init`.
+
+Note that `gossip_queries` does not work with older nodes, so the
+value of `initial_routing_sync` is still important to control
+interactions with them.
+
+### Requirements
+
+An endpoint node:
+  - if the `gossip_queries` feature is negotiated:
+	- MUST NOT relay any gossip messages unless explicitly requested.
+  - otherwise:
+    - if it requires a full copy of the other endpoint's routing state:
+      - SHOULD set the `initial_routing_sync` flag to 1.
+    - upon receiving an `init` message with the `initial_routing_sync` flag set to
+    1:
+      - SHOULD send gossip messages for all known channels and nodes, as if they were just
+      received.
+    - if the `initial_routing_sync` flag is set to 0, OR if the initial sync was
+    completed:
+      - SHOULD resume normal operation, as specified in the following
+      [Rebroadcasting](#rebroadcasting) section.
+
+## Rebroadcasting
+
+### Requirements
+
+A message receiving node:
+  - upon receiving a new `channel_announcement` or a `channel_update` or
+  `node_announcement` with an updated `timestamp`:
+    - SHOULD update its local view of the network's topology accordingly.
+  - after applying the changes from the announcement:
+    - if there are no channels associated with the corresponding origin node:
+      - MAY purge the origin node from its set of known nodes.
+    - otherwise:
+      - SHOULD update the appropriate metadata AND store the signature
+      associated with the announcement.
+        - Note: this will later allow the final node to rebuild the announcement
+        for its peers.
+
+A node:
+  - if the `gossip_queries` feature is negotiated:
+	- MUST not send gossip until it receives `gossip_timestamp_range`.
+  - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
+  the arrival times of the messages.
+    - Note: this results in staggered announcements that are unique (not
+    duplicated).
+  - MAY re-announce its channels regularly.
+    - Note: this is discouraged, in order to keep the resource requirements low.
+  - upon connection establishment:
+    - SHOULD send all `channel_announcement` messages, followed by the latest
+    `node_announcement` AND `channel_update` messages.
+
+### Rationale
+
+Once the gossip message has been processed, it's added to a list of outgoing
+messages, destined for the processing node's peers, replacing any older
+updates from the origin node. This list of gossip messages will be flushed at
+regular intervals; such a store-and-delayed-forward broadcast is called a
+_staggered broadcast_. Also, such batching forms a natural rate
+limit with low overhead.
+
+The sending of all gossip on reconnection is naive, but simple,
+and allows bootstrapping for new nodes as well as updating for nodes that
+have been offline for some time.  The `gossip_queries` option
+allows for more refined synchronization.
 
 ## HTLC Fees
 
