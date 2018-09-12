@@ -156,6 +156,7 @@ A sending node:
   - when sending `error`:
     - MUST fail the channel referred to by the error message.
   - SHOULD send `error` for protocol violations or internal errors that make channels unusable or that make further communication unusable.
+  - SHOULD send `error` in reply to messages of type `32`-`255` related to unknown channels.
   - MAY send an empty `data` field.
   - when failure was caused by an invalid signature check:
     - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
