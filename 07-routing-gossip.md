@@ -566,7 +566,7 @@ The receiver:
   - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
     - MAY fail the connection.
   - MUST respond to each known `short_channel_id` with a `channel_announcement`
-    and the latest `channel_update`s for each end
+    and the latest `channel_update` for each end
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
   - MUST follow with any `node_announcement`s for each `channel_announcement`
 	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
