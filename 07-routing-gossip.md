@@ -497,7 +497,7 @@ of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
 by the message length) allows us to extend the `channel_update`
 with different fields in future.
 
-The recommendation against redundant minimizes spamming the network,
+The recommendation against redundant `channel_update`s minimizes spamming the network,
 however it is sometimes inevitable.  For example, a channel with a
 peer which is unreachable will eventually cause a `channel_update` to
 indicate that the channel is disabled, with another update re-enabling
