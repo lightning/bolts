@@ -571,7 +571,7 @@ An endpoint node:
 Once the gossip message has been processed, it's added to a list of outgoing
 messages, destined for the processing node's peers, replacing any older
 updates from the origin node. This list of gossip messages will be flushed at
-regular intervals: such a store-and-delayed-forward broadcast is called a
+regular intervals; such a store-and-delayed-forward broadcast is called a
 _staggered broadcast_. Also, such batching forms a natural rate
 limit with low overhead.
 
