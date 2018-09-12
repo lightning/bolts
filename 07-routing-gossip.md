@@ -515,7 +515,7 @@ Note that the `initial_routing_sync` feature is overridden (and should
 be considered equal to 0) by the `gossip_queries` feature if the
 latter is negotiated via `init`.
 
-Note that `gossip_queries` won't work with older nodes, so the
+Note that `gossip_queries` does not work with older nodes, so the
 value of `initial_routing_sync` is still important to control
 interactions with them.
 
