@@ -146,7 +146,7 @@ The origin node:
   - SHOULD set `len` to the minimum length required to hold the `features` bits
   it sets.
 
-The final node:
+The receiving node:
   - MUST verify the integrity AND authenticity of the message by verifying the
   signatures.
   - if there is an unknown even bit in the `features` field:
@@ -278,7 +278,7 @@ The origin node:
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
 
-The final node:
+The receiving node:
   - if `node_id` is NOT a valid compressed public key:
     - SHOULD fail the connection.
     - MUST NOT process the message further.
@@ -405,7 +405,7 @@ or `node_id_2` otherwise.
 
 The origin node:
   - MAY create a `channel_update` to communicate the channel parameters to the
-  final node, even though the channel has not yet been announced (i.e. the
+  channel peer, even though the channel has not yet been announced (i.e. the
   `announce_channel` bit was not set).
     - MUST NOT forward such a `channel_update` to other peers, for privacy
     reasons.
@@ -441,14 +441,14 @@ The origin node:
   - MUST set `cltv_expiry_delta` to the number of blocks it will subtract from
   an incoming HTLC's `cltv_expiry`.
   - MUST set `htlc_minimum_msat` to the minimum HTLC value (in millisatoshi)
-  that the final node will accept.
+  that the channel peer will accept.
   - MUST set `fee_base_msat` to the base fee (in millisatoshi) it will charge
   for any HTLC.
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
   satoshi) it will charge per transferred satoshi.
   - SHOULD NOT create redundant `channel_update`s
 
-The final node:
+The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
   OR if the channel has been closed in the meantime:
     - MUST ignore `channel_update`s that do NOT correspond to one of its own
@@ -707,11 +707,11 @@ interactions with them.
 
 ### Requirements
 
-An endpoint node:
+A node:
   - if the `gossip_queries` feature is negotiated:
 	- MUST NOT relay any gossip messages unless explicitly requested.
   - otherwise:
-    - if it requires a full copy of the other endpoint's routing state:
+    - if it requires a full copy of the peer's routing state:
       - SHOULD set the `initial_routing_sync` flag to 1.
     - upon receiving an `init` message with the `initial_routing_sync` flag set to
     1:
@@ -726,7 +726,7 @@ An endpoint node:
 
 ### Requirements
 
-A message receiving node:
+A receiving node:
   - upon receiving a new `channel_announcement` or a `channel_update` or
   `node_announcement` with an updated `timestamp`:
     - SHOULD update its local view of the network's topology accordingly.
@@ -736,7 +736,7 @@ A message receiving node:
     - otherwise:
       - SHOULD update the appropriate metadata AND store the signature
       associated with the announcement.
-        - Note: this will later allow the final node to rebuild the announcement
+        - Note: this will later allow the node to rebuild the announcement
         for its peers.
 
 A node:
@@ -796,12 +796,12 @@ A node:
 
 #### Requirements
 
-An endpoint node:
+A node:
   - if a channel's latest `channel_update`s `timestamp` is older than two weeks
   (1209600 seconds):
     - MAY prune the channel.
     - MAY ignore the channel.
-    - Note: this is an endpoint node policy and MUST NOT be enforced by
+    - Note: this is an individual node policy and MUST NOT be enforced by
     forwarding peers, e.g. by closing channels when receiving outdated gossip
     messages. [ FIXME: is this intended meaning? ]
 
