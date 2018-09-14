@@ -802,7 +802,7 @@ A node:
     - MAY ignore the channel.
     - Note: this is an individual node policy and MUST NOT be enforced by
     forwarding peers, e.g. by closing channels when receiving outdated gossip
-    messages. [ FIXME: is this intended meaning? ]
+    messages.
 
 #### Rationale
 
