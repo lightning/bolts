@@ -600,7 +600,7 @@ HTLC can be redeemed. The following requirements ensure this is always true.
 
 The respective **addition/removal** of an HTLC is considered *irrevocably committed* when:
 
-1. The commitment transaction **with/without** it is committed by both nodes, and any
+1. The commitment transaction **with/without** it is committed to by both nodes, and any
 previous commitment transaction **without/with** it has been revoked, OR
 2. The commitment transaction **with/without** it has been irreversibly committed to
 the blockchain.
