@@ -23,7 +23,7 @@ operation, and closing.
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
-    * [Message Retransmission](#message-retransmission)
+    * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
   * [Authors](#authors)
 
 # Channel
