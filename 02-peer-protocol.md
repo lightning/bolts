@@ -1223,8 +1223,8 @@ write to disk by the sender upon each transmission, whereas the scheme
 here encourages a single persistent write to disk for each
 `commitment_signed` sent or received.
 
-A re-transmittal of `revoke_and_ack` should never be asked for, after a
-`closing_signed` has been received; since that would imply a shutdown has been
+A re-transmittal of `revoke_and_ack` should never be asked for after a
+`closing_signed` has been received, since that would imply a shutdown has been
 completed — which can only occur after the `revoke_and_ack` has been received
 by the remote node.
 
