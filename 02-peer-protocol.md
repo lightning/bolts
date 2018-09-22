@@ -30,7 +30,8 @@ operation, and closing.
 
 ## Channel Establishment
 
-After authentication and initializing a connection, channel establishment may begin.
+After authenticating and initializing a connection ([BOLT #8](08-transport.md)
+and [BOLT #1](01-messaging.md#the-init-message), respectively), channel establishment may begin.
 This consists of the funding node (funder) sending an `open_channel` message,
 followed by the responding node (fundee) sending `accept_channel`. With the
 channel parameters locked in, the funder is able to create the funding
