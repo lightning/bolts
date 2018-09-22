@@ -1238,7 +1238,7 @@ than 1.
 
 A previous draft insisted that the funder "MUST remember ...if it has
 broadcast the funding transaction, otherwise it MUST NOT": this was in
-fact an impossible requirement; because, a node must either firstly commit to
+fact an impossible requirement. A node must either firstly commit to
 disk and secondly broadcast the transaction or vice versa. The new
 language reflects this reality: it's surely better to remember a
 channel which hasn't been broadcast than to forget one which has!
