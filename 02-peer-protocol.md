@@ -240,6 +240,8 @@ would be eliminated as dust.  The similar requirements in
 `accept_channel` ensure that both sides' `channel_reserve_satoshis`
 are above both `dust_limit_satoshis`.
 
+Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
+
 #### Future
 
 It would be easy to have a local feature bit which indicated that a
