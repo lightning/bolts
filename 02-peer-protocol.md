@@ -1106,7 +1106,7 @@ A node:
     - MUST reverse any uncommitted updates sent by the other side (i.e. all
     messages beginning with `update_` for which no `commitment_signed` has
     been received).
-      - Note: a node MAY have already use the `payment_preimage` value from
+      - Note: a node MAY have already used the `payment_preimage` value from
     the `update_fulfill_htlc`, so the effects of `update_fulfill_htlc` are not
     completely reversed.
   - upon reconnection:
