@@ -111,7 +111,8 @@ across many distinct blockchains as well as have channels within multiple
 blockchains opened to the same peer (if it supports the target chains).
 
 The `temporary_channel_id` is used to identify this channel until the
-funding transaction is established.
+funding transaction is established, at which point it is replaced
+by the `channel_id`, which is derived from the funding transaction.
 
 `funding_satoshis` is the amount the sender is putting into the
 channel. `push_msat` is an amount of initial funds that the sender is
