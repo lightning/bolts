@@ -1084,6 +1084,13 @@ messages are), they are independent of requirements here.
    * [`32`:`your_last_per_commitment_secret`] (option_data_loss_protect)
    * [`33`:`my_current_per_commitment_point`] (option_data_loss_protect)
 
+`next_local_commitment_number`: A commitment number is a 48-bit
+incrementing counter for each commitment transaction; counters
+are independent for each peer in the channel and start at 0.
+They're only explicitly relayed to the other node in the case of
+re-establishment, otherwise they are implicit.
+
+
 ### Requirements
 
 A funding node:
