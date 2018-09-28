@@ -480,7 +480,7 @@ The final node:
   - otherwise:
     - if `htlc_maximum_msat` is not present or greater than channel capacity:
 	  - MAY blacklist this `node_id`
-	  - SHOULD discard this channel.
+	  - SHOULD ignore this channel during route considerations.
 	- otherwise:
 	  - SHOULD consider the `htlc_maximum_msat` when routing.
 
