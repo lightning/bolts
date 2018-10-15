@@ -771,7 +771,7 @@ The CLTV expiry in the HTLC doesn't match the value in the onion.
 
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
-   * [`4`:`incoming_htlc_amt`]
+   * [`8`:`incoming_htlc_amt`]
 
 The amount in the HTLC doesn't match the value in the onion.
 
