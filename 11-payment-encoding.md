@@ -26,7 +26,7 @@ of Lightning invoices.
 
 If a URI scheme is desired, the current recommendation is to either
 use 'lightning:' as a prefix before the BOLT-11 encoding (note: not
-'lightning://'), or for fallback to bitcoin payments to use 'bitcoin:',
+'lightning://'), or for fallback to Bitcoin payments to use 'bitcoin:',
 as per BIP-21, with the key 'lightning' and the value equal to the BOLT-11
 encoding.
 
@@ -41,7 +41,7 @@ and MUST fail if the checksum is incorrect.
 # Human-Readable Part
 
 The human-readable part of a Lightning invoice consists of two sections:
-1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for bitcoin mainnet, `lntb` for bitcoin testnet and `lnbcrt` for bitcoin regtest)
+1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for Bitcoin mainnet, `lntb` for Bitcoin testnet and `lnbcrt` for Bitcoin regtest)
 1. `amount`: optional number in that currency, followed by an optional
    `multiplier` letter
 
@@ -58,7 +58,7 @@ A writer:
   - MUST encode `prefix` using the currency it requires for successful payment
   - If it requires a specific minimum amount for successful payment:
 	- MUST include that `amount`
-	- MUST encode `amount` as a positive decimal integer with no leading zeroes
+	- MUST encode `amount` as a positive decimal integer with no leading 0s
 	- SHOULD use the shortest representation possible by using the largest
 	  multiplier or omitting the multiplier
 
@@ -88,7 +88,7 @@ The data part of a Lightning invoice consists of multiple sections:
 
 1. `timestamp`: seconds-since-1970 (35 bits, big-endian)
 1. zero or more tagged parts
-1. `signature`: bitcoin-style signature of above (520 bits)
+1. `signature`: Bitcoin-style signature of above (520 bits)
 
 ## Requirements
 
@@ -97,9 +97,9 @@ the number of seconds since Midnight 1 January 1970, UTC in
 big-endian. A writer MUST set `signature` to a valid
 512-bit secp256k1 signature of the SHA2 256-bit hash of the
 human-readable part, represented as UTF-8 bytes, concatenated with the
-data part (excluding the signature) with zero bits appended to pad the
+data part (excluding the signature) with 0 bits appended to pad the
 data to the next byte boundary, with a trailing byte containing
-the recovery ID (0, 1, 2 or 3).
+the recovery ID (0, 1, 2, or 3).
 
 A reader MUST check that the `signature` is valid (see the `n` tagged
 field specified below).
@@ -127,7 +127,7 @@ Currently defined tagged fields are:
 * `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is over 639 bytes, but the transport mechanism for the description in that case is transport specific and not defined here.
 * `x` (6): `data_length` variable. `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
 * `c` (24): `data_length` variable. `min_final_cltv_expiry` to use for the last HTLC in the route. Default is 9 if not specified.
-* `f` (9): `data_length` variable, depending on version. Fallback on-chain address: for bitcoin, this starts with a 5-bit `version` and contains a witness program or P2PKH or P2SH address.
+* `f` (9): `data_length` variable, depending on version. Fallback on-chain address: for Bitcoin, this starts with a 5-bit `version` and contains a witness program or P2PKH or P2SH address.
 * `r` (3): `data_length` variable. One or more entries containing extra routing information for a private route; there may be more than one `r` field
    * `pubkey` (264 bits)
    * `short_channel_id` (64 bits)
@@ -157,7 +157,7 @@ A writer SHOULD use the minimum `data_length` possible for `x` and `c` fields.
 A writer MAY include one `n` field, which MUST be set to the public key
 used to create the `signature`.
 
-A writer MAY include one or more `f` fields. For bitcoin payments, a writer MUST set an
+A writer MAY include one or more `f` fields. For Bitcoin payments, a writer MUST set an
 `f` field to a valid witness version and program, or `17` followed by
 a public key hash, or `18` followed by a script hash.
 
@@ -169,7 +169,7 @@ node ID of the start of the channel; `short_channel_id` is the short channel ID
 field to identify the channel; and `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message). A writer MAY include more than one `r` field to
 provide multiple routing options.
 
-A writer MUST pad field data to a multiple of 5 bits, using zeroes.
+A writer MUST pad field data to a multiple of 5 bits, using 0s.
 
 If a writer offers more than one of any field type, it MUST specify
 the most-preferred field first, followed by less-preferred fields in
@@ -189,7 +189,7 @@ performing signature recovery if a valid `n` field is provided.
 
 The type-and-length format allows future extensions to be backward
 compatible. `data_length` is always a multiple of 5 bits, for easy
-encoding and decoding. For fields that we expect may change, readers
+encoding and decoding. For fields that are expected may change, readers
 also ignore ones of different length.
 
 The `p` field supports the current 256-bit payment hash, but future
@@ -291,7 +291,7 @@ NB: all the following examples are signed with `priv_key`=`e126f68f7eafcc8b74f54
 
 Breakdown:
 
-* `lnbc`: prefix, lightning on bitcoin mainnet
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
 * `p`: payment hash
@@ -308,12 +308,12 @@ Breakdown:
   * `6c6e62630b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a1fa83632b0b9b29031b7b739b4b232b91039bab83837b93a34b733903a3434b990383937b532b1ba0` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `c3d4e83f646fa79a393d75277b1d858db1d1f7ab7137dcb7835db2ecd518e1c9` hex of SHA256 of the preimage
 
-> ### Please send $3 for a cup of coffee to the same peer, within 1 minute
+> ### Please send $3 for a cup of coffee to the same peer, within one minute
 > lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuaztrnwngzn3kdzw5hydlzf03qdgm2hdq27cqv3agm2awhz5se903vruatfhq77w3ls4evs3ch9zw97j25emudupq63nyw24cg27h2rspfj9srp
 
 Breakdown:
 
-* `lnbc`: prefix, lightning on bitcoin mainnet
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `2500u`: amount (2500 micro-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
@@ -332,12 +332,12 @@ Breakdown:
   * `6c6e626332353030750b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a0a189031bab81031b7b33332b2818020f00` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `3cd6ef07744040556e01be64f68fd9e1565fb47d78c42308b1ee005aca5a0d86` hex of SHA256 of the preimage
 
-> ### Please send 0.0025 BTC for a cup of nonsense (ナンセンス 1杯) to the same peer, within 1 minute
+> ### Please send 0.0025 BTC for a cup of nonsense (ナンセンス 1杯) to the same peer, within one minute
 > lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuyk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esqchsrny
 
 Breakdown:
 
-* `lnbc`: prefix, lightning on bitcoin mainnet
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `2500u`: amount (2500 micro-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
@@ -361,7 +361,7 @@ Breakdown:
 
 Breakdown:
 
-* `lnbc`: prefix, lightning on bitcoin mainnet
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
@@ -382,7 +382,7 @@ Breakdown:
 
 Breakdown:
 
-* `lntb`: prefix, lightning on bitcoin testnet
+* `lntb`: prefix, Lightning on Bitcoin testnet
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
@@ -391,7 +391,7 @@ Breakdown:
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1; 1 * 32 + 1 == 33)
   * `3` = 17, so P2PKH address
-  * `x9et2e20v6pu37c5d9vax37wxq72un98`: 160 bit P2PKH address
+  * `x9et2e20v6pu37c5d9vax37wxq72un98`: 160-bit P2PKH address
 * `kmzzhznpurw9sgl2v0nklu2g4d0keph5t7tj9tcqd8rexnd07ux4uv2cjvcqwaxgj7v4uwn5wmypjd5n69z2xm3xgksg28nwht7f6zsp`: signature
 * `wp3f9t`: Bech32 checksum
 * Signature breakdown:
@@ -405,7 +405,7 @@ Breakdown:
 
 Breakdown:
 
-* `lnbc`: prefix, lightning on bitcoin mainnet
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
@@ -414,9 +414,9 @@ Breakdown:
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1; 1 * 32 + 1 == 33)
   * `3` = 17, so P2PKH address
-  * `qjmp7lwpagxun9pygexvgpjdc4jdj85f`: 160 bit P2PKH address
+  * `qjmp7lwpagxun9pygexvgpjdc4jdj85f`: 160-bit P2PKH address
 * `r`: tagged field: route information
-  * `9y`: `data_length` (`9` = 5, `y` = 4; 5 * 32 + 4 = 164)
+  * `9y`: `data_length` (`9` = 5, `y` = 4; 5 * 32 + 4 == 164)
     * `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzq`: 
       * pubkey: `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`
       * `short_channel_id`: 0102030405060708
@@ -441,7 +441,7 @@ Breakdown:
 
 Breakdown:
 
-* `lnbc`: prefix, lightning on bitcoin mainnet
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
@@ -450,7 +450,7 @@ Breakdown:
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1; 1 * 32 + 1 == 33)
   * `j` = 18, so P2SH address
-  * `3a24vwu6r8ejrss3axul8rxldph2q7z9`:  160 bit P2SH address
+  * `3a24vwu6r8ejrss3axul8rxldph2q7z9`:  160-bit P2SH address
 * `kmrgvr7xlaqm47apw3d48zm203kzcq357a4ls9al2ea73r8jcceyjtya6fu5wzzpe50zrge6ulk4nvjcpxlekvmxl6qcs9j3tz0469gq`: signature
 * `5g658y`: Bech32 checksum
 * Signature breakdown:
@@ -462,7 +462,7 @@ Breakdown:
 > ### On mainnet, with fallback (P2WPKH) address bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
 > lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppqw508d6qejxtdg4y5r3zarvary0c5xw7kepvrhrm9s57hejg0p662ur5j5cr03890fa7k2pypgttmh4897d3raaq85a293e9jpuqwl0rnfuwzam7yr8e690nd2ypcq9hlkdwdvycqa0qza8
 
-* `lnbc`: prefix, lightning on bitcoin mainnet
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
@@ -483,7 +483,7 @@ Breakdown:
 > ### On mainnet, with fallback (P2WSH) address bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3
 > lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfp4qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q28j0v3rwgy9pvjnd48ee2pl8xrpxysd5g44td63g6xcjcu003j3qe8878hluqlvl3km8rm92f5stamd3jw763n3hck0ct7p8wwj463cql26ava
 
-* `lnbc`: prefix, lightning on bitcoin mainnet
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
