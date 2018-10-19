@@ -73,7 +73,7 @@ A node:
 
 There are a number of conventions adhered to throughout this document:
 
- - Length: the maximum route length is limited to 20 hops.
+ - Length: the maximum route length is limited to 22 nodes, including _origin_, _final_ and _intermediate_ nodes.
  - HMAC: the integrity verification of the packet is based on Keyed-Hash
  Message Authentication Code, as defined by the
  [FIPS 198 Standard](http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf)/[RFC 2104](https://tools.ietf.org/html/rfc2104),
