@@ -950,7 +950,7 @@ change the commitment transaction aside from the new revocation number
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
-  to BIP69 lexicographic ordering of the commitment transaction.
+    to BIP69+CLTV lexicographic ordering of the commitment transaction.
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
 
