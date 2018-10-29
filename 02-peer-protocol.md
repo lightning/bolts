@@ -110,7 +110,7 @@ The existence of the `chain_hash` allows nodes to open channels
 across many distinct blockchains as well as have channels within multiple
 blockchains opened to the same peer (if it supports the target chains).
 
-The `temporary_channel_id` is used to identify this channel until the
+The `temporary_channel_id` is used to identify this channel on a per-peer basis until the
 funding transaction is established, at which point it is replaced
 by the `channel_id`, which is derived from the funding transaction.
 
@@ -241,6 +241,18 @@ would be eliminated as dust.  The similar requirements in
 are above both `dust_limit_satoshis`.
 
 Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
+
+#### Practical Considerations for temporary_channel_id
+
+Note that as duplicate `temporary_channel_id`s may exist from different
+peers, APIs which reference channels by their channel id before the funding
+transaction is created are inherently unsafe. The only protocol-provided
+identifier for a channel before funding_created has been exchanged is the
+(source_node_id, destination_node_id, temporary_channel_id) tuple. Note that
+any such APIs which reference channels by their channel id before the funding
+transaction is confirmed are also not persistent - until you know the script
+pubkey corresponding to the funding txo nothing prevents duplicative channel
+ids.
 
 #### Future
 
