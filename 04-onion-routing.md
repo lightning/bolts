@@ -73,7 +73,7 @@ A node:
 
 There are a number of conventions adhered to throughout this document:
 
- - Length: the maximum route length is limited to 19 _intermediate nodes_, the _origin node_ and _final node_ do not count toward the limit.
+ - Length: the maximum route length is limited to 20 hops.
  - HMAC: the integrity verification of the packet is based on Keyed-Hash
  Message Authentication Code, as defined by the
  [FIPS 198 Standard](http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf)/[RFC 2104](https://tools.ietf.org/html/rfc2104),
@@ -97,6 +97,11 @@ There are a number of conventions adhered to throughout this document:
  overlay network): more specifically, _sending peers_ forward packets to
  _receiving peers_.
         _sending peer_ --> _receiving peer_
+
+
+# Clarifications
+
+The longest route supported has 20 hops without counting the _origin node_ and _final node_, thus 19 _intermediate nodes_ and a maximum of 20 channels to be traversed.
 
 # Key Generation
 
