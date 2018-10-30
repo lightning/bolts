@@ -86,8 +86,8 @@ A recipient node:
     - SHOULD queue the `channel_announcement` message for its peers.
   - if it has not sent funding_locked:
     - MAY defer handling the announcement_signatures until after it has sent funding_locked
-	- otherwise:
-	  - MUST ignore it.
+    - otherwise:
+      - MUST ignore it.
 
 
 ### Rationale
