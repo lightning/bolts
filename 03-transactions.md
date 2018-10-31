@@ -884,7 +884,7 @@ HTLCs are not used for the first "simple commitment tx with no HTLCs" test.
      required for this test. They're included here for completeness and
 	 in case someone wants to reproduce the test vectors themselves:
 
-INTERNAL: remote_funding_privkey: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e130101
+INTERNAL: remote_funding_privkey: 1552dfba4f6cf29a62a0af13c8d6981d36d0ef8d61ba10fb0fe90da7634d7e1301
 INTERNAL: local_payment_basepoint_secret: 111111111111111111111111111111111111111111111111111111111111111101
 INTERNAL: remote_revocation_basepoint_secret: 222222222222222222222222222222222222222222222222222222222222222201
 INTERNAL: local_delayed_payment_basepoint_secret: 333333333333333333333333333333333333333333333333333333333333333301
