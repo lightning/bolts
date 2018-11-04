@@ -390,7 +390,7 @@ fields in the `channel_update` message:
 | ------------- | ------------------------- | -------------------------------- |
 | 0             | `option_channel_htlc_max` | `htlc_maximum_msat`              |
 
-Note that the `htlc_maximum_msat` field is static in the current
+Note that the `htlc_maximum_msat` and `htlc_minimum_msat` fields are static in the current
 protocol over the life of the channel: it is *not* designed to be
 indicative of real-time channel capacity in each direction, which
 would be both a massive data leak and uselessly spam the network (it
