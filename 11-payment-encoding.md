@@ -67,7 +67,7 @@ A writer:
 	  multiplier or omitting the multiplier.
 
 A reader:
-  - if it does not understand the `prefix`:
+  - if it does NOT understand the `prefix`:
     - MUST fail the payment. 
   - if the `amount` is empty:
 	  - SHOULD indicate that amount is unspecified [FIXME: indicate where or to whom?].
@@ -98,21 +98,21 @@ The data part of a Lightning invoice consists of multiple sections:
 
 ## Requirements
 
-A writer MUST set `timestamp` to
-the number of seconds since Midnight 1 January 1970, UTC in
-big-endian. A writer MUST set `signature` to a valid
-512-bit secp256k1 signature of the SHA2 256-bit hash of the
-human-readable part, represented as UTF-8 bytes, concatenated with the
-data part (excluding the signature) with 0 bits appended to pad the
-data to the next byte boundary, with a trailing byte containing
-the recovery ID (0, 1, 2, or 3).
+A writer:
+  - MUST set `timestamp` to the number of seconds since Midnight 1 January 1970, UTC in
+  big-endian.
+  - MUST set `signature` to a valid 512-bit secp256k1 signature of the SHA2 256-bit hash of the
+  human-readable part, represented as UTF-8 bytes, concatenated with the
+  data part (excluding the signature) with 0 bits appended to pad the
+  data to the next byte boundary, with a trailing byte containing
+  the recovery ID (0, 1, 2, or 3).
 
-A reader MUST check that the `signature` is valid (see the `n` tagged
-field specified below).
+A reader:
+  - MUST check that the `signature` is valid (see the `n` tagged field specified below).
 
 ## Rationale
 
-`signature` covers an exact number of bytes even though the SHA-2
+`signature` covers an exact number of bytes even though the SHA2
 standard actually supports hashing in bit boundaries, because it's not widely
 implemented. The recovery ID allows public-key recovery, so the
 identity of the payee node can be implied.
@@ -127,7 +127,7 @@ Each Tagged Field is of the form:
 
 Currently defined tagged fields are:
 
-* `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment
+* `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment.
 * `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8),  e.g. '1 cup of coffee' or 'ナンセンス 1杯'
 * `n` (19): `data_length` 53. 33-byte public key of the payee node
 * `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is over 639 bytes, but the transport mechanism for the description in that case is transport specific and not defined here.
@@ -143,53 +143,49 @@ Currently defined tagged fields are:
 
 ### Requirements
 
-A writer MUST include exactly one `p` field, and set `payment_hash` to
-the SHA-2 256-bit hash of the `payment_preimage` that will be given
-in return for payment.
+A writer: 
+  - MUST include exactly one `p` field.
+  - MUST set `payment_hash` to the SHA2 256-bit hash of the `payment_preimage` 
+  that will be given in return for payment.
+  - MUST include either exactly one `d` or exactly one `h` field.
+    - if `d` is included:
+      - MUST set `d` to a valid UTF-8 string.
+      - SHOULD use a complete description of the purpose of the payment.
+    - if `h` is included:
+      - MUST make the preimage of the hashed description in `h` available 
+      through some unspecified means.
+        - SHOULD use a complete description of the purpose of the payment.
+  - MAY include one `x` field.
+  - MAY include one `c` field.
+    - MUST set `c` to the minimum `cltv_expiry` it will accept for the last 
+    HTLC in the route.
+  - SHOULD use the minimum `data_length` possible for `x` and `c` fields.
+  - MAY include one `n` field.
+    - MUST set `n` to the public key used to create the `signature`.
+  - MAY include one or more `f` fields.
+    - for Bitcoin payments:
+      - MUST set an `f` field to a valid witness version and program, OR to `17` 
+      followed by a public key hash, OR to `18` followed by a script hash.
+  - if there is NOT a public channel associated with its public key:
+    - MUST include at least one `r` field. 
+      - `r` field MUST contain one or more ordered entries, indicating the forward route from 
+      a public node to the final destination. 
+        - Note: for each entry, the `pubkey` is the node ID of the start of the channel; 
+        `short_channel_id` is the short channel ID field to identify the channel; and 
+        `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as 
+        specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message). 
+    - MAY include more than one `r` field to provide multiple routing options.
+  - MUST pad field data to a multiple of 5 bits, using 0s.
+  - if a writer offers more than one of any field type, it:
+    - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
 
-A writer MUST include either exactly one `d` or exactly one `h` field. If included, a
-writer SHOULD make `d` a complete description of
-the purpose of the payment, and MUST use a valid UTF-8 string. If included, a writer MUST make the preimage
-of the hashed description in `h` available through some unspecified means,
-which SHOULD be a complete description of the purpose of the payment.
-
-A writer MAY include one `x` field.
-
-A writer MAY include one `c` field, which MUST be set to the minimum `cltv_expiry` it
-will accept for the last HTLC in the route.
-
-A writer SHOULD use the minimum `data_length` possible for `x` and `c` fields.
-
-A writer MAY include one `n` field, which MUST be set to the public key
-used to create the `signature`.
-
-A writer MAY include one or more `f` fields. For Bitcoin payments, a writer MUST set an
-`f` field to a valid witness version and program, or `17` followed by
-a public key hash, or `18` followed by a script hash.
-
-A writer MUST include at least one `r` field if there is not a
-public channel associated with its public key. The `r` field MUST contain
-one or more ordered entries, indicating the forward route from a
-public node to the final destination. For each entry, the `pubkey` is the
-node ID of the start of the channel; `short_channel_id` is the short channel ID
-field to identify the channel; and `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message). A writer MAY include more than one `r` field to
-provide multiple routing options.
-
-A writer MUST pad field data to a multiple of 5 bits, using 0s.
-
-If a writer offers more than one of any field type, it MUST specify
-the most-preferred field first, followed by less-preferred fields in
-order.
-
-A reader MUST skip over unknown fields, an `f` field with unknown
-`version`, or a `p`, `h`, or `n` field that does not have `data_length` 52,
-52, or 53 respectively.
-
-A reader MUST check that the SHA-2 256 in the `h` field exactly
-matches the hashed description.
-
-A reader MUST use the `n` field to validate the signature instead of
-performing signature recovery if a valid `n` field is provided.
+A reader:
+  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, or 
+  `n` fields that do NOT have `data_length`s of 52, 52, or 53, respectively.
+  - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed 
+  description.
+  - if a valid `n` field is provided:
+    - MUST use the `n` field to validate the signature instead of performing signature recovery.
 
 ### Rationale
 
@@ -280,7 +276,7 @@ MAY attempt to use the address given in the first `f` field that it
 understands for payment. A payer MAY use the sequence of channels
 specified by the `r` field to route to the payee. A payer SHOULD consider the
 fee amount and payment timeout before initiating payment. A payer
-SHOULD use the first `p` field that it did not skip as the payment hash.
+SHOULD use the first `p` field that it did NOT skip as the payment hash.
 
 A payee SHOULD NOT accept a payment after `timestamp` plus `expiry`.
 
