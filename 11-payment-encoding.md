@@ -1,6 +1,6 @@
 # BOLT #11: Invoice Protocol for Lightning Payments
 
-A simple, extendable QR-code-ready protocol for requesting payments
+A simple, extendable, QR-code-ready protocol for requesting payments
 over Lightning.
 
 # Table of Contents
@@ -26,22 +26,26 @@ of Lightning invoices.
 
 If a URI scheme is desired, the current recommendation is to either
 use 'lightning:' as a prefix before the BOLT-11 encoding (note: not
-'lightning://'), or for fallback to Bitcoin payments to use 'bitcoin:',
+'lightning://'), or for fallback to Bitcoin payments, to use 'bitcoin:',
 as per BIP-21, with the key 'lightning' and the value equal to the BOLT-11
 encoding.
 
 ## Requirements
 
-A writer MUST encode the payment request in Bech32 as specified in
-BIP-0173, with the exception that the Bech32 string MAY be longer than
-the 90 characters specified there. A reader MUST parse the address as
-Bech32 as specified in BIP-0173 (also without the character limit),
-and MUST fail if the checksum is incorrect.
+A writer: 
+  - unless the Bech32 string MAY be longer than the 90 characters specified in BIP-0173:
+    - MUST encode the payment request in Bech32 (see BIP-0173).
+
+A reader: 
+  - MUST parse the address as Bech32, as specified in BIP-0173 (also without the character limit).
+  - if the checksum is incorrect:
+    - MUST fail the payment.
 
 # Human-Readable Part
 
 The human-readable part of a Lightning invoice consists of two sections:
-1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for Bitcoin mainnet, `lntb` for Bitcoin testnet and `lnbcrt` for Bitcoin regtest)
+1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for Bitcoin mainnet, 
+   `lntb` for Bitcoin testnet, and `lnbcrt` for Bitcoin regtest)
 1. `amount`: optional number in that currency, followed by an optional
    `multiplier` letter. The unit encoded here is the 'social' convention of a payment unit -- in the case of Bitcoin the unit is 'bitcoin' NOT satoshis.
 
@@ -55,23 +59,25 @@ The following `multiplier` letters are defined:
 ## Requirements
 
 A writer:
-  - MUST encode `prefix` using the currency it requires for successful payment
-  - If it requires a specific minimum amount for successful payment:
-	- MUST include that `amount`
-	- MUST encode `amount` as a positive decimal integer with no leading 0s
-	- SHOULD use the shortest representation possible by using the largest
-	  multiplier or omitting the multiplier
+  - MUST encode `prefix` using the currency required for successful payment.
+  - if a specific minimum `amount` is required for successful payment:
+	  - MUST include that `amount`.
+	- MUST encode `amount` as a positive decimal integer with no leading 0s.
+	- SHOULD use the shortest representation possible, by using the largest
+	  multiplier or omitting the multiplier.
 
 A reader:
-  - MUST fail if it does not understand the `prefix`
-  - If the `amount` is empty:
-	- SHOULD indicate if amount is unspecified
-  - Otherwise:
-	- MUST fail if `amount` contains a non-digit or is followed by
-      anything except a `multiplier` in the table above
-    - If the `multiplier` is present:
-	  - MUST multiply `amount` by the `multiplier` value to derive the
-        amount required for payment
+  - if it does not understand the `prefix`:
+    - MUST fail the payment. 
+  - if the `amount` is empty:
+	  - SHOULD indicate that amount is unspecified [FIXME: indicate where or to whom?].
+  - otherwise:
+    - if `amount` contains a non-digit OR is followed by anything except 
+    a `multiplier` (see table above):
+  	  - MUST fail the payment.
+    - if the `multiplier` is present:
+	    - MUST multiply `amount` by the `multiplier` value to derive the
+      amount required for payment.
 
 ## Rationale
 
