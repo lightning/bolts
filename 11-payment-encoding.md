@@ -32,11 +32,11 @@ encoding.
 
 ## Requirements
 
-A writer: 
+A writer:
   - unless the Bech32 string MAY be longer than the 90 characters specified in BIP-0173:
     - MUST encode the payment request in Bech32 (see BIP-0173).
 
-A reader: 
+A reader:
   - MUST parse the address as Bech32, as specified in BIP-0173 (also without the character limit).
   - if the checksum is incorrect:
     - MUST fail the payment.
@@ -44,7 +44,7 @@ A reader:
 # Human-Readable Part
 
 The human-readable part of a Lightning invoice consists of two sections:
-1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for Bitcoin mainnet, 
+1. `prefix`: `ln` + BIP-0173 currency prefix (e.g. `lnbc` for Bitcoin mainnet,
    `lntb` for Bitcoin testnet, and `lnbcrt` for Bitcoin regtest)
 1. `amount`: optional number in that currency, followed by an optional
    `multiplier` letter. The unit encoded here is the 'social' convention of a payment unit -- in the case of Bitcoin the unit is 'bitcoin' NOT satoshis.
@@ -68,11 +68,11 @@ A writer:
 
 A reader:
   - if it does NOT understand the `prefix`:
-    - MUST fail the payment. 
+    - MUST fail the payment.
   - if the `amount` is empty:
 	  - SHOULD indicate that amount is unspecified [FIXME: indicate where or to whom?].
   - otherwise:
-    - if `amount` contains a non-digit OR is followed by anything except 
+    - if `amount` contains a non-digit OR is followed by anything except
     a `multiplier` (see table above):
   	  - MUST fail the payment.
     - if the `multiplier` is present:
@@ -128,7 +128,7 @@ Each Tagged Field is of the form:
 Currently defined tagged fields are:
 
 * `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment.
-* `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8),  e.g. '1 cup of coffee' or 'ナンセンス 1杯'
+* `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8), e.g. '1 cup of coffee' or 'ナンセンス 1杯'
 * `n` (19): `data_length` 53. 33-byte public key of the payee node
 * `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is over 639 bytes, but the transport mechanism for the description in that case is transport specific and not defined here.
 * `x` (6): `data_length` variable. `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
@@ -143,46 +143,46 @@ Currently defined tagged fields are:
 
 ### Requirements
 
-A writer: 
+A writer:
   - MUST include exactly one `p` field.
-  - MUST set `payment_hash` to the SHA2 256-bit hash of the `payment_preimage` 
+  - MUST set `payment_hash` to the SHA2 256-bit hash of the `payment_preimage`
   that will be given in return for payment.
   - MUST include either exactly one `d` or exactly one `h` field.
     - if `d` is included:
       - MUST set `d` to a valid UTF-8 string.
       - SHOULD use a complete description of the purpose of the payment.
     - if `h` is included:
-      - MUST make the preimage of the hashed description in `h` available 
+      - MUST make the preimage of the hashed description in `h` available
       through some unspecified means.
         - SHOULD use a complete description of the purpose of the payment.
   - MAY include one `x` field.
   - MAY include one `c` field.
-    - MUST set `c` to the minimum `cltv_expiry` it will accept for the last 
+    - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
   - SHOULD use the minimum `data_length` possible for `x` and `c` fields.
   - MAY include one `n` field.
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
     - for Bitcoin payments:
-      - MUST set an `f` field to a valid witness version and program, OR to `17` 
+      - MUST set an `f` field to a valid witness version and program, OR to `17`
       followed by a public key hash, OR to `18` followed by a script hash.
   - if there is NOT a public channel associated with its public key:
-    - MUST include at least one `r` field. 
-      - `r` field MUST contain one or more ordered entries, indicating the forward route from 
-      a public node to the final destination. 
-        - Note: for each entry, the `pubkey` is the node ID of the start of the channel; 
-        `short_channel_id` is the short channel ID field to identify the channel; and 
-        `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as 
-        specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message). 
+    - MUST include at least one `r` field.
+      - `r` field MUST contain one or more ordered entries, indicating the forward route from
+      a public node to the final destination.
+        - Note: for each entry, the `pubkey` is the node ID of the start of the channel;
+        `short_channel_id` is the short channel ID field to identify the channel; and
+        `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as
+        specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message).
     - MAY include more than one `r` field to provide multiple routing options.
   - MUST pad field data to a multiple of 5 bits, using 0s.
   - if a writer offers more than one of any field type, it:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
 
 A reader:
-  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, or 
+  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, or
   `n` fields that do NOT have `data_length`s of 52, 52, or 53, respectively.
-  - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed 
+  - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed
   description.
   - if a valid `n` field is provided:
     - MUST use the `n` field to validate the signature instead of performing signature recovery.
@@ -191,59 +191,60 @@ A reader:
 
 The type-and-length format allows future extensions to be backward
 compatible. `data_length` is always a multiple of 5 bits, for easy
-encoding and decoding. For fields that are expected may change, readers
-also ignore ones of different length.
+encoding and decoding. Readers also ignore fields of different length,
+for fields that are expected may change.
 
 The `p` field supports the current 256-bit payment hash, but future
-specs could add a new variant of different length, in which case
-writers could support both old and new, and old readers would ignore
-the one not the correct length.
+specs could add a new variant of different length: in which case,
+writers could support both old and new variants, and old readers would
+ignore the variant not the correct length.
 
 The `d` field allows inline descriptions, but may be insufficient for
-complex orders; thus the `h` field allows a summary, though the method
+complex orders. Thus, the `h` field allows a summary: though the method
 by which the description is served is as-yet unspecified and will
-probably be transport dependent. The `h` format could change in future
+probably be transport dependent. The `h` format could change in the future,
 by changing the length, so readers ignore it if it's not 256 bits.
 
 The `n` field can be used to explicitly specify the destination node ID,
 instead of requiring signature recovery.
 
 The `x` field gives warning as to when a payment will be
-refused; this is mainly to avoid confusion. The default was chosen
+refused: mainly to avoid confusion. The default was chosen
 to be reasonable for most payments and to allow sufficient time for
-on-chain payment if necessary.
+on-chain payment, if necessary.
 
-The `c` field gives a way for the destination node to require a specific
+The `c` field allows a way for the destination node to require a specific
 minimum CLTV expiry for its incoming HTLC. Destination nodes may use this
-to require a higher, more conservative value than the default one, depending
-on their fee estimation policy and their sensitivity to time locks. Note
+to require a higher, more conservative value than the default one (depending
+on their fee estimation policy and their sensitivity to time locks). Note
 that remote nodes in the route specify their required `cltv_expiry_delta`
 in the `channel_update` message, which they can update at all times.
 
-The `f` field allows on-chain fallback. This may not make sense for
-tiny or time-sensitive payments, however. It's possible that new
-address forms will appear, and so multiple `f` fields in an implied
-preferred order help with transition, and `f` fields with versions 19-31
+The `f` field allows on-chain fallback; however, this may not make sense for
+tiny or time-sensitive payments. It's possible that new
+address forms will appear; thus, multiple `f` fields (in an implied
+preferred order) help with transition, and `f` fields with versions 19-31
 will be ignored by readers.
 
-The `r` field allows limited routing assistance: as specified it only
-allows minimum information to use private channels, but it could also
+The `r` field allows limited routing assistance: as specified, it only
+allows minimum information to use private channels, however, it could also
 assist in future partial-knowledge routing.
 
 ### Security Considerations for Payment Descriptions
 
 Payment descriptions are user-defined and provide a potential avenue for
-injection attacks, both in the process of rendering and persistence.
+injection attacks: during the processes of both rendering and persistence.
 
 Payment descriptions should always be sanitized before being displayed in
-HTML/Javascript contexts, or any other dynamically interpreted rendering
-frameworks. Implementers should be extra perceptive to the possibility of
-reflected XSS attacks when decoding and displaying payment descriptions. Avoid
+HTML/Javascript contexts (or any other dynamically interpreted rendering
+frameworks). Implementers should be extra perceptive to the possibility of
+reflected XSS attacks, when decoding and displaying payment descriptions. Avoid
 optimistically rendering the contents of the payment request until all
-validation, verification, and sanitization have been successfully completed.
+validation, verification, and sanitization processes have been successfully
+completed.
 
 Furthermore, consider using prepared statements, input validation, and/or
-escaping to protect against injection vulnerabilities against persistence
+escaping, to protect against injection vulnerabilities in persistence
 engines that support SQL or other dynamically interpreted querying languages.
 
 * [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
@@ -262,7 +263,7 @@ payments harder to track by adding small variations.
 The intent is that the payer recover the payee's node ID from the
 signature, and after checking that conditions such as fees,
 expiry, and block timeout are acceptable, attempt a payment. It can use `r` fields to
-augment its routing information if necessary to reach the final node.
+augment its routing information, if necessary to reach the final node.
 
 If the payment succeeds but there is a later dispute, the payer can
 prove both the signed offer from the payee and the successful
@@ -270,15 +271,20 @@ payment.
 
 ## Payer / Payee Requirements
 
-A payer SHOULD NOT attempt a payment after the `timestamp` plus
-`expiry` has passed. Otherwise, if a Lightning payment fails, a payer
-MAY attempt to use the address given in the first `f` field that it
-understands for payment. A payer MAY use the sequence of channels
-specified by the `r` field to route to the payee. A payer SHOULD consider the
-fee amount and payment timeout before initiating payment. A payer
-SHOULD use the first `p` field that it did NOT skip as the payment hash.
+A payer:
+  - after the `timestamp` plus `expiry` has passed:
+    - SHOULD NOT attempt a payment.
+  - otherwise:
+    - if a Lightning payment fails:
+      - MAY attempt to use the address given in the first `f` field that it
+      understands for payment.
+  - MAY use the sequence of channels, specified by the `r` field, to route to the payee.
+  - SHOULD consider the fee amount and payment timeout before initiating payment.
+  - SHOULD use the first `p` field that it did NOT skip as the payment hash.
 
-A payee SHOULD NOT accept a payment after `timestamp` plus `expiry`.
+A payee:
+  - after the `timestamp` plus `expiry` has passed:
+    - SHOULD NOT accept a payment.
 
 # Implementation
 
@@ -419,7 +425,7 @@ Breakdown:
   * `qjmp7lwpagxun9pygexvgpjdc4jdj85f`: 160-bit P2PKH address
 * `r`: tagged field: route information
   * `9y`: `data_length` (`9` = 5, `y` = 4; 5 * 32 + 4 == 164)
-    * `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzq`: 
+    * `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzq`:
       * pubkey: `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`
       * `short_channel_id`: 0102030405060708
       * `fee_base_msat`: 1 millisatoshi
