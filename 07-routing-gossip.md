@@ -57,6 +57,15 @@ It is constructed as follows:
   2. the next 3 bytes: indicating the transaction index within the block
   3. the least significant 2 bytes: indicating the output index that pays to the channel.
 
+The standard human readable format for `short_channel_id` is created
+by printing the above components, in the order:
+block height, transaction index, and output index.
+Each component is printed as a decimal number,
+and separated from each other by the small letter `x`.
+For example, a `short_channel_id` might be written as `539268x845x1`,
+indicating a channel on the output 1 of the transaction at index 845
+of the block at height 539268.
+
 A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
@@ -75,6 +84,17 @@ A recipient node:
     - MAY fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
     - SHOULD queue the `channel_announcement` message for its peers.
+
+#### Rationale
+
+The `short_channel_id` human readable format is designed
+so that double-clicking or double-tapping it will select the entire ID
+on most systems.
+Humans prefer decimal when reading numbers,
+so the ID components are written in decimal.
+The small letter `x` is used since on most fonts,
+the `x` is visibly smaller than decimal digits,
+making it easy to visibly group each component of the ID.
 
 ## The `channel_announcement` Message
 
