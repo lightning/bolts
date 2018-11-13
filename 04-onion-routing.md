@@ -161,22 +161,22 @@ and has the following structure:
 
 1. type: `hops_data`
 2. data:
-   * [`1`:`realm`]
+   * [`1`:`per_hop_type`]
    * [`32`:`per_hop`]
    * [`32`:`HMAC`]
    * ...
    * `filler`
 
-Where, the `realm`, `per_hop` (with contents dependent on `realm`), and `HMAC`
+Where, the `per_hop_type`, `per_hop` (with contents dependent on `per_hop_type`), and `HMAC`
 are repeated for each hop; and where, `filler` consists of obfuscated,
 deterministically-generated padding, as detailed in
 [Filler Generation](#filler-generation). Additionally, `hops_data` is
 incrementally obfuscated at each hop.
 
-The `realm` byte determines the format of the `per_hop` field; currently, only `realm`
+The `per_hop_type` byte determines the format of the `per_hop` field; currently, only `per_hop_type`
 0 is defined, for which the `per_hop` format follows:
 
-1. type: `per_hop` (for `realm` 0)
+1. type: `normal_per_hop` (for `per_hop_type` 0)
 2. data:
    * [`8`:`short_channel_id`]
    * [`8`:`amt_to_forward`]
@@ -232,7 +232,7 @@ Field descriptions:
      `outgoing_cltv_value`, whether it is the final node or not, to avoid
      leaking its position in the route.
 
-   * `padding`: This field is for future use and also for ensuring that future non-0-`realm`
+   * `padding`: This field is for future use and also for ensuring that future non-0-`per_hop_type`
      `per_hop`s won't change the overall `hops_data` size.
 
 When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified within
@@ -501,7 +501,7 @@ The processing node:
   - if the computed HMAC and the packet's HMAC differ:
     - MUST abort processing.
     - MUST report a route failure.
-  - if the `realm` is unknown:
+  - if the `per_hop_type` is unknown:
     - MUST drop the packet.
     - MUST signal a route failure.
   - MUST address the packet to another peer that is its direct neighbor.
@@ -660,9 +660,9 @@ Please note that the `channel_update` field is mandatory in messages whose
 
 The following `failure_code`s are defined:
 
-1. type: PERM|1 (`invalid_realm`)
+1. type: PERM|1 (`invalid_per_hop_type`)
 
-The `realm` byte was not understood by the processing node.
+The `per_hop_type` byte was not understood by the processing node.
 
 1. type: NODE|2 (`temporary_node_failure`)
 
@@ -800,8 +800,8 @@ An _erring node_:
     - SHOULD select the first error it encounters from the list above.
 
 Any _erring node_ MAY:
-  - if the `realm` byte is unknown:
-    - return an `invalid_realm` error.
+  - if the `per_hop_type` byte is unknown:
+    - return an `invalid_per_hop_type` error.
   - if an otherwise unspecified transient error occurs for the entire node:
     - return a `temporary_node_failure` error.
   - if an otherwise unspecified permanent error occurs for the entire node:
@@ -933,7 +933,7 @@ of packet creation:
 	associated data = 0x4242424242424242424242424242424242424242424242424242424242424242
 
 The HMAC is omitted in the following `hop_data`, since it's likely to be filled
-by the onion construction. Hence, the values below are the `realm`, the
+by the onion construction. Hence, the values below are the `per_hop_type`, the
 `short_channel_id`, the `amt_to_forward`, the `outgoing_cltv`, and the 16-byte
 `padding`. They were initialized by byte-filling the `short_channel_id` to the
 each hop's respective position in the route and then, starting at 0, setting
