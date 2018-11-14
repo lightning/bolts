@@ -134,6 +134,9 @@ Currently defined tagged fields are:
    * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
+* `9` (5): `data_length` variable. One or more bytes containing features
+  supported for receiving this payment.
+  See [BOLT #9](09-features.md#assigned-invoicefeatures-flags).
 
 ### Requirements
 
@@ -152,7 +155,7 @@ A writer MAY include one `x` field.
 A writer MAY include one `c` field, which MUST be set to the minimum `cltv_expiry` it
 will accept for the last HTLC in the route.
 
-A writer SHOULD use the minimum `data_length` possible for `x` and `c` fields.
+A writer SHOULD use the minimum `data_length` possible for `x`, `c`, and `9` fields.
 
 A writer MAY include one `n` field, which MUST be set to the public key
 used to create the `signature`.

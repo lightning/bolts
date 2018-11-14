@@ -181,7 +181,8 @@ The `realm` byte determines the format of the `per_hop` field; currently, only `
    * [`8`:`short_channel_id`]
    * [`8`:`amt_to_forward`]
    * [`4`:`outgoing_cltv_value`]
-   * [`12`:`padding`]
+   * [`1`:`flags0`]
+   * [`11`:`padding`]
 
 Using the `per_hop` field, the origin node is able to precisely specify the path and
 structure of the HTLCs forwarded at each hop. As the `per_hop` is protected
@@ -232,8 +233,21 @@ Field descriptions:
      `outgoing_cltv_value`, whether it is the final node or not, to avoid
      leaking its position in the route.
 
+   * `flags0`: A bitfield of various bit flags.
+     In keeping with "It's OK to be odd", odd-indexed bits (1, 3, 5, 7)
+     can be safely ignored by the receiver if set.
+     The receiver MUST fail the HTLC if an undefined even-indexed bit is set.
+
+     The bits of this field are defined as below:
+
+     * Bit 0: `incomplete_payment` atomic multipath payment.
+       Can only be set if the receiver is the final node (i.e. `HMAC` == 0).
+       See section "Base Atomic Multipath Payments".
+
    * `padding`: This field is for future use and also for ensuring that future non-0-`realm`
      `per_hop`s won't change the overall `hops_data` size.
+     The bytes of this field MUST be set to 0;
+     future uses may set some bytes to non-zero.
 
 When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified within
 `per_hop` above; otherwise, deviation from the specified HTLC parameters
@@ -256,6 +270,61 @@ compare its values against those of the HTLC. See the
 
 If not for the above, since it need not forward payments, the final node could
 simply discard its payload.
+
+### Base Atomic Multipath Payments
+
+If the final node receives an onion packet with the `incomplete_payment` flag
+set, then the payment MAY be a "base" atomic multipath payment.
+Such "base" atomic multipath payments will use the same `payment_hash` for all paths.
+
+The `amt_to_forward` value will be the amount for this partial payment only.
+The `incomplete_payment` flag is a promise by the ultimate sender
+that the rest of the payment will follow
+in succeeding HTLCs.
+
+#### Requirements
+
+The payer:
+  - if `wait_on_incomplete` is not set in the invoice:
+    - MUST NOT set the `incomplete_payment` flag.
+  - otherwise:
+    - If they split the payment into multiple HTLCs:
+     - MUST use the same `payment_preimage` on all HTLCs.
+     - MUST set the `incomplete_payment` flag on all HTLC onions.
+     - MUST ensure that the total amount of all the HTLCs at the payee meets the `amount` requirement of the invoice.
+     - SHOULD send all payments at approximately the same time.
+     - SHOULD try to use diverse paths to the recipient for each HTLC.
+     - SHOULD retry and/or re-divide HTLCs which fail.
+     - MUST NOT allow the total value of active HTLCs to exceed the amount it is prepared to pay.
+
+The payee:
+  - if an onion with `incomplete_payment` is set for an invoice which flagged `wait_on_incomplete`:
+    - MUST not immediately fail the HTLC if it is valid except for the amount being too small.
+    - SHOULD wait for at least 60 seconds for more partial payments for the same `payment_preimage`.
+    - MUST accept all partial payments once the total amount meets or exceeds the invoice `amount`.
+    - MUST reply with `incomplete_payment_too_slow` to all partial payments which it times out.
+
+#### Rationale
+
+If `incomplete_payment` is set, but the total expected value has not
+arrived at the final node, and the final node claims the payment,
+then the final node has effectively sold the `payment_preimage` at a
+discount.
+
+This is effectively "economically rational atomicity".
+A final node that wants to lose money may voluntarily claim a partial
+payment that is less than its advertised payment amount.
+We assume that no final node would want to lose money.
+
+Since invoices have lifetimes, it might seem
+that a final node has incentive to grab a partial payment
+before the invoice lifetime ends.
+However, the fact still remains
+that the `payment_preimage` has been released
+for less than its market value,
+meaning the final node still loses value in the transaction.
+It would be better for the final node to simply not release the preimage
+or offer to sell it to someone else who is willing to pay the full value.
 
 # Shared Secret
 
@@ -791,6 +860,17 @@ The channel from the processing node has been disabled.
 
 The CLTV expiry in the HTLC is too far in the future.
 
+1. type: PERM|22 (`invalid_flag`)
+
+An even-numbered bit of `flags0` is set, which is not understood
+by the hop, or is otherwise invalid for the node that decoded it.
+This is in keeping with "It's OK to be odd" rule.
+
+1. type: 23 (`incomplete_payment_too_slow`)
+
+The final node has been waiting too long for an incomplete payment
+to complete.
+
 ### Requirements
 
 An _erring node_:
@@ -809,6 +889,8 @@ Any _erring node_ MAY:
   - if a node has requirements advertised in its `node_announcement` `features`,
   which were NOT included in the onion:
     - return a `required_node_feature_missing` error.
+  - if an even bit of `flags0` is set:
+    - return an `invalid_flag` error.
 
 A _forwarding node_ MAY, but a _final node_ MUST NOT:
   - if the onion `version` byte is unknown:
@@ -875,6 +957,15 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the `amt_to_forward` is greater than the `incoming_htlc_amt` from the
   final node's HTLC:
     - MUST return a `final_incorrect_htlc_amount` error.
+  - if the `incomplete_payment` flag is set:
+    - SHOULD NOT immediately fail the HTLC if the `amt_to_forward`
+      is less than the expected amount.
+    - SHOULD claim the HTLC if the total `amt_to_forward` on all
+      incoming HTLC with same `payment_hash` equals or exceeds the
+      payment amount.
+    - if the HTLC has been unclaimed for too long:
+      - MUST fail the HTLC.
+      - MUST return `incomplete_payment_too_slow` error.
 
 ## Receiving Failure Codes
 

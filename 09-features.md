@@ -31,6 +31,15 @@ These flags may only be used in the `init` message:
 
 There are currently no `globalfeatures` flags.
 
+## Assigned `invoicefeatures` flags
+
+These flags are used in the `9` field
+of [BOLT #11](11-payment-encoding.md) invoices:
+
+| Bits | Name                 |Description                                     | Link                                                                |
+|------|----------------------|------------------------------------------------|---------------------------------------------------------------------|
+| 1    | `wait_on_incomplete` |Indicates that the payee allows the payment to be split into multiple paths.| [BOLT #4](04-onion-routing.md#base-atomic-multipath-payments)|
+
 ## Requirements
 
 The requirements for receiving specific bits are defined in the linked sections in the table above.
