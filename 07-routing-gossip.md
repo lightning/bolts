@@ -458,6 +458,8 @@ The origin node:
 		- MUST set this to less than or equal to the channel capacity.
 		- MUST set this to less than or equal to `max_htlc_value_in_flight_msat`
 		  it received from the peer.
+        - for channels with `chain_hash` identifying the Bitcoin blockchain:
+          - MUST set this to less than 2^32.
   - otherwise:
 	- MUST set the `option_channel_htlc_max` bit of `message_flags` to 0.
   - MUST set bits in `channel_flags` and `message_flags `that are not assigned a meaning to 0.
@@ -528,7 +530,8 @@ of two `channel_update`s within a single second.
 The explicit `option_channel_htlc_max` flag to indicate the presence
 of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
 by the message length) allows us to extend the `channel_update`
-with different fields in future.
+with different fields in future.  Since channels are limited to 2^32-1
+millisatoshis in Bitcoin, the `htlc_maximum_msat` has the same restriction.
 
 The recommendation against redundant `channel_update`s minimizes spamming the network,
 however it is sometimes inevitable.  For example, a channel with a
