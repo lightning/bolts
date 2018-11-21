@@ -89,21 +89,29 @@ trigger any action.
 # Commitment Transaction
 
 The local and remote nodes each hold a *commitment transaction*. Each of these
-commitment transactions has four types of outputs:
+commitment transactions has six types of outputs:
 
 1. _local node's main output_: Zero or one output, to pay to the *local node's*
-commitment pubkey.
+delayed pubkey.
 2. _remote node's main output_: Zero or one output, to pay to the *remote node's*
-commitment pubkey.
+pubkey.
+1. _local node's push output_: Zero or one output, to pay to the *local node's*
+delayed pubkey.
+2. _remote node's push output_: Zero or one output, to pay to the *remote node's*
+pubkey.
 3. _local node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to pay
 the *remote node* in return for a payment preimage.
 4. _remote node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to
 pay the *local node* in return for a payment preimage.
 
 To incentivize the local and remote nodes to cooperate, an `OP_CHECKSEQUENCEVERIFY`
-relative timeout encumbers the *local node's outputs* (in the *local node's
+relative timeout encumbers some outputs: the *local node's outputs* (in the *local node's
 commitment transaction*) and the *remote node's outputs* (in the *remote node's
-commitment transaction*). So for example, if the local node publishes its
+commitment transaction*). If `option_simplified_commitment` applies
+to the commitment transaction, then the *to_remote* output of each commitment is
+identically encumbered, for fairness.
+
+Without `option_simplified_commitment`, if the local node publishes its
 commitment transaction, it will have to wait to claim its own funds,
 whereas the remote node will have immediate access to its own funds. As a
 consequence, the two commitment transactions are not identical, but they are
@@ -140,6 +148,11 @@ A node:
       - otherwise:
         - MUST use the *last commitment transaction*, for which it has a
         signature, to perform a *unilateral close*.
+      - MUST spend any `to_local_pushme` output, providing sufficient fees as incentive to include the commitment transaction in a block
+	    - SHOULD use [replace-by-fee](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki) or other mechanism on the spending transaction if it proves insufficient for timely inclusion in a block.
+
+A node:
+  - MAY monitor the blockchain for unspent `to_local_pushme` and `to_remote_pushme` outputs and try to spend them after 10 confirmations.
 
 ## Rationale
 
@@ -154,7 +167,8 @@ need not consume resources monitoring the channel state.
 There exists a bias towards preferring mutual closes over unilateral closes,
 because outputs of the former are unencumbered by a delay and are directly
 spendable by wallets. In addition, mutual close fees tend to be less exaggerated
-than those of commitment transactions. So, the only reason not to use the
+than those of commitment transactions (or in the case of `option_simplified_commitment`,
+the commitment transaction may require a child transaction to cause it to be mined). So, the only reason not to use the
 signature from `closing_signed` would be if the fee offered was too small for
 it to be processed.
 

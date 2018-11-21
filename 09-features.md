@@ -26,6 +26,7 @@ These flags may only be used in the `init` message:
 | 3  | `initial_routing_sync` | Indicates that the sending node needs a complete routing information dump | [BOLT #7](07-routing-gossip.md#initial-sync) |
 | 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 | 6/7  | `gossip_queries`           | More sophisticated gossip control | [BOLT #7](07-routing-gossip.md#query-messages) |
+| 8/9  | `option_simplified_commitment`           | Simplified commitment transactions | [BOLT #3](03-transactions.md) |
 
 ## Assigned `globalfeatures` flags
 

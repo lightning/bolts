@@ -82,6 +82,8 @@ To allow an opportunity for penalty transactions, in case of a revoked commitmen
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can timeout or be fulfilled even though they are within the `to_self_delay` delay.
 Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
+If `option_simplified_commitment` applies to the commitment transaction, then the `to_self_delay` used for all transactions is the greater of the `to_self_delay` sent by each peer.  Otherwise, each peer sends the `to_self_delay` to be used for the other peer's commitment amd HTLC transactions.
+
 The amounts for each output MUST be rounded down to whole satoshis. If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
 
 #### `to_local` Output
@@ -109,7 +111,40 @@ If a revoked commitment transaction is published, the other party can spend this
 
 #### `to_remote` Output
 
-This output sends funds to the other peer and thus is a simple P2WPKH to `remotepubkey`.
+This output sends funds to the other peer, thus is not encumbered by a
+revocation private key.
+
+If `option_simplified_commitment` applies to the commitment transaction, the `to_remote` output is delayed similarly to the `to_local` output, and is to a fixed key:
+
+        `to_self_delay`
+        OP_CSV
+        OP_DROP
+        <remote_pubkey>
+
+The output is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed) and witness:
+
+    <remote_sig>
+
+Otherwise, this output is a simple P2WPKH to `remotepubkey`.
+
+
+#### `to_local_pushme` and `to_remote_pushme` Output (option_simplified_commitment)
+
+This output can be spent by the local and remote nodes respectivey to provide incentive to mine the transaction, using child-pays-for-parent.  They are only added if the `to_local` and `to_remote` outputs exist, respectively.
+
+    OP_DEPTH
+    OP_IF
+        <pubkey> OP_CHECKSIG
+    OP_ELSE
+        10 OP_CSV
+    OP_ENDIF
+
+The `<pubkey>` is `<local_delayedpubkey>` to `to_local_pushme` and
+`<remote_delayedpubkey>` for `to_remote_pushme`.  The output amount is
+1000 satoshi, to encourage spending of the output.  Once the
+`remote_pubkey` is revealed (by spending the `to_local` output) and
+the commitment transaction is 10 blocks deep, anyone can spend it.
+
 
 #### Offered HTLC Outputs
 
@@ -294,6 +329,9 @@ The fee calculation for both commitment transactions and HTLC
 transactions is based on the current `feerate_per_kw` and the
 *expected weight* of the transaction.
 
+Note that if `option_simplified_commitment` applies to the commitment
+transaction then `feerate_per_kw` is 253.
+
 The actual and expected weights vary for several reasons:
 
 * Bitcoin uses DER-encoded signatures, which vary in size.
@@ -306,10 +344,12 @@ Thus, a simplified formula for *expected weight* is used, which assumes:
 * Signatures are 73 bytes long (the maximum length).
 * There are a small number of outputs (thus 1 byte to count them).
 * There are always both a `to_local` output and a `to_remote` output.
+* (if `option_simplified_commitment`) there are always both a `to_local_pushme` and `to_remote_pushme` output.
 
 This yields the following *expected weights* (details of the computation in [Appendix A](#appendix-a-expected-weights)):
 
-    Commitment weight:   724 + 172 * num-untrimmed-htlc-outputs
+    Commitment weight (no option_simplified_commitment):   724 + 172 * num-untrimmed-htlc-outputs
+    Commitment weight (option_simplified_commitment:  1116 + 172 * num-untrimmed-htlc-outputs
     HTLC-timeout weight: 663
     HTLC-success weight: 703
 
@@ -366,7 +406,7 @@ outputs) is 7140 satoshi. The final fee may be even higher if the
 
 ### Fee Payment
 
-Base commitment transaction fees are extracted from the funder's amount; if that amount is insufficient, the entire amount of the funder's output is used.
+Base commitment transaction fees and amounts for `to_local_pushme` and `to_remote_pushme` outputs are extracted from the funder's amount; if that amount is insufficient, the entire amount of the funder's output is used.
 
 Note that after the fee amount is subtracted from the to-funder output,
 that output may be below `dust_limit_satoshis`, and thus will also
@@ -390,23 +430,29 @@ committed HTLCs:
 2. Calculate the base [commitment transaction fee](#fee-calculation).
 3. Subtract this base fee from the funder (either `to_local` or `to_remote`),
    with a floor of 0 (see [Fee Payment](#fee-payment)).
+4. If `option_simplified_commitment` applies to the commitment transaction,
+   subtract 2000 satoshis from the funder (either `to_local` or `to_remote`).
 3. For every offered HTLC, if it is not trimmed, add an
    [offered HTLC output](#offered-htlc-outputs).
 4. For every received HTLC, if it is not trimmed, add an
    [received HTLC output](#received-htlc-outputs).
 5. If the `to_local` amount is greater or equal to `dust_limit_satoshis`,
    add a [`to_local` output](#to_local-output).
+6. If `option_simplified_commitment` applies to the commitment transaction,
+   and `to_local` was added, add `to_local_pushme`.
 6. If the `to_remote` amount is greater or equal to `dust_limit_satoshis`,
    add a [`to_remote` output](#to_remote-output).
+6. If `option_simplified_commitment` applies to the commitment transaction,
+   and `to_remote` was added, add `to_remote_pushme`.
 7. Sort the outputs into [BIP 69 order](#transaction-input-and-output-ordering).
 
 # Keys
 
 ## Key Derivation
 
-Each commitment transaction uses a unique set of keys: `localpubkey` and `remotepubkey`.
+Each commitment transaction uses a unique `localpubkey`, and a `remotepubkey`.
 The HTLC-success and HTLC-timeout transactions use `local_delayedpubkey` and `revocationpubkey`.
-These are changed for every transaction based on the `per_commitment_point`.
+These are changed for every transaction based on the `per_commitment_point`, with the exception of `remotepubkey` if `option_simplified_commitment` is negotiated.
 
 The reason for key change is so that trustless watching for revoked
 transactions can be outsourced. Such a _watcher_ should not be able to
@@ -419,8 +465,9 @@ avoid storage of every commitment transaction, a _watcher_ can be given the
 the scripts required for the penalty transaction; thus, a _watcher_ need only be
 given (and store) the signatures for each penalty input.
 
-Changing the `localpubkey` and `remotepubkey` every time ensures that commitment
-transaction ID cannot be guessed; every commitment transaction uses an ID
+Changing the `localpubkey` every time ensures that commitment
+transaction ID cannot be guessed except in the trivial case where there is no
+`to_local` output, as every commitment transaction uses an ID
 in its output script. Splitting the `local_delayedpubkey`, which is required for
 the penalty transaction, allows it to be shared with the _watcher_ without
 revealing `localpubkey`; even if both peers use the same _watcher_, nothing is revealed.
@@ -434,14 +481,13 @@ For efficiency, keys are generated from a series of per-commitment secrets
 that are generated from a single seed, which allows the receiver to compactly
 store them (see [below](#efficient-per-commitment-secret-storage)).
 
-### `localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation
+### `localpubkey``local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation
 
 These pubkeys are simply generated by addition from their base points:
 
 	pubkey = basepoint + SHA256(per_commitment_point || basepoint) * G
 
-The `localpubkey` uses the local node's `payment_basepoint`; the `remotepubkey`
-uses the remote node's `payment_basepoint`; the `local_delayedpubkey`
+The `localpubkey` uses the local node's `payment_basepoint`; the `local_delayedpubkey`
 uses the local node's `delayed_payment_basepoint`; the `local_htlcpubkey` uses the
 local node's `htlc_basepoint`; and the `remote_delayedpubkey` uses the remote
 node's `delayed_payment_basepoint`.
@@ -450,6 +496,17 @@ The corresponding private keys can be similarly derived, if the basepoint
 secrets are known (i.e. the private keys corresponding to `localpubkey`, `local_htlcpubkey`, and `local_delayedpubkey` only):
 
     privkey = basepoint_secret + SHA256(per_commitment_point || basepoint)
+
+### `remotepubkey` Derivation
+
+If `option_simplified_commitment` is negotiated the `remotepubkey` is simply the remote node's `payment_basepoint`, otherwise it is calculated as above using the remote node's `payment_basepoint`.
+
+The simplified derivation means that a node can spend a commitment
+transaction even if it has lost data and doesn't know the
+corresponding `payment_basepoint`.  A watchtower could correlate
+transactions given to it which only have a `to_remote` output if it
+sees one of them onchain, but such transactions do not need any
+enforcement and should not be handed to a watchtower.
 
 ### `revocationpubkey` Derivation
 
@@ -636,12 +693,22 @@ The *expected weight* of a commitment transaction is calculated as follows:
 		- var_int: 1 byte (pk_script length)
 		- pk_script (p2wsh): 34 bytes
 
-	output_paying_to_remote: 31 bytes
+	output_paying_to_remote (no option_simplified_commitment): 31 bytes
 		- value: 8 bytes
 		- var_int: 1 byte (pk_script length)
 		- pk_script (p2wpkh): 22 bytes
 
-	 htlc_output: 43 bytes
+	output_paying_to_remote (option_simplified_commitment): 43 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wsh): 34 bytes
+
+	output_pushme (option_simplified_commitment): 43 bytes
+		- value: 8 bytes
+		- var_int: 1 byte (pk_script length)
+		- pk_script (p2wsh): 34 bytes
+
+    htlc_output: 43 bytes
 		- value: 8 bytes
 		- var_int: 1 byte (pk_script length)
 		- pk_script (p2wsh): 34 bytes
@@ -650,7 +717,7 @@ The *expected weight* of a commitment transaction is calculated as follows:
 		- flag: 1 byte
 		- marker: 1 byte
 
-	 commitment_transaction: 125 + 43 * num-htlc-outputs bytes
+	 commitment_transaction (no option_simplified_commitment): 125 + 43 * num-htlc-outputs bytes
 		- version: 4 bytes
 		- witness_header <---- part of the witness data
 		- count_tx_in: 1 byte
@@ -663,15 +730,32 @@ The *expected weight* of a commitment transaction is calculated as follows:
 			....htlc_output's...
 		- lock_time: 4 bytes
 
+	 commitment_transaction (option_simplified_commitment): 223 + 43 * num-htlc-outputs bytes
+		- version: 4 bytes
+		- witness_header <---- part of the witness data
+		- count_tx_in: 1 byte
+		- tx_in: 41 bytes
+			funding_input
+		- count_tx_out: 1 byte
+		- tx_out: 172 + 43 * num-htlc-outputs bytes
+			output_paying_to_remote,
+			output_paying_to_local,
+			output_pushme,
+			output_pushme,
+			....htlc_output's...
+		- lock_time: 4 bytes
+
 Multiplying non-witness data by 4 results in a weight of:
 
-	// 500 + 172 * num-htlc-outputs weight
+	// 500 + 172 * num-htlc-outputs weight (no option_simplified_commitment)
+	// 892 + 172 * num-htlc-outputs weight (option_simplified_commitment)
 	commitment_transaction_weight = 4 * commitment_transaction
 
 	// 224 weight
 	witness_weight = witness_header + witness
 
-	overall_weight = 500 + 172 * num-htlc-outputs + 224 weight
+	overall_weight (no option_simplified_commitment) = 500 + 172 * num-htlc-outputs + 224 weight
+	overall_weight (option_simplified_commitment) = 892 + 172 * num-htlc-outputs + 224 weight
 
 ## Expected Weight of HTLC-timeout and HTLC-success Transactions
 

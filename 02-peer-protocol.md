@@ -133,7 +133,9 @@ node can offer.
 (i.e. 1/4 the more normally-used 'satoshi per 1000 vbytes') that this
 side will pay for commitment and HTLC transactions, as described in
 [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted
-later with an `update_fee` message).
+later with an `update_fee` message).  Note that if
+`option_simplified_commitment` is negotiated, this `feerate_per_kw`
+is treated as 253 for all transactions.
 
 `to_self_delay` is the number of blocks that the other node's to-self
 outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this
@@ -208,7 +210,8 @@ The receiving node MUST fail the channel if:
   - `push_msat` is greater than `funding_satoshis` * 1000.
   - `to_self_delay` is unreasonably large.
   - `max_accepted_htlcs` is greater than 483.
-  - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
+  - if `option_simplified_commitment` is not negotiated:
+    - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
 are not valid DER-encoded compressed secp256k1 pubkeys.
   - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
@@ -228,7 +231,7 @@ The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% 
 
 The sender can unconditionally give initial funds to the receiver using a non-zero `push_msat`, but even in this case we ensure that the funder has sufficient remaining funds to pay fees and that one side has some amount it can spend (which also implies there is at least one non-dust output). Note that, like any other on-chain transaction, this payment is not certain until the funding transaction has been confirmed sufficiently (with a danger of double-spend until this occurs) and may require a separate method to prove payment via on-chain confirmation.
 
-The `feerate_per_kw` is generally only of concern to the sender (who pays the fees), but there is also the fee rate paid by HTLC transactions; thus, unreasonably large fee rates can also penalize the recipient.
+The `feerate_per_kw` is generally only of concern to the sender (who pays the fees), but there is also the fee rate paid by HTLC transactions; thus, unreasonably large fee rates can also penalize the recipient.  It is ignored for `option_simplified_commitment`.
 
 Separating the `htlc_basepoint` from the `payment_basepoint` improves security: a node needs the secret associated with the `htlc_basepoint` to produce HTLC signatures for the protocol, but the secret for the `payment_basepoint` can be in cold storage.
 
@@ -340,6 +343,12 @@ This message introduces the `channel_id` to identify the channel. It's derived f
 
 #### Requirements
 
+Both peers:
+  - if `option_simplified_commitment` was negotiated:
+    - `option_simplified_commitment` applies to all commitment and HTLC transactions
+  - otherwise:
+    - `option_simplified_commitment` does not apply to any commitment or HTLC transactions
+
 The sender MUST set:
   - `channel_id` by exclusive-OR of the `funding_txid` and the `funding_output_index` from the `funding_created` message.
   - `signature` to the valid signature, using its `funding_pubkey` for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#commitment-transaction).
@@ -350,6 +359,12 @@ The recipient:
   - MUST NOT broadcast the funding transaction before receipt of a valid `funding_signed`.
   - on receipt of a valid `funding_signed`:
     - SHOULD broadcast the funding transaction.
+
+#### Rationale
+
+We decide on `option_simplified_commitment` at this point when we first have to generate the commitment
+transaction.  Even if a later reconnection does not negotiate this parameter, this channel will honor it.
+This simplifies channel state, particularly penalty transaction handling.
 
 ### The `funding_locked` Message
 
@@ -508,8 +523,11 @@ The funding node:
     - SHOULD send a `closing_signed` message.
 
 The sending node:
-  - MUST set `fee_satoshis` less than or equal to the
- base fee of the final commitment transaction, as calculated in [BOLT #3](03-transactions.md#fee-calculation).
+  - if `option_upfront_shutdown_script` applies to the final commitment transaction:
+    - MUST set `fee_satoshis` greater than or equal to 282.
+  - otherwise:
+    - MUST set `fee_satoshis` less than or equal to the
+      base fee of the final commitment transaction, as calculated in [BOLT #3](03-transactions.md#fee-calculation).
   - SHOULD set the initial `fee_satoshis` according to its
  estimate of cost of inclusion in a block.
   - MUST set `signature` to the Bitcoin signature of the close
@@ -543,9 +561,18 @@ progress is made, even if only by a single satoshi at a time. To avoid
 keeping state and to handle the corner case, where fees have shifted
 between disconnection and reconnection, negotiation restarts on reconnection.
 
-Note there is limited risk if the closing transaction is
-delayed, but it will be broadcast very soon; so there is usually no
-reason to pay a premium for rapid processing.
+In the `option_simplified_commitment` case, the fees on the commitment
+transaction itself are minimal (it is assumed that a child transaction will
+supply additional fee incentive), so that forms a floor for negotiation.
+[BOLT #3](03-transactions.md#fee-calculation), gives 282 satoshis (1116
+weight, 254 `feerate_per_kw`).
+
+Otherwise, the commitment transaction usually pays a premium fee, so that
+forms a ceiling.
+
+Note there is limited risk if the closing transaction is delayed, but it will
+be broadcast very soon; so there is usually no reason to pay a premium for
+rapid processing.
 
 ## Normal Operation
 
@@ -763,7 +790,10 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 A sending node:
   - MUST NOT offer `amount_msat` it cannot pay for in the
 remote commitment transaction at the current `feerate_per_kw` (see "Updating
-Fees") while maintaining its channel reserve.
+Fees") while maintaining its channel reserve
+  - if `option_simplified_commitment` applies to this commitment transaction and the sending
+    node is the funder:
+    - MUST be able to additionally pay for `to_local_pushme` and `to_remote_pushme` above its reserve.
   - MUST offer `amount_msat` greater than 0.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
@@ -782,7 +812,7 @@ Fees") while maintaining its channel reserve.
 A receiving node:
   - receiving an `amount_msat` equal to 0, OR less than its own `htlc_minimum_msat`:
     - SHOULD fail the channel.
-  - receiving an `amount_msat` that the sending node cannot afford at the current `feerate_per_kw` (while maintaining its channel reserve):
+  - receiving an `amount_msat` that the sending node cannot afford at the current `feerate_per_kw` (while maintaining its channel reserve and any `to_local_pushme` and `to_remote_pushme` fees):
     - SHOULD fail the channel.
   - if a sending node adds more than its `max_accepted_htlcs` HTLCs to
     its local commitment transaction, OR adds more than its `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction:
@@ -997,6 +1027,11 @@ A node:
 
 ### Updating Fees: `update_fee`
 
+If `option_simplified_commitment` applies to the commitment transaction,
+`update_fee` is never used: the `feerate_per_kw` is always considered 253, but
+the funder also pays 2000 satoshi for the `to_local_pushme` and
+`to_remote_pushme` outputs.
+
 An `update_fee` message is sent by the node which is paying the
 Bitcoin fee. Like any update, it's first committed to the receiver's
 commitment transaction and then (once acknowledged) committed to the
@@ -1020,13 +1055,19 @@ given in [BOLT #3](03-transactions.md#fee-calculation).
 #### Requirements
 
 The node _responsible_ for paying the Bitcoin fee:
-  - SHOULD send `update_fee` to ensure the current fee rate is sufficient (by a
+  - if `option_simplified_commitment` applies to the commitment transaction:
+    - MUST NOT send `update_fee`.
+  - otherwise:
+    - SHOULD send `update_fee` to ensure the current fee rate is sufficient (by a
       significant margin) for timely processing of the commitment transaction.
 
 The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
 
 A receiving node:
+  - if `option_simplified_commitment` applies to the commitment transaction:
+    - SHOULD fail the channel.
+	- MUST NOT update the `feerate_per_kw`.
   - if the `update_fee` is too low for timely processing, OR is unreasonably large:
     - SHOULD fail the channel.
   - if the sender is not responsible for paying the Bitcoin fee:
@@ -1038,7 +1079,12 @@ A receiving node:
 
 #### Rationale
 
-Bitcoin fees are required for unilateral closes to be effective —
+Fee adjustments are unnecessary for `option_simplified_commitment` which
+relies on "pushme" outputs and a child transaction which will provide
+additional fee incentive which can be calculated at the time it is spent, and
+replaced by higher-fee children if required.
+
+Without this option, bitcoin fees are required for unilateral closes to be effective —
 particularly since there is no general method for the broadcasting node to use
 child-pays-for-parent to increase its effective fee.
 
