@@ -141,9 +141,13 @@ This output can be spent by the local and remote nodes respectivey to provide in
 
 The `<pubkey>` is `<local_delayedpubkey>` to `to_local_pushme` and
 `<remote_delayedpubkey>` for `to_remote_pushme`.  The output amount is
-1000 satoshi, to encourage spending of the output.  Once the
+1000 satoshi, to encourage spending of the output.  It is initially
+only spendable by the owner, so that they can always use a child transaction to pay sufficient fee to have this commitment transaction confirmed.
+
+Once the
 `remote_pubkey` is revealed (by spending the `to_local` output) and
-the commitment transaction is 10 blocks deep, anyone can spend it.
+the commitment transaction is 10 blocks deep, anyone can spend it; this avoids polluting the unspent transaction set in the case where the original node is unwilling or unable to spend the output.
+
 
 
 #### Offered HTLC Outputs
