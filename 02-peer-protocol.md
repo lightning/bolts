@@ -966,6 +966,8 @@ change the commitment transaction aside from the new revocation hash
 fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
   to BIP69 lexicographic ordering of the commitment transaction.
+  - if `option_simplified_commitment` applies to this commitment transaction:
+    - MUST calculate each `htlc_signature` using `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY`
 
 A receiving node:
   - once all pending updates are applied:
@@ -983,6 +985,8 @@ A receiving node:
 There's little point offering spam updates: it implies a bug.
 
 The `num_htlcs` field is redundant, but makes the packet length check fully self-contained.
+
+The `option_simplified_commitment` allows HTLC transactions to "bring their own fees" by attaching other inputs and outputs, hence the modified signature flags.
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 

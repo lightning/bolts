@@ -39,6 +39,7 @@ encounters any of the above situations, on-chain.
       * [HTLC Output Handling: Remote Commitment, Remote Offers](#htlc-output-handling-remote-commitment-remote-offers)
   * [Revoked Transaction Close Handling](#revoked-transaction-close-handling)
 	  * [Penalty Transactions Weight Calculation](#penalty-transactions-weight-calculation)
+  * [Generation of HTLC Transactions](#generation-of-htlc-transactions)
   * [General Requirements](#general-requirements)
   * [Appendix A: Expected Weights](#appendix-a-expected-weights)
 	* [Expected Weight of the `to_local` Penalty Transaction Witness](#expected-weight-of-the-to-local-penalty-transaction-witness)
@@ -573,6 +574,18 @@ Thus, 483 bidirectional HTLCs (containing both `to_local` and
 `to_remote` outputs) can be resolved in a single penalty transaction.
 Note: even if the `to_remote` output is not swept, the resulting
 `max_num_htlcs` is 967; which yields the same unidirectional limit of 483 HTLCs.
+
+# Generation of HTLC Transactions
+
+If `option_simplified_commitment` does not apply to the commitment transaction, then HTLC-timeout and HTLC-success transactions are complete transactions with (hopefully!) reasonable fees and must be used directly.
+
+Otherwise, the use of `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` on the HTLC signatures received from the peer allows HTLC transactions to be combined with other transactions.  In particular, the feerate of 253 satoshi per kiloweight may be insufficient for timely inclusion in a block.
+
+## Requirements
+
+A node which broadcasts an HTLC-success or HTLC-timeout transaction for a commitment transaction for which `option_simplified_commitment` applies:
+  - MUST contribute sufficient fee to ensure timely inclusion in a block.
+  - MAY combine it with other transactions.
 
 # General Requirements
 
