@@ -328,3 +328,6 @@ regtest
 ratelimiting
 zlib
 ZLIB
+SIGHASH
+ANYONECANPAY
+pushme
