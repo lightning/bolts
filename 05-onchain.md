@@ -579,7 +579,7 @@ Note: even if the `to_remote` output is not swept, the resulting
 
 If `option_simplified_commitment` does not apply to the commitment transaction, then HTLC-timeout and HTLC-success transactions are complete transactions with (hopefully!) reasonable fees and must be used directly.
 
-Otherwise, the use of `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` on the HTLC signatures received from the peer allows HTLC transactions to be combined with other transactions.  In particular, the feerate of 253 satoshi per kiloweight may be insufficient for timely inclusion in a block.
+Otherwise, the use of `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` on the HTLC signatures received from the peer allows HTLC transactions to be combined with other transactions.  In particular, the feerate of 253 satoshi per 1000-weight may be insufficient for timely inclusion in a block.
 
 ## Requirements
 
