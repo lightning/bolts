@@ -116,10 +116,11 @@ revocation private key.
 
 If `option_simplified_commitment` applies to the commitment transaction, the `to_remote` output is delayed similarly to the `to_local` output, and is to a fixed key:
 
-        `to_self_delay`
-        OP_CSV
-        OP_DROP
-        <remote_pubkey>
+    `to_self_delay`
+    OP_CSV
+    OP_DROP
+    <remote_pubkey>
+    OP_CHECKSIG
 
 The output is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed) and witness:
 
@@ -329,12 +330,13 @@ than twice the funding amount.
 
 ### Fee Calculation
 
-The fee calculation for both commitment transactions and HTLC
-transactions is based on the current `feerate_per_kw` and the
+The fee for these transactions is the `feerate_per_kw` combined with the
 *expected weight* of the transaction.
 
-Note that if `option_simplified_commitment` applies to the commitment
-transaction then `feerate_per_kw` is 253.
+If `option_simplified_commitment` applies to the commitment
+transaction then `feerate_per_kw` for the commitment transaction 
+is 253, and for the HTLC transactions is 0.  Otherwise, `feerate_per_kw`
+is for the commitment transaction also applies to the HTLC transactions.
 
 The actual and expected weights vary for several reasons:
 
