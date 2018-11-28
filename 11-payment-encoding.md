@@ -33,8 +33,8 @@ encoding.
 ## Requirements
 
 A writer:
-  - unless the Bech32 string MAY be longer than the 90 characters specified in BIP-0173:
-    - MUST encode the payment request in Bech32 (see BIP-0173).
+   - MUST encode the payment request in Bech32 (see BIP-0173)
+   - MAY exceed the 90-character limit specified in BIP-0173.
 
 A reader:
   - MUST parse the address as Bech32, as specified in BIP-0173 (also without the character limit).
@@ -70,7 +70,7 @@ A reader:
   - if it does NOT understand the `prefix`:
     - MUST fail the payment.
   - if the `amount` is empty:
-	  - SHOULD indicate that amount is unspecified [FIXME: indicate where or to whom?].
+	  - SHOULD indicate to the payer that amount is unspecified.
   - otherwise:
     - if `amount` contains a non-digit OR is followed by anything except
     a `multiplier` (see table above):
