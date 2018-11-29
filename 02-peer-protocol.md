@@ -960,7 +960,7 @@ The recommendation to require recent messages recognizes the reality
 that networks are unreliable: nodes might not realize their peers are
 offline until after sending `commitment_signed`.  Once
 `commitment_signed` is sent, the sender considers itself bound to
-those HTLCs, and cannot fail incoming the related incoming HTLCs until the
+those HTLCs, and cannot fail the related incoming HTLCs until the
 output HTLCs are fully resolved.
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
