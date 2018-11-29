@@ -160,7 +160,7 @@ it to be processed.
 
 # Mutual Close Handling
 
-A mutual close transaction *resolves* the funding transaction output.
+A closing transaction *resolves* the funding transaction output.
 
 In the case of a mutual close, a node need not do anything else, as it has
 already agreed to the output, which is sent to its specified `scriptpubkey` (see
