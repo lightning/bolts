@@ -251,7 +251,7 @@ identifier for a channel before funding_created has been exchanged is the
 (source_node_id, destination_node_id, temporary_channel_id) tuple. Note that
 any such APIs which reference channels by their channel id before the funding
 transaction is confirmed are also not persistent - until you know the script
-pubkey corresponding to the funding txo nothing prevents duplicative channel
+pubkey corresponding to the funding output nothing prevents duplicative channel
 ids.
 
 #### Future
