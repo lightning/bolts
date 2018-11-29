@@ -570,21 +570,20 @@ Once both nodes have exchanged `funding_locked` (and optionally [`announcement_s
 Changes are sent in batches: one or more `update_` messages are sent before a
 `commitment_signed` message, as in the following diagram:
 
-        +-------+                            +-------+
-        |       |--(1)---- add_htlc   ------>|       |
-        |       |--(2)---- add_htlc   ------>|       |
-        |       |<-(3)---- add_htlc   -------|       |
-        |       |                            |       |
-        |       |--(4)----   commit   ------>|       |
-        |   A   |                            |   B   |
-        |       |<-(5)--- revoke_and_ack-----|       |
-        |       |<-(6)----   commit   -------|       |
-        |       |                            |       |
-        |       |--(7)--- revoke_and_ack---->|       |
-        |       |--(8)----   commit   ------>|       |
-        |       |                            |       |
-        |       |<-(9)--- revoke_and_ack-----|       |
-        +-------+                            +-------+
+        +-------+                               +-------+
+        |       |--(1)---- update_add_htlc ---->|       |
+        |       |--(2)---- update_add_htlc ---->|       |
+        |       |<-(3)---- update_add_htlc -----|       |
+        |       |                               |       |
+        |       |--(4)--- commitment_signed --->|       |
+        |   A   |<-(5)---- revoke_and_ack ------|   B   |
+        |       |                               |       |
+        |       |<-(6)--- commitment_signed ----|       |
+        |       |--(7)---- revoke_and_ack ----->|       |
+        |       |                               |       |
+        |       |--(8)--- commitment_signed --->|       |
+        |       |<-(9)---- revoke_and_ack ------|       |
+        +-------+                               +-------+
 
 Counter-intuitively, these updates apply to the *other node's*
 commitment transaction; the node only adds those updates to its own
