@@ -940,6 +940,8 @@ change the commitment transaction aside from the new revocation hash
 fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
   to BIP69 lexicographic ordering of the commitment transaction.
+  - if it has not recently received a message from the remote node:
+      - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
 
 A receiving node:
   - once all pending updates are applied:
@@ -957,6 +959,13 @@ A receiving node:
 There's little point offering spam updates: it implies a bug.
 
 The `num_htlcs` field is redundant, but makes the packet length check fully self-contained.
+
+The recommendation to require recent messages recognizes the reality
+that networks are unreliable: nodes might not realize their peers are
+offline until after sending `commitment_signed`.  Once
+`commitment_signed` is sent, the sender considers itself bound to
+those HTLCs, and cannot fail the related incoming HTLCs until the
+output HTLCs are fully resolved.
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
