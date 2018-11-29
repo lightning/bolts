@@ -802,13 +802,20 @@ requirement:
 The CLTV expiry is too close to the current block height for safe
 handling by the processing node.
 
-1. type: PERM|15 (`unknown_payment_hash`)
+1. type: PERM|15 (`incorrect_or_unknown_payment_details`)
+2. data:
+   * [`8`:`htlc_msat`]
 
-The `payment_hash` is unknown to the final node.
+The `payment_hash` is unknown to the final node or the amount for that
+`payment_hash` is incorrect.
 
 1. type: PERM|16 (`incorrect_payment_amount`)
 
-The amount for that `payment_hash` is incorrect.
+Originally used to differentiate incorrect final amount from unknown payment
+hash. Sadly, sending this response allows for probing attacks whereby a node
+which receives an HTLC for forwarding can check guesses as to its final
+destination by sending payments with the same hash but much lower values to
+potential destinations and check the response.
 
 1. type: 17 (`final_expiry_too_soon`)
 
@@ -905,10 +912,10 @@ An _intermediate hop_ MUST NOT, but the _final node_:
     - MAY succeed in accepting the HTLC.
   - if the amount paid is less than the amount expected:
     - MUST fail the HTLC.
-    - MUST return an `incorrect_payment_amount` error.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the payment hash is unknown:
     - MUST fail the HTLC.
-    - MUST return an `unknown_payment_hash` error.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the amount paid is more than twice the amount expected:
     - SHOULD fail the HTLC.
     - SHOULD return an `incorrect_payment_amount` error.
