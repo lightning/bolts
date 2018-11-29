@@ -267,7 +267,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 * *Unilateral close*:
    * An uncooperative close of a *channel*, accomplished by broadcasting a
     *commitment transaction*. This transaction is larger (i.e. less
-    efficient) than a *mutual close transaction*, and the *peer* whose
+    efficient) than a *closing transaction*, and the *peer* whose
     commitment is broadcast cannot access its own outputs for some
     previously-negotiated duration.
    * _See related: mutual close, revoked transaction close_

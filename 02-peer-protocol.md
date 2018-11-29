@@ -505,7 +505,7 @@ The `shutdown` response requirement implies that the node sends `commitment_sign
 Once shutdown is complete and the channel is empty of HTLCs, the final
 current commitment transactions will have no HTLCs, and closing fee
 negotiation begins.  The funder chooses a fee it thinks is fair, and
-signs the close transaction with the `scriptpubkey` fields from the
+signs the closing transaction with the `scriptpubkey` fields from the
 `shutdown` messages (along with its chosen fee) and sends the signature;
 the other node then replies similarly, using a fee it thinks is fair.  This
 exchange continues until both agree on the same fee or when one side fails
@@ -532,7 +532,7 @@ The sending node:
  transaction, as specified in [BOLT #3](03-transactions.md#closing-transaction).
 
 The receiving node:
-  - if the `signature` is not valid for either variant of close transaction
+  - if the `signature` is not valid for either variant of closing transaction
   specified in [BOLT #3](03-transactions.md#closing-transaction):
     - MUST fail the connection.
   - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
