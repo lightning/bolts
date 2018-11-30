@@ -97,9 +97,6 @@ that an earlier version of the spec did not require waiting for receipt of
 funding locked: deferring rather than ignoring it allows compatibility with
 this behavior.
 
-
-#### Rationale
-
 The `short_channel_id` human readable format is designed
 so that double-clicking or double-tapping it will select the entire ID
 on most systems.
