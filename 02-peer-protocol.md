@@ -584,7 +584,7 @@ Thus each update traverses through the following states:
 1. pending on the receiver
 2. in the receiver's latest commitment transaction
 3. ... and the receiver's previous commitment transaction has been revoked,
-   and the HTLC is pending on the sender
+   and the update is pending on the sender
 4. ... and in the sender's latest commitment transaction
 5. ... and the sender's previous commitment transaction has been revoked
 
@@ -592,7 +592,7 @@ Thus each update traverses through the following states:
 As the two nodes' updates are independent, the two commitment
 transactions may be out of sync indefinitely. This is not concerning:
 what matters is whether both sides have irrevocably committed to a
-particular HTLC or not (the final state, above).
+particular update or not (the final state, above).
 
 ### Forwarding HTLCs
 
