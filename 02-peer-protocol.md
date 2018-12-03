@@ -1199,7 +1199,7 @@ A node:
         - Note: this is particularly important if the node does not simply
         retransmit the exact `update_` messages as previously sent.
   - upon reconnection:
-    - if it has sent a previous `shutdown`: 
+    - if it has sent a previous `shutdown`:
       - MUST retransmit `shutdown`.
 
 ### Rationale
