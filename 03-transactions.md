@@ -806,7 +806,7 @@ HTLC-success) results in weights of:
 In the following:
  - It's assumed that *local* is the funder.
  - Private keys are displayed as 32 bytes plus a trailing 1 (Bitcoin's convention for "compressed" private keys, i.e. keys for which the public key is compressed).
- - Transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256). A valid signature MUST sign all inputs and outputs of the relevant transaction (i.e MUST be created with a `SIGHASH_ALL` [signature hash](https://bitcoin.org/en/glossary/signature-hash)), unless explicitly stated otherwise. Note that clients MUST send the signature in compact encoding and not in Bitcoin-script format, thus the signature hash byte is not transmitted.
+ - Transaction signatures are all deterministic, using RFC6979 (using HMAC-SHA256). A valid signature MUST sign all inputs and outputs of the relevant transaction (i.e. MUST be created with a `SIGHASH_ALL` [signature hash](https://bitcoin.org/en/glossary/signature-hash)), unless explicitly stated otherwise. Note that clients MUST send the signature in compact encoding and not in Bitcoin-script format, thus the signature hash byte is not transmitted.
 
 The input for the funding transaction was created using a test chain
 with the following first two blocks; the second block contains a spendable
