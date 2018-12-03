@@ -1174,7 +1174,7 @@ A node:
     commitment number of the last `revoke_and_ack` the receiving node has sent:
       - SHOULD fail the channel.
     - if it has not sent `revoke_and_ack`, AND `next_remote_revocation_number`
-    is equal to 0:
+    is not equal to 0:
       - SHOULD fail the channel.
 
  A receiving node:
