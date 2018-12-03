@@ -1176,6 +1176,9 @@ A node:
   commitment number of the last `commitment_signed` message the receiving
   node has sent:
       - SHOULD fail the channel.
+    - if it has not sent `commitment_signed`, AND `next_local_commitment_number`
+    is not equal to 1:
+      - SHOULD fail the channel.
   - if `next_remote_revocation_number` is equal to the commitment number of
   the last `revoke_and_ack` the receiving node sent, AND the receiving node
   hasn't already received a `closing_signed`:
