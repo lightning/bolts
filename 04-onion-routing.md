@@ -367,7 +367,7 @@ shared secret `ss_k` and ephemeral key for the next hop `ek_{k+1}` as follows:
  - The ephemeral private key for the next hop `ek_{k+1}` is computed by
  multiplying the current ephemeral private key `ek_k` by the blinding factor.
  - The ephemeral public key for the next hop `epk_{k+1}` is derived from the
- ephemeral private key `ek_k` by multiplying with the base point.
+ ephemeral private key `ek_{k+1}` by multiplying with the base point.
 
 Once the sender has all the required information above, it can construct the
 packet. Constructing a packet routed over `r` hops requires `r` 32-byte
