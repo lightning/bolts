@@ -114,6 +114,21 @@ delayedsig
 hopDataSize
 I'th
 segwit
+SegWit
+sizeof
+varint
+tlv
+rbf
+RBF
+accepter
+subtype
+subsubtype
+UTXO
+utxo
+scriptPubkey
+counterparty's
+RBFs
+ack'd
 htlc
 htlcs
 ChaCha
@@ -375,3 +390,4 @@ GitHub
 IRC
 bitmasks
 CSPRNG
+workflow
