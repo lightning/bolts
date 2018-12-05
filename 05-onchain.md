@@ -493,13 +493,14 @@ A local node:
       itself.
   - MUST *resolve* the _remote node's main output_ by spending it using the
   revocation private key.
-  - MUST *resolve* the _local node's offered HTLCs_ in one of three ways:
+  - MUST *resolve* the _remote node's offered HTLCs_ in one of three ways:
     * spend the *commitment tx* using the payment revocation private key.
     * spend the *commitment tx* using the payment preimage (if known).
     * spend the *HTLC-timeout tx*, if the remote node has published it.
-  - MUST *resolve* the _remote node's offered HTLCs_ in one of two ways:
-    * spend the *commitment tx* using the payment revocation key.
+  - MUST *resolve* the _local node's offered HTLCs_ in one of three ways:
+    * spend the *commitment tx* using the payment revocation private key.
     * spend the *commitment tx* once the HTLC timeout has passed.
+    * spend the *HTLC-success tx*, if the remote node has published it.
   - MUST *resolve* the _remote node's HTLC-timeout transaction_ by spending it
   using the revocation private key.
   - MUST *resolve* the _remote node's HTLC-success transaction_ by spending it
