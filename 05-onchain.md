@@ -315,7 +315,7 @@ A local node:
     spending that HTLC-success transaction output.
 
 If the output is spent (as is recommended), the output is *resolved* by
-the spending transaction, otherwise it's considered *resolved* by the commitment
+the spending transaction, otherwise it's considered *resolved* by the HTLC-success
 transaction itself.
 
 If it's NOT otherwise resolved, once the HTLC output has expired, it is
