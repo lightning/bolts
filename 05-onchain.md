@@ -235,7 +235,7 @@ A node:
       convenient address.
         - Note: if the output is spent (as recommended), the output is
         *resolved* by the spending transaction, otherwise it is considered
-        *resolved* by the commitment transaction itself.
+        *resolved* by the HTLC-timeout transaction itself.
       - MUST wait until the `OP_CHECKSEQUENCEVERIFY` delay has passed (as
       specified by the remote node's `open_channel` `to_self_delay` field)
       before spending that HTLC-timeout output.
