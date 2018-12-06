@@ -283,8 +283,8 @@ reason for the other side to fail the closing protocol; so this is
 explicitly allowed. The signature indicates which variant
 has been used.
 
-There will be at least one output, if `dust_limit_satoshis` is greater
-than twice the funding amount.
+There will be at least one output, if the funding amount is greater
+than twice `dust_limit_satoshis`.
 
 ## Fees
 
