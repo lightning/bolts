@@ -316,7 +316,7 @@ The receiving node:
     - MUST NOT process the message further.
   - if `signature` is NOT a valid signature (using `node_id` of the
   double-SHA256 of the entire message following the `signature` field, including
-  unknown fields following `alias`):
+any future fields appended to the end):
     - SHOULD fail the connection.
     - MUST NOT process the message further.
   - if `features` field contains _unknown even bits_:
