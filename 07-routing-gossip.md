@@ -498,15 +498,15 @@ The receiving node:
   the specified chain):
     - MUST ignore the channel update.
   - if `timestamp` is NOT greater than that of the last-received
-  `channel_announcement` for this `short_channel_id` AND for `node_id`:
+  `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
   - otherwise:
-    - if the `timestamp` is equal to the last-received `channel_announcement`
+    - if the `timestamp` is equal to the last-received `channel_update`
     AND the fields (other than `signature`) differ:
       - MAY blacklist this `node_id`.
       - MAY forget all channels associated with it.
   - if the `timestamp` is unreasonably far in the future:
-    - MAY discard the `channel_announcement`.
+    - MAY discard the `channel_update`.
   - otherwise:
     - SHOULD queue the message for rebroadcasting.
     - MAY choose NOT to for messages longer than the minimum expected length.
@@ -557,7 +557,7 @@ Encoding types:
 * `1`: array of `short_channel_id` types, in ascending order, compressed with zlib deflate<sup>[1](#reference-1)</sup>
 
 Note that a 65535-byte zlib message can decompress into 67632120
-bytes<sup>[2](#reference-2)</sup>, but since the only valid contents 
+bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
 across the stream: as each duplicate takes at least 2 bits, no valid
 contents could decompress to more then 3669960 bytes.
