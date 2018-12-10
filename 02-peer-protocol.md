@@ -523,7 +523,7 @@ The funding node:
     - SHOULD send a `closing_signed` message.
 
 The sending node:
-  - if `option_upfront_shutdown_script` applies to the final commitment transaction:
+  - if `option_simplified_commitment` applies to the final commitment transaction:
     - MUST set `fee_satoshis` greater than or equal to 282.
   - otherwise:
     - MUST set `fee_satoshis` less than or equal to the
@@ -540,10 +540,14 @@ The receiving node:
   - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
     - SHOULD sign and broadcast the final closing transaction.
     - MAY close the connection.
-  - otherwise, if `fee_satoshis` is greater than
-the base fee of the final commitment transaction as calculated in
-[BOLT #3](03-transactions.md#fee-calculation):
-    - MUST fail the connection.
+  - if `option_simplified_commitment` applies to the final commitment transaction:
+    - if `fee_satoshis` greater less than 282.
+      - MUST fail the connection.
+  - otherwise (no `option_simplified_commitment`):
+    - if `fee_satoshis` is greater than
+      the base fee of the final commitment transaction as calculated in
+      [BOLT #3](03-transactions.md#fee-calculation):
+      - MUST fail the connection.
   - if `fee_satoshis` is not strictly
 between its last-sent `fee_satoshis` and its previously-received
 `fee_satoshis`, UNLESS it has since reconnected:
