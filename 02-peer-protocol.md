@@ -1134,7 +1134,7 @@ messages are), they are independent of requirements here.
    * [`32`:`channel_id`]
    * [`8`:`next_local_commitment_number`]
    * [`8`:`next_remote_revocation_number`]
-   * [`32`:`your_last_per_commitment_secret`] (option_data_loss_protect)
+   * [`32`:`your_last_per_commitment_secret`] (option_data_loss_protect option_simplified_commitment)
    * [`33`:`my_current_per_commitment_point`] (option_data_loss_protect)
 
 ### Requirements
@@ -1176,12 +1176,14 @@ The sending node:
   next `commitment_signed` it expects to receive.
   - MUST set `next_remote_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
-  - if it supports `option_data_loss_protect`:
+  - if it supports `option_data_loss_protect` or `option_simplified_commitment`:
     - if `next_remote_revocation_number` equals 0:
       - MUST set `your_last_per_commitment_secret` to all zeroes
     - otherwise:
       - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret`
     it received
+  - if `option_simplified_commitment` applies to the commitment transaction:
+	- MUST NOT include `my_current_per_commitment_point`.
 
 A node:
   - if `next_local_commitment_number` is 1 in both the `channel_reestablish` it
@@ -1212,8 +1214,17 @@ A node:
       - SHOULD fail the channel.
 
  A receiving node:
-  - if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
-  fields are present:
+  - if `option_simplified_commitment` applies to the commitment transaction:
+    - if `next_remote_revocation_number` is greater than expected above, AND
+    `your_last_per_commitment_secret` is correct for that
+    `next_remote_revocation_number` minus 1:
+      - MUST NOT broadcast its commitment transaction.
+      - SHOULD fail the channel.
+    - otherwise:
+	  - if `your_last_per_commitment_secret` does not match the expected values:
+        - SHOULD fail the channel.
+  - otherwise, if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
+    fields are present:
     - if `next_remote_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
     `next_remote_revocation_number` minus 1:
@@ -1304,6 +1315,13 @@ non-HTLC funds, if the `my_current_per_commitment_point`
 is valid. However, this also means the fallen-behind node has revealed this
 fact (though not provably: it could be lying), and the other node could use this to
 broadcast a previous state.
+
+`option_simplified_commitment` removes the changing `to_remote` key,
+so the `my_current_per_commitment_point` is unnecessary and thus
+removed, but the disclosure of previous secret still allows
+fall-behind detection.  An implementation can offer both, however, and
+fall back to the `option_data_loss_protect` behavior if
+`option_simplified_commitment` is not negotiated.
 
 # Authors
 
