@@ -344,7 +344,7 @@ responder encrypted with _strong_ forward secrecy, using the accumulated `HKDF`
 derived secret key at this point of the handshake.
 
 The handshake is _exactly_ 66 bytes: 1 byte for the handshake version, 33
-bytes for the ephemeral public key encrypted with the `ChaCha20` stream
+bytes for the static public key encrypted with the `ChaCha20` stream
 cipher, 16 bytes for the encrypted public key's tag generated via the AEAD
 construction, and 16 bytes for a final authenticating tag.
 
