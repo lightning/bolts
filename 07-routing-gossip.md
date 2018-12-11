@@ -465,7 +465,7 @@ The origin node:
   - MUST set bits in `channel_flags` and `message_flags `that are not assigned a meaning to 0.
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
   signal a channel's temporary unavailability (e.g. due to a loss of
-  connectivity) OR permanent unavailability (e.g. prior to an on-chain
+  connectivity, or due to the channel being completely unbalanced) OR permanent unavailability (e.g. prior to an on-chain
   settlement).
     - MAY sent a subsequent `channel_update` with the `disable` bit  set to 0 to
     re-enable the channel.
