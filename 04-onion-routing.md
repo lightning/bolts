@@ -885,7 +885,7 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
   - if the receiving peer specified by the onion is NOT known:
     - return an `unknown_next_peer` error.
   - if the HTLC amount is less than the currently specified minimum amount:
-    - report the amount of the incoming HTLC and the current channel setting for
+    - report the amount of the outgoing HTLC and the current channel setting for
     the outgoing channel.
     - return an `amount_below_minimum` error.
   - if the HTLC does NOT pay a sufficient fee:
@@ -894,7 +894,7 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
     - return a `fee_insufficient` error.
  -  if the incoming `cltv_expiry` minus the `outgoing_cltv_value` is below the
     `cltv_expiry_delta` for the outgoing channel:
-    - report the `cltv_expiry` and the current channel setting for the outgoing
+    - report the `cltv_expiry` of the outgoing HTLC and the current channel setting for the outgoing
     channel.
     - return an `incorrect_cltv_expiry` error.
   - if the `cltv_expiry` is unreasonably near the present:
