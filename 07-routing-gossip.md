@@ -157,7 +157,7 @@ The origin node:
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that the channel was opened within:
     - for the _Bitcoin blockchain_:
-      - MUST set `chain_hash` value (encoded in hex) equal to `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
+      - MUST set `chain_hash` value (encoded in hex) equal to `6Feb28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
   - MUST set `short_channel_id` to refer to the confirmed funding transaction,
   as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).
     - Note: the corresponding output MUST be a P2WSH, as described in [BOLT #3](03-transactions.md#funding-transaction-output).
@@ -730,22 +730,29 @@ In the case where the `channel_announcement` is nonetheless missed,
 ## Extended Query Messages
 
 The query messages defined above do not cover the use case of nodes
-that are offline most of the time and are missing a timestamps that can
-be used to detect obsolete channel updates.
+that are offline most of the time, need to synchronize their routing table when they start, and face
+2 specific issues:
+- they need to detect obsolete local channel updates and query newer ones, and only newer ones
+- they want to avoid downloading channel updates that do not carry new information
 
-Here we define a new set of channel queries, with additional timestamps (one
-timestamp per channel update).
+The second issue is typically caused by channels that have been disabled then enabled again while the local
+node what offline. 
+
+Here we define a new set of channel queries, with additional fields:
+- one timestamp per channel update, used to detect obsolete channel updates
+- one checksum per channel update, used to avoid querying channel updates which carry exactly the same
+information as the local one, but with a more recent timestamp.
 
 A new feature bit is used to specify which type of queries a node will support. If 
 both nodes support extended queries then the first message that they will send once they're
-connected will be `query_channel_range_with_timestamps` and they will only use extended queries 
+connected will be `query_channel_range_extended` and they will only use extended queries 
 from then on.
 
 Encoding types are the same as above, with a single byte prefix (`0` or `1`)
 
-### The `query_short_channel_ids_with_timestamps`/`reply_short_channel_ids_with_timestamps_end` Messages
+### The `query_short_channel_ids_extended`/`reply_short_channel_ids_extended_end` Messages
 
-1. type: 1011 (`query_short_channel_ids_with_timestamps`) (`gossip_queries`)
+1. type: 1011 (`query_short_channel_ids_extended`) (`gossip_queries`)
 2. data:
     * [`32`:`chain_hash`]
     * [`2`:`len`]
@@ -758,7 +765,7 @@ specifies what the sender wants to receive for a given short channel id and can 
 * `2`: include `channel_update` for node 2
 * `4`: include `channel_announcement`
  
-1. type: 1012 (`reply_short_channel_ids_with_timestamps_end`) (`gossip_queries`)
+1. type: 1012 (`reply_short_channel_ids_extended_end`) (`gossip_queries`)
 2. data:
     * [`32`:`chain_hash`]
     * [`1`:`complete`]
@@ -773,7 +780,7 @@ from `reply_channel_range`.
 #### Requirements
 
 The sender:
-  - MUST NOT send `query_short_channel_ids_with_timestamps` if it has sent a previous `query_short_channel_ids_with_timestamps` to this peer and not received `reply_short_channel_ids_with_timestamps_end`.
+  - MUST NOT send `query_short_channel_ids_extended` if it has sent a previous `query_short_channel_ids_extended` to this peer and not received `reply_short_channel_ids_extended_end`.
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that the `short_channel_id`s refer to.
   - MUST set the first byte of `encoded_short_ids_and_flag` to the encoding type.
@@ -787,13 +794,13 @@ The receiver:
     - MAY fail the connection
   - if `encoded_short_ids_and_flag` does not decode into a whole number of `short_channel_id` and flags:
     - MAY fail the connection.
-  - if it has not sent `reply_short_channel_ids_with_timestamps_end` to a previously received `query_short_channel_ids_with_timestamps` from this sender:
+  - if it has not sent `reply_short_channel_ids_extended_end` to a previously received `query_short_channel_ids_extended` from this sender:
     - MAY fail the connection.
   - MUST respond to each known `short_channel_id` with a `channel_announcement` and/or the latest `channel_update` for each end, according to what the sender specified in the `flag` byte
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
   - MUST follow with any `node_announcement`s for each `channel_announcement`
-	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids_with_timestamps`.
-  - MUST follow these responses with `reply_short_channel_ids_with_timestamps_end`.
+	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids_extended`.
+  - MUST follow these responses with `reply_short_channel_ids_extended_end`.
   - if does not maintain up-to-date channel information for `chain_hash`:
 	- MUST set `complete` to 0.
   - otherwise:
@@ -806,53 +813,61 @@ complete information on unknown `chain_hash` chains.  While this `complete`
 field cannot be trusted, a 0 does indicate that the sender should search
 elsewhere for additional data.
 
-The explicit `reply_short_channel_ids_with_timestamps_end` message means that the receiver can
+The explicit `reply_short_channel_ids_extended_end` message means that the receiver can
 indicate it doesn't know anything, and the sender doesn't need to rely on
 timeouts.  It also causes a natural ratelimiting of queries.
 
-### The `query_channel_range_with_timestamps` and `reply_channel_range_with_timestamps` Messages
+### The `query_channel_range_extended` and `reply_channel_range_extended` Messages
 
-1. type: 1013 (`query_channel_range_with_timestamps`) (`gossip_queries`)
+1. type: 1013 (`query_channel_range_extended`) (`gossip_queries`)
 2. data:
     * [`32`:`chain_hash`]
     * [`4`:`first_blocknum`]
     * [`4`:`number_of_blocks`]
 
-1. type: 1014 (`reply_channel_range_with_timestamps`) (`gossip_queries`)
+1. type: 1014 (`reply_channel_range_extended`) (`gossip_queries`)
 2. data:
     * [`32`:`chain_hash`]
     * [`4`:`first_blocknum`]
     * [`4`:`number_of_blocks`]
     * [`1`:`complete`]
     * [`2`:`len`]
-    * [`len`:`encoded_short_ids_and_timestamps`]
+    * [`len`:`encoded_channel_digest_info`]
 
 This allows a query for channels within specific blocks.
 
 #### Requirements
 
-The sender of `query_channel_range_with_timestamps`:
-  - MUST NOT send this if it has sent a previous `query_channel_range_with_timestamps` to this peer and not received all `reply_channel_range_with_timestamps` replies.
+The sender of `query_channel_range_extended`:
+  - MUST NOT send this if it has sent a previous `query_channel_range_extended` to this peer and not received all `reply_channel_range_extended` replies.
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
-  that it wants the `reply_channel_range_with_timestamps` to refer to
+  that it wants the `reply_channel_range_extended` to refer to
   - MUST set `first_blocknum` to the first block it wants to know channels for
   - MUST set `number_of_blocks` to 1 or greater.
 
-The receiver of `query_channel_range_with_timestamps`:
-  - if it has not sent all `reply_channel_range_with_timestamps` to a previously received `query_channel_range_with_timestamps` from this sender:
+The receiver of `query_channel_range_extended`:
+  - if it has not sent all `reply_channel_range_extended` to a previously received `query_channel_range_extended` from this sender:
     - MAY fail the connection.
-  - MUST respond with one or more `reply_channel_range_with_timestamps` whose combined range
+  - MUST respond with one or more `reply_channel_range_extended` whose combined range
 	cover the requested `first_blocknum` to `first_blocknum` plus
 	`number_of_blocks` minus one.
-  - For each `reply_channel_range_with_timestamps`:
-    - MUST set with `chain_hash` equal to that of `query_channel_range_with_timestamps`,
-    - MUST encode a `short_channel_id` and 2 timestamps, one for each `channel_update`, for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
+  - For each `reply_channel_range_extended`:
+    - MUST set with `chain_hash` equal to that of `query_channel_range_extended`,
+    - MUST encode channel digest information, for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
     - MUST limit `number_of_blocks` to the maximum number of blocks whose
-      results could fit in `encoded_short_ids_and_timestamps`
+      results could fit in `encoded_channel_digest_info`
     - if does not maintain up-to-date channel information for `chain_hash`:
       - MUST set `complete` to 0.
     - otherwise:
       - SHOULD set `complete` to 1.
+
+Channel digest information for each channel is encoded as follow:
+- `short_channel_id`
+- timestamp of the `channel_update` for node 1
+- timestamp of the `channel_update` for node 2
+- 4 bytes CRC32 checksum of the following fields: `short_channel_id`, `message_flags`, `channel_flags`, `cltv_expiry_delta`,
+ `htlc_minimum_msat`, `fee_base_msat`, `fee_proportional_millionths`, `htlc_maximum_msat`
+
 
 #### Rationale
 
