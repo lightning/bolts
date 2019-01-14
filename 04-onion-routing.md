@@ -809,9 +809,8 @@ handling by the processing node.
 The `payment_hash` is unknown to the final node or the amount for that
 `payment_hash` is incorrect.
 
-1. type: PERM|16 (`incorrect_payment_amount`)
-
-Originally used to differentiate incorrect final amount from unknown payment
+Note: Originally PERM|16 (`incorrect_payment_amount`) was
+used to differentiate incorrect final amount from unknown payment
 hash. Sadly, sending this response allows for probing attacks whereby a node
 which receives an HTLC for forwarding can check guesses as to its final
 destination by sending payments with the same hash but much lower values to
@@ -918,7 +917,7 @@ An _intermediate hop_ MUST NOT, but the _final node_:
     - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the amount paid is more than twice the amount expected:
     - SHOULD fail the HTLC.
-    - SHOULD return an `incorrect_payment_amount` error.
+    - SHOULD return an `incorrect_or_unknown_payment_details` error.
       - Note: this allows the origin node to reduce information leakage by
       altering the amount while not allowing for accidental gross overpayment.
   - if the `cltv_expiry` value is unreasonably near the present:
