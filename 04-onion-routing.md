@@ -704,7 +704,7 @@ The top byte of `failure_code` can be read as a set of flags:
 * 0x1000 (UPDATE): new channel update enclosed
 
 Please note that the `channel_update` field is mandatory in messages whose
-`failure_code` includes the `UPDATE` flag.
+`failure_code` includes the `UPDATE` flag, and that when enclosed the `channel_update` must include the wire message type.
 
 The following `failure_code`s are defined:
 
