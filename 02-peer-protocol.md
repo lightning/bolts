@@ -794,6 +794,9 @@ Fees") while maintaining its channel reserve.
     - MUST set `id` to 0.
   - MUST increase the value of `id` by 1 for each successive offer.
 
+`id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
+been received). It MUST continue incrementing instead.
+
 A receiving node:
   - receiving an `amount_msat` equal to 0, OR less than its own `htlc_minimum_msat`:
     - SHOULD fail the channel.
