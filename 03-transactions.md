@@ -150,8 +150,7 @@ This output sends funds to either the remote node after the HTLC-timeout or usin
     OP_IF
         OP_CHECKSIG
     OP_ELSE
-        <remote_htlcpubkey> OP_SWAP
-            OP_SIZE 32 OP_EQUAL
+        <remote_htlcpubkey> OP_SWAP OP_SIZE 32 OP_EQUAL
         OP_IF
             # To local node via HTLC-success transaction.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
