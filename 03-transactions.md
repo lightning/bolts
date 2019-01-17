@@ -680,8 +680,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
     accepted_htlc_script: 139 bytes
         - OP_DUP: 1 byte
         - OP_HASH160: 1 byte
-        - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationpubkey)) length)
-        - RIPEMD160(SHA256(revocationpubkey)): 20 bytes
+        - OP_DATA: 1 byte HASH160(revocationpubkey) length)
+        - HASH160(revocationpubkey): 20 bytes
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_CHECKSIG: 1 byte
@@ -695,7 +695,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_IF: 1 byte
         - OP_HASH160: 1 byte
 		- OP_DATA: 1 byte OP_HASH160(payment_hash) length)
-		- RIPEMD160(SHA256(payment_hash)): 20 bytes
+		- HASH160(payment_hash): 20 bytes
         - OP_EQUALVERIFY: 1 byte
         - 2: 1 byte
         - OP_SWAP: 1 byte
@@ -716,8 +716,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
     offered_htlc_script: 133 bytes
         - OP_DUP: 1 byte
         - OP_HASH160: 1 byte
-        - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationpubkey)) length)
-        - RIPEMD160(SHA256(revocationpubkey)): 20 bytes
+        - OP_DATA: 1 byte HASH160(revocationpubkey) length)
+        - HASH160(revocationpubkey): 20 bytes
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_CHECKSIG: 1 byte
@@ -739,8 +739,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_CHECKMULTISIG: 1 byte
 		- OP_ELSE: 1 byte
 		- OP_HASH160: 1 byte
-		- OP_DATA: 1 byte (RIPEMD160(SHA256(payment_hash)) length)
-		- RIPEMD160(SHA256(payment_hash)): 20 bytes
+		- OP_DATA: 1 byte HASH160(payment_hash) length)
+		- HASH160(payment_hash): 20 bytes
 		- OP_EQUALVERIFY: 1 byte
 		- OP_CHECKSIG: 1 byte
 		- OP_ENDIF: 1 byte
