@@ -116,7 +116,7 @@ This output sends funds to the other peer and thus is a simple P2WPKH to `remote
 This output sends funds to either an HTLC-timeout transaction after the HTLC-timeout or to the remote node using the payment preimage or the revocation key. The output is a P2WSH, with a witness script:
 
     # To remote node with revocation key
-    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
+    OP_DUP OP_HASH160 <HASH160(revocationpubkey)> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
@@ -126,7 +126,7 @@ This output sends funds to either an HTLC-timeout transaction after the HTLC-tim
             OP_DROP 2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
         OP_ELSE
             # To remote node with preimage.
-            OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
+            OP_HASH160 <HASH160(payment_hash)> OP_EQUALVERIFY
             OP_CHECKSIG
         OP_ENDIF
     OP_ENDIF
@@ -146,7 +146,7 @@ The sending node can use the HTLC-timeout transaction to timeout the HTLC once t
 This output sends funds to either the remote node after the HTLC-timeout or using the revocation key, or to an HTLC-success transaction with a successful payment preimage. The output is a P2WSH, with a witness script:
 
     # To remote node with revocation key
-    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
+    OP_DUP OP_HASH160 <HASH160(revocationpubkey)> OP_EQUAL
     OP_IF
         OP_CHECKSIG
     OP_ELSE
@@ -154,7 +154,7 @@ This output sends funds to either the remote node after the HTLC-timeout or usin
             OP_SIZE 32 OP_EQUAL
         OP_IF
             # To local node via HTLC-success transaction.
-            OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
+            OP_HASH160 <HASH160(payment_hash)> OP_EQUALVERIFY
             2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
         OP_ELSE
             # To remote node after timeout.
@@ -694,8 +694,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_HASH160: 1 byte
-		- OP_DATA: 1 byte (RIPEMD160(payment_hash) length)
-		- RIPEMD160(payment_hash): 20 bytes
+		- OP_DATA: 1 byte OP_HASH160(payment_hash) length)
+		- RIPEMD160(SHA256(payment_hash)): 20 bytes
         - OP_EQUALVERIFY: 1 byte
         - 2: 1 byte
         - OP_SWAP: 1 byte
@@ -739,8 +739,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_CHECKMULTISIG: 1 byte
 		- OP_ELSE: 1 byte
 		- OP_HASH160: 1 byte
-		- OP_DATA: 1 byte (RIPEMD160(payment_hash) length)
-		- RIPEMD160(payment_hash): 20 bytes
+		- OP_DATA: 1 byte (RIPEMD160(SHA256(payment_hash)) length)
+		- RIPEMD160(SHA256(payment_hash)): 20 bytes
 		- OP_EQUALVERIFY: 1 byte
 		- OP_CHECKSIG: 1 byte
 		- OP_ENDIF: 1 byte
