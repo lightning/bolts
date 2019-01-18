@@ -953,6 +953,9 @@ fee changes).
   to BIP69 lexicographic ordering of the commitment transaction.
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
+  - after sending a `commitment_signed` message:
+      - MUST ignore any `update` message from the other party before receiving the
+        `revoke_and_ack` that corresponds to the `commitment_signed` sent.
 
 A receiving node:
   - once all pending updates are applied:
@@ -977,6 +980,9 @@ offline until after sending `commitment_signed`.  Once
 `commitment_signed` is sent, the sender considers itself bound to
 those HTLCs, and cannot fail the related incoming HTLCs until the
 output HTLCs are fully resolved.
+
+Allowing a node to make more updates before receiving `revoke_and_ack` leaves the old
+state unrevoked.
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
