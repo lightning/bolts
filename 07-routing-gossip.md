@@ -865,9 +865,10 @@ Channel digest information for each channel is encoded as follow:
 - `short_channel_id`
 - timestamp of the `channel_update` for node 1
 - timestamp of the `channel_update` for node 2
-- 4 bytes CRC32 checksum of the following fields: `short_channel_id`, `message_flags`, `channel_flags`, `cltv_expiry_delta`,
- `htlc_minimum_msat`, `fee_base_msat`, `fee_proportional_millionths`, `htlc_maximum_msat`
+- checksum for the `channel_update` for node 1
+- checksum for the `channel_update` for node 2
 
+The checksum for a `channel_update` is a CRC32 checksum that covers the following fields: `short_channel_id`, `channel_flags`, `cltv_expiry_delta`, `fee_base_msat`, `fee_proportional_millionths`. It can be used to avoid querying new updates that do not include new information, and does not cover static fields such as `htlc_minimum_msat` or `htlc_maximum_msat`.
 
 #### Rationale
 
