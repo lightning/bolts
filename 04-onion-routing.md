@@ -824,7 +824,7 @@ handling by the final node.
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
-   * [`4`:`cltv_expiry`]
+   * [`4`:`incoming_cltv_expiry`]
 
 The CLTV expiry in the HTLC doesn't match the value in the onion.
 
