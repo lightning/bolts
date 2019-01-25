@@ -799,8 +799,8 @@ A receiving node:
     - SHOULD fail the channel.
   - receiving an `amount_msat` that the sending node cannot afford at the current `feerate_per_kw` (while maintaining its channel reserve):
     - SHOULD fail the channel.
-  - if a sending node adds more than its `max_accepted_htlcs` HTLCs to
-    its local commitment transaction, OR adds more than its `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction:
+  - if a sending node adds more than receiver `max_accepted_htlcs` HTLCs to
+    its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction:
     - SHOULD fail the channel.
   - if sending node sets `cltv_expiry` to greater or equal to 500000000:
     - SHOULD fail the channel.
