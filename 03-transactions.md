@@ -691,7 +691,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - remotepubkey: 33 bytes
         - OP_SWAP: 1 byte
         - OP_SIZE: 1 byte
-        - 32: 2 bytes
+        - OP_DATA: 1 byte (32 length)
+        - 32: 1 byte
         - OP_EQUAL: 1 byte
         - OP_IF: 1 byte
         - OP_HASH160: 1 byte
