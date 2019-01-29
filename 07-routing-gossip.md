@@ -655,7 +655,9 @@ The receiver of `query_channel_range`:
 	cover the requested `first_blocknum` to `first_blocknum` plus
 	`number_of_blocks` minus one.
   - For each `reply_channel_range`:
-    - MUST set with `chain_hash` equal to that of `query_channel_range`,
+    - MUST set with `chain_hash` equal to that of `query_channel_range`.
+    - MUST set `first_blocknum` equal to first block number of `encoded_short_ids`.
+    - MUST set `number_of_blocks` equal to last block number of `encoded_short_ids` minus `first_blocknum` plus one.
     - MUST encode a `short_channel_id` for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
     - MUST limit `number_of_blocks` to the maximum number of blocks whose
       results could fit in `encoded_short_ids`
