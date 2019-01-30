@@ -622,17 +622,17 @@ the blockchain.
 #### Requirements
 
 A node:
-  - until the incoming HTLC has been irrevocably committed:
-    - MUST NOT offer an HTLC (`update_add_htlc`) in response to an incoming HTLC.
-  - until the removal of the outgoing HTLC is irrevocably committed, OR until the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction (with sufficient depth):
-    - MUST NOT fail an incoming HTLC (`update_fail_htlc`) for which it has committed
-to an outgoing HTLC.
-  - once its `cltv_expiry` has been reached, OR if `cltv_expiry` minus `current_height` is less than `cltv_expiry_delta` for the outgoing channel:
-    - MUST fail an incoming HTLC (`update_fail_htlc`).
+  - until an incoming HTLC has been irrevocably committed:
+    - MUST NOT offer the corresponding outgoing HTLC (`update_add_htlc`) in response to that incoming HTLC.
+  - until the removal of an outgoing HTLC is irrevocably committed, OR until the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction (with sufficient depth):
+    - MUST NOT fail the incoming HTLC (`update_fail_htlc`) that corresponds
+to that outgoing HTLC.
+  - once the `cltv_expiry` of an incoming HTLC has been reached, OR if `cltv_expiry` minus `current_height` is less than `cltv_expiry_delta` for the corresponding outgoing HTLC:
+    - MUST fail that incoming HTLC (`update_fail_htlc`).
   - if an incoming HTLC's `cltv_expiry` is unreasonably far in the future:
     - SHOULD fail that incoming HTLC (`update_fail_htlc`).
-  - upon receiving an `update_fulfill_htlc` for the outgoing HTLC, OR upon discovering the `payment_preimage` from an on-chain HTLC spend:
-    - MUST fulfill an incoming HTLC for which it has committed to an outgoing HTLC.
+  - upon receiving an `update_fulfill_htlc` for an outgoing HTLC, OR upon discovering the `payment_preimage` from an on-chain HTLC spend:
+    - MUST fulfill the incoming HTLC that corresponds to that outgoing HTLC.
 
 #### Rationale
 
