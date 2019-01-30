@@ -209,6 +209,7 @@ The receiving node MUST fail the channel if:
   - the `chain_hash` value is set to a hash of a chain that is unknown to the receiver.
   - `push_msat` is greater than `funding_satoshis` * 1000.
   - `to_self_delay` is unreasonably large.
+  - `max_htlc_value_in_flight_msat` is greater than `funding_satoshis` * 1000.
   - `max_accepted_htlcs` is greater than 483.
   - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
