@@ -988,7 +988,7 @@ of packet creation:
 
 The HMAC is omitted in the following `hop_data`, since it's likely to be filled
 by the onion construction. Hence, the values below are the `realm`, the
-`short_channel_id`, the `amt_to_forward`, the `outgoing_cltv`, and the 16-byte
+`short_channel_id`, the `amt_to_forward`, the `outgoing_cltv`, and the 12-byte
 `padding`. They were initialized by byte-filling the `short_channel_id` to the
 each hop's respective position in the route and then, starting at 0, setting
 `amt_to_forward` and `outgoing_cltv` to the same route position.
