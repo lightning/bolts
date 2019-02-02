@@ -289,10 +289,12 @@ using an alternate channel.
 
 ## Payload for the Last Node
 
-When building the route, the origin node MUST use a payload for
-the final node with the following values:
+When building the route, the origin node MUST fill the `per_hop` field for the
+final node with the following values:
+* `short_channel_id`: 8 arbitrary bytes
 * `outgoing_cltv_value`: set to the final expiry specified by the recipient
 * `amt_to_forward`: set to the final amount specified by the recipient
+* `padding`: 12 zero bytes
 
 This allows the final node to check these values and return errors if needed,
 but it also eliminates the possibility of probing attacks by the second-to-last
