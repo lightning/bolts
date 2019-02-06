@@ -17,7 +17,6 @@ operation, and closing.
       * [The `open_channel2` Message](#the-open_channel2-message)
       * [The `accept_channel2` Message](#the-accept_channel2-message)
       * [The `funding_compose` Message](#the-funding_compose-message)
-      * [The `commitment_signed2` Message](#the-commitment_signed2-message)
       * [The `funding_signed2` Message](#the-funding_signed2-message)
       * [The `funding_locked2` Message](#the-funding_locked2-message)
       * [Kicking Off Replace-By-Fee: `init_rbf` Message](#kicking-off-replace-by-fee-init_rbf)
@@ -603,7 +602,7 @@ The receiving node:
       to create the funding transaction, using `max_witness_len`
       for each `input_info` and `feerate_per_kw_funding` as specified in
       `open_channel2`.
-    - MUST send `commitment_signed2`.
+    - MUST send `commitment_signed`.
 
 
 #### Rationale
@@ -645,41 +644,6 @@ change_satoshis = sum(inputs.satoshis) - est_tx_kw * feerate_per_kw_funding - su
 The channel funding output is not exchanged, as it can be derived
 independently.
 
-#### The `commitment_signed2` Message
-
-This message exchanges the counterparty's signature for the
-first commitment transaction, so it can broadcast the funding
-transaction knowing that the funds can be redeemed.
-
-1. type: 59 (`commitment_signed2`)
-2. data:
-  See [`commitment_signed`](#commiting-updates-so-far-commitment_signed).
-
-#### Requirements:
-
-The sending node:
-  - MUST derive the `channel_id` from the SHA256(
-    `open_channel2`.`revocation_basepoint`|`accept_channel2`.`revocation_`
-     `basepoint`)
-  - MUST set signature to the valid signature, using its `funding_pubkey`
-    for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
-  - MUST set `num_htlcs` to zero.
-
-A receiving node:
-  - if the `num_htlcs` is not zero:
-    - MUST fail the channel.
-  - if sent in response to a `funding_compose` message:
-    - MUST respond with a `commitment_signed` message.
-  - otherwise:
-     - MUST respond with a `funding_signed2` message.
-
-#### Rationale
-There are no HTLC's yet, so the number must be zero. FIXME: use this
-for `will_fund_for_food` bonds?
-
-Note that the channel id for `open_channel2` is fixed as the SHA256 of the
-concatenated revocation points, and will not update. This allows stable
-channel tracking across RBFs and splicing attempts.
 
 ### The `funding_signed2` Message
 
