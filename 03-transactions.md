@@ -383,6 +383,39 @@ A node:
   - if the resulting fee rate is too low:
     - MAY fail the channel.
 
+## Channel Establishment v2 Funding Transaction Fees
+
+For channel establishment v2, fees are paid by the opener (the node that sends the
+`open_channel` message). Change, if any, is paid to the opener's change address, a zero value
+output in their output set.
+
+A change output of value `change_satoshis` will be included if there is enough satoshi
+remaining to pay for its inclusion without decreasing the amount of available `funding_satoshis`.
+
+    change_satoshis = sum(inputs.satoshis) - est_tx_fee
+                      - sum(outputs.satoshis) - funding_satoshis
+
+
+### Calculating `est_tx_fee`
+
+The fee for a v2 funding transaction is calculated in up to two rounds.
+ - if the `opener` provided a change address, first:
+   - MUST calculate the `est_tx_fee` as:
+      1. Multiply (funding_transaction_weight + witness_weight) by `feerate_per_kw_funding`
+         and divide by 1000 (rounding down).
+      2. Confirm that `change_satoshis` is greater than zero.
+ - if the no change address is provided or the `change_satoshis` is less than or
+   equal to zero:
+   - MUST calculate the `est_tx_fee` without the change output, if provided as:
+      1. Multiply (funding_transaction_weight - change_output_weight +
+         witness_weight) by `feerate_per_kw_funding` and divide by 1000 (rounding down).
+      2. As there is no change_output, any remaining `change_satoshis` will be added to the fee.
+   - if the `change_satoshis` is less than zero:
+      - `funding_satoshis` will be decreased by the difference
+
+
+Computation details are included in [Appendix A, Expected Weight of the Funding Transaction](#appendix-a-expected-weights).
+
 ## Commitment Transaction Construction
 
 This section ties the previous sections together to detail the
@@ -605,6 +638,47 @@ This looks complicated, but remember that the index in entry `b` has
 at each bucket is a prefix of the desired index.
 
 # Appendix A: Expected Weights
+
+## Expected Weight of the Funding Transaction (v2 Channel Establishment)
+
+The *expected weight* of a funding transaction is calculated as follows:
+
+      inputs: 40 bytes + var_int + `scriptlen`
+		- previous_out_point: 36 bytes
+			- hash: 32 bytes
+			- index: 4 bytes
+		- var_int: ? bytes (dependent on `scriptlen`)
+		- script_sig: `scriptlen`
+		- witness <----	Cost for "witness" data calculated separately.
+		- sequence: 4 bytes
+
+       non_funding_outputs: 8 bytes + var_int + `scriptlen`
+                - value: 8 bytes
+                - var_int: ? bytes (dependent on `scriptlen`)
+                - script_sig: `scriptlen`
+
+       funding_output: 80 bytes
+                - value: 8 bytes
+                - var_int: 1 byte
+                - script_sig: 71 bytes
+		  - OP_2: 1 byte
+		  - OP_DATA: 1 byte (pub_key_alice length)
+		  - pub_key_alice: 33 bytes
+		  - OP_DATA: 1 byte (pub_key_bob length)
+		  - pub_key_bob: 33 bytes
+		  - OP_2: 1 byte
+		  - OP_CHECKMULTISIG: 1 byte
+
+Multiplying non-witness data by 4 results in a weight of:
+
+	// funding_transaction = 80 + num_inputs * 40 + num_outputs * 8
+        //                       + sum(scriptlen) + sum(var_ints)
+	funding_transaction_weight = 4 * funding_transaction
+
+	witness_weight = sum(max_witness_len)
+
+	overall_weight = funding_transaction_weight + witness_weight
+
 
 ## Expected Weight of the Commitment Transaction
 

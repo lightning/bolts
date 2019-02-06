@@ -126,9 +126,10 @@ subsubtype
 UTXO
 utxo
 scriptPubkey
-counterparty's
 RBFs
 ack'd
+scriptlen
+ints
 htlc
 htlcs
 ChaCha
