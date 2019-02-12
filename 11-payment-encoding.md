@@ -141,6 +141,7 @@ Currently defined tagged fields are:
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
 * `9` (5): `data_length` variable. A big-endian feature bitfield.
+   * Bit 0: `bolt11-multi-part-payment`.  Indicates this node accepts `multi_part_payment` TLV field (see [BOLT #4](04-onion-routing.md#multi-part-payment-tlv-value)).
 
 ### Requirements
 

@@ -684,6 +684,56 @@ The sender:
 The recipient:
   - MUST use `ephkey` as the ephemeral key for the next hop.
 
+## `multi_part_payment` TLV Value
+
+1. type: 4 (`multi_part_payment`)
+2: nodetype: final
+3. length: variable, <= 8
+4. value: `total_msatoshis`
+
+Indicates to the final node that this may be part of a larger payment. 
+See ([BOLT 11](11-payment-encoding.md).
+
+### Requirements
+
+The sender:
+  - MUST NOT send `multi_part_payment` unless the final recipient has indicated it will accept it (eg. using `bolt11-multi-part-payment`)
+  - MUST send more than one simultaneous multiple independent payments with the same `payment_hash`.
+  - if `amount` is specified for the payment:
+	- MUST set `total_msatoshis` greater than or equal to the `amount` and less than or equal to twice the `amount`.
+    - MUST NOT send more simultaneous payments if the sum of `amount_msat` already exceeds `amount`.
+  - otherwise:
+    - The sender may choose not to use `multi_part_payment`.
+  - MUST use the same `total_msatoshis` on each of these payments.
+  - SHOULD retry failed payments.
+  - MAY split failed payments into further independent payments.
+
+The recipient:
+  - MUST apply the requirements below, with `total_msatoshis` standing in for "amount paid".
+  - SHOULD wait 60 seconds for more payments with the same `payment_hash`.
+  - SHOULD reject payments older than 60 seconds with `incorrect_or_unknown_payment_details`.
+  - MUST NOT accept payments until the total `amount_msat` for all waiting payments with the same `payment_hash` is greater than or equal to `total_msatoshis`.
+
+### Rationale
+
+The recipient will not accept any payments until it can receive the
+`amount` required by the invoice (if it does, it has agreed to the
+discount by providing the receipt).  But once the recipient takes any
+payment, the `payment_preimage` is revealed, so further payments can
+be collected by intermediaries.  This is why we ensure that there are
+never "excess" payments.
+
+When `amount` is not specified, we rely on the good will of the
+recipient to way for the `total_msatoshis` amount we promised.  It
+might be motivated to accept payment before that has been reached,
+however, and so multi-part payments do not provide full proof of
+payment in this case.
+
+A reasonable heuristic might be for a payment to be split further by a
+random amount when a failure is received.  Final node failures due to
+timeout can be distinguished from routing failures and the payer can
+adjust accordingly.
+
 
 # Returning Errors
 
