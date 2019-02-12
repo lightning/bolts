@@ -13,6 +13,7 @@ All data fields are unsigned big-endian unless otherwise specified.
 
   * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
   * [Lightning Message Format](#lightning-message-format)
+  * [Type-Length-Value Format](#type-length-value-format)
   * [Setup Messages](#setup-messages)
     * [The `init` Message](#the-init-message)
     * [The `error` Message](#the-error-message)
@@ -81,6 +82,43 @@ boundary (the largest natural alignment requirement of any type here);
 however, adding a 6-byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6-bytes of pre-padding.
+
+## Type-Length-Value Format
+
+In various places in the protocol we use a `tlv` format.  This is
+always of form:
+
+* [`1`:`type`]
+* [`var_int`:`length`]
+* [`length`:`value`]
+
+The `type` byte is never 0 (in some circumstances this can indicate the
+termination of the `tlv` stream).  The `length` field uses the bitcoin
+encoding: less than 253 are single-byte lengths, 253 is followed by a
+two-byte length, and 254 is followed by a four-byte length.  255 is
+invalid.  The `value` depends entirely on the `type` and context.
+
+### Requirements
+
+The sending node:
+  - MUST NOT set `type` to 0.
+  - MUST order `tlv` in ascending type, length and value.
+
+The receiving node:
+  - if `type` is unknown:
+	- if `type` is odd:
+		- MUST ignore the `tlv`
+	- otherwise `type` is even:
+		- MUST fail to parse the `tlv`
+
+### Rationale
+
+This format allows optional information in a backwards compatible manner
+while still allowing non-backwards compatible changes in future.
+
+The requirement on writers for ordering ensures a canonical ordering
+for any `tlv` stream; readers do not check this for simplicity and
+future flexibility (eg. we could change this rule in future).
 
 ## Setup Messages
 
