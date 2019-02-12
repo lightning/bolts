@@ -55,6 +55,7 @@ A node:
   * [Packet Construction](#packet-construction)
   * [Packet Forwarding](#packet-forwarding)
   * [Filler Generation](#filler-generation)
+  * [TLV Values](#tlv-values)
   * [Returning Errors](#returning-errors)
     * [Failure Messages](#failure-messages)
     * [Receiving Failure Codes](#receiving-failure-codes)
@@ -618,6 +619,72 @@ Note that this example implementation is for demonstration purposes only; the
 The last hop need not obfuscate the `filler`, since it won't forward the packet
 any further and thus need not extract an HMAC either.
 
+# TLV Values
+
+Various TLV values can be encoded to change behavior of nodes.
+
+## Requirements
+
+The sender:
+  - if it does not use all the available space for the `tlv` stream:
+	- MUST append a 0 byte to the stream.
+  - if the `nodetype` for a `type` below is `non-final`:
+    - MUST NOT add that `tlv` type for the final node.
+  - if the `nodetype` for a `type` below is `final`:
+    - MUST NOT add that `tlv` type for a non-final node.
+
+The receiver:
+  - if a `type` byte is 0:
+	- MUST ignore the remainder of the stream.
+  - if the `nodetype` below is `non-final` and this is the final node, or `final` and this is a non-final node:
+	- MUST send a `tlv_element_invalid` error with `offset` set to the offset
+		of that `type` byte within the `tlv` stream.
+  - otherwise, if a `type` byte is unknown (or unsupported) and odd:
+	- MUST skip that `tlv` element.
+  - otherwise, if a `type` byte is unknown (or unsupported) and even:
+	- MUST send a `tlv_element_invalid` error with `offset` set to the offset
+		of that `type` byte within the `tlv` stream.
+  - if `length` is not as specified above for that `type`:
+	- MUST send a `tlv_element_invalid` error with `offset` set to the offset
+		of that `length` field within the `tlv` stream.
+
+## `switch_chain` TLV Value
+
+1. type: 2 (`switch_chain`)
+2: nodetype: non-final
+3. length: `32`
+4. value: `chain_id`
+
+Indicates to a non-final node that the outgoing payment should use a
+different `chain_id` than the incoming one.
+
+### Requirements
+
+The sender:
+  - MUST NOT send `switch_chain` unless the outgoing channel is on
+    a different `chain_id`.
+
+The recipient:
+  - MUST check that the outgoing values match the outgoing `chain_id`
+
+## `switch_ephkey` TLV Value
+
+1. type: 4 (`switch_ephkey`)
+2: nodetype: non-final
+3. length: 33
+4. value: `ephkey`
+
+Indicates to an intermediary node that the ephemeral key for the next hop is
+to be replaced by `ephkey` instead of unblinded as above.
+
+The sender:
+  - SHOULD NOT send `switch_ephkey` to a node which has not advertized `option_switch_ephkey`.
+  - SHOULD use `switch_ephkey` for at least one node in the onion which has advertized `option_switch_ephkey`.
+
+The recipient:
+  - MUST use `ephkey` as the ephemeral key for the next hop.
+
+
 # Returning Errors
 
 The onion routing protocol includes a simple mechanism for returning encrypted
@@ -844,6 +911,11 @@ The channel from the processing node has been disabled.
 1. type: 21 (`expiry_too_far`)
 
 The CLTV expiry in the HTLC is too far in the future.
+
+1. type: PERM|22 (`tlv_element_invalid`)
+2. `2`:`offset`
+
+The `tlv` was malformed.
 
 ### Requirements
 
