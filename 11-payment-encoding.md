@@ -140,6 +140,7 @@ Currently defined tagged fields are:
    * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
+* `9` (5): `data_length` variable. A big-endian feature bitfield.
 
 ### Requirements
 
@@ -159,7 +160,8 @@ A writer:
   - MAY include one `c` field.
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
-  - SHOULD use the minimum `data_length` possible for `x` and `c` fields.
+  - MAY include one non-empty `9` field
+  - SHOULD use the minimum `data_length` possible for `x`, `c` and `9` fields.
   - MAY include one `n` field.
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
@@ -229,6 +231,9 @@ will be ignored by readers.
 The `r` field allows limited routing assistance: as specified, it only
 allows minimum information to use private channels, however, it could also
 assist in future partial-knowledge routing.
+
+The `9` field allows for future extensions which only require a single
+activation bit.
 
 ### Security Considerations for Payment Descriptions
 
