@@ -374,9 +374,9 @@ Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
 
 After a channel has been initially announced, each side independently
 announces the fees and minimum expiry delta it requires to relay HTLCs
-through this channel. Each uses the 8-byte channel shortid that matches the
+through this channel. Each uses the 8-byte `short_channel_id` that matches that in
 `channel_announcement` and the 1-bit `channel_flags` field to indicate which end of the
-channel it's on (origin or final). A node can do this multiple times, in
+channel it's on (node_id_1 or node_id_2). A node can do this multiple times, in
 order to change fees.
 
 Note that the `channel_update` gossip message is only useful in the context
