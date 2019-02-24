@@ -783,7 +783,7 @@ Fees") while maintaining its channel reserve.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
   - for channels with `chain_hash` identifying the Bitcoin blockchain:
-    - MUST set the four most significant bytes of `amount_msat` to 0.
+    - MUST set the seven most significant nibbles of `amount_msat` to 0.
   - if result would be offering more than the remote's
   `max_accepted_htlcs` HTLCs, in the remote commitment transaction:
     - MUST NOT add an HTLC.
@@ -807,7 +807,7 @@ A receiving node:
     - SHOULD fail the channel.
   - if sending node sets `cltv_expiry` to greater or equal to 500000000:
     - SHOULD fail the channel.
-  - for channels with `chain_hash` identifying the Bitcoin blockchain, if the four most significant bytes of `amount_msat` are not 0:
+  - for channels with `chain_hash` identifying the Bitcoin blockchain, if the seven most significant nibbles of `amount_msat` are not 0:
     - MUST fail the channel.
   - MUST allow multiple HTLCs with the same `payment_hash`.
   - if the sender did not previously acknowledge the commitment of that HTLC:
@@ -843,7 +843,9 @@ seconds, and the protocol only supports an expiry in blocks.
 
 `amount_msat` is deliberately limited for this version of the
 specification; larger amounts are not necessary, nor wise, during the
-bootstrap phase of the network.
+bootstrap phase of the network.  The amount was initially limited to the
+four most significant bytes being 0, but was changed to limiting
+the seven most significant nibbles being 0 on February 23, 2019.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
 
