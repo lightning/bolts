@@ -939,6 +939,33 @@ and allows bootstrapping for new nodes as well as updating for nodes that
 have been offline for some time.  The `gossip_queries` option
 allows for more refined synchronization.
 
+### Inventory-based Rebroadcasting
+
+With the simple rebroadcasting scheme described above, nodes that are connected to many different peers will receive duplicates for the same gossip messages.
+
+A more efficient scheme based on inventory messages, similar to how transactions and blocks are propagated on the bitcoin p2p network, can optionally be used: if the `option_inv_gossip` feature bit is set, instead of broadcasting `channel_annoucement` and `channel_update` messages, nodes will broadcast a `gossip_inventory` message which is similar to a `reply_channel_range` message and can be used to filter announcements by timestamp or by content (checksum):
+
+1. type: 266 (`gossip_inventory`)
+2. data:
+    * [`32`:`chain_hash`]
+    * [`2`:`len`]
+    * [`len`:`encoded_short_ids`]
+    * [`2`:`inventory_info_len`]
+    * [`len`:`inventory_info`]
+
+The `inventory_info` field is similar to the `extended-query-info` field used in `reply_channel_range` message, with an additional 1-byte prefix which indicates if data for `node_id_1` or `node_id_2` is present:
+
+  * [`1`:`prefix`]
+  * [`4`:`timestamp_node_id_1`] (if `prefix` & 0x01)
+  * [`4`:`checksum_node_id_1`]  (if `prefix` & 0x01)
+  * [`4`:`timestamp_node_id_2`] (if `prefix` & 0x02)
+  * [`4`:`checksum_node_id_2`]  (if `prefix` & 0x02)
+
+The receiving node will compare inventory data against its own view of the routing table and query `channel_announcement` and `channel_update` messages that are missing or outdated using channel range queries. For each `short_channel_id` in the inventory message:
+
+- if it does not have a matching `channel_announcement` if will ask for `channel_announcement`s and `channel_update`s
+- if it does have a matching `channel_announcement` (which means it also has `channel_update`s for this channel) it will ask for `channel_update`s that are newer (and optionally carry different values)
+
 ## HTLC Fees
 
 ### Requirements
