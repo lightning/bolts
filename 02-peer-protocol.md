@@ -323,7 +323,7 @@ signature, via `funding_signed`, it will broadcast the funding transaction.
 The sender MUST set:
   - `temporary_channel_id` the same as the `temporary_channel_id` in the `open_channel` message.
   - `funding_txid` to the transaction ID of a non-malleable transaction,
-    - and MUST NOT broadcast this transaction.
+    - and MUST NOT broadcast this transaction before a valid `funding_signed` message was received. 
   - `funding_output_index` to the output number of that transaction that corresponds the funding transaction output, as defined in [BOLT #3](03-transactions.md#funding-transaction-output).
   - `signature` to the valid signature using its `funding_pubkey` for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
