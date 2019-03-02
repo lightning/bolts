@@ -947,7 +947,7 @@ updates.
 alters the fee.
   - MAY send a `commitment_signed` message that doesn't
 change the commitment transaction aside from the new revocation number
-(due to dust, identical HTLC replacement, or insignificant or multiple
+(identical HTLC replacement, or insignificant or multiple
 fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
   to BIP69 lexicographic ordering of the commitment transaction.
