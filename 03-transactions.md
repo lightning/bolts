@@ -386,16 +386,17 @@ A node:
 
 ## Channel Establishment v2 Funding Transaction Fees
 
-For channel establishment v2, fees are paid by the opener (the node that sends the
-`open_channel` message). Change, if any, is paid to the opener's change address, a zero value
-output in their output set.
+For channel establishment v2, fees are paid by the opener (the node that
+sends the `open_channel` message). Change, if any, is paid to the
+opener's change address, a zero value output in their output set.
 
-A change output of value `change_satoshis` will be included if there is enough satoshi
-remaining to pay for its inclusion without decreasing the amount of available `funding_satoshis`.
+A change output of value `change_satoshis` will be included if its
+value is greater than `dust_limit_satoshis`.
 
+```
     change_satoshis = sum(inputs.satoshis) - est_tx_fee
-                      - sum(outputs.satoshis) - funding_satoshis
-
+                      - sum(outputs.satoshis) - sum(funding_satoshis)
+```
 
 ### Calculating `est_tx_fee`
 
@@ -404,18 +405,20 @@ The fee for a v2 funding transaction is calculated in up to two rounds.
    - MUST calculate the `est_tx_fee` as:
       1. Multiply (funding_transaction_weight + witness_weight) by `feerate_per_kw_funding`
          and divide by 1000 (rounding down).
-      2. Confirm that `change_satoshis` is greater than zero.
- - if the no change address is provided or the `change_satoshis` is less than or
-   equal to zero:
-   - MUST calculate the `est_tx_fee` without the change output, if provided as:
+      2. Confirm that `change_satoshis` is greater than `dust_limit_satoshis`.
+ - if no change address is provided or `change_satoshis` is less
+   than or equal to the negotiated `dust_limit_satoshis`:
+   - MUST calculate the `est_tx_fee` without the change output (if provided) as:
       1. Multiply (funding_transaction_weight - change_output_weight +
-         witness_weight) by `feerate_per_kw_funding` and divide by 1000 (rounding down).
-      2. As there is no change_output, any remaining `change_satoshis` will be added to the fee.
-   - if the `change_satoshis` is less than zero:
-      - `funding_satoshis` will be decreased by the difference
+         witness_weight) by `feerate_per_kw_funding` and divide by
+         1000 (rounding down).
+      2. As there is no change_output, any remaining `change_satoshis`
+         will be added to the funding output, and credited to the opener's
+         initial channel balance.
+   - if the resulting `change_satoshis` is less than zero:
+      - sum(`funding_satoshis`) will be decreased by the difference.
 
-
-Computation details are included in [Appendix A, Expected Weight of the Funding Transaction](#appendix-a-expected-weights).
+Computation details are included in [Appendix A](#appendix-a-expected-weights) and [Appendix F, Dual Funded Transaction Test Vectors](#appendix-f-dual-funded-transaction-test-vectors).
 
 ## Commitment Transaction Construction
 

@@ -580,7 +580,7 @@ The sending node:
   - MUST NOT include the channel funding output.
   - if is the `opener`:
     - MUST NOT send zero inputs (`num_inputs` cannot be zero).
-    - MUST specify an output with value zero, which will be used
+    - MAY specify an output with value zero, which will be used
       as the change address.
   - if is the `accepter`:
     - consider the `[in|out]put_limit` the total of `num_inputs` plus
@@ -590,6 +590,8 @@ The sending node:
     - MAY send zero inputs and/or outputs.
 
 The receiving node:
+  - MAY fail the channel if:
+    - the fee cost of the proposed funding transaction is deemed exorbitant.
   - if the total `input_info`.`satoshis` is less than the total `output_info`.`satoshis`
     - MUST fail the channel.
   - if is the `opener`:
@@ -626,7 +628,7 @@ sizeof(witness) for each) in `funding_signed2`.
 NB: for native SegWit inputs (P2WPKH and P2WSH) inputs, the `script` field
 will be empty. See [BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#examples).
 
-The opening node must include at least one output with `satoshis` value
+The opening node may include one output with `satoshis` value
 of zero. This will be used for change, or discarded if its value is
 be below `dust_limit_satoshis`.
 
@@ -634,11 +636,14 @@ Change is calculated as the sum of the opener's `input_info`.`satoshis`
 minus the estimated funding transaction size times the
 `feerate_per_kw_funding` minus the `funding_satoshis` minus all other
 `output_info`.`satoshis`. If the `change_satoshis` value is negative,
-the difference is subtracted from `funding_satoshis`.
+the difference is subtracted from `funding_satoshis`. In the case where
+the fee entirely consumes the value of the opener's `funding_satoshis`,
+the remainder will be subtracted from the accepter's `funding_satoshis`.
+Either peer may fail the channel open if the resulting fee payment is
+deemed exorbitant.
 
-```
-change_satoshis = sum(inputs.satoshis) - est_tx_kw * feerate_per_kw_funding - sum(outputs.satoshis) - funding_satoshis
-```
+A more in-depth discussion of fee payment and change handling can be
+found in [BOLT-3, v2 Funding Transaction Fees](03-transactions.md#channel-establishment-v2-funding-transaction-fees).
 
 `output_info`.`script` is the locking script for the output.
 
@@ -753,13 +758,11 @@ The sending node:
   - MAY include additional inputs.
   - MAY set the `num_inputs` to zero.
   - MUST transmit all outputs.
-  - MUST include at least one output with the `satoshis` set to zero,
+  - MAY include at least one output with the `satoshis` set to zero,
     to be used as the change output.
 
 The receiving node:
   - MUST return an error if:
-    - the `init_rbf` message does not include a change output
-      e.g. an `output_info` entry  with `satoshis` set to zero.
     - the `feerate_per_kw_funding` is not greater than the previously
       negotiated rate.
   - MAY return an error if:
