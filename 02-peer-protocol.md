@@ -583,10 +583,10 @@ The sending node:
     - MUST specify an output with value zero, which will be used
       as the change address.
   - if is the `accepter`:
-    - consider the `*put_limit` the total of `num_inputs` plus
+    - consider the `[in|out]put_limit` the total of `num_inputs` plus
       `num_outputs' from `funding_compose`, with minimum 2.
     - MUST NOT send `input_info`s or `output_info` which
-      exceeds the `*put_limit`.
+      exceeds the `[in|out]put_limit`.
     - MAY send zero inputs and/or outputs.
 
 The receiving node:
