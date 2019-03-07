@@ -645,7 +645,7 @@ deemed exorbitant.
 A more in-depth discussion of fee payment and change handling can be
 found in [BOLT-3, v2 Funding Transaction Fees](03-transactions.md#channel-establishment-v2-funding-transaction-fees).
 
-`output_info`.`script` is the locking script for the output.
+`output_info`.`script` is the scriptPubKey for the output.
 
 The channel funding output is not exchanged, as it can be derived
 independently.
