@@ -509,8 +509,9 @@ If nodes have negotiated `option_dual_fund`:
 
 #### Rationale
 
-`feerate_per_kw_funding`: fee rate that the opening node will pay
-for the funding transaction.
+`feerate_per_kw_funding` indicates the fee rate that the opening node will
+pay for the funding transaction in satoshi per 1000-weight, as described
+in [BOLT-3, Appendix F](03-transactions.md#appendix-f-dual-funded-transaction-test-vectors).
 
 
 ### The `accept_channel2` Message

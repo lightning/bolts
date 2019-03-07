@@ -35,6 +35,7 @@ This details the exact format of on-chain transactions, which both sides need to
     * [Generation Tests](#generation-tests)
     * [Storage Tests](#storage-tests)
   * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
+  * [Appendix F: Dual Funded Transaction Test Vectors](#appendix-f-dual-funded-transaction-test-vectors)
   * [References](#references)
   * [Authors](#authors)
 
@@ -1637,6 +1638,227 @@ All of them use the following secrets (and thus the derived points):
     # * per_commitment_secret (0x1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100)# = 0x8be02a96a97b9a3c1c9f59ebb718401128b72ec009d85ee1656319b52319b8ce
     # => 0xd09ffff62ddb2297ab000cc85bcb4283fdeb6aa052affbc9dddcf33b61078110
     revocationprivkey: 0xd09ffff62ddb2297ab000cc85bcb4283fdeb6aa052affbc9dddcf33b61078110
+
+# Appendix F: Dual Funded Transaction Test Vectors
+
+## Funding Transaction Construction
+### Preliminaries:
+
+```
+Genesis block 0:
+0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4adae5494dffff7f20020000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000
+
+Block 1:0000002006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910ff86fd1d0db3ac5a72df968622f31e6b5e6566a09e29206d7c7a55df90e181de8be86815cffff7f200000000001020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff03510101ffffffff0200f2052a0100000017a914113ca7e584fe1575b6fc39abae991529f66eda58870000000000000000266a24aa21a9ede2f61c3f71d1defd3fa999dfa36953755c690689799962b48bebd836974e8cf90120000000000000000000000000000000000000000000000000000000000000000000000000
+Coinbase address pubkey: 2MtpN8zCxTp8AWSg7VBjBX7vU6x73bVCKP8
+Coinbase address privkey: cPxFtfE1w3ptFnsZvvFeWji21kTArYa9GXwMkYsoQHdaJKrjUTek
+
+Parent transaction (spends coinbase of block 1):
+02000000000101f86fd1d0db3ac5a72df968622f31e6b5e6566a09e29206d7c7a55df90e181de800000000171600141fb9623ffd0d422eacc450fd1e967efc477b83ccffffffff0580b2e60e00000000220020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b94680b2e60e0000000017a9146a235d064786b49e7043e4a042d4cc429f7eb6948780b2e60e00000000160014fbb4db9d85fba5e301f4399e3038928e44e37d3280b2e60e0000000017a9147ecd1b519326bc13b0ec716e469b58ed02b112a087f0006bee0000000017a914f856a70093da3a5b5c4302ade033d4c2171705d387024730440220696f6cee2929f1feb3fd6adf024ca0f9aa2f4920ed6d35fb9ec5b78c8408475302201641afae11242160101c6f9932aeb4fcd1f13a9c6df5d1386def000ea259a35001210381d7d5b1bc0d7600565d827242576d9cb793bfe0754334af82289ee8b65d137600000000
+```
+
+### Funding transaction (spends parent's outputs):
+
+Inputs:
+```
+4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9 0
+	witness_data:
+	  preimage: 20 68656c6c6f2074686572652c2074686973206973206120626974636f6e212121
+	  witness_script: 27 82012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff87
+	scriptPubKey: 0020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b946
+	address: bcrt1qlky6eaj5sh0cj7tanwnm573nvf9vg3f0qrdssyrlxsjh6vl9h9rql40v2g
+
+4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9 1
+	redeemScript: 0020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b946
+	witness_data:
+	  preimage: 20 68656c6c6f2074686572652c2074686973206973206120626974636f6e212121
+	  witness_script: 27 82012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff87
+	scriptPubKey: a9146a235d064786b49e7043e4a042d4cc429f7eb69487
+	address: 2N2vRyi3cm5VYpw218MJJrJWK1Jd4qbaefW
+
+4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9 2
+	pubkey: 034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484
+	privkey: cUM8Dr33wK4uFmw3Tz8sbQ7BiBNgX5BthRurU7RkgXVvNUPcWrJf
+	witness_program: fbb4db9d85fba5e301f4399e3038928e44e37d32
+	scriptPubKey: 0014fbb4db9d85fba5e301f4399e3038928e44e37d32
+	address: bcrt1qlw6dh8v9lwj7xq058x0rqwyj3ezwxlfjxsy7er
+
+4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9 3
+	pubkey: 034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484
+	privkey: cUM8Dr33wK4uFmw3Tz8sbQ7BiBNgX5BthRurU7RkgXVvNUPcWrJf
+	redeemScript: 0014fbb4db9d85fba5e301f4399e3038928e44e37d32
+	witness_program: fbb4db9d85fba5e301f4399e3038928e44e37d32
+	scriptPubKey: a9147ecd1b519326bc13b0ec716e469b58ed02b112a087
+	address: 2N4ogqX3kaLTT2jjxi18nAiyWdwKtE5PxLF
+```
+
+Expected Opener's `funding_compose.input_info` (inputs 0+1 above):
+```
+  num_inputs: 2
+  input_info:[
+    {
+      satoshis: 250000000,
+      prevtxid: 4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9,
+      prevoutnum: 0,
+      max_witness_len: 75,
+      scriptlen: 0,
+      script:null
+    },{
+      satoshis: 250000000,
+      prevtxid: 4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9,
+      prevoutnum: 1,
+      max_witness_len: 75,
+      scriptlen: 34,
+      script:0020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b946
+    }
+  ]
+```
+
+Expected Accepter's `funding_compose.input_info` (inputs 2+3 above):
+```
+  num_inputs: 2
+  input_info:[
+    {
+      satoshis: 250000000,
+      prevtxid: 4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9,
+      prevoutnum: 2,
+      max_witness_len: 109,
+      scriptlen: 0,
+      script:null
+    },{
+      satoshis: 250000000,
+      prevtxid: 4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9,
+      prevoutnum: 3,
+      max_witness_len: 109,
+      scriptlen: 22,
+      script: 0014fbb4db9d85fba5e301f4399e3038928e44e37d32
+    }
+  ]
+```
+
+Outputs: (scriptPubKeys)
+```
+# opener's change address
+pubkey: 0206e626a4c6d4392d4030bc78bd93f728d1ba61214a77c63adc17d71e32ded3df
+# privkey: cSpC1KYEV1vsUFBwTdcuRkncbwfipY1m5zuQ9CjgAYwiVvbQ4fc1
+scriptPubKey: 00141ca1cca8855bad6bc1ea5436edd8cff10b7e448b
+address: bcrt1qrjsue2y9twkkhs022smwmkx07y9hu3ytshgjmj
+
+# accepter's change address
+pubkey: 028f3978c211f4c0bf4d20674f345ae14e08871b25b2c957b4bdbd42e9726278fc
+privkey: cQ1HXnbAE4wGhuB2b9rJEydV5ayeEmMqxf1dvHPZmyMTPkwvZJyg
+scriptPubKey: 001444cb0c39f93ecc372b5851725bd29d865d333b10
+address: bcrt1qgn9scw0e8mxrw26c29e9h55asewnxwcsdxdp50
+
+# the 2-of-2s
+pubkey1: 0292edb5f7bbf9e900f7e024be1c1339c6d149c11930e613af3a983d2565f4e41e
+pubkey2: 02e16172a41e928cbd78f761bd1c657c4afc7495a1244f7f30166b654fbf7661e3
+script_def: multi(2,0292edb5f7bbf9e900f7e024be1c1339c6d149c11930e613af3a983d2565f4e41e,02e16172a41e928cbd78f761bd1c657c4afc7495a1244f7f30166b654fbf7661e3)
+script: 52210292edb5f7bbf9e900f7e024be1c1339c6d149c11930e613af3a983d2565f4e41e2102e16172a41e928cbd78f761bd1c657c4afc7495a1244f7f30166b654fbf7661e352ae
+scriptPubKey: 0020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec5
+address: bcrt1q99ae9s3czclgyzuzfpsggc6tfprts63uvkxc0wfcgxfwd04f3mzs3asq6l
+```
+
+Unsigned Funding Transaction:
+```
+0200000004b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430100000000ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430300000000ffffffff03ec7f0100000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b00c2eb0b0000000016001444cb0c39f93ecc372b5851725bd29d865d333b106081ad2f00000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec500000000
+```
+
+Signed Funding Transaction:
+```
+02000000000104b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430100000023220020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b946ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430300000017160014fbb4db9d85fba5e301f4399e3038928e44e37d32ffffffff03ec7f0100000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b00c2eb0b0000000016001444cb0c39f93ecc372b5851725bd29d865d333b106081ad2f00000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec5022068656c6c6f2074686572652c2074686973206973206120626974636f6e2121212782012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff87022068656c6c6f2074686572652c2074686973206973206120626974636f6e2121212782012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff8702473044022019b89938002518da7ad949986400a1c1d908c310fc045c0d5edffe3015becaeb02200e84a0c6530f4dd949dcef70f06eaf1896a00ddd6a4f99eae402fcc5d095f5510121034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c7724840247304402200d62dc4a1778939194b357e0797c5895534d1016e53e2c92829ba7203cfa1ec0022074aa90671275262bd971008a36272b6f41cb167b8bcb1b5fe1cd41340f21899f0121034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c77248400000000
+```
+
+Weight Count:
+```
+  Max Witness Len: 368*
+  Non-Witness Data Byte Count: 337
+  Total Weight: 368 + 337 * 4 = 1716
+```
+\* The signatures calculated for this transaction come to 71-bytes.
+
+
+## Fee Calculation
+Assuming a total of 10 Bitcoin inputs, 5btc from each peer.
+
+Opener's `funding_satoshi` is `499900000` (4.999btc), with a single
+change output provided.
+Accepter `funding_satoshi` is `300000000` (3btc), with `200000000` (2btc)
+to their change address.
+
+Output1 is Opener's change address output.
+Output2 is the Accepter's output.
+Output3 is the Channel Funding output.
+
+All fractional fees are rounded down.
+
+### Example A: Positive Change Value
+With `feerate_per_kw_funding` communicated at `1000 sats/kw`:
+
+```
+  Fee:      0.00001716 btc
+  Output1:  0.00098284 btc
+  Output2:  2.0        btc
+  Output3:  7.999      btc
+
+  Opener (A) Starting Balance:   4.999 btc
+  Accepter (B) Starting Balance: 3     btc
+```
+
+### Example B: Negative Change on Round 1, Negative Change on Round 2
+With `feerate_per_kw_funding` communicated at `100k sats/kw`:
+
+Round1:
+```
+  Fee:      0.00171600 btc
+  Output1: -0.00071600 btc
+  Output2:  2.0        btc
+  Output3:  7.999      btc
+```
+
+Round2, Re-calculate transaction, with Output1 removed:
+
+```
+  Max Witness Len: 368
+  Non-Witness Data Byte Count: 306
+  Total Weight: 1592
+```
+
+```
+  Fee: 	    0.00159200 btc
+  Output2:  2.0        btc
+  Output3:  7.99840800 btc
+
+  Opener (A) Starting Balance:   4.99850800 btc
+  Accepter (B) Starting Balance: 3          btc
+```
+
+### Example C: Negative Change on Round 1, Positive Change on Round 2
+With `feerate_per_kw_funding` communicated at `60k sats/kw`:
+
+Round1:
+```
+  Fee:      0.00102960 btc
+  Output1: -0.00002960 btc
+  Output2:  2.0        btc
+  Output3:  7.999      btc
+```
+
+Round2:
+```
+  Max Witness Len: 368
+  Non-Witness Data Byte Count: 306
+  Total Weight: 1592
+```
+
+```
+  Fee: 	    0.00095520 btc
+  Output2:  2.0        btc
+  Output3:  7.99904480 btc
+
+  Opener (A) Starting Balance:   4.99904480 btc
+  Accepter (B) Starting Balance: 3          btc
+```
+
 
 # References
 
