@@ -613,14 +613,14 @@ asymmetry between the nodes, as both sides share their input utxo set.
 
 `satoshis` is the value of the input or output.
 
-`prevtxid` and `prevtxoutnum` specify the input to be spent.
-`prevtxid` is the hash of the transaction that this input is
-specified in, `prevtxoutnum` its outpoint.
+`prevtx_txid`, `prevtx_vout`, and `prevtx_scriptpubkey` specify the output
+to be spent.  `prevtx_txid` is the hash of the transaction that this input is
+an output of; `prevtx_vout` its outpoint; and `prevtx_scriptpubkey` the
+corresponding `scriptPubKey` value.
 
 `max_witness_len` is the total serialized length of the
 witness data that will be supplied (e.g. sizeof(varint) +
-sizeof(witness) for each) in `funding_signed2`. Used to compose the funding
-transaction.
+sizeof(witness) for each) in `funding_signed2`.
 
 `input_info`.`script` is the scriptPubkey data for the input.
 NB: for native SegWit inputs (P2WPKH and P2WSH) inputs, the `script` field
