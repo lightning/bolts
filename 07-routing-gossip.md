@@ -951,9 +951,9 @@ A more efficient scheme based on inventory messages, similar to how transactions
     * [`2`:`len`]
     * [`len`:`encoded_short_ids`]
     * [`2`:`inventory_info_len`]
-    * [`len`:`inventory_info`]
+    * [`inventory_info_len`:`inventory_info`]
 
-The `inventory_info` field is similar to the `extended-query-info` field used in `reply_channel_range` message, with an additional 1-byte prefix which indicates if data for `node_id_1` or `node_id_2` is present:
+The `inventory_info` field is similar to the `extended_info` field used in `reply_channel_range` message, with an additional 1-byte prefix which indicates if data for `node_id_1` or `node_id_2` is present:
 
   * [`1`:`prefix`]
   * [`4`:`timestamp_node_id_1`] (if `prefix` & 0x01)
