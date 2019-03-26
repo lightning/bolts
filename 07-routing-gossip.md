@@ -773,7 +773,7 @@ A receiving node:
 
 A node:
   - if the `gossip_queries` feature is negotiated:
-	- MUST not send gossip until it receives `gossip_timestamp_range`.
+    - MUST not send gossip until it receives `gossip_timestamp_filter`.
   - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
   the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not
