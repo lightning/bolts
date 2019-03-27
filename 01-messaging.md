@@ -108,6 +108,7 @@ The sending node:
   - MUST set feature bits as defined in [BOLT #9](09-features.md).
   - MUST set any undefined feature bits to 0.
   - SHOULD use the minimum lengths required to represent the feature fields.
+  - MUST set local feature `option_i_wumbo_you_wumbo` if `option_wumborama` is set in global features.
 
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
@@ -116,6 +117,7 @@ The receiving node:
     - MUST ignore the bit.
   - upon receiving unknown _even_ feature bits that are non-zero:
     - MUST fail the connection.
+  - MUST fail the connection if the received local features have `option_i_wumbo_you_wumbo` but `option_wumborama` is not set in global features.
 
 #### Rationale
 

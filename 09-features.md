@@ -30,7 +30,12 @@ These flags may only be used in the `init` message:
 
 ## Assigned `globalfeatures` flags
 
-There are currently no `globalfeatures` flags.
+These flags may only be used in the `init` or `node_announcement` message:
+
+| Bits | Name             |Description                                     | Link                                                                |
+|------|------------------|------------------------------------------------|---------------------------------------------------------------------|
+| 16/17 | `option_wumborama` | Can handle large payments		   | (#Rationale) |
+
 
 ## Requirements
 
@@ -43,6 +48,10 @@ above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-mes
 There is no _even_ bit for `initial_routing_sync`, as there would be little
 point: a local node can't determine if a remote node complies, and it must
 interpret the flag, as defined in the initial spec.
+
+The `option_wumborama` is used to let everyone know this node is willing to use `option_i_wumbo_you_wumbo` with anyone.
+Since it's broadcast in the `node_announcement` message other nodes can use it to identify peers 
+willing to accept large channel even before exchanging the `init` message with them. 
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
