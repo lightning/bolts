@@ -6,9 +6,8 @@ This document describes the construction of an onion routed packet that is
 used to route a payment from an _origin node_ to a _final node_. The packet
 is routed through a number of intermediate nodes, called _hops_.
 
-The routing schema is based on the
-[Sphinx](http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf)
-construction and is extended with a per-hop payload.
+The routing schema is based on the [Sphinx][sphinx] construction and is
+extended with a per-hop payload.
 
 Intermediate nodes forwarding the message can verify the integrity of
 the packet and can learn which node they should forward the
@@ -73,42 +72,38 @@ A node:
 
 There are a number of conventions adhered to throughout this document:
 
- - Length: the maximum route length is limited to 20 hops.
  - HMAC: the integrity verification of the packet is based on Keyed-Hash
- Message Authentication Code, as defined by the
- [FIPS 198 Standard](http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf)/[RFC 2104](https://tools.ietf.org/html/rfc2104),
- and using a `SHA256` hashing algorithm.
- - Elliptic curve: for all computations involving elliptic curves, the
-   Bitcoin curve is used, as specified in [`secp256k1`](http://www.secg.org/sec2-v2.pdf).
- - Pseudo-random stream: [`ChaCha20`](https://tools.ietf.org/html/rfc7539) is
- used to generate a pseudo-random byte stream. For its generation, a fixed
- null-nonce (`0x0000000000000000`) is used, along with a key derived from a
- shared secret and with a `0x00`-byte stream of the desired output size as the
- message.
-
+   Message Authentication Code, as defined by the [FIPS 198
+   Standard][fips198]/[RFC 2104][RFC2104], and using a `SHA256` hashing
+   algorithm.
+ - Elliptic curve: for all computations involving elliptic curves, the Bitcoin
+   curve is used, as specified in [`secp256k1`][sec2]
+ - Pseudo-random stream: [`ChaCha20`][rfc7539] is used to generate a
+   pseudo-random byte stream. For its generation, a fixed null-nonce
+   (`0x0000000000000000`) is used, along with a key derived from a shared
+   secret and with a `0x00`-byte stream of the desired output size as the
+   message.
  - The terms _origin node_ and _final node_ refer to the initial packet sender
- and the final packet recipient, respectively.
+   and the final packet recipient, respectively.
  - The terms _hop_ and _node_ are sometimes used interchangeably, but a _hop_
- usually refers to an intermediate node in the route rather than an end node.
-        _origin node_ --> _hop_ --> ... --> _hop_ --> _final node_
+   usually refers to an intermediate node in the route rather than an end node.
  - The term _processing node_ refers to the specific node along the route that is
- currently processing the forwarded packet.
+   currently processing the forwarded packet.
  - The term _peers_ refers only to hops that are direct neighbors (in the
- overlay network): more specifically, _sending peers_ forward packets to
- _receiving peers_.
-        _sending peer_ --> _receiving peer_
+   overlay network): more specifically, _sending peers_ forward packets
+   to_receiving peers_.
+ - Route length: the maximum route length is limited to 20 hops.
+ - The longest route supported has 20 hops without counting the _origin node_
+   and _final node_, thus 19 _intermediate nodes_ and a maximum of 20 channels
+   to be traversed.
 
-
-# Clarifications
-
-The longest route supported has 20 hops without counting the _origin node_ and _final node_, thus 19 _intermediate nodes_ and a maximum of 20 channels to be traversed.
 
 # Key Generation
 
 A number of encryption and verification keys are derived from the shared secret:
 
  - _rho_: used as key when generating the pseudo-random byte stream that is used
- to obfuscate the per-hop information
+   to obfuscate the per-hop information
  - _mu_: used during the HMAC generation
  - _um_: used during error reporting
 
@@ -139,9 +134,9 @@ The packet consists of four sections:
 
  - a `version` byte
  - a 33-byte compressed `secp256k1` `public_key`, used during the shared secret
- generation
+   generation
  - a 1300-byte `hops_data` consisting of twenty fixed-size packets, each containing
- information to be used by its associated hop during message forwarding
+   information to be used by its associated hop during message forwarding
  - a 32-byte `HMAC`, used to verify the packet's integrity
 
 The network format of the packet consists of the individual sections
@@ -1112,3 +1107,10 @@ The same parameters (node IDs, shared secrets, etc.) as above are used.
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+
+
+[sphinx]: http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf
+[RFC2104]: https://tools.ietf.org/html/rfc2104
+[fips198]: http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf
+[sec2]: http://www.secg.org/sec2-v2.pdf
+[rfc7539]: https://tools.ietf.org/html/rfc7539
