@@ -38,6 +38,7 @@ This specification describes _version 0_ of the packet format and routing
 mechanism.
 
 A node:
+
   - upon receiving a higher version packet than it implements:
     - MUST report a route failure to the origin node.
     - MUST discard the packet.
@@ -96,6 +97,9 @@ There are a number of conventions adhered to throughout this document:
  - The longest route supported has 20 hops without counting the _origin node_
    and _final node_, thus 19 _intermediate nodes_ and a maximum of 20 channels
    to be traversed.
+ - Each hop in the route has a `hop_payload` composed of one or more
+   _`frames`_, each having `FRAME_SIZE` bytes of size. `FRAME_SIZE` is 65
+   bytes.
 
 
 # Key Generation
@@ -135,8 +139,9 @@ The packet consists of four sections:
  - a `version` byte
  - a 33-byte compressed `secp256k1` `public_key`, used during the shared secret
    generation
- - a 1300-byte `hops_data` consisting of twenty fixed-size packets, each containing
-   information to be used by its associated hop during message forwarding
+ - a 1300-byte `hops_data` consisting of twenty fixed-size `frame`s
+   - One or more consecutive `frame`s constitute a `hop_payload` containing
+     information to be used by the processing node during message forwarding
  - a 32-byte `HMAC`, used to verify the packet's integrity
 
 The network format of the packet consists of the individual sections
@@ -150,51 +155,74 @@ The overall structure of the packet is as follows:
 2. data:
    * [`1`:`version`]
    * [`33`:`public_key`]
-   * [`20*65`:`hops_data`]
+   * [`20*FRAME_SIZE`:`hops_data`]
    * [`32`:`hmac`]
 
 For this specification (_version 0_), `version` has a constant value of `0x00`.
 
-The `hops_data` field is a structure that holds obfuscations of the next hop's
-address, transfer information, and its associated HMAC. It is 1300 bytes (`20x65`) long
-and has the following structure:
+The `hops_data` field is list of `hop_payload`s.
+A `hop_payload` is a structure that holds obfuscations of the next hop's address, transfer information, and its associated HMAC.
+Each `hop_payload` consists of one of more `frame`s to hold the information that the hop should receive.
+The total number of `frame`s used by all `hop_payload`s MUST NOT exceed 20, but MAY be less than that, in which case the remaining frames are padded to reach the full 1300 byte length for the `hops_data`.
+
+The `hops_data` has the following structure (`n1` and `n2` being the number of frames used by hops `1` and `2` respectively):
 
 1. type: `hops_data`
 2. data:
-   * [`1`:`realm`]
-   * [`32`:`per_hop`]
-   * [`32`:`HMAC`]
+   * [`n1*FRAME_SIZE`: `hop_payload`]
+   * [`n2*FRAME_SIZE`: `hop_payload`]
    * ...
    * `filler`
 
-Where, the `realm`, `per_hop` (with contents dependent on `realm`), and `HMAC`
-are repeated for each hop; and where, `filler` consists of obfuscated,
-deterministically-generated padding, as detailed in
-[Filler Generation](#filler-generation). Additionally, `hops_data` is
-incrementally obfuscated at each hop.
+Where `filler` consists of obfuscated, deterministically-generated padding, as detailed in [Filler Generation](#filler-generation).
+Additionally, `hop_payload`s are incrementally obfuscated at each hop.
 
-The `realm` byte determines the format of the `per_hop` field; currently, only `realm`
-0 is defined, for which the `per_hop` format follows:
+Each `hop_payload` has the following structure:
 
-1. type: `per_hop` (for `realm` 0)
+1. type: `hop_payload`
+2. data:
+   * [`1`: `num_frames_and_realm`]
+   * [`raw_payload_len`: `raw_payload`]
+   * [`padding_len`: `padding`]
+   * [`32`: `HMAC`]
+
+Notice that since the `hop_payload` is instantiated once per hop, the subscript `_i` may be used in the remainder of this document to refer to the `hop_payload` and its fields destined for hop `i`.
+
+The `hop_payload` consists of at least one `frame` followed by up to 15 additional `frame`s.
+The number of additional frames allocated to the current hop is determined by the 4 most significant bits of `num_frames_and_realm`, while the 4 least significant bits determine the payload format.
+Therefore the number of frames allocated to the current hop is given by `num_frames = (num_frames_and_realm >> 4) + 1`.
+For simplification we will use `hop_payload_len` to refer to `num_frames * FRAME_SIZE`.
+
+In order to have sufficient space to serialized the `raw_payload` into the `hop_payload` while minimizing the number of used frames the number of frames used for a single `hop_payload` MUST be equal to
+
+> `num_frames = ceil((raw_payload_len + 1 + 32) / FRAME_SIZE)`
+
+The payload format determines how the `raw_payload` should be interpreted (see below for currently defined formats), and how much padding is added.
+In order to position the `HMAC` in the last 32 bytes of the `hop` the `raw_payload` MUST be followed by `padding_len = (num_frames * FRAME_SIZE - 1 - raw_payload_len - 32)` `0x00`-bytes.
+
+The `realm` is specified as `num_frames_and_realm & 0x0F`.
+It determines the format of the `raw_payload` field; the following `realm`s are currently defined.
+
+| `realm` | Payload Format                                             |
+|:--------|:-----------------------------------------------------------|
+| `0x00`  | [Version 1 `hop_data`](#version-1-hop_data-payload-format) |
+| `0x01`  | TLV payload format (to be specified)                       |
+
+Using the `hop_payload` field, the origin node is able to precisely specify the path and structure of the HTLCs forwarded at each hop.
+As the `hop_payload` is protected under the packet-wide HMAC, the information it contains is fully authenticated with each pair-wise relationship between the HTLC sender (origin node) and each hop in the path.
+
+Using this end-to-end authentication, each hop is able to cross-check the HTLC parameters with the `hop_payload`'s specified values and to ensure that the sending peer hasn't forwarded an ill-crafted HTLC.
+
+## Version 1 `hop_data` Payload Format
+
+The version 1 `hop_data` payload format has realm `0x00`, and MUST use a single `frame` to encode the payload.
+
+1. type: `per_hop`
 2. data:
    * [`8`:`short_channel_id`]
    * [`8`:`amt_to_forward`]
    * [`4`:`outgoing_cltv_value`]
    * [`12`:`padding`]
-
-Using the `per_hop` field, the origin node is able to precisely specify the path and
-structure of the HTLCs forwarded at each hop. As the `per_hop` is protected
-under the packet-wide HMAC, the information it contains is fully authenticated
-with each pair-wise relationship between the HTLC sender (origin node) and each
-hop in the path.
-
-Using this end-to-end authentication,
-each
-hop is able to
-cross-check the HTLC parameters with the `per_hop`'s specified values
-and to ensure that the sending peer hasn't forwarded an
-ill-crafted HTLC.
 
 Field descriptions:
 
@@ -238,6 +266,10 @@ Field descriptions:
 When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified within
 `per_hop` above; otherwise, deviation from the specified HTLC parameters
 may lead to extraneous routing failure.
+
+# Accepting and Forwarding a Payment
+
+Once a node has decoded the payload it either accepts the payment locally, or forwards it to the peer indicated as the next hop in the payload.
 
 ## Non-strict Forwarding
 
