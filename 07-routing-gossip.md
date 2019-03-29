@@ -681,7 +681,7 @@ which overlaps the ranges of the request.
 This message allows a node to constrain future gossip messages to
 a specific range.  A node which wants any gossip messages would have
 to send this, otherwise `gossip_queries` negotiation means no gossip
-messages would be received.
+messages would be received. 
 
 Note that this filter replaces any previous one, so it can be used
 multiple times to change the gossip from a peer.
@@ -700,6 +700,7 @@ The receiver:
   - SHOULD restrict future gossip messages to those whose `timestamp`
     is greater or equal to `first_timestamp`, and less than
     `first_timestamp` plus `timestamp_range`.
+        - MUST NOT restrict gossip about channels to the sender
   - If a `channel_announcement` has no corresponding `channel_update`s:
 	- MUST NOT send the `channel_announcement`.
   - Otherwise:
@@ -723,6 +724,8 @@ is simple to implement.
 
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
+
+
 
 ## Initial Sync
 
