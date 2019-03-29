@@ -397,36 +397,27 @@ shared secret `ss_k` and ephemeral key for the next hop `ek_{k+1}` as follows:
  ephemeral private key `ek_{k+1}` by multiplying with the base point.
 
 Once the sender has all the required information above, it can construct the
-packet. Constructing a packet routed over `r` hops requires `r` 32-byte
-ephemeral public keys, `r` 32-byte shared secrets, `r` 32-byte blinding factors,
-and `r` 65-byte `per_hop` payloads. The construction returns a single 1366-byte
-packet along with the first receiving peer's address.
+packet.
+Constructing a packet routed over `r` hops requires `r` 32-byte ephemeral public keys, `r` 32-byte shared secrets, `r` 32-byte blinding factors, and `r` `hop_payload` payloads (each of size `hop_payload_len_i` bytes).
+The construction returns a single 1366-byte packet along with the first receiving peer's address.
 
 The packet construction is performed in the reverse order of the route, i.e.
 the last hop's operations are applied first.
 
 The packet is initialized with 1366 `0x00`-bytes.
 
-A 65-byte filler is generated (see [Filler Generation](#filler-generation))
-using the shared secret.
-
 For each hop in the route, in reverse order, the sender applies the
 following operations:
 
  - The _rho_-key and _mu_-key are generated using the hop's shared secret.
- - The `hops_data` field is right-shifted by 65 bytes, discarding the last 65
- bytes that exceed its 1300-byte size.
- - The `version`, `short_channel_id`, `amt_to_forward`, `outgoing_cltv_value`,
-   `padding`, and `HMAC` are copied into the following 65 bytes.
- - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
- which is then applied, with `XOR`, to the `hops_data` field.
- - If this is the last hop, i.e. the first iteration, then the tail of the
- `hops_data` field is overwritten with the routing information `filler`.
- - The next HMAC is computed (with the _mu_-key as HMAC-key) over the
- concatenated `hops_data` and associated data.
+ - The `hops_data` field is right-shifted by `hop_payload_len` bytes, discarding the last `hop_payload_len` bytes that exceed its 1300-byte size.
+ - The payload for the hop is serialized into that hop's `raw_payload`, using the desired format, and the `num_frames_and_realm` is set accordingly.
+ - The `num_frames_and_realm`, `raw_payload`, `padding` and `HMAC` are copied into the first `hop_payload_len` bytes of the `hops_data`, i.e., the bytes that were just shifted in.
+ - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream which is then applied, with `XOR`, to the `hops_data` field.
+ - If this is the last hop, i.e. the first iteration, then the tail of the `hops_data` field is overwritten with the routing information `filler` (see [Filler Generation](#filler-generation)).
+ - The next HMAC is computed (with the _mu_-key as HMAC-key) over the concatenated `hops_data` and associated data.
 
-The resulting final HMAC value is the HMAC that will be used by the first
-receiving peer in the route.
+The resulting final HMAC value is the HMAC that will be used by the next hop in the route.
 
 The packet generation returns a serialized packet that contains the `version`
 byte, the ephemeral pubkey for the first hop, the HMAC for the first hop, and
@@ -435,85 +426,91 @@ the obfuscated `hops_data`.
 The following Go code is an example implementation of the packet construction:
 
 ```Go
-func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey,
-	hopsData []HopData, assocData []byte) (*OnionPacket, error) {
+// NewOnionPacket creates a new onion packet which is capable of
+// obliviously routing a message through the mix-net path outline by
+// 'paymentPath'.
+func NewOnionPacket(path *PaymentPath, sessionKey *btcec.PrivateKey, assocData []byte) (*OnionPacket, error) {
 
-	numHops := len(paymentPath)
-	hopSharedSecrets := make([][sha256.Size]byte, numHops)
-
-	// Initialize ephemeral key for the first hop to the session key.
-	var ephemeralKey big.Int
-	ephemeralKey.Set(sessionKey.D)
-
-	for i := 0; i < numHops; i++ {
-		// Perform ECDH and hash the result.
-		ecdhResult := scalarMult(paymentPath[i], ephemeralKey)
-		hopSharedSecrets[i] = sha256.Sum256(ecdhResult.SerializeCompressed())
-
-		// Derive ephemeral public key from private key.
-		ephemeralPrivKey := btcec.PrivKeyFromBytes(btcec.S256(), ephemeralKey.Bytes())
-		ephemeralPubKey := ephemeralPrivKey.PubKey()
-
-		// Compute blinding factor.
-		sha := sha256.New()
-		sha.Write(ephemeralPubKey.SerializeCompressed())
-		sha.Write(hopSharedSecrets[i])
-
-		var blindingFactor big.Int
-		blindingFactor.SetBytes(sha.Sum(nil))
-
-		// Blind ephemeral key for next hop.
-		ephemeralKey.Mul(&ephemeralKey, &blindingFactor)
-		ephemeralKey.Mod(&ephemeralKey, btcec.S256().Params().N)
-	}
+	nodeKeys := path.NodeKeys()
+	numHops := len(nodeKeys)
+	hopSharedSecrets := generateSharedSecrets(nodeKeys, sessionKey)
 
 	// Generate the padding, called "filler strings" in the paper.
-	filler := generateHeaderPadding("rho", numHops, hopDataSize, hopSharedSecrets)
+	filler := generateFiller("rho", path, hopSharedSecrets)
+	// Allocate zero'd out byte slices to store the final mix header packet
+	// and the hmac for each hop.
+	var (
+		mixHeader  [routingInfoSize]byte
+		nextHmac   [hmacSize]byte
+		hopDataBuf bytes.Buffer
+	)
 
-	// Allocate and initialize fields to zero-filled slices
-	var mixHeader [routingInfoSize]byte
-	var nextHmac [hmacSize]byte
-
-	// Compute the routing information for each hop along with a
-	// MAC of the routing information using the shared key for that hop.
+	// Now we compute the routing information for each hop, along with a
+	// MAC of the routing info using the shared key for that hop.
 	for i := numHops - 1; i >= 0; i-- {
-		rhoKey := generateKey("rho", hopSharedSecrets[i])
-		muKey := generateKey("mu", hopSharedSecrets[i])
+		// We'll derive the two keys we need for each hop in order to:
+		// generate our stream cipher bytes for the mixHeader, and
+		// calculate the MAC over the entire constructed packet.
+		rhoKey := generateKey("rho", &hopSharedSecrets[i])
+		muKey := generateKey("mu", &hopSharedSecrets[i])
 
-		hopsData[i].HMAC = nextHmac
+		// The HMAC for the final hop is simply zeroes. This allows the
+		// last hop to recognize that it is the destination for a
+		// particular payment.
+		path[i].HopPayload.HMAC = nextHmac
 
-		// Shift and obfuscate routing information
-		streamBytes := generateCipherStream(rhoKey, numStreamBytes)
+		// Next, using the key dedicated for our stream cipher, we'll
+		// generate enough bytes to obfuscate this layer of the onion
+		// packet.
+		streamBytes := generateCipherStream(rhoKey, routingInfoSize)
 
-		rightShift(mixHeader[:], hopDataSize)
-		buf := &bytes.Buffer{}
-		hopsData[i].Encode(buf)
-		copy(mixHeader[:], buf.Bytes())
-		xor(mixHeader[:], mixHeader[:], streamBytes[:routingInfoSize])
+		// Before we assemble the packet, we'll shift the current
+		// mix-header to the right in order to make room for this next
+		// per-hop data.
+		rightShift(mixHeader[:], path[i].HopPayload.CountFrames()*frameSize)
 
-		// These need to be overwritten, so every node generates a correct padding
+		// With the mix header right-shifted, we'll encode the current
+		// hop data into a buffer we'll re-use during the packet
+		// construction.
+		if err := path[i].HopPayload.Encode(&hopDataBuf); err != nil {
+			return nil, err
+		}
+
+		copy(mixHeader[:], hopDataBuf.Bytes())
+
+		// Once the packet for this hop has been assembled, we'll
+		// re-encrypt the packet by XOR'ing with a stream of bytes
+		// generated using our shared secret.
+		xor(mixHeader[:], mixHeader[:], streamBytes[:])
+
+		// If this is the "last" hop, then we'll override the tail of
+		// the hop data.
 		if i == numHops-1 {
 			copy(mixHeader[len(mixHeader)-len(filler):], filler)
 		}
 
+		// The packet for this hop consists of: mixHeader. When
+		// calculating the MAC, we'll also include the optional
+		// associated data which can allow higher level applications to
+		// prevent replay attacks.
 		packet := append(mixHeader[:], assocData...)
 		nextHmac = calcMac(muKey, packet)
+
+		hopDataBuf.Reset()
 	}
 
-	packet := &OnionPacket{
-		Version:      0x00,
+	return &OnionPacket{
+		Version:      baseVersion,
 		EphemeralKey: sessionKey.PubKey(),
 		RoutingInfo:  mixHeader,
 		HeaderMAC:    nextHmac,
-	}
-	return packet, nil
+	}, nil
 }
 ```
 
 # Packet Forwarding
 
-This specification is limited to `version` `0` packets; the structure
-of future versions may change.
+This specification is limited to `version` `0` packets; the structure of future versions may change.
 
 Upon receiving a packet, a processing node compares the version byte of the
 packet with its own supported versions and aborts the connection if the packet
@@ -538,22 +535,20 @@ Next, the processing node uses the shared secret to compute a _mu_-key, which it
 in turn uses to compute the HMAC of the `hops_data`. The resulting HMAC is then
 compared against the packet's HMAC.
 
-Comparison of the computed HMAC and the packet's HMAC MUST be
-time-constant to avoid information leaks.
+Comparison of the computed HMAC and the packet's HMAC MUST be time-constant to avoid information leaks.
 
 At this point, the processing node can generate a _rho_-key and a _gamma_-key.
 
 The routing information is then deobfuscated, and the information about the
 next hop is extracted.
-To do so, the processing node copies the `hops_data` field, appends 65 `0x00`-bytes,
-generates 1365 pseudo-random bytes (using the _rho_-key), and applies the result
+To do so, the processing node copies the `hops_data` field, appends `20*FRAME_SIZE` `0x00`-bytes,
+generates `1300 + 20*FRAME_SIZE` pseudo-random bytes (using the _rho_-key), and applies the result
 ,using `XOR`, to the copy of the `hops_data`.
-The first 65 bytes of the resulting routing information become the `per_hop`
-field used for the next hop. The next 1300 bytes are the `hops_data` for the
-outgoing packet.
+The first byte of the `hops_data` corresponds to the `num_frames_and_realm` field in the `hop_payload`, which can be decoded to get the `num_frames` and `realm` fields that indicate how many frames are to be parsed and how the `raw_payload` should be interpreted.
+The first `num_frames*FRAME_SIZE` bytes of the `hops_data` are the `hop_payload` field used for the the decoding hop.
+The next 1300 bytes are the `hops_data` for the outgoing packet destined for the next hop.
 
-A special `per_hop` `HMAC` value of 32 `0x00`-bytes indicates that the currently
-processing hop is the intended recipient and that the packet should not be forwarded.
+A special `per_hop` `HMAC` value of 32 `0x00`-bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
 
 If the HMAC does not indicate route termination, and if the next hop is a peer of the
 processing node; then the new packet is assembled. Packet assembly is accomplished
@@ -598,8 +593,8 @@ HMACs correctly for each hop.
 The filler is also used to pad the field-length, in the case that the selected
 route is shorter than the maximum allowed route length of 20.
 
-Before deobfuscating the `hops_data`, the processing node pads it with 65
-`0x00`-bytes, such that the total length is `(20 + 1) * 65`.
+Before deobfuscating the `hops_data`, the processing node pads it with `20 * FRAME_SIZE`
+`0x00`-bytes, such that the total length is `2 * 20 * FRAME_SIZE`.
 It then generates the pseudo-random byte stream, of matching length, and applies
 it with `XOR` to the `hops_data`.
 This deobfuscates the information destined for it, while simultaneously
@@ -613,30 +608,32 @@ by each hop. This incrementally obfuscated padding is referred to as the
 The following example code shows how the filler is generated in Go:
 
 ```Go
-func generateFiller(key string, numHops int, hopSize int, sharedSecrets [][sharedSecretSize]byte) []byte {
-	fillerSize := uint((numMaxHops + 1) * hopSize)
-	filler := make([]byte, fillerSize)
+func generateFiller(key string, path *PaymentPath, sharedSecrets []Hash256) []byte {
+	numHops := path.TrueRouteLength()
 
-	// The last hop does not obfuscate, it's not forwarding anymore.
+	// We have to generate a filler that matches all but the last
+	// hop (the last hop won't generate an HMAC)
+	fillerFrames := path.CountFrames() - path[numHops-1].HopPayload.CountFrames()
+	filler := make([]byte, fillerFrames*frameSize)
+
 	for i := 0; i < numHops-1; i++ {
+		// Sum up how many frames were used by prior hops
+		fillerStart := routingInfoSize
+		for _, p := range path[:i] {
+			fillerStart = fillerStart - (p.HopPayload.CountFrames() * frameSize)
+		}
 
-		// Left-shift the field
-		copy(filler[:], filler[hopSize:])
+		// The filler is the part dangling off of the end of
+		// the routingInfo, so offset it from there, and use
+		// the current hop's frame count as its size.
+		fillerEnd := routingInfoSize + (path[i].HopPayload.CountFrames() * frameSize)
 
-		// Zero-fill the last hop
-		copy(filler[len(filler)-hopSize:], bytes.Repeat([]byte{0x00}, hopSize))
+		streamKey := generateKey(key, &sharedSecrets[i])
+		streamBytes := generateCipherStream(streamKey, numStreamBytes)
 
-		// Generate pseudo-random byte stream
-		streamKey := generateKey(key, sharedSecrets[i])
-		streamBytes := generateCipherStream(streamKey, fillerSize)
-
-		// Obfuscate
-		xor(filler, filler, streamBytes)
+		xor(filler, filler, streamBytes[fillerStart:fillerEnd])
 	}
-
-	// Cut filler down to the correct length (numHops+1)*hopSize
-	// bytes will be prepended by the packet generation.
-	return filler[(numMaxHops-numHops+2)*hopSize:]
+	return filler
 }
 ```
 
@@ -1129,16 +1126,9 @@ The same parameters (node IDs, shared secrets, etc.) as above are used.
 	ammag_key = 3761ba4d3e726d8abb16cba5950ee976b84937b61b7ad09e741724d7dee12eb5
 	stream = 3699fd352a948a05f604763c0bca2968d5eaca2b0118602e52e59121f050936c8dd90c24df7dc8cf8f1665e39a6c75e9e2c0900ea245c9ed3b0008148e0ae18bbfaea0c711d67eade980c6f5452e91a06b070bbde68b5494a92575c114660fb53cf04bf686e67ffa4a0f5ae41a59a39a8515cb686db553d25e71e7a97cc2febcac55df2711b6209c502b2f8827b13d3ad2f491c45a0cafe7b4d8d8810e805dee25d676ce92e0619b9c206f922132d806138713a8f69589c18c3fdc5acee41c1234b17ecab96b8c56a46787bba2c062468a13919afc18513835b472a79b2c35f9a91f38eb3b9e998b1000cc4a0dbd62ac1a5cc8102e373526d7e8f3c3a1b4bfb2f8a3947fe350cb89f73aa1bb054edfa9895c0fc971c2b5056dc8665902b51fced6dff80c
 	error packet for node 0: 9c5add3963fc7f6ed7f148623c84134b5647e1306419dbe2174e523fa9e2fbed3a06a19f899145610741c83ad40b7712aefaddec8c6baf7325d92ea4ca4d1df8bce517f7e54554608bf2bd8071a4f52a7a2f7ffbb1413edad81eeea5785aa9d990f2865dc23b4bc3c301a94eec4eabebca66be5cf638f693ec256aec514620cc28ee4a94bd9565bc4d4962b9d3641d4278fb319ed2b84de5b665f307a2db0f7fbb757366067d88c50f7e829138fde4f78d39b5b5802f1b92a8a820865af5cc79f9f30bc3f461c66af95d13e5e1f0381c184572a91dee1c849048a647a1158cf884064deddbf1b0b88dfe2f791428d0ba0f6fb2f04e14081f69165ae66d9297c118f0907705c9c4954a199bae0bb96fad763d690e7daa6cfda59ba7f2c8d11448b604d12d
-
-# References
-
-# Authors
-
-[ FIXME: ]
-
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
-<br>
-This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+
+This work is licensed under a [Creative Commons Attribution 4.0 International License][cc40]
 
 
 [sphinx]: http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf
@@ -1146,3 +1136,4 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [fips198]: http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf
 [sec2]: http://www.secg.org/sec2-v2.pdf
 [rfc7539]: https://tools.ietf.org/html/rfc7539
+[cc40]: http://creativecommons.org/licenses/by/4.0/
