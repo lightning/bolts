@@ -117,7 +117,6 @@ The receiving node:
     - MUST ignore the bit.
   - upon receiving unknown _even_ feature bits that are non-zero:
     - MUST fail the connection.
-  - MUST fail the connection if the received local features have `option_i_wumbo_you_wumbo` but `option_wumborama` is not set in global features.
 
 #### Rationale
 
