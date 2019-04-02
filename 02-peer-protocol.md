@@ -670,10 +670,10 @@ the forwarding case (B). `min_final_cltv_expiry` is the minimum difference
 between HTLC CLTV timeout and the current block height, for the
 terminal case (C).
 
-Note that if this value is too low for a channel, the risk is only to
-the node *accepting* the HTLC, not the node offering it. For this
-reason, the `cltv_expiry_delta` for the *outgoing* channel is used as
-the delta across a node.
+Note that a node is at risk if it accepts an HTLC in one channel and
+offers an HTLC in another channel with too small of a difference between
+the CLTV timeouts.  For this reason, the `cltv_expiry_delta` for the
+*outgoing* channel is used as the delta across a node.
 
 The worst-case number of blocks between outgoing and
 incoming HTLC resolution can be derived, given a few assumptions:
