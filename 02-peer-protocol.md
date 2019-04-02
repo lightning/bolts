@@ -488,7 +488,7 @@ This message initiates the v2 channel establishment workflow.
    * [`33`:`htlc_basepoint`]
    * [`33`:`first_per_commitment_point`]
    * [`1`:`channel_flags`]
-   * [`2`:`opening_tlv_len`]
+   * [`var_int`:`opening_tlv_len`]
    * [`opening_tlv_len`:`opening_tlv`]
 
 
@@ -535,7 +535,7 @@ acceptance of the new channel.
     * [`33`:`delayed_payment_basepoint`]
     * [`33`:`htlc_basepoint`]
     * [`33`:`first_per_commitment_point`]
-    * [`2`:`opening_tlv_len`]
+    * [`var_int`:`opening_tlv_len`]
     * [`opening_tlv_len`:`opening_tlv`]
 
 Rationale and Requirements are the same as listed above,
