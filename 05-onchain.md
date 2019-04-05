@@ -207,15 +207,15 @@ can be ignored.
 
 ## HTLC Output Handling: Local Commitment, Local Offers
 
-Each HTLC output can only be spent by either a local offerer, by using the HTLC-timeout
-transaction after it's timed out, or a remote recipient, if it has the payment
-preimage.
+Each HTLC output can only be spent by either the *local offerer*, by using the
+HTLC-timeout transaction after it's timed out, or the *remote recipient*, if it
+has the payment preimage.
 
-There can be HTLCs which are not represented by an output: either
+There can be HTLCs which are not represented by any outputs: either
 because they were trimmed as dust, or because the transaction has only been
 partially committed.
 
-The HTLC has *timed out* once the depth of the latest block is equal to
+The HTLC output has *timed out* once the depth of the latest block is equal to
 or greater than the HTLC `cltv_expiry`.
 
 ### Requirements
@@ -370,15 +370,16 @@ will be unable to salvage the HTLCs.
 
 ## HTLC Output Handling: Remote Commitment, Local Offers
 
-Each HTLC output can only be spent by the *offerer*, after it's timed out, or by
-the *recipient*, if it has the payment preimage.
+Each HTLC output can only be spent by either the *local offerer*, after it's
+timed out, or by the *remote recipient*, by using the HTLC-success transaction
+if it has the payment preimage.
+
+There can be HTLCs which are not represented by any outputs: either
+because the outputs were trimmed as dust, or because the remote node has two
+*valid* commitment transactions with differing HTLCs.
 
 The HTLC output has *timed out* once the depth of the latest block is equal to
 or greater than the HTLC `cltv_expiry`.
-
-There can be HTLCs which are not represented by any outputs: either
-because the outputs were trimmed as dust or because the remote node has two
-*valid* commitment transactions with differing HTLCs.
 
 ### Requirements
 
