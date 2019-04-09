@@ -91,9 +91,11 @@ def main(options, args=None, output=sys.stdout, lines=None):
                         match.group('value'),
                         tlv), file=output)
                 else:
-                    print("{},{}".format(
-                        match.group('name'),
-                        str(match.group('value') or '$')), file=output)
+                    if not match.group('value'):
+                        print("{}".format(match.group('name')), file=output)
+                    else:
+                        print("{},{}".format(match.group('name'),
+                                             str(match.group('value'))), file=output)
             havedata = None
             if tlv:
                 tlv_msg_count += 1
@@ -111,13 +113,14 @@ def main(options, args=None, output=sys.stdout, lines=None):
             match = dataline.fullmatch(line)
             if match:
                 if match.group('multi'):
-                    print("{},{}{},{},${}".format(
+                    size = ''.join([prev_field, '*', match.group('subtype')])
+                    print("{},{}{},{},{}".format(
                         message,
                         dataoff,
                         off_extraterms,
                         match.group('subtype'),
-                        prev_field))
-                    off_extraterms += "+$"
+                        size))
+                    off_extraterms += '+' + size
                     prev_field = match.group('subtype')
                 else:
                     if options.output_fields:
