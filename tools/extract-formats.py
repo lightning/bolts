@@ -19,6 +19,14 @@ def main(options, args=None, output=sys.stdout, lines=None):
     #    * [`2`:`num_inputs`]
     #    * [`num_inputs*input_info`]
     #
+    # output:
+    #   error,17
+    #   error,0,channel_id,8
+    #   error,8,len,4
+    #   error,12,data,len
+    #   error,12+len,num_inputs,2
+    #   error,14+len,input_info,num_inputs*input_info
+    #
     # 1. type: PERM|NODE|3 (`required_node_feature_missing`)
     #
     # 1. tlv: `tlv_name`
@@ -28,10 +36,21 @@ def main(options, args=None, output=sys.stdout, lines=None):
     #        * [`2`:`option_one_len`]
     #        * [`option_one_len`:`option_one`]
     #
+    # output:
+    #  tlv_option_one,1,tlv_name
+    #  tlv_option_one,0,option_one_len,2
+    #  tlv_option_one,2,option_one,option_one_len
+    #
     # 1. subtype: `input_info`
     # 2. data:
     #    * [`8`:`satoshis`]
     #    * [`32`:`prevtx_txid`]
+    #
+    # output:
+    #  input_info
+    #  input_info,0,satoshis,8
+    #  input_info,8,prev_txid,32
+    #
     message = None
     havedata = None
     tlv = None
