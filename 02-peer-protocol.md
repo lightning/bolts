@@ -981,6 +981,8 @@ offline until after sending `commitment_signed`.  Once
 those HTLCs, and cannot fail the related incoming HTLCs until the
 output HTLCs are fully resolved.
 
+Note that the `htlc_signature` implicitly enforces the timelock mechanism in the case of offered HTLCs being timed out or received HTLCs being spent. This is done to reduce fees by creating smaller scripts compared to explicitly stating timelocks on HTLC outputs.
+
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
 Once the recipient of `commitment_signed` checks the signature and knows
