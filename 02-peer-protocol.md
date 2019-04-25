@@ -64,7 +64,7 @@ After authenticating and initializing a connection ([BOLT #8](08-transport.md)
 and [BOLT #1](01-messaging.md#the-init-message), respectively), channel establishment may begin.
 
 There are two pathways for establishing a channel, a legacy version presented here,
-and a second version ([below](channel-establishment-v2)). Which channel
+and a second version ([below](#channel-establishment-v2)). Which channel
 establishment protocols are available for use is negotiated in the `init` message.
 
 This consists of the funding node (funder) sending an `open_channel` message,
