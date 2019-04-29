@@ -675,9 +675,11 @@ The *expected weight* of a funding transaction is calculated as follows:
 
 Multiplying non-witness data by 4 results in a weight of:
 
+	// transaction_fields = 10 (version, input count, output count, locktime)
+	// segwit_fields = 2 (marker + flag)
 	// funding_transaction = 80 + num_inputs * 40 + num_outputs * 8
-        //                       + sum(scriptlen) + sum(var_ints)
-	funding_transaction_weight = 4 * funding_transaction
+        //                       + sum(scriptlen) + sum(var_ints) +
+	funding_transaction_weight = 4 * (funding_transaction + transaction_fields) + segwit_fields
 
 	witness_weight = sum(max_witness_len)
 
