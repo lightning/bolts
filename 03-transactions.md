@@ -147,7 +147,7 @@ If a revoked commitment transaction is published, the remote node can spend this
 
     <revocation_sig> <revocationpubkey>
 
-The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below. This is the only way that the local node can timeout the HTLC, since this branch requires `<remotehtlcsig>`, which ensures that the local node cannot prematurely timeout the HTLC (since the HTLC-timeout transaction is timelocked), and also must wait `to_self_delay` before accessing these funds allowing for the remote node to claim these funds if the transaction has been revoked.
+The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below. This is the only way that the local node can timeout the HTLC, and this branch requires `<remotehtlcsig>`, which ensures that the local node cannot prematurely timeout the HTLC since the HTLC-timeout transaction has `cltv_expiry` as its specified `locktime`. The local node must also wait `to_self_delay` before accessing these funds, allowing for the remote node to claim these funds if the transaction has been revoked.
 
 #### Received HTLC Outputs
 
