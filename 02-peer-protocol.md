@@ -475,7 +475,6 @@ This message initiates the v2 channel establishment workflow.
    * [`8`:`push_msat`]
    * [`8`:`dust_limit_satoshis`]
    * [`8`:`max_htlc_value_in_flight_msat`]
-   * [`8`:`channel_reserve_satoshis`]
    * [`8`:`htlc_minimum_msat`]
    * [`4`:`feerate_per_kw`]
    * [`4`:`feerate_per_kw_funding`]
@@ -531,7 +530,6 @@ acceptance of the new channel.
     * [`8`:`funding_satoshis`]
     * [`8`:`dust_limit_satoshis`]
     * [`8`:`max_htlc_value_in_flight_msat`]
-    * [`8`:`channel_reserve_satoshis`]
     * [`8`:`htlc_minimum_msat`]
     * [`4`:`minimum_depth`]
     * [`2`:`to_self_delay`]
@@ -567,6 +565,7 @@ information necessary to compose the funding transaction.
 1. type: 58 (`funding_compose`)
 2. data:
     * [`32`:`temporary_channel_id`]
+    * [`8`:`channel_reserve_satoshis`]
     * [`2`:`num_inputs`]
     * [`num_inputs*input_info`]
     * [`2`:`num_outputs`]
@@ -629,6 +628,9 @@ The receiving node:
 Each node must have a complete set of the transaction inputs and outputs,
 to derive the funding transaction. This avoids information
 asymmetry between the nodes, as both sides share their input utxo set.
+
+`channel_reserve_satoshis` is the minimum balance that the other node
+must reserve for itself, out of the total channel balance.
 
 `satoshis` is the value of the input or output.
 
