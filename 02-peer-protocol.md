@@ -471,8 +471,8 @@ This message initiates the v2 channel establishment workflow.
 2. data:
    * [`32`:`chain_hash`]
    * [`32`:`temporary_channel_id`]
-   * [`8`:`push_msat`]
    * [`8`:`funding_satoshis`]
+   * [`8`:`push_msat`]
    * [`8`:`dust_limit_satoshis`]
    * [`8`:`max_htlc_value_in_flight_msat`]
    * [`8`:`channel_reserve_satoshis`]
