@@ -703,7 +703,7 @@ concludes the channel establishment workflow.
 1. type: 61 (`funding_locked2`)
 2. data:
     * [`32`:`channel_id`]
-    * [`32`:`funding_tx_id`]
+    * [`32`:`funding_txid`]
     * [`33`:`next_per_commitment_point`]
 
 See [`funding_locked`](#the-funding_locked-message) for Requirements and
@@ -712,13 +712,13 @@ Rationale, with the following addition.
 #### Requirements
 
 The receiving node:
-  - if the `funding_tx_id` does not match the `funding_tx_id` of the funding
+  - if the `funding_txid` does not match the `funding_txid` of the funding
     transaction it observed:
     - MUST fail the channel.
 
 #### Rationale
 
-`funding_tx_id` is the transaction hash for the funding transaction that
+`funding_txid` is the transaction hash for the funding transaction that
 is locked in. This is to confirm that both nodes are using the same
 transaction for funding. (It is possible for them to diverge in the unlikely
 case of a network partition concurrent with an RBF attempt.)
