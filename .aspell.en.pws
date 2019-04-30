@@ -330,3 +330,14 @@ zlib
 ZLIB
 APIs
 duplicative
+TLV
+namespace
+verifier
+verifiers
+EOF
+monotonicity
+varint
+optimizations
+structs
+CompactSize
+encodings

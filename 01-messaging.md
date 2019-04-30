@@ -13,6 +13,7 @@ All data fields are unsigned big-endian unless otherwise specified.
 
   * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
   * [Lightning Message Format](#lightning-message-format)
+  * [Type-Length-Value Format](#type-length-value-format)
   * [Setup Messages](#setup-messages)
     * [The `init` Message](#the-init-message)
     * [The `error` Message](#the-error-message)
@@ -81,6 +82,94 @@ boundary (the largest natural alignment requirement of any type here);
 however, adding a 6-byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6-bytes of pre-padding.
+
+
+## Type-Length-Value Format
+
+Throughout the protocol, a TLV (Type-Length-Value) format is used to allow for
+the backwards-compatible addition of new fields to existing message types.
+
+A `tlv_record` represents a single field, encoded in the form:
+
+* [`varint`: `type`]
+* [`varint`: `length`]
+* [`length`: `value`]
+
+A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
+concatenation of the encoded `tlv_record`s. When used to extend existing
+messages, a `tlv_stream` is typically placed after all currently defined fields.
+
+The `type` is a varint encoded using the bitcoin CompactSize format. It
+functions as a message-specific, 64-bit identifier for the `tlv_record`
+determining how the contents of `value` should be decoded.
+
+The `length` is a varint encoded using the bitcoin CompactSize format
+signaling the size of `value` in bytes.
+
+The `value` depends entirely on the `type`, and should be encoded or decoded
+according to the message-specific format determined by `type`.
+
+### Requirements
+
+The sending node:
+ - MUST order `tlv_record`s in a `tlv_stream` by monotonically-increasing `type`.
+ - MUST minimally encode `type` and `length`.
+ - SHOULD NOT use redundant, variable-length encodings in a `tlv_record`.
+
+The receiving node:
+ - if zero bytes remain before parsing a `type`:
+   - MUST stop parsing the `tlv_stream`.
+ - if a `type` or `length` is not minimally encoded:
+   - MUST fail to parse the `tlv_stream`.
+ - if decoded `type`s are not monotonically-increasing:
+   - MUST fail to parse the `tlv_stream`.
+ - if `type` is known:
+   - MUST decode the next `length` bytes using the known encoding for `type`.
+ - otherwise, if `type` is unknown:
+   - if `type` is even:
+     - MUST fail to parse the `tlv_stream`.
+   - otherwise, if `type` is odd:
+     - MUST discard the next `length` bytes.
+
+### Rationale
+
+The primary advantage in using TLV is that a reader is able to ignore new fields
+that it does not understand, since each field carries the exact size of the
+encoded element. Without TLV, even if a node does not wish to use a particular
+field, the node is forced to add parsing logic for that field in order to
+determine the offset of any fields that follow.
+
+The monotonicity constraint ensures that all `type`s are unique and can appear
+at most once. Fields that map to complex objects, e.g. vectors, maps, or
+structs, should do so by defining the encoding such that the object is
+serialized within a single `tlv_record`. The uniqueness constraint, among other
+things, enables the following optimizations:
+ - canonical ordering is defined independent of the encoded `value`s.
+ - canonical ordering can be known at compile-time, rather that being determined
+   dynamically at the time of encoding.
+ - verifying canonical ordering requires less state and is less-expensive.
+ - variable-size fields can reserve their expected size up front, rather than
+   appending elements sequentially and incurring double-and-copy overhead.
+
+The use of a varint for `type` and `length` permits a space savings for small
+`type`s or short `value`s. This potentially leaves more space for application
+data over the wire or in an onion payload.
+
+All `type`s must appear in increasing order to create a canonical encoding of
+the underlying `tlv_record`s. This is crucial when computing signatures over a
+`tlv_stream`, as it ensures verifiers will be able to recompute the same message
+digest as the signer. Note that the canonical ordering over the set of fields
+can be enforced even if the verifier does not understand what the fields
+contain.
+
+Writers should avoid using redundant, variable-length encodings in a
+`tlv_record` since this results in encoding the length twice and complicates
+computing the outer length. As an example, when writing a variable length byte
+array, the `value` should contain only the raw bytes and forgo an additional
+internal length since the `tlv_record` already carries the number of bytes that
+follow. On the other hand, if a `tlv_record` contains multiple, variable-length
+elements then this would not be considered redundant, and is needed to allow the
+receiver to parse individual elements from `value`.
 
 ## Setup Messages
 
