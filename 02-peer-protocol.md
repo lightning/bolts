@@ -479,6 +479,7 @@ This message initiates the v2 channel establishment workflow.
    * [`8`:`htlc_minimum_msat`]
    * [`4`:`feerate_per_kw`]
    * [`4`:`feerate_per_kw_funding`]
+   * [`2`: `contrib_count`]
    * [`2`:`to_self_delay`]
    * [`2`:`max_accepted_htlcs`]
    * [`33`:`funding_pubkey`]
@@ -506,6 +507,8 @@ Rationale and Requirements are the same as for [`open_channel`](#the-open_channe
 If nodes have negotiated `option_dual_fund`:
   - the opening node:
     - MUST not send `open_channel`
+    - MUST set the `contrib_count` to the total of `num_inputs` plus
+      `num_outputs' that will be included in `funding_compose`, with minimum 2.
 
 #### Rationale
 
@@ -513,6 +516,9 @@ If nodes have negotiated `option_dual_fund`:
 pay for the funding transaction in satoshi per 1000-weight, as described
 in [BOLT-3, Appendix F](03-transactions.md#appendix-f-dual-funded-transaction-test-vectors).
 
+`contrib_count` is the total number of inputs and outputs that the opener
+will contribute to the funding transaction. This is sent so that the
+accepter can configure appropriate funding values for their `accept_channel2` response.
 
 ### The `accept_channel2` Message
 
@@ -522,6 +528,7 @@ acceptance of the new channel.
 1. type: 57 (`accept_channel2`)
 2. data:
     * [`32`:`temporary_channel_id`]
+    * [`8`:`funding_satoshis`]
     * [`8`:`dust_limit_satoshis`]
     * [`8`:`max_htlc_value_in_flight_msat`]
     * [`8`:`channel_reserve_satoshis`]
@@ -539,8 +546,18 @@ acceptance of the new channel.
     * [`opening_tlv_len`:`opening_tlv`]
 
 Rationale and Requirements are the same as listed above,
-for [`accept_channel`](#the-accept_channel-message)
+for [`accept_channel`](#the-accept_channel-message) with the following additions.
 
+#### Requirements:
+
+The accepting node:
+    - MAY respond with a `funding_satoshis` value of zero.
+
+#### Rationale
+
+Accepter sends their `funding_satoshi` value here instead of allowing the opener to derive
+it from their `funding_compose` response so that the opener can decide whether
+to complete the opening without exposing their output set.
 
 ### The `funding_compose` Message
 
@@ -583,10 +600,10 @@ The sending node:
     - MAY specify an output with value zero, which will be used
       as the change address.
   - if is the `accepter`:
-    - consider the `[in|out]put_limit` the total of `num_inputs` plus
+    - consider the `contrib_count` the total of `num_inputs` plus
       `num_outputs' from `funding_compose`, with minimum 2.
     - MUST NOT send `input_info`s or `output_info` which
-      exceeds the `[in|out]put_limit`.
+      exceeds the `contrib_count` limit.
     - MAY send zero inputs and/or outputs.
 
 The receiving node:
@@ -597,7 +614,7 @@ The receiving node:
   - if is the `opener`:
     - MUST fail the channel if:
       - the total count of `input_info`s and `output_info`s is greater than
-        the `[in|out]put_limit`.
+        the `contrib_count`.
   - if has not yet sent a `funding_compose`:
     - MUST send its `funding_compose` message.
   - otherwise:
