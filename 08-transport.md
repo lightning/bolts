@@ -66,7 +66,8 @@ an AEAD payload with a zero-length cipher text is sent. As this payload has no
 length, only a MAC is sent across. The mixing of ECDH outputs into
 a hash digest forms an incremental TripleDH handshake.
 
-Using the language of the Noise Protocol, `e` and `s` (both public keys)
+Using the language of the Noise Protocol, `e` and `s` (both public keys with `e` being 
+the ephemeral key and `s` being the static key which in our case is usually the `nodeid`)
 indicate possibly encrypted keying material, and `es`, `ee`, and `se` each indicate an
 ECDH operation between two keys. The handshake is laid out as follows:
 ```
