@@ -661,23 +661,18 @@ The *expected weight* of a funding transaction is calculated as follows:
                 - var_int: ? bytes (dependent on `scriptlen`)
                 - script_sig: `scriptlen`
 
-       funding_output: 80 bytes
+       funding_output: 43 bytes
                 - value: 8 bytes
                 - var_int: 1 byte
-                - script_sig: 71 bytes
-		  - OP_2: 1 byte
-		  - OP_DATA: 1 byte (pub_key_alice length)
-		  - pub_key_alice: 33 bytes
-		  - OP_DATA: 1 byte (pub_key_bob length)
-		  - pub_key_bob: 33 bytes
-		  - OP_2: 1 byte
-		  - OP_CHECKMULTISIG: 1 byte
+                - script: 34 bytes
+		  - OP_0: 1 byte
+		  - PUSHDATA(32-byte-hash): 33 bytes
 
 Multiplying non-witness data by 4 results in a weight of:
 
 	// transaction_fields = 10 (version, input count, output count, locktime)
 	// segwit_fields = 2 (marker + flag)
-	// funding_transaction = 80 + num_inputs * 40 + num_outputs * 8
+	// funding_transaction = 43 + num_inputs * 40 + num_outputs * 8
         //                       + sum(scriptlen) + sum(var_ints) +
 	funding_transaction_weight = 4 * (funding_transaction + transaction_fields) + segwit_fields
 
