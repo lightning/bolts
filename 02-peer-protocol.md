@@ -606,11 +606,11 @@ The sending node:
     - MAY send zero inputs and/or outputs.
 
 The receiving node:
-  - MAY fail the channel if:
-    - the fee cost of the proposed funding transaction is deemed exorbitant.
   - if the total `input_info`.`satoshis` is less than the total `output_info`.`satoshis`
     - MUST fail the channel.
   - if is the `opener`:
+    - MAY fail the channel if:
+      - the fee cost of the proposed funding transaction is deemed exorbitant.
     - MUST fail the channel if:
       - the total count of `input_info`s and `output_info`s is greater than
         the `contrib_count`.
