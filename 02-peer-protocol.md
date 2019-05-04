@@ -751,7 +751,7 @@ A fulfilling node:
   - MUST fail (and not forward) an HTLC whose fulfillment deadline is already past.
   - if an HTLC it has fulfilled is in either node's current commitment
   transaction, AND is past this fulfillment deadline:
-    - MUST fail the connection.
+    - MUST fail the channel.
 
 ### Adding an HTLC: `update_add_htlc`
 
