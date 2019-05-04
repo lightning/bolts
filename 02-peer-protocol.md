@@ -608,6 +608,10 @@ The sending node:
 The receiving node:
   - if the total `input_info`.`satoshis` is less than the total `output_info`.`satoshis`
     - MUST fail the channel.
+  - if is the `accepter`:
+    - MAY fail the channel if:
+      - the total count of `input_infos` and `output_info`s is not equal to the
+        `contrib_count`.
   - if is the `opener`:
     - MAY fail the channel if:
       - the fee cost of the proposed funding transaction is deemed exorbitant.
