@@ -669,6 +669,23 @@ found in [BOLT-3, v2 Funding Transaction Fees](03-transactions.md#channel-establ
 The channel funding output is not exchanged, as it can be derived
 independently.
 
+### The `commitment_signed` Message
+
+Rationale and Requirements are the same as listed above,
+for [`commitment_signed`](#commiting-updates-so-far-commitment_signed) with the following additions.
+
+#### Requirements
+
+The sending node:
+  - MUST send zero HTLC's.
+
+The receiving node:
+  - if the message has one or more HTLC's:
+    - MUST fail the channel.
+
+#### Rationale
+
+The first commitment transaction has no HTLC's in it.
 
 ### The `funding_signed2` Message
 
