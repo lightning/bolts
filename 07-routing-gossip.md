@@ -140,7 +140,7 @@ announcement message: this is accomplished by having a signature from each
     * [`64`:`bitcoin_signature_1`]
     * [`64`:`bitcoin_signature_2`]
     * [`2`:`len`]
-    * [`len`:`features`]
+    * [`len`:`channelfeatures`]
     * [`32`:`chain_hash`]
     * [`8`:`short_channel_id`]
     * [`33`:`node_id_1`]
@@ -173,16 +173,16 @@ The origin node:
   - MUST set `bitcoin_signature_1` and `bitcoin_signature_2` to valid
   signatures of the hash `h` (using `bitcoin_key_1` and `bitcoin_key_2`'s
   respective secrets).
-  - SHOULD set `len` to the minimum length required to hold the `features` bits
+  - SHOULD set `len` to the minimum length required to hold the `channelfeatures` bits
   it sets.
+  - MUST set a `channelfeatures` bit for each `channelfeature` negotiated for
+    the channel, according to [BOLT #9](09-features.md).
 
 The receiving node:
   - MUST verify the integrity AND authenticity of the message by verifying the
   signatures.
-  - if there is an unknown even bit in the `features` field:
-    - MUST NOT parse the remainder of the message.
+  - if there is an unknown even bit in the `channelfeatures` field:
     - MUST NOT add the channel to its local network view.
-    - SHOULD NOT forward the announcement.
   - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using
     `bitcoin_key_1` and `bitcoin_key_2`, as specified in
     [BOLT #3](03-transactions.md#funding-transaction-output)) OR the output is
