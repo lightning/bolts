@@ -181,17 +181,14 @@ Each `hop_payload` has the following structure:
 
 1. type: `hop_payload`
 2. data:
-   * [`1`: `num_frames_and_realm`]
+   * [`1`: `realm`]
    * [`raw_payload_len`: `raw_payload`]
    * [`padding_len`: `padding`]
    * [`32`: `HMAC`]
 
 Notice that since the `hop_payload` is instantiated once per hop, the subscript `_i` may be used in the remainder of this document to refer to the `hop_payload` and its fields destined for hop `i`.
 
-The `hop_payload` consists of at least one `frame` followed by up to 15 additional `frame`s.
-The number of additional frames allocated to the current hop is determined by the 4 most significant bits of `num_frames_and_realm`, while the 4 least significant bits determine the payload format.
-Therefore the number of frames allocated to the current hop is given by `num_frames = (num_frames_and_realm >> 4) + 1`.
-For simplification we will use `hop_payload_len` to refer to `num_frames * FRAME_SIZE`.
+The `hop_payload` consists of at least one `frame` followed by up to 15 additional `frame`s.  For simplification we will use `hop_payload_len` to refer to `num_frames * FRAME_SIZE`.
 
 In order to have sufficient space to serialized the `raw_payload` into the `hop_payload` while minimizing the number of used frames the number of frames used for a single `hop_payload` MUST be equal to
 
@@ -200,24 +197,37 @@ In order to have sufficient space to serialized the `raw_payload` into the `hop_
 The payload format determines how the `raw_payload` should be interpreted (see below for currently defined formats), and how much padding is added.
 In order to position the `HMAC` in the last 32 bytes of the `hop` the `raw_payload` MUST be followed by `padding_len = (num_frames * FRAME_SIZE - 1 - raw_payload_len - 32)` `0x00`-bytes.
 
-The `realm` is specified as `num_frames_and_realm & 0x0F`.
-It determines the format of the `raw_payload` field; the following `realm`s are currently defined.
+The following `realm`s are defined:
 
-| `realm` | Payload Format                                             |
-|:--------|:-----------------------------------------------------------|
-| `0x00`  | [Version 1 `hop_data`](#version-1-hop_data-payload-format) |
-| `0x01`  | TLV payload format (to be specified)                       |
+| `realm` | Payload Format                                             | `num_frames`
+|:--------|:-----------------------------------------------------------|:---
+| `0x00`  | [`legacy_hop_data`](#legacy-hop_data-payload-format) | 1
+| `0x01`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 1
+| `0x02`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 2
+| `0x03`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 3
+| `0x04`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 4
+| `0x05`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 5
+| `0x06`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 6
+| `0x07`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 7
+| `0x08`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 8
+| `0x09`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 9
+| `0x0a`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 10
+| `0x0b`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 11
+| `0x0c`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 12
+| `0x0d`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 13
+| `0x0e`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 14
+| `0x0f`  | [`tlv_hop_data`](#tlv_hop_data-payload-format) | 15
 
 Using the `hop_payload` field, the origin node is able to precisely specify the path and structure of the HTLCs forwarded at each hop.
 As the `hop_payload` is protected under the packet-wide HMAC, the information it contains is fully authenticated with each pair-wise relationship between the HTLC sender (origin node) and each hop in the path.
 
 Using this end-to-end authentication, each hop is able to cross-check the HTLC parameters with the `hop_payload`'s specified values and to ensure that the sending peer hasn't forwarded an ill-crafted HTLC.
 
-## Version 1 `hop_data` Payload Format
+## `legacy_hop_data` Payload Format
 
-The version 1 `hop_data` payload format has realm `0x00`, and MUST use a single `frame` to encode the payload.
+The original `hop_data` payload format has realm `0x00`, and MUST use a single `frame` to encode the payload.
 
-1. type: `per_hop`
+1. type: `legacy_per_hop`
 2. data:
    * [`8`:`short_channel_id`]
    * [`8`:`amt_to_forward`]
@@ -260,12 +270,43 @@ Field descriptions:
      `outgoing_cltv_value`, whether it is the final node or not, to avoid
      leaking its position in the route.
 
-   * `padding`: This field is for future use and also for ensuring that future non-0-`realm`
-     `per_hop`s won't change the overall `hops_data` size.
+   * `padding`: This field is for future use.
 
 When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified within
-`per_hop` above; otherwise, deviation from the specified HTLC parameters
+`legacy_per_hop` above; otherwise, deviation from the specified HTLC parameters
 may lead to extraneous routing failure.
+
+## `tlv_hop_data` Payload Format
+
+This is a more flexible format, which avoids the redundant
+`short_channel_id` field for the final node.  The range of `realm`
+values also allows use of more than one frame.
+
+1. tlv: `tlv_hop_data`
+2. types:
+    1. type: 2 (`amt_to_forward`)
+    2. data:
+        * [`integer`:`amt_to_forward`]
+    1. type: 4 (`outgoing_cltv_value`)
+    2. data:
+        * [`integer`:`outgoing_cltv_value`]
+    1. type: 6 (`short_channel_id`)
+    2. data:
+        * [`8`:`short_channel_id`]
+
+### Requirements
+
+The writer:
+  - MUST include `amt_to_forward` and `outgoing_cltv_value` for every node.
+  - MUST include `short_channel_id` for every non-final node.
+  - MUST NOT include `short_channel_id` for the final node.
+
+The reader:
+  - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
+  - MUST return an error if it is not the final node and `short_channel_id` is not present.
+
+The requirements for the contents of these fields are specified
+[above](#legacy-hop_data-payload-format).
 
 # Accepting and Forwarding a Payment
 
@@ -411,8 +452,8 @@ following operations:
 
  - The _rho_-key and _mu_-key are generated using the hop's shared secret.
  - The `hops_data` field is right-shifted by `hop_payload_len` bytes, discarding the last `hop_payload_len` bytes that exceed its 1300-byte size.
- - The payload for the hop is serialized into that hop's `raw_payload`, using the desired format, and the `num_frames_and_realm` is set accordingly.
- - The `num_frames_and_realm`, `raw_payload`, `padding` and `HMAC` are copied into the first `hop_payload_len` bytes of the `hops_data`, i.e., the bytes that were just shifted in.
+ - The payload for the hop is serialized into that hop's `raw_payload`, using the desired format, and the `realm` is set accordingly.
+ - The `realm`, `raw_payload`, `padding` and `HMAC` are copied into the first `hop_payload_len` bytes of the `hops_data`, i.e., the bytes that were just shifted in.
  - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream which is then applied, with `XOR`, to the `hops_data` field.
  - If this is the last hop, i.e. the first iteration, then the tail of the `hops_data` field is overwritten with the routing information `filler` (see [Filler Generation](#filler-generation)).
  - The next HMAC is computed (with the _mu_-key as HMAC-key) over the concatenated `hops_data` and associated data.
@@ -544,7 +585,7 @@ next hop is extracted.
 To do so, the processing node copies the `hops_data` field, appends `20*FRAME_SIZE` `0x00`-bytes,
 generates `1300 + 20*FRAME_SIZE` pseudo-random bytes (using the _rho_-key), and applies the result
 ,using `XOR`, to the copy of the `hops_data`.
-The first byte of the `hops_data` corresponds to the `num_frames_and_realm` field in the `hop_payload`, which can be decoded to get the `num_frames` and `realm` fields that indicate how many frames are to be parsed and how the `raw_payload` should be interpreted.
+The first byte of the `hops_data` corresponds to the `realm` field in the `hop_payload`, which can be decoded to get the `num_frames` field that indicate how many frames are to be parsed and how the `raw_payload` should be interpreted.
 The first `num_frames*FRAME_SIZE` bytes of the `hops_data` are the `hop_payload` field used for the the decoding hop.
 The next 1300 bytes are the `hops_data` for the outgoing packet destined for the next hop.
 
@@ -868,6 +909,11 @@ The channel from the processing node has been disabled.
 1. type: 21 (`expiry_too_far`)
 
 The CLTV expiry in the HTLC is too far in the future.
+
+1. type: PERM|22 (`required_tlv_missing`)
+2. `var_int`:`type`
+
+The `tlv` field was missing a required value of type `type`.
 
 ### Requirements
 
