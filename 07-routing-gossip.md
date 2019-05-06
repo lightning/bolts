@@ -248,8 +248,8 @@ nodes not associated with an already known channel are ignored.
 1. type: 257 (`node_announcement`)
 2. data:
    * [`64`:`signature`]
-   * [`2`:`flen`]
-   * [`flen`:`features`]
+   * [`2`:`cflen`]
+   * [`cflen`:`combinedfeatures`]
    * [`4`:`timestamp`]
    * [`33`:`node_id`]
    * [`3`:`rgb_color`]
@@ -304,8 +304,9 @@ The origin node:
   to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST NOT include more than one `address descriptor` of the same type.
-  - SHOULD set `flen` to the minimum length required to hold the `features`
+  - SHOULD set `cflen` to the minimum length required to hold the `combinedfeatures`
   bits it sets.
+  - MUST set `combinedfeatures` to the logical OR of `nodefeatures` and `channelfeatures`.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -316,12 +317,6 @@ The receiving node:
 any future fields appended to the end):
     - SHOULD fail the connection.
     - MUST NOT process the message further.
-  - if `features` field contains _unknown even bits_:
-    - MUST NOT parse the remainder of the message.
-    - MAY discard the message altogether.
-    - SHOULD NOT connect to the node.
-  - MAY forward `node_announcement`s that contain an _unknown_ `features` _bit_,
-  regardless of if it has parsed the announcement or not.
   - SHOULD ignore the first `address descriptor` that does NOT match the types
   defined above.
   - if `addrlen` is insufficient to hold the address descriptors of the
@@ -342,11 +337,6 @@ any future fields appended to the end):
     - SHOULD insinuate their self-signed origins.
 
 ### Rationale
-
-New node features are possible in the future: backwards compatible (or
-optional) ones will have _odd_ `feature` _bits_, incompatible ones will have
-_even_ `feature` _bits_. These may be propagated by nodes even if they
-cannot process the announcements themselves.
 
 New address types may be added in the future; as address descriptors have
 to be ordered in ascending order, unknown ones can be safely ignored.
