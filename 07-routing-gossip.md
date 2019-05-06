@@ -727,7 +727,7 @@ In the case where the `channel_announcement` is nonetheless missed,
 ## Initial Sync
 
 If a node requires an initial sync of gossip messages, it will be flagged
-in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
+in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-nodefeatures-flags)).
 
 Note that the `initial_routing_sync` feature is overridden (and should
 be considered equal to 0) by the `gossip_queries` feature if the

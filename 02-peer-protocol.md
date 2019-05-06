@@ -256,7 +256,7 @@ ids.
 
 #### Future
 
-It would be easy to have a local feature bit which indicated that a
+It would be easy to have a node feature bit which indicated that a
 receiving node was prepared to fund a channel, which would reverse this
 protocol.
 

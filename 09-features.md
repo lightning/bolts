@@ -1,13 +1,13 @@
 # BOLT #9: Assigned Feature Flags
 
-This document tracks the assignment of `localfeatures` and `globalfeatures`
+This document tracks the assignment of `nodefeatures` and `channelfeatures`
 flags in the `init` message ([BOLT #1](01-messaging.md)) along with the
 `features` flag fields in the `channel_announcement` and `node_announcement`
 messages ([BOLT #7](07-routing-gossip.md)).
 The flags are tracked separately, since new flags will likely be added over time.
 
 The `features` flags in the routing messages are a subset of the
-`globalfeatures` flags, as `localfeatures`, by definition, are only of interest
+`channelfeatures` flags, as `nodefeatures`, by definition, are only of interest
 to direct peers.
 
 Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1,
@@ -16,7 +16,7 @@ can be introduced as optional (_odd_ bits) and later upgraded to be compulsory
 (_even_ bits), which will be refused by outdated nodes:
 see [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 
-## Assigned `localfeatures` flags
+## Assigned `nodefeatures` flags
 
 These flags may only be used in the `init` message:
 
@@ -27,9 +27,9 @@ These flags may only be used in the `init` message:
 | 4/5  | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 | 6/7  | `gossip_queries`           | More sophisticated gossip control | [BOLT #7](07-routing-gossip.md#query-messages) |
 
-## Assigned `globalfeatures` flags
+## Assigned `channelfeatures` flags
 
-There are currently no `globalfeatures` flags.
+There are currently no `channelfeatures` flags.
 
 ## Requirements
 

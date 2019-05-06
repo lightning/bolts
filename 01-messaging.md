@@ -88,18 +88,18 @@ a buffer with 6-bytes of pre-padding.
 
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
+[BOLT #9](09-features.md) specifies lists of channel and node features. Each feature is generally represented in `channelfeatures` or `nodefeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
 
-Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s.
+Both fields `channelfeatures` and `nodefeatures` MUST be padded to bytes with 0s.
 
 1. type: 16 (`init`)
 2. data:
-   * [`2`:`gflen`]
-   * [`gflen`:`globalfeatures`]
-   * [`2`:`lflen`]
-   * [`lflen`:`localfeatures`]
+   * [`2`:`cflen`]
+   * [`cflen`:`channelfeatures`]
+   * [`2`:`nflen`]
+   * [`nflen`:`nodefeatures`]
 
-The 2-byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
+The 2-byte `cflen` and `nflen` fields indicate the number of bytes in the immediately following field.
 
 #### Requirements
 
@@ -124,8 +124,8 @@ This semantic allows both future incompatible changes and future backward compat
 Nodes wait for receipt of the other's features to simplify error
 diagnosis when features are incompatible.
 
-The feature masks are split into local features (which only affect the
-protocol between these two nodes) and global features (which can affect
+The feature masks are split into node features (which only affect the
+protocol between these two nodes) and channel features (which can affect
 HTLCs and are thus also advertised to other nodes).
 
 ### The `error` Message
