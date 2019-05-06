@@ -58,7 +58,7 @@ def main(options, args=None, output=sys.stdout, lines=None):
     typeline = re.compile(
         '(?P<leading>\s*)1\. (?P<type>((sub)*?type|tlv)):( (?P<value>[-0-9A-Za-z_|]+))? \(?`(?P<name>[A-Za-z2_]+)`\)?( \(`?(?P<option>[^)`]*)`?\))?')
     dataline = re.compile(
-        '\s+\* \[`((?P<size>[_a-z0-9*+]+)`:`(?P<name>[_a-z0-9]+)|(?P<count>[_a-z0-9+]+)(?P<multi>\*)(?P<subtype>[_a-z0-9]+))`\]( \(`?(?P<option>[^)`]*)`?\))?')
+        '\s+\* \[`((?P<size>[_a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)|(?P<count>[_a-z0-9+]+)(?P<multi>\*)(?P<subtype>[_a-z0-9]+))`\]( \(`?(?P<option>[^)`]*)`?\))?')
 
     if lines is None:
         lines = fileinput.input(args)
