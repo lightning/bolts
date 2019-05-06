@@ -112,9 +112,9 @@ The sending node:
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
   - MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
-  - upon receiving unknown _odd_ feature bits that are non-zero:
+  - upon receiving unknown _odd_ `nodefeatures` bits that are non-zero:
     - MUST ignore the bit.
-  - upon receiving unknown _even_ feature bits that are non-zero:
+  - upon receiving unknown _even_ `nodefeatures` bits that are non-zero:
     - MUST fail the connection.
 
 #### Rationale
@@ -126,7 +126,9 @@ diagnosis when features are incompatible.
 
 The feature masks are split into node features (which only affect the
 protocol between these two nodes) and channel features (which can affect
-HTLCs and are thus also advertised to other nodes).
+routing and are thus also advertised to other nodes).  A node may
+connect to a node with unknown channel features, even though it won't be
+able to establish a channel.
 
 ### The `error` Message
 
