@@ -4,7 +4,9 @@ This document tracks the assignment of `nodefeatures` and `channelfeatures`
 flags in the `init` message ([BOLT #1](01-messaging.md)) along with the
 `features` flag fields in the `channel_announcement` and `node_announcement`
 messages ([BOLT #7](07-routing-gossip.md)).
-The flags are tracked separately, since new flags will likely be added over time.
+The flags use the same number space, but are semantically separate; directly
+connected peers are affected by `nodefeatures`, and anyone trying to route
+a payment is affected by `channelfeatures`.
 
 The `features` flags in the routing messages are a subset of the
 `channelfeatures` flags, as `nodefeatures`, by definition, are only of interest
