@@ -88,21 +88,26 @@ a buffer with 6-bytes of pre-padding.
 In various places in the protocol we use a `tlv` format.  This is
 always of form:
 
-* [`1`:`type`]
+* [`var_int`:`type`]
 * [`var_int`:`length`]
 * [`length`:`value`]
 
 The `type` byte is never 0 (in some circumstances this can indicate the
-termination of the `tlv` stream).  The `length` field uses the bitcoin
-encoding: less than 253 are single-byte lengths, 253 is followed by a
-two-byte length, and 254 is followed by a four-byte length.  255 is
-invalid.  The `value` depends entirely on the `type` and context.
+termination of the `tlv` stream).  The `type` and `length` fields use the bitcoin
+CompactSize encoding: fields less than 253 are single-byte, 253 is followed by a
+two-byte field, and 254 is followed by a four-byte field.  255 is
+invalid.  The `value` depends entirely on the `type` and context, though we
+explicitly allow `length` to be reduced for small integers.
 
 ### Requirements
 
 The sending node:
   - MUST NOT set `type` to 0.
+  - MUST use the shortest possible representation for `type` and `length`
   - MUST order `tlv` in ascending type, length and value.
+  - if the `type` indicates that `value` is an integer:
+    - MUST NOT set `length` greater than 8.
+	- MAY truncate leading zeroes from `value` by shortening `length`.
 
 The receiving node:
   - if `type` is unknown:
@@ -110,6 +115,8 @@ The receiving node:
 		- MUST ignore the `tlv`
 	- otherwise `type` is even:
 		- MUST fail to parse the `tlv`
+  - otherwise, if `type` indicates that `value` is an integer:
+    - MUST handle `length` between 0 and 8 inclusive by prepending zero bytes.
 
 ### Rationale
 
