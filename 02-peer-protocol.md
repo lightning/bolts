@@ -691,6 +691,9 @@ The receiving node:
 
 The first commitment transaction has no HTLC's in it.
 
+Note that the `commitment_signed` message will include the `channel_id` derived from
+the `funding_txid`, instead of the `temporary_node_id`.
+
 ### The `funding_signed2` Message
 
 This message exchanges the witness data for the inputs that were
