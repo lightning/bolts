@@ -948,23 +948,28 @@ A more efficient scheme based on inventory messages, similar to how transactions
 1. type: 266 (`gossip_inventory`)
 2. data:
     * [`32`:`chain_hash`]
-    * [`2`:`len`]
-    * [`len`:`encoded_short_ids`]
-    * [`2`:`inventory_info_len`]
-    * [`inventory_info_len`:`inventory_info`]
+    * type: 1 (`channel_inv_tlv`)
+      * [`2`:`len`]
+      * [`len`:`encoded_short_ids`]
+      * type: 1 (`timestamps_tlv`)
+      * data:
+        * [`1`:`encoding_type`]
+        * [`timestamps_tlv_len-1`:`encoded_timestamps`]
+      * type: 3 (`checksums_tlv`)
+      * data:
+        * [`checksums_tlv_len`:`encoded_checksums`]
+    * type: 3 (`node_inv_tlv`)
+      * [`2`:`len`]
+      * [`len`:`node_ids`]
+ 
+`channel_inv_tlv` contains information about channel announcements and updates. It uses the exact same encoding as `reply_channel_range` and includes:
+ - a list of `short_channel_id`s
+ - an optional `timestamps_tlv`, which includes `channel_update` timestamps
+ - an optional `checksums_tlv`, which includes `channel_update` checksums
 
-The `inventory_info` field is similar to the `extended_info` field used in `reply_channel_range` message, with an additional 1-byte prefix which indicates if data for `node_id_1` or `node_id_2` is present:
+ `node_inv_tlv` contains a list of node ids, 33 bytes for each node id.
 
-  * [`1`:`prefix`]
-  * [`4`:`timestamp_node_id_1`] (if `prefix` & 0x01)
-  * [`4`:`checksum_node_id_1`]  (if `prefix` & 0x01)
-  * [`4`:`timestamp_node_id_2`] (if `prefix` & 0x02)
-  * [`4`:`checksum_node_id_2`]  (if `prefix` & 0x02)
-
-The receiving node will compare inventory data against its own view of the routing table and query `channel_announcement` and `channel_update` messages that are missing or outdated using channel range queries. For each `short_channel_id` in the inventory message:
-
-- if it does not have a matching `channel_announcement` if will ask for `channel_announcement`s and `channel_update`s
-- if it does have a matching `channel_announcement` (which means it also has `channel_update`s for this channel) it will ask for `channel_update`s that are newer (and optionally carry different values)
+The receiving node will compare inventory data against its own view of the routing table and query `node_announcement`, `channel_announcement` and `channel_update` messages that are missing or outdated using channel range queries. 
 
 ## HTLC Fees
 
