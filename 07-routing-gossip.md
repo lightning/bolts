@@ -280,6 +280,13 @@ The following `address descriptor` types are defined:
          `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where
          `checksum = sha3(".onion checksum" | pubkey || version)[:2]`.
 
+The following feature bits are currently assigned by this specification:
+
+|------|---------------------|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| Bits | Name                | Description                                            | Link                                                                                                             |
+|------|---------------------|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| 0/1  | `multi_frame_optin` | This node requires/supports multi-frame routing onions | [routing onion specification](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md) |
+
 ### Requirements
 
 The origin node:
