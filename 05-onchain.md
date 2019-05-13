@@ -436,14 +436,10 @@ own timeout still applies as an upper bound.
 ## HTLC Output Handling: Remote Commitment, Remote Offers
 
 Each HTLC output can only be spent by the recipient if it uses the payment
-preimage. If a node does not possess the preimage (and doesn't discover
+preimage. In other words, the remote HTLC outputs can only be spent by the local node if
+it has the payment preimage. If the local node does not have the preimage (and doesn't discover
 it), it's the offerer's responsibility to spend the HTLC output once it's timed
 out.
-
-The remote HTLC outputs can only be spent by the local node if it has the
-payment preimage. If the local node does not have the preimage (and doesn't
-discover it), it's the remote node's responsibility to spend the HTLC output
-once it's timed out.
 
 There are actually several possible cases for an offered HTLC:
 
