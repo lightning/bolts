@@ -188,9 +188,9 @@ Each `hop_payload` has the following structure:
 
 Notice that since the `hop_payload` is instantiated once per hop, the subscript `_i` may be used in the remainder of this document to refer to the `hop_payload` and its fields destined for hop `i`.
 
-The `hop_payload` consists of at least one `frame` followed by up to 15 additional `frame`s.
-The number of additional frames allocated to the current hop is determined by the 4 most significant bits of `num_frames_and_realm`, while the 4 least significant bits determine the payload format.
-Therefore the number of frames allocated to the current hop is given by `num_frames = (num_frames_and_realm >> 4) + 1`.
+The `hop_payload` consists of at least one `frame` followed by up to 19 additional `frame`s.
+The number of additional frames allocated to the current hop is determined by the 5 most significant bits of `num_frames_and_realm`, while the 3 least significant bits determine the payload format.
+Therefore the number of frames allocated to the current hop is given by `num_frames = (num_frames_and_realm >> 3) + 1`.
 For simplification we will use `hop_payload_len` to refer to `num_frames * FRAME_SIZE`.
 
 In order to have sufficient space to serialized the `raw_payload` into the `hop_payload` while minimizing the number of used frames the number of frames used for a single `hop_payload` MUST be equal to
@@ -200,7 +200,7 @@ In order to have sufficient space to serialized the `raw_payload` into the `hop_
 The payload format determines how the `raw_payload` should be interpreted (see below for currently defined formats), and how much padding is added.
 In order to position the `HMAC` in the last 32 bytes of the `hop` the `raw_payload` MUST be followed by `padding_len = (num_frames * FRAME_SIZE - 1 - raw_payload_len - 32)` `0x00`-bytes.
 
-The `realm` is specified as `num_frames_and_realm & 0x0F`.
+The `realm` is specified as `num_frames_and_realm & 0x07`.
 It determines the format of the `raw_payload` field; the following `realm`s are currently defined.
 
 | `realm` | Payload Format                                             |
