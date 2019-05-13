@@ -825,21 +825,31 @@ handling by the processing node.
 1. type: PERM|15 (`incorrect_or_unknown_payment_details`)
 2. data:
    * [`u64`:`htlc_msat`]
+   * [`u32`:`height`]
 
-The `payment_hash` is unknown to the final node or the amount for that
-`payment_hash` is incorrect.
+The `payment_hash` is unknown to the final node, the amount for that
+`payment_hash` is incorrect or the CLTV expiry of the htlc is too close to the
+current block height for safe handling.
 
-Note: Originally PERM|16 (`incorrect_payment_amount`) was
-used to differentiate incorrect final amount from unknown payment
-hash. Sadly, sending this response allows for probing attacks whereby a node
-which receives an HTLC for forwarding can check guesses as to its final
-destination by sending payments with the same hash but much lower values to
-potential destinations and check the response.
+The `htlc_msat` parameter is superfluous, but left in for backwards
+compatibility. The value of `htlc_msat` always matches the amount specified in
+the final hop onion payload. It therefore does not have any informative value to
+the sender. A penultimate hop sending a different amount or expiry for the htlc
+is handled through `final_incorrect_cltv_expiry` and
+`final_incorrect_htlc_amount`.
 
-1. type: 17 (`final_expiry_too_soon`)
+The `height` parameter is set by the final node to the best known block height
+at the time of receiving the htlc. This can be used by the sender to distinguish
+between sending a payment with the wrong final CLTV expiry and an intermediate
+hop delaying the payment so that the receiver's invoice CLTV delta requirement
+is no longer met.
 
-The CLTV expiry is too close to the current block height for safe
-handling by the final node.
+Note: Originally PERM|16 (`incorrect_payment_amount`) and PERM|17
+(`final_expiry_too_soon`) were used to differentiate incorrect htlc parameters
+from unknown payment hash. Sadly, sending this response allows for probing
+attacks whereby a node which receives an HTLC for forwarding can check guesses
+as to its final destination by sending payments with the same hash but much
+lower values or expiry heights to potential destinations and check the response.
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
@@ -942,7 +952,7 @@ An _intermediate hop_ MUST NOT, but the _final node_:
       altering the amount while not allowing for accidental gross overpayment.
   - if the `cltv_expiry` value is unreasonably near the present:
     - MUST fail the HTLC.
-    - MUST return a `final_expiry_too_soon` error.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
   the final node's HTLC:
     - MUST return `final_incorrect_cltv_expiry` error.
