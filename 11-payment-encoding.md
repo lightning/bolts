@@ -160,7 +160,7 @@ A writer:
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
   - SHOULD use the minimum `data_length` possible for `x` and `c` fields.
-  - MAY include one `n` field.
+  - MAY include one `n` field. (Otherwise performing signature recovery is required)
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
     - for Bitcoin payments:
