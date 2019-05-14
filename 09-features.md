@@ -31,6 +31,16 @@ These flags may only be used in the `init` message:
 
 There are currently no `globalfeatures` flags.
 
+## Assigned `node_announcement` feature flags
+
+The following feature bits are currently assigned by this specification:
+
+|------|---------------------|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| Bits | Name                | Description                                            | Link                                                                                                             |
+|------|---------------------|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| 0/1  | `multi_frame_optin` | This node requires/supports multi-frame routing onions | [routing onion specification](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md) |
+
+
 ## Requirements
 
 The requirements for receiving specific bits are defined in the linked sections in the table above.
