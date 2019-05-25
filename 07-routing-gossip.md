@@ -494,7 +494,7 @@ The receiving node:
   - if the specified `chain_hash` value is unknown (meaning it isn't active on
   the specified chain):
     - MUST ignore the channel update.
-  - if `timestamp` is NOT greater than that of the last-received
+  - if `timestamp` is lesser than that of the last-received
   `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
   - otherwise:
@@ -521,8 +521,8 @@ The receiving node:
 The `timestamp` field is used by nodes for pruning `channel_update`s that are
 either too far in the future or have not been updated in two weeks; so it
 makes sense to have it be a UNIX timestamp (i.e. seconds since UTC
-1970-01-01). This cannot be a hard requirement, however, given the possible case
-of two `channel_update`s within a single second.
+1970-01-01). In the possible case of two `channel_update`s within a single second,
+the signer of both `channel_update` messages with the same `timestamp` may be blacklisted.
 
 The explicit `option_channel_htlc_max` flag to indicate the presence
 of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
