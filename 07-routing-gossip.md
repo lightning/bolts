@@ -538,6 +538,116 @@ the channel when the peer reestablishes contact.  Because gossip
 messages are batched and replace previous ones, the result may be a
 single seemingly-redundant update.
 
+## The `route_price_update` Message
+
+The *route price* is a multiplier applied to the amounts transferred
+by a hop for routing through two of its channels. To allow prices
+below 1 without introducing floating point numbers, after multiplying
+by route_price, it is divided by PRICE_ROUTE_DIVIDER=2^16.
+
+Unless announced otherwise explicitly with this message, it is assumed
+that the route price for all pairs of channels of the same node with
+the same `chain_hash` is 1 * PRICE_ROUTE_DIVIDER. For any pair of any
+pair of channels with different `chain_hash`, the route price
+is 0. That is, the hop will not route through any of those pairs of
+channels.
+
+1. type: NNN (`route_price_update`)
+2. data:
+    * [`64`:`signature`]
+    * [`4`:`timestamp`]
+    * [`4`:`route_price`]
+    * [`33`:`node_id`]
+    * [`8`:`src_short_channel_id`]
+    * [`8`:`dest_short_channel_id`]
+
+To disable a route (or several), the `route_price` is simply set to 0.
+
+### Requirements
+
+The origin node:
+
+  - MUST set `node_id` to its own `node_id`.
+  - MUST set `signature` to the signature of the double-SHA256 of the entire
+  remaining packet after `signature`, using `node_id`.
+  - MUST set `src_short_channel_id` to the value of a channel for
+  which it is the identified node by `node_id_2`
+  - MUST set `dest_short_channel_id` to the value of a channel for
+  which it is the identified node by `node_id_1`
+  - MAY create a `route_price_update` for channels involving different
+    `chain_hash`
+  - if it's signing too many messages of this type:
+	- MAY trigger automatic optimizations of undefined nature
+  - otherwise:
+	- SHOULD send a warning suggesting a more optimal configuration
+
+The receiving node:
+  - if `signature` is not a valid signature, using `node_id` of the
+  double-SHA256 of the entire message following the `signature` field (including
+  unknown fields following `fee_proportional_millionths`):
+    - MUST NOT process the message further.
+    - SHOULD fail the connection.
+  - if the `node_id` is unknown:
+    - MUST ignore the message.
+  - if either the `src_short_channel_id` or `dest_short_channel_id`
+    are unknown (ie no `channel_update` have been received about them):
+    - MUST ignore the message.
+  - if `timestamp` is lesser than that of the last-received
+  `route_price_update` for either of the two channels AND for `node_id`:
+    - SHOULD ignore the message.
+  - otherwise:
+    - if the `timestamp` is equal to the last-received `route_price_update`
+    AND the fields (other than `signature`) differ:
+      - MAY blacklist this `node_id`.
+      - MAY forget all channels associated with it.
+  - if the `timestamp` is unreasonably far in the future:
+    - MAY discard the `route_price_update`.
+  - otherwise:
+    - SHOULD queue the message for rebroadcasting.
+    - MAY choose NOT to for messages longer than the minimum expected length.
+    - MAY choose NOT to for other reasons, even discriminating against
+  a known `chain_hash` or `node_id`.
+  - if it's receiving too many messages of this type from this `node_id`:
+	- MAY blacklist the node.
+  - otherwise:
+	- SHOULD send a warning suggesting a more optimal configuration.
+
+### Rationale
+
+The `timestamp` field is used similarly as in `update_channel`.
+
+Being PRICE_ROUTE_DIVIDER a power of two, an arithmetic right shift
+operation can be performed instead of doing the more costly
+division. If the price is equal to PRICE_ROUTE_DIVIDER (the assumed
+default for channels of the same chain), both the multiplication and
+division can be skipped altogether.
+
+The potential combinatorial explosion of messages that would result
+from some desired configurations should be solvable in most use cases
+by dividing the node and its routes into more nodes connected to each
+other while having more implicit 1 or 0 routes and less explicit
+`route_price_update` messages.
+
+Since all the new nodes created for this are to be controlled by the
+same agent controlling the original one, some implementations could
+potentially execute this division automatically.
+
+Other implementations could simply warn about it, potentially
+suggesting configuration changes like dividing the node into several
+like explained above. The warnings are specially important for the
+sender, which could get blacklisted with the wrong configuration.
+
+### TODOs
+
+- Question: In channel_update, why deduce the node_id but not the
+  chain_hash?
+  presumably for discarding unwanted messages faster?
+- TODO Alternative design: instead of a single source and destination
+  channel, have lists
+- TODO Optimize by getting the `node_id` from the channels like in
+  channel_update?
+- Do it privately for the other side of the channel only like with channel_update?
+
 ## Query Messages
 
 Negotiating the `gossip_queries` option via `init` enables a number
