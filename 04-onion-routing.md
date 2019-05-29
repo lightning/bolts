@@ -101,7 +101,7 @@ There are a number of conventions adhered to throughout this document:
 
 # Clarifications
 
-The longest route supported has 20 hops without counting the _origin node_ and _final node_, thus 19 _intermediate nodes_ and a maximum of 20 channels to be traversed.
+The longest route supported has 20 hops without counting the _origin node_, but counting _final node_, thus 19 _intermediate nodes_ and a maximum of 20 channels to be traversed.
 
 # Key Generation
 
