@@ -1049,6 +1049,7 @@ given in [BOLT #3](03-transactions.md#fee-calculation).
 The node _responsible_ for paying the Bitcoin fee:
   - SHOULD send `update_fee` to ensure the current fee rate is sufficient (by a
       significant margin) for timely processing of the commitment transaction.
+  - MUST NOT send identical consecutive `update_fee`s.
 
 The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
