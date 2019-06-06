@@ -333,6 +333,7 @@ duplicative
 DoS
 ECDSA
 TLV
+tlv
 namespace
 verifier
 verifiers
@@ -346,4 +347,9 @@ encodings
 bigsize
 BigSize
 namespaces
+tlvs
+fips
+rfc
+varint
+CompactSize
 tlvs
