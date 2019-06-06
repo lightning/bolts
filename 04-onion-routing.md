@@ -374,25 +374,24 @@ shared secret `ss_k` and ephemeral key for the next hop `ek_{k+1}` as follows:
 Once the sender has all the required information above, it can construct the
 packet. Constructing a packet routed over `r` hops requires `r` 32-byte
 ephemeral public keys, `r` 32-byte shared secrets, `r` 32-byte blinding factors,
-and `r` 65-byte `per_hop` payloads. The construction returns a single 1366-byte
-packet along with the first receiving peer's address.
+and `r` variable length `hop_payload` payloads.
+The construction returns a single 1366-byte packet along with the first receiving peer's address.
 
 The packet construction is performed in the reverse order of the route, i.e.
 the last hop's operations are applied first.
 
 The packet is initialized with 1366 `0x00`-bytes.
 
-A 65-byte filler is generated (see [Filler Generation](#filler-generation))
-using the shared secret.
+A filler is generated (see [Filler Generation](#filler-generation)) using the shared secret.
 
 For each hop in the route, in reverse order, the sender applies the
 following operations:
 
  - The _rho_-key and _mu_-key are generated using the hop's shared secret.
- - The `hops_data` field is right-shifted by 65 bytes, discarding the last 65
+ - `shift_size` is defined as the length of the `hop_payload` plus the varint encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the varint encoding of `l`.
+ - The `hop_payload` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
  bytes that exceed its 1300-byte size.
- - The `version`, `short_channel_id`, `amt_to_forward`, `outgoing_cltv_value`,
-   `padding`, and `HMAC` are copied into the following 65 bytes.
+ - The varint-serialized length, serialized `hop_payload` and `HMAC` are copied into the following `shift_size` bytes.
  - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
  which is then applied, with `XOR`, to the `hops_data` field.
  - If this is the last hop, i.e. the first iteration, then the tail of the
@@ -520,20 +519,17 @@ At this point, the processing node can generate a _rho_-key and a _gamma_-key.
 
 The routing information is then deobfuscated, and the information about the
 next hop is extracted.
-To do so, the processing node copies the `hops_data` field, appends 65 `0x00`-bytes,
-generates 1365 pseudo-random bytes (using the _rho_-key), and applies the result
-,using `XOR`, to the copy of the `hops_data`.
-The first 65 bytes of the resulting routing information become the `per_hop`
-field used for the next hop. The next 1300 bytes are the `hops_data` for the
-outgoing packet.
+To do so, the processing node copies the `hop_payloads` field, appends 1300 `0x00`-bytes,
+generates `2*1300` pseudo-random bytes (using the _rho_-key), and applies the result, using `XOR`, to the copy of the `hop_payloads`.
+The first few bytes correspond to the varint-encoded length `l` of the `hop_payload`, followed by `l` bytes of the resulting routing information become the `hop_payload`, and the 32 byte HMAC.
+The next 1300 bytes are the `hop_payloads` for the outgoing packet.
 
-A special `per_hop` `HMAC` value of 32 `0x00`-bytes indicates that the currently
-processing hop is the intended recipient and that the packet should not be forwarded.
+A special `HMAC` value of 32 `0x00`-bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
 
 If the HMAC does not indicate route termination, and if the next hop is a peer of the
 processing node; then the new packet is assembled. Packet assembly is accomplished
 by blinding the ephemeral key with the processing node's public key, along with the
-shared secret, and by serializing the `hops_data`.
+shared secret, and by serializing the `hop_payloads`.
 The resulting packet is then forwarded to the addressed peer.
 
 ## Requirements
@@ -571,17 +567,17 @@ Since the padding is part of the HMAC, the origin node will have to pre-generate
 identical padding (to that which each hop will generate) in order to compute the
 HMACs correctly for each hop.
 The filler is also used to pad the field-length, in the case that the selected
-route is shorter than the maximum allowed route length of 20.
+route is shorter than 1300 bytes.
 
-Before deobfuscating the `hops_data`, the processing node pads it with 65
-`0x00`-bytes, such that the total length is `(20 + 1) * 65`.
+Before deobfuscating the `hop_payloads`, the processing node pads it with 1300
+`0x00`-bytes, such that the total length is `2*1300`.
 It then generates the pseudo-random byte stream, of matching length, and applies
-it with `XOR` to the `hops_data`.
+it with `XOR` to the `hop_payloads`.
 This deobfuscates the information destined for it, while simultaneously
 obfuscating the added `0x00`-bytes at the end.
 
 In order to compute the correct HMAC, the origin node has to pre-generate the
-`hops_data` for each hop, including the incrementally obfuscated padding added
+`hop_payloads` for each hop, including the incrementally obfuscated padding added
 by each hop. This incrementally obfuscated padding is referred to as the
 `filler`.
 
