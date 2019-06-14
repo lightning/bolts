@@ -29,17 +29,31 @@ def main(options, args=None, output=sys.stdout, lines=None):
     #
     # 1. type: PERM|NODE|3 (`required_node_feature_missing`)
     #
-    # 1. tlv: `tlv_name`
-    # 2. types:
-    #    1. type: 1 (`tlv_option_one`)
-    #    2. data:
-    #        * [`2`:`option_one_len`]
-    #        * [`option_one_len`:`option_one`]
+    # 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
+    # 2. data:
+    #     * [`32`:`chain_hash`]
+    #     * [`2`:`len`]
+    #     * [`len`:`encoded_short_ids`]
+    #     * [`tlvs`:`query_short_channel_ids_tlvs`]
     #
     # output:
-    #  tlv_option_one,1,tlv_name
-    #  tlv_option_one,0,option_one_len,2
-    #  tlv_option_one,2,option_one,option_one_len
+    #   query_short_channel_ids_tlvs,17,gossip_queries
+    #   query_short_channel_ids_tlvs,0,chainhash,32
+    #   query_short_channel_ids_tlvs,32,len,2
+    #   query_short_channel_ids_tlvs,34,encoded_short_ids,len
+    #   query_short_channel_ids_tlvs,34+len,query_short_channel_ids_tlv,tlv
+    #
+    # 1. tlv: `query_short_channel_ids_tlvs`
+    # 2. types:
+    #    1. type: 1 (`query_flags`)
+    #    2. data:
+    # 	      * [`1`:`encoding_type`]
+    # 	      * [`tlv_len-1`:`encoded_query_flags`]
+    #
+    # output:
+    #  query_flags,1,query_short_channel_ids_tlvs
+    #  query_flags,0,encoding_type,1
+    #  query_flags,1,encoded_query_flags,tlv_len-1
     #
     # 1. subtype: `input_info`
     # 2. data:
@@ -58,7 +72,7 @@ def main(options, args=None, output=sys.stdout, lines=None):
     typeline = re.compile(
         '(?P<leading>\s*)1\. (?P<type>((sub)*?type|tlv)):( (?P<value>[-0-9A-Za-z_|]+))? \(?`(?P<name>[A-Za-z2_]+)`\)?( \(`?(?P<option>[^)`]*)`?\))?')
     dataline = re.compile(
-        '\s+\* \[`((?P<size>[_a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)|(?P<count>[_a-z0-9+]+)(?P<multi>\*)(?P<subtype>[_a-z0-9]+))`\]( \(`?(?P<option>[^)`]*)`?\))?')
+        '\s+\* \[`((?P<size>[-_a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)|(?P<count>[_a-z0-9+]+)(?P<multi>\*)(?P<subtype>[_a-z0-9]+))`\]( \(`?(?P<option>[^)`]*)`?\))?')
 
     if lines is None:
         lines = fileinput.input(args)
