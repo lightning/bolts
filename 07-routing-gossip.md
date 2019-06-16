@@ -494,12 +494,12 @@ The receiving node:
   - if the specified `chain_hash` value is unknown (meaning it isn't active on
   the specified chain):
     - MUST ignore the channel update.
-  - if `timestamp` is NOT greater than that of the last-received
+  - if `timestamp` is NOT greater than OR equal to that of the last-received
   `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
   - otherwise:
-    - if the `timestamp` is equal to the last-received `channel_update`
-    AND the fields (other than `signature`) differ:
+    - if the `timestamp` is equal to the last-received `channel_update`,
+    AND the fields differ (with a valid `signature` for the message):
       - MAY blacklist this `node_id`.
       - MAY forget all channels associated with it.
   - if the `timestamp` is unreasonably far in the future:
