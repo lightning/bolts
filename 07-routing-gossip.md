@@ -498,8 +498,8 @@ The receiving node:
   `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
   - otherwise:
-    - if the `timestamp` is equal to the last-received `channel_update`,
-    AND the fields differ (with a valid `signature` for the message):
+    - if the `timestamp` is equal to the last-received `channel_update` for this
+    `short_channel_id` AND `node_id`, AND the fields below `timestamp` differ:
       - MAY blacklist this `node_id`.
       - MAY forget all channels associated with it.
   - if the `timestamp` is unreasonably far in the future:
@@ -523,6 +523,13 @@ either too far in the future or have not been updated in two weeks; so it
 makes sense to have it be a UNIX timestamp (i.e. seconds since UTC
 1970-01-01). This cannot be a hard requirement, however, given the possible case
 of two `channel_update`s within a single second.
+
+It is assumed that more than one `channel_update` message changing the channel 
+parameters in the same second is a DoS attempt, and therefore, the node responsible 
+for signing such messages ought to be blacklisted. However, a node can send a same 
+`channel_update` message with a different signature (changing the nonce in signature 
+signing), and hence fields apart from signature are checked to see if the channel 
+parameters have changed for the same timestamp.
 
 The explicit `option_channel_htlc_max` flag to indicate the presence
 of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
