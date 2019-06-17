@@ -14,6 +14,7 @@ All data fields are unsigned big-endian unless otherwise specified.
   * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
   * [Lightning Message Format](#lightning-message-format)
   * [Type-Length-Value Format](#type-length-value-format)
+  * [Fundamental Types](#fundamental-types)
   * [Setup Messages](#setup-messages)
     * [The `init` Message](#the-init-message)
     * [The `error` Message](#the-error-message)
@@ -83,6 +84,7 @@ however, adding a 6-byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6-bytes of pre-padding.
 
+<<<<<<< HEAD
 
 ## Type-Length-Value Format
 
@@ -171,6 +173,27 @@ follow. On the other hand, if a `tlv_record` contains multiple, variable-length
 elements then this would not be considered redundant, and is needed to allow the
 receiver to parse individual elements from `value`.
 
+## Fundamental Types
+
+Various fundamental types are referred to in the message specifications:
+
+* `byte`: an 8-bit byte
+* `u16`: a 2 byte unsigned integer
+* `u32`: a 4 byte unsigned integer
+* `u64`: an 8 byte unsigned integer
+
+The following convenience types are also defined:
+
+* `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
+* `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id)
+* `sha256`: a 32-byte SHA2-256 hash
+* `signature`: a 64-byte bitcoin Elliptic Curve signature
+* `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
+* `pubkey`: a `point` explicitly for use as a public key
+* `preimage`: a 32 byte value used as a preimage for a hash
+* `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
+* `secret`: a 32 byte secret being revealed to the peer
+
 ## Setup Messages
 
 ### The `init` Message
@@ -183,10 +206,10 @@ Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s
 
 1. type: 16 (`init`)
 2. data:
-   * [`2`:`gflen`]
-   * [`gflen`:`globalfeatures`]
-   * [`2`:`lflen`]
-   * [`lflen`:`localfeatures`]
+   * [`u16`:`gflen`]
+   * [`gflen*byte`:`globalfeatures`]
+   * [`u16`:`lflen`]
+   * [`lflen*byte`:`localfeatures`]
 
 The 2-byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
 
@@ -223,9 +246,9 @@ For simplicity of diagnosis, it's often useful to tell a peer that something is 
 
 1. type: 17 (`error`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`2`:`len`]
-   * [`len`:`data`]
+   * [`channel_id`:`channel_id`]
+   * [`u16`:`len`]
+   * [`len*byte`:`data`]
 
 The 2-byte `len` field indicates the number of bytes in the immediately following field.
 
@@ -283,9 +306,9 @@ application level. Such messages also allow obfuscation of traffic patterns.
 
 1. type: 18 (`ping`)
 2. data:
-    * [`2`:`num_pong_bytes`]
-    * [`2`:`byteslen`]
-    * [`byteslen`:`ignored`]
+    * [`u16`:`num_pong_bytes`]
+    * [`u16`:`byteslen`]
+    * [`byteslen*byte`:`ignored`]
 
 The `pong` message is to be sent whenever a `ping` message is received. It
 serves as a reply and also serves to keep the connection alive, while
@@ -295,8 +318,8 @@ included within the data payload of the `pong` message.
 
 1. type: 19 (`pong`)
 2. data:
-    * [`2`:`byteslen`]
-    * [`byteslen`:`ignored`]
+    * [`u16`:`byteslen`]
+    * [`byteslen*byte`:`ignored`]
 
 #### Requirements
 
