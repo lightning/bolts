@@ -526,7 +526,7 @@ of two `channel_update`s within a single second.
 
 It is assumed that more than one `channel_update` message changing the channel 
 parameters in the same second may be a DoS attempt, and therefore, the node responsible 
-for signing such messages ought to be blacklisted. However, a node can send a same 
+for signing such messages may be blacklisted. However, a node can send a same 
 `channel_update` message with a different signature (changing the nonce in signature 
 signing), and hence fields apart from signature are checked to see if the channel 
 parameters have changed for the same timestamp.
