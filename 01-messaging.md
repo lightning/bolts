@@ -182,6 +182,13 @@ Various fundamental types are referred to in the message specifications:
 * `u32`: a 4 byte unsigned integer
 * `u64`: an 8 byte unsigned integer
 
+Inside TLV records which contain a single value, leading zeros in
+integers can be omitted:
+
+* `tu16`: a 0 to 2 byte unsigned integer
+* `tu32`: a 0 to 4 byte unsigned integer
+* `tu64`: a 0 to 8 byte unsigned integer
+
 The following convenience types are also defined:
 
 * `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
