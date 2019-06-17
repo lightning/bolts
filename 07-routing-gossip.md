@@ -494,7 +494,7 @@ The receiving node:
   - if the specified `chain_hash` value is unknown (meaning it isn't active on
   the specified chain):
     - MUST ignore the channel update.
-  - if `timestamp` is NOT greater than OR equal to that of the last-received
+  - if `timestamp` is lower than that of the last-received
   `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
   - otherwise:
