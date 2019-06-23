@@ -499,9 +499,12 @@ The receiving node:
     - SHOULD ignore the message.
   - otherwise:
     - if the `timestamp` is equal to the last-received `channel_update` for this
-    `short_channel_id` AND `node_id`, AND the fields below `timestamp` differ:
-      - MAY blacklist this `node_id`.
-      - MAY forget all channels associated with it.
+    `short_channel_id` AND `node_id`, 
+    	- if the fields below `timestamp` differ:
+    		- MAY blacklist this `node_id`.
+      		- MAY forget all channels associated with it.
+	- if the fields below `timestamp` are equal:
+		- SHOULD ignore this message
   - if the `timestamp` is unreasonably far in the future:
     - MAY discard the `channel_update`.
   - otherwise:
