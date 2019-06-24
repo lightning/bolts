@@ -478,7 +478,7 @@ This message initiates the v2 channel establishment workflow.
    * [`8`:`htlc_minimum_msat`]
    * [`4`:`feerate_per_kw`]
    * [`4`:`feerate_per_kw_funding`]
-   * [`2`: `contrib_count`]
+   * [`2`:`contrib_count`]
    * [`2`:`to_self_delay`]
    * [`2`:`max_accepted_htlcs`]
    * [`33`:`funding_pubkey`]
