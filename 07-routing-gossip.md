@@ -69,8 +69,9 @@ of the block at height 539268.
 A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
-      - MUST NOT send `announcement_signatures` messages until `funding_locked`
-      has been sent and received AND the funding transaction has at least six confirmations.
+      - SHOULD send `announcement_signatures` after the funding transaction has
+        `max(6, minimum_depth)` confirmations, where `minimum_depth` is the
+        value proposed by the fundee in `accept_channel`.
   - otherwise:
     - MUST NOT send the `announcement_signatures` message.
   - upon reconnection (once the above timing requirements have been met):
