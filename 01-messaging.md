@@ -130,11 +130,6 @@ routing and are thus also advertised to other nodes).  A node may
 connect to a node with unknown channel features, even though it won't be
 able to establish a channel.
 
-#### Large channel support
-The `option_support_large_channel` is node feature used to let everyone know this node supports large channel funding.
-Since it's broadcast in the `node_announcement` message other nodes can use it to identify peers 
-willing to accept large channel even before exchanging the `init` message with them. 
-
 ### The `error` Message
 
 For simplicity of diagnosis, it's often useful to tell a peer that something is incorrect.
