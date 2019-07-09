@@ -97,13 +97,13 @@ def parse_type(genline, output, name, value, option, in_tlv=None):
 
     # Expect a data: line before values, if any
     if line.lstrip() != '2. data:':
-        return
+        return _, line
 
     while True:
         i, line = next(genline)
         match = dataline.fullmatch(line)
         if not match:
-            break
+            return _, line
 
         if '*' in match.group('typefield'):
             num,typename = match.group('typefield').split('*')
@@ -134,15 +134,14 @@ def parse_tlv(genline, output, name, option):
     if line != '2. types:':
         raise ValueError('{}: Expected "2. types:" line'.format(i))
 
+    _, line = next(genline)
     while True:
-        _, line = next(genline)
-
         # Inside tlv, types are indented.
         match = typeline.fullmatch(line.lstrip())
         if not match:
             break
 
-        parse_type(genline, output, match.group('name'), match.group('value'), match.group('option'), name)
+        _, line = parse_type(genline, output, match.group('name'), match.group('value'), match.group('option'), name)
 
     
 # 1. subtype: `input_info`
