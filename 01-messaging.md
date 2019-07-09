@@ -13,6 +13,8 @@ All data fields are unsigned big-endian unless otherwise specified.
 
   * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
   * [Lightning Message Format](#lightning-message-format)
+  * [Type-Length-Value Format](#type-length-value-format)
+  * [Fundamental Types](#fundamental-types)
   * [Setup Messages](#setup-messages)
     * [The `init` Message](#the-init-message)
     * [The `error` Message](#the-error-message)
@@ -82,6 +84,118 @@ however, adding a 6-byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6-bytes of pre-padding.
 
+## Type-Length-Value Format
+
+Throughout the protocol, a TLV (Type-Length-Value) format is used to allow for
+the backwards-compatible addition of new fields to existing message types.
+
+A `tlv_record` represents a single field, encoded in the form:
+
+* [`varint`: `type`]
+* [`varint`: `length`]
+* [`length`: `value`]
+
+A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
+concatenation of the encoded `tlv_record`s. When used to extend existing
+messages, a `tlv_stream` is typically placed after all currently defined fields.
+
+The `type` is a varint encoded using the bitcoin CompactSize format. It
+functions as a message-specific, 64-bit identifier for the `tlv_record`
+determining how the contents of `value` should be decoded.
+
+The `length` is a varint encoded using the bitcoin CompactSize format
+signaling the size of `value` in bytes.
+
+The `value` depends entirely on the `type`, and should be encoded or decoded
+according to the message-specific format determined by `type`.
+
+### Requirements
+
+The sending node:
+ - MUST order `tlv_record`s in a `tlv_stream` by monotonically-increasing `type`.
+ - MUST minimally encode `type` and `length`.
+ - SHOULD NOT use redundant, variable-length encodings in a `tlv_record`.
+
+The receiving node:
+ - if zero bytes remain before parsing a `type`:
+   - MUST stop parsing the `tlv_stream`.
+ - if a `type` or `length` is not minimally encoded:
+   - MUST fail to parse the `tlv_stream`.
+ - if decoded `type`s are not monotonically-increasing:
+   - MUST fail to parse the `tlv_stream`.
+ - if `type` is known:
+   - MUST decode the next `length` bytes using the known encoding for `type`.
+ - otherwise, if `type` is unknown:
+   - if `type` is even:
+     - MUST fail to parse the `tlv_stream`.
+   - otherwise, if `type` is odd:
+     - MUST discard the next `length` bytes.
+
+### Rationale
+
+The primary advantage in using TLV is that a reader is able to ignore new fields
+that it does not understand, since each field carries the exact size of the
+encoded element. Without TLV, even if a node does not wish to use a particular
+field, the node is forced to add parsing logic for that field in order to
+determine the offset of any fields that follow.
+
+The monotonicity constraint ensures that all `type`s are unique and can appear
+at most once. Fields that map to complex objects, e.g. vectors, maps, or
+structs, should do so by defining the encoding such that the object is
+serialized within a single `tlv_record`. The uniqueness constraint, among other
+things, enables the following optimizations:
+ - canonical ordering is defined independent of the encoded `value`s.
+ - canonical ordering can be known at compile-time, rather that being determined
+   dynamically at the time of encoding.
+ - verifying canonical ordering requires less state and is less-expensive.
+ - variable-size fields can reserve their expected size up front, rather than
+   appending elements sequentially and incurring double-and-copy overhead.
+
+The use of a varint for `type` and `length` permits a space savings for small
+`type`s or short `value`s. This potentially leaves more space for application
+data over the wire or in an onion payload.
+
+All `type`s must appear in increasing order to create a canonical encoding of
+the underlying `tlv_record`s. This is crucial when computing signatures over a
+`tlv_stream`, as it ensures verifiers will be able to recompute the same message
+digest as the signer. Note that the canonical ordering over the set of fields
+can be enforced even if the verifier does not understand what the fields
+contain.
+
+Writers should avoid using redundant, variable-length encodings in a
+`tlv_record` since this results in encoding the length twice and complicates
+computing the outer length. As an example, when writing a variable length byte
+array, the `value` should contain only the raw bytes and forgo an additional
+internal length since the `tlv_record` already carries the number of bytes that
+follow. On the other hand, if a `tlv_record` contains multiple, variable-length
+elements then this would not be considered redundant, and is needed to allow the
+receiver to parse individual elements from `value`.
+
+## Fundamental Types
+
+Various fundamental types are referred to in the message specifications:
+
+* `byte`: an 8-bit byte
+* `u16`: a 2 byte unsigned integer
+* `u32`: a 4 byte unsigned integer
+* `u64`: an 8 byte unsigned integer
+
+Inside TLV records which contain a single value, leading zeros in
+integers can be omitted:
+
+* `tu16`: a 0 to 2 byte unsigned integer
+* `tu32`: a 0 to 4 byte unsigned integer
+* `tu64`: a 0 to 8 byte unsigned integer
+
+The following convenience types are also defined:
+
+* `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
+* `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id)
+* `sha256`: a 32-byte SHA2-256 hash
+* `signature`: a 64-byte bitcoin Elliptic Curve signature
+* `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
+* `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
+
 ## Setup Messages
 
 ### The `init` Message
@@ -94,10 +208,10 @@ Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s
 
 1. type: 16 (`init`)
 2. data:
-   * [`2`:`gflen`]
-   * [`gflen`:`globalfeatures`]
-   * [`2`:`lflen`]
-   * [`lflen`:`localfeatures`]
+   * [`u16`:`gflen`]
+   * [`gflen*byte`:`globalfeatures`]
+   * [`u16`:`lflen`]
+   * [`lflen*byte`:`localfeatures`]
 
 The 2-byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
 
@@ -134,9 +248,9 @@ For simplicity of diagnosis, it's often useful to tell a peer that something is 
 
 1. type: 17 (`error`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`2`:`len`]
-   * [`len`:`data`]
+   * [`channel_id`:`channel_id`]
+   * [`u16`:`len`]
+   * [`len*byte`:`data`]
 
 The 2-byte `len` field indicates the number of bytes in the immediately following field.
 
@@ -194,9 +308,9 @@ application level. Such messages also allow obfuscation of traffic patterns.
 
 1. type: 18 (`ping`)
 2. data:
-    * [`2`:`num_pong_bytes`]
-    * [`2`:`byteslen`]
-    * [`byteslen`:`ignored`]
+    * [`u16`:`num_pong_bytes`]
+    * [`u16`:`byteslen`]
+    * [`byteslen*byte`:`ignored`]
 
 The `pong` message is to be sent whenever a `ping` message is received. It
 serves as a reply and also serves to keep the connection alive, while
@@ -206,8 +320,8 @@ included within the data payload of the `pong` message.
 
 1. type: 19 (`pong`)
 2. data:
-    * [`2`:`byteslen`]
-    * [`byteslen`:`ignored`]
+    * [`u16`:`byteslen`]
+    * [`byteslen*byte`:`ignored`]
 
 #### Requirements
 

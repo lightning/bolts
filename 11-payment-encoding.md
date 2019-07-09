@@ -256,7 +256,7 @@ Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
 # Payer / Payee Interactions
 
 These are generally defined by the rest of the Lightning BOLT series,
-but it's worth noting that [BOLT #5](05-onchain.md) specifies that the payee SHOULD
+but it's worth noting that [BOLT #4](04-onion-routing.md#requirements-2) specifies that the payee SHOULD
 accept up to twice the expected `amount`, so the payer can make
 payments harder to track by adding small variations.
 

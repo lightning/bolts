@@ -332,3 +332,14 @@ APIs
 duplicative
 DoS
 ECDSA
+TLV
+namespace
+verifier
+verifiers
+EOF
+monotonicity
+varint
+optimizations
+structs
+CompactSize
+encodings

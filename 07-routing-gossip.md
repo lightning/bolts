@@ -20,6 +20,7 @@ multiple `node_announcement` messages, in order to update the node information.
 
 # Table of Contents
 
+  * [Definition of `short_channel_id`](#definition-of-short-channel-id)
   * [The `announcement_signatures` Message](#the-announcement_signatures-message)
   * [The `channel_announcement` Message](#the-channel_announcement-message)
   * [The `node_announcement` Message](#the-node_announcement-message)
@@ -32,24 +33,7 @@ multiple `node_announcement` messages, in order to update the node information.
   * [Recommendations for Routing](#recommendations-for-routing)
   * [References](#references)
 
-## The `announcement_signatures` Message
-
-This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
-It contains the necessary signatures, by the sender, to construct the `channel_announcement` message.
-
-1. type: 259 (`announcement_signatures`)
-2. data:
-    * [`32`:`channel_id`]
-    * [`8`:`short_channel_id`]
-    * [`64`:`node_signature`]
-    * [`64`:`bitcoin_signature`]
-
-The willingness of the initiating node to announce the channel is signaled during channel opening by setting the `announce_channel` bit in `channel_flags` (see [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
-
-### Requirements
-
-The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. After it's signed, the
-`announcement_signatures` message may be sent.
+## Definition of `short_channel_id`
 
 The `short_channel_id` is the unique description of the funding transaction.
 It is constructed as follows:
@@ -65,6 +49,25 @@ and separated from each other by the small letter `x`.
 For example, a `short_channel_id` might be written as `539268x845x1`,
 indicating a channel on the output 1 of the transaction at index 845
 of the block at height 539268.
+
+## The `announcement_signatures` Message
+
+This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
+It contains the necessary signatures, by the sender, to construct the `channel_announcement` message.
+
+1. type: 259 (`announcement_signatures`)
+2. data:
+    * [`channel_id`:`channel_id`]
+    * [`short_channel_id`:`short_channel_id`]
+    * [`signature`:`node_signature`]
+    * [`signature`:`bitcoin_signature`]
+
+The willingness of the initiating node to announce the channel is signaled during channel opening by setting the `announce_channel` bit in `channel_flags` (see [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
+
+### Requirements
+
+The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. After it's signed, the
+`announcement_signatures` message may be sent.
 
 A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
@@ -135,18 +138,18 @@ announcement message: this is accomplished by having a signature from each
 
 1. type: 256 (`channel_announcement`)
 2. data:
-    * [`64`:`node_signature_1`]
-    * [`64`:`node_signature_2`]
-    * [`64`:`bitcoin_signature_1`]
-    * [`64`:`bitcoin_signature_2`]
-    * [`2`:`len`]
-    * [`len`:`features`]
-    * [`32`:`chain_hash`]
-    * [`8`:`short_channel_id`]
-    * [`33`:`node_id_1`]
-    * [`33`:`node_id_2`]
-    * [`33`:`bitcoin_key_1`]
-    * [`33`:`bitcoin_key_2`]
+    * [`signature`:`node_signature_1`]
+    * [`signature`:`node_signature_2`]
+    * [`signature`:`bitcoin_signature_1`]
+    * [`signature`:`bitcoin_signature_2`]
+    * [`u16`:`len`]
+    * [`len*byte`:`features`]
+    * [`chain_hash`:`chain_hash`]
+    * [`short_channel_id`:`short_channel_id`]
+    * [`point`:`node_id_1`]
+    * [`point`:`node_id_2`]
+    * [`point`:`bitcoin_key_1`]
+    * [`point`:`bitcoin_key_2`]
 
 ### Requirements
 
@@ -247,15 +250,15 @@ nodes not associated with an already known channel are ignored.
 
 1. type: 257 (`node_announcement`)
 2. data:
-   * [`64`:`signature`]
-   * [`2`:`flen`]
-   * [`flen`:`features`]
-   * [`4`:`timestamp`]
-   * [`33`:`node_id`]
-   * [`3`:`rgb_color`]
-   * [`32`:`alias`]
-   * [`2`:`addrlen`]
-   * [`addrlen`:`addresses`]
+   * [`signature`:`signature`]
+   * [`u16`:`flen`]
+   * [`flen*byte`:`features`]
+   * [`u32`:`timestamp`]
+   * [`point`:`node_id`]
+   * [`3*byte`:`rgb_color`]
+   * [`32*byte`:`alias`]
+   * [`u16`:`addrlen`]
+   * [`addrlen*byte`:`addresses`]
 
 `timestamp` allows for the ordering of messages, in the case of multiple
 announcements. `rgb_color` and `alias` allow intelligence services to assign
@@ -391,17 +394,17 @@ of *relaying* payments, not *sending* payments. When making a payment
 
 1. type: 258 (`channel_update`)
 2. data:
-    * [`64`:`signature`]
-    * [`32`:`chain_hash`]
-    * [`8`:`short_channel_id`]
-    * [`4`:`timestamp`]
-    * [`1`:`message_flags`]
-    * [`1`:`channel_flags`]
-    * [`2`:`cltv_expiry_delta`]
-    * [`8`:`htlc_minimum_msat`]
-    * [`4`:`fee_base_msat`]
-    * [`4`:`fee_proportional_millionths`]
-    * [`8`:`htlc_maximum_msat`] (option_channel_htlc_max)
+    * [`signature`:`signature`]
+    * [`chain_hash`:`chain_hash`]
+    * [`short_channel_id`:`short_channel_id`]
+    * [`u32`:`timestamp`]
+    * [`byte`:`message_flags`]
+    * [`byte`:`channel_flags`]
+    * [`u16`:`cltv_expiry_delta`]
+    * [`u64`:`htlc_minimum_msat`]
+    * [`u32`:`fee_base_msat`]
+    * [`u32`:`fee_proportional_millionths`]
+    * [`u64`:`htlc_maximum_msat`] (option_channel_htlc_max)
 
 The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
@@ -578,14 +581,14 @@ contents could decompress to more then 3669960 bytes.
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`2`:`len`]
-    * [`len`:`encoded_short_ids`]
+    * [`chain_hash`:`chain_hash`]
+    * [`u16`:`len`]
+    * [`len*byte`:`encoded_short_ids`]
 
 1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`1`:`complete`]
+    * [`chain_hash`:`chain_hash`]
+    * [`byte`:`complete`]
 
 This is a general mechanism which lets a node query for the
 `channel_announcement` and `channel_update` messages for specific channels
@@ -639,18 +642,18 @@ timeouts.  It also causes a natural ratelimiting of queries.
 
 1. type: 263 (`query_channel_range`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`4`:`first_blocknum`]
-    * [`4`:`number_of_blocks`]
+    * [`chain_hash`:`chain_hash`]
+    * [`u32`:`first_blocknum`]
+    * [`u32`:`number_of_blocks`]
 
 1. type: 264 (`reply_channel_range`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`4`:`first_blocknum`]
-    * [`4`:`number_of_blocks`]
-    * [`1`:`complete`]
-    * [`2`:`len`]
-    * [`len`:`encoded_short_ids`]
+    * [`chain_hash`:`chain_hash`]
+    * [`u32`:`first_blocknum`]
+    * [`u32`:`number_of_blocks`]
+    * [`byte`:`complete`]
+    * [`u16`:`len`]
+    * [`len*byte`:`encoded_short_ids`]
 
 This allows a query for channels within specific blocks.
 
@@ -689,9 +692,9 @@ which overlaps the ranges of the request.
 
 1. type: 265 (`gossip_timestamp_filter`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`4`:`first_timestamp`]
-    * [`4`:`timestamp_range`]
+    * [`chain_hash`:`chain_hash`]
+    * [`u32`:`first_timestamp`]
+    * [`u32`:`timestamp_range`]
 
 This message allows a node to constrain future gossip messages to
 a specific range.  A node which wants any gossip messages would have
