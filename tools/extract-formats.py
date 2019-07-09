@@ -23,11 +23,11 @@ import re
 import fileinput
 
 typeline = re.compile(
-    '1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z2_]+)`\)( \(`?(?P<option>[^)`]*)`\))?')
+    '1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z0-9_]+)`\)( \(`?(?P<option>[^)`]*)`\))?')
 tlvline = re.compile(
-    '1\. tlvs: `(?P<name>[A-Za-z2_]+)`( \(`?(?P<option>[^)`]*)`\))?')
+    '1\. tlvs: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
 subtypeline = re.compile(
-    '1\. subtype: `(?P<name>[A-Za-z2_]+)`( \(`?(?P<option>[^)`]*)`\))?')
+    '1\. subtype: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
 dataline = re.compile(
     '\s+\* \[`(?P<typefield>[-_a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]( \(`?(?P<option>[^)`]*)`?\))?')
 
