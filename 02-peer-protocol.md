@@ -116,7 +116,7 @@ the funding transaction and both versions of the commitment transaction.
    * [`u32`:`feerate_per_kw`]
    * [`u16`:`to_self_delay`]
    * [`u16`:`max_accepted_htlcs`]
-   * [`pubkey`:`funding_pubkey`]
+   * [`point`:`funding_pubkey`]
    * [`point`:`revocation_basepoint`]
    * [`point`:`payment_basepoint`]
    * [`point`:`delayed_payment_basepoint`]
@@ -286,7 +286,7 @@ funding transaction and both versions of the commitment transaction.
    * [`u32`:`minimum_depth`]
    * [`u16`:`to_self_delay`]
    * [`u16`:`max_accepted_htlcs`]
-   * [`pubkey`:`funding_pubkey`]
+   * [`point`:`funding_pubkey`]
    * [`point`:`revocation_basepoint`]
    * [`point`:`payment_basepoint`]
    * [`point`:`delayed_payment_basepoint`]
@@ -867,7 +867,7 @@ To supply the preimage:
 2. data:
    * [`channel_id`:`channel_id`]
    * [`u64`:`id`]
-   * [`preimage`:`payment_preimage`]
+   * [`32*byte`:`payment_preimage`]
 
 For a timed out or route-failed HTLC:
 
@@ -1008,7 +1008,7 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
 1. type: 133 (`revoke_and_ack`)
 2. data:
    * [`channel_id`:`channel_id`]
-   * [`secret`:`per_commitment_secret`]
+   * [`32*byte`:`per_commitment_secret`]
    * [`point`:`next_per_commitment_point`]
 
 #### Requirements
@@ -1117,7 +1117,7 @@ messages are), they are independent of requirements here.
    * [`channel_id`:`channel_id`]
    * [`u64`:`next_local_commitment_number`]
    * [`u64`:`next_remote_revocation_number`]
-   * [`secret`:`your_last_per_commitment_secret`] (option_data_loss_protect)
+   * [`32*byte`:`your_last_per_commitment_secret`] (option_data_loss_protect)
    * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect)
 
 `next_local_commitment_number`: A commitment number is a 48-bit

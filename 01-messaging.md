@@ -196,10 +196,7 @@ The following convenience types are also defined:
 * `sha256`: a 32-byte SHA2-256 hash
 * `signature`: a 64-byte bitcoin Elliptic Curve signature
 * `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
-* `pubkey`: a `point` explicitly for use as a public key
-* `preimage`: a 32 byte value used as a preimage for a hash
 * `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
-* `secret`: a 32 byte secret being revealed to the peer
 
 ## Setup Messages
 
