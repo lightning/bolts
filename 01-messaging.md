@@ -84,8 +84,6 @@ however, adding a 6-byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6-bytes of pre-padding.
 
-<<<<<<< HEAD
-
 ## Type-Length-Value Format
 
 Throughout the protocol, a TLV (Type-Length-Value) format is used to allow for
