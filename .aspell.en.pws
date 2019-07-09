@@ -341,3 +341,5 @@ optimizations
 structs
 CompactSize
 encodings
+DoS
+ECDSA
