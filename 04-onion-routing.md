@@ -154,7 +154,7 @@ The overall structure of the packet is as follows:
 1. type: `onion_packet`
 2. data:
    * [`byte`:`version`]
-   * [`pubkey`:`public_key`]
+   * [`point`:`public_key`]
    * [`1300*byte`:`hops_data`]
    * [`32*byte`:`hmac`]
 

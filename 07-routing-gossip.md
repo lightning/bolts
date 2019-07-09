@@ -146,10 +146,10 @@ announcement message: this is accomplished by having a signature from each
     * [`len*byte`:`features`]
     * [`chain_hash`:`chain_hash`]
     * [`short_channel_id`:`short_channel_id`]
-    * [`pubkey`:`node_id_1`]
-    * [`pubkey`:`node_id_2`]
-    * [`pubkey`:`bitcoin_key_1`]
-    * [`pubkey`:`bitcoin_key_2`]
+    * [`point`:`node_id_1`]
+    * [`point`:`node_id_2`]
+    * [`point`:`bitcoin_key_1`]
+    * [`point`:`bitcoin_key_2`]
 
 ### Requirements
 
@@ -254,7 +254,7 @@ nodes not associated with an already known channel are ignored.
    * [`u16`:`flen`]
    * [`flen*byte`:`features`]
    * [`u32`:`timestamp`]
-   * [`pubkey`:`node_id`]
+   * [`point`:`node_id`]
    * [`3*byte`:`rgb_color`]
    * [`32*byte`:`alias`]
    * [`u16`:`addrlen`]
