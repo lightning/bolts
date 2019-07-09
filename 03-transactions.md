@@ -94,14 +94,14 @@ The amounts for each output MUST be rounded down to whole satoshis. If this amou
 
 #### `to_local` Output
 
-This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CHECKSEQUENCEVERIFY`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
 
     OP_IF
         # Penalty transaction
         <revocationpubkey>
     OP_ELSE
         `to_self_delay`
-        OP_CSV
+        OP_CHECKSEQUENCEVERIFY
         OP_DROP
         <local_delayedpubkey>
     OP_ENDIF
@@ -244,7 +244,7 @@ The witness script for the output is:
         <revocationpubkey>
     OP_ELSE
         `to_self_delay`
-        OP_CSV
+        OP_CHECKSEQUENCEVERIFY
         OP_DROP
         <local_delayedpubkey>
     OP_ENDIF
