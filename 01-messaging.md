@@ -129,8 +129,14 @@ The receiving node:
    - MUST fail to parse the `tlv_stream`.
  - if decoded `type`s are not monotonically-increasing:
    - MUST fail to parse the `tlv_stream`.
+ - if `length` exceeds the number of bytes remaining in the message:
+   - MUST fail to parse the `tlv_stream`.
  - if `type` is known:
    - MUST decode the next `length` bytes using the known encoding for `type`.
+   - if `length` is not exactly equal to that required for the known encoding for `type`:
+     - MUST fail to parse the `tlv_stream`.
+   - if variable-length fields within the known encoding for `type` are not minimal:
+     - MUST fail to parse the `tlv_stream`.
  - otherwise, if `type` is unknown:
    - if `type` is even:
      - MUST fail to parse the `tlv_stream`.
