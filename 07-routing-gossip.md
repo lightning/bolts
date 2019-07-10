@@ -50,6 +50,17 @@ For example, a `short_channel_id` might be written as `539268x845x1`,
 indicating a channel on the output 1 of the transaction at index 845
 of the block at height 539268.
 
+### Rationale
+
+The `short_channel_id` human readable format is designed
+so that double-clicking or double-tapping it will select the entire ID
+on most systems.
+Humans prefer decimal when reading numbers,
+so the ID components are written in decimal.
+The small letter `x` is used since on most fonts,
+the `x` is visibly smaller than decimal digits,
+making it easy to visibly group each component of the ID.
+
 ## The `announcement_signatures` Message
 
 This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
@@ -99,15 +110,6 @@ The reason for allowing deferring of a premature announcement_signatures is
 that an earlier version of the spec did not require waiting for receipt of
 funding locked: deferring rather than ignoring it allows compatibility with
 this behavior.
-
-The `short_channel_id` human readable format is designed
-so that double-clicking or double-tapping it will select the entire ID
-on most systems.
-Humans prefer decimal when reading numbers,
-so the ID components are written in decimal.
-The small letter `x` is used since on most fonts,
-the `x` is visibly smaller than decimal digits,
-making it easy to visibly group each component of the ID.
 
 ## The `channel_announcement` Message
 
