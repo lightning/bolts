@@ -708,8 +708,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_EQUALVERIFY: 1 byte
         - 2: 1 byte
         - OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localpubkey length)
-		- localpubkey: 33 bytes
+		- OP_DATA: 1 byte (local_htlcpubkey length)
+		- local_htlcpubkey: 33 bytes
         - 2: 1 byte
         - OP_CHECKMULTISIG: 1 byte
         - OP_ELSE: 1 byte
@@ -742,8 +742,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_DROP: 1 byte
 		- 2: 1 byte
 		- OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localpubkey length)
-		- localpubkey: 33 bytes
+		- OP_DATA: 1 byte (local_htlcpubkey length)
+		- local_htlcpubkey: 33 bytes
 		- 2: 1 byte
 		- OP_CHECKMULTISIG: 1 byte
 		- OP_ELSE: 1 byte
