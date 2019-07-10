@@ -1115,12 +1115,12 @@ messages are), they are independent of requirements here.
 1. type: 136 (`channel_reestablish`)
 2. data:
    * [`channel_id`:`channel_id`]
-   * [`u64`:`next_local_commitment_number`]
-   * [`u64`:`next_remote_revocation_number`]
+   * [`u64`:`next_commitment_number`]
+   * [`u64`:`next_revocation_number`]
    * [`32*byte`:`your_last_per_commitment_secret`] (option_data_loss_protect)
    * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect)
 
-`next_local_commitment_number`: A commitment number is a 48-bit
+`next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
 are independent for each peer in the channel and start at 0.
 They're only explicitly relayed to the other node in the case of
@@ -1162,9 +1162,9 @@ A node:
         message before sending any other messages for that channel.
 
 The sending node:
-  - MUST set `next_local_commitment_number` to the commitment number of the
+  - MUST set `next_commitment_number` to the commitment number of the
   next `commitment_signed` it expects to receive.
-  - MUST set `next_remote_revocation_number` to the commitment number of the
+  - MUST set `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
   - if it supports `option_data_loss_protect`:
     - if `next_remote_revocation_number` equals 0:
@@ -1174,42 +1174,42 @@ The sending node:
     it received
 
 A node:
-  - if `next_local_commitment_number` is 1 in both the `channel_reestablish` it
+  - if `next_commitment_number` is 1 in both the `channel_reestablish` it
   sent and received:
     - MUST retransmit `funding_locked`.
   - otherwise:
     - MUST NOT retransmit `funding_locked`.
   - upon reconnection:
     - MUST ignore any redundant `funding_locked` it receives.
-  - if `next_local_commitment_number` is equal to the commitment number of
+  - if `next_commitment_number` is equal to the commitment number of
   the last `commitment_signed` message the receiving node has sent:
     - MUST reuse the same commitment number for its next `commitment_signed`.
   - otherwise:
-    - if `next_local_commitment_number` is not 1 greater than the
+    - if `next_commitment_number` is not 1 greater than the
   commitment number of the last `commitment_signed` message the receiving
   node has sent:
       - SHOULD fail the channel.
-    - if it has not sent `commitment_signed`, AND `next_local_commitment_number`
+    - if it has not sent `commitment_signed`, AND `next_commitment_number`
     is not equal to 1:
       - SHOULD fail the channel.
-  - if `next_remote_revocation_number` is equal to the commitment number of
+  - if `next_revocation_number` is equal to the commitment number of
   the last `revoke_and_ack` the receiving node sent, AND the receiving node
   hasn't already received a `closing_signed`:
     - MUST re-send the `revoke_and_ack`.
   - otherwise:
-    - if `next_remote_revocation_number` is not equal to 1 greater than the
+    - if `next_revocation_number` is not equal to 1 greater than the
     commitment number of the last `revoke_and_ack` the receiving node has sent:
       - SHOULD fail the channel.
-    - if it has not sent `revoke_and_ack`, AND `next_remote_revocation_number`
+    - if it has not sent `revoke_and_ack`, AND `next_revocation_number`
     is not equal to 0:
       - SHOULD fail the channel.
 
  A receiving node:
   - if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
   fields are present:
-    - if `next_remote_revocation_number` is greater than expected above, AND
+    - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
-    `next_remote_revocation_number` minus 1:
+    `next_revocation_number` minus 1:
       - MUST NOT broadcast its commitment transaction.
       - SHOULD fail the channel.
       - SHOULD store `my_current_per_commitment_point` to retrieve funds
@@ -1264,15 +1264,15 @@ A re-transmittal of `revoke_and_ack` should never be asked for after a
 completed — which can only occur after the `revoke_and_ack` has been received
 by the remote node.
 
-Note that the `next_local_commitment_number` starts at 1, since
+Note that the `next_commitment_number` starts at 1, since
 commitment number 0 is created during opening.
-`next_remote_revocation_number` will be 0 until the
-`commitment_signed` for commitment number 1 is received, at which
-point the revocation for commitment number 0 is sent.
+`next_revocation_number` will be 0 until the
+`commitment_signed` for commitment number 1 is send and then
+the revocation for commitment number 0 is received.
 
 `funding_locked` is implicitly acknowledged by the start of normal
 operation, which is known to have begun after a `commitment_signed` has been
-received — hence, the test for a `next_local_commitment_number` greater
+received — hence, the test for a `next_commitment_number` greater
 than 1.
 
 A previous draft insisted that the funder "MUST remember ...if it has
