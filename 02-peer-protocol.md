@@ -18,7 +18,6 @@ operation, and closing.
       * [The `accept_channel2` Message](#the-accept_channel2-message)
       * [The `funding_compose` Message](#the-funding_compose-message)
       * [The `funding_signed2` Message](#the-funding_signed2-message)
-      * [The `funding_locked2` Message](#the-funding_locked2-message)
       * [Kicking Off Replace-By-Fee: `init_rbf` Message](#kicking-off-replace-by-fee-init_rbf)
       * [Acknowledging Replace-By-Fee `ack_rbf` Message](#acknowledging-replace-by-fee-ack_rbf)
     * [Channel Close](#channel-close)
@@ -457,8 +456,8 @@ The protocol is also expanded to include a mechanism for initiating RBF.
     |   |       |--(a)--- init_rbf ----------->|       |
     ----|       |<-(b)--- ack_rbf  ------------|       |
         |       |                              |       |
-        |       |--(9)--- funding_locked2 ---->|       |
-        |       |<-(10)-- funding_locked2 -----|       |
+        |       |--(9)--- funding_locked ----->|       |
+        |       |<-(10)-- funding_locked ------|       |
         +-------+                              +-------+
 
         - where node A is 'opener' and node B is 'accepter'
@@ -737,41 +736,12 @@ The receiving node:
 Exchanging witness data allows both sides to broadcast the funding
 transaction.
 
-### The `funding_locked2` Message
-
-This message signals that the funding transaction has reached the appropriate
-chain depth and is considered locked.  An exchange of `funding_locked2` messages
-concludes the channel establishment workflow.
-
-1. type: 61 (`funding_locked2`)
-2. data:
-    * [`32`:`channel_id`]
-    * [`32`:`funding_txid`]
-    * [`33`:`next_per_commitment_point`]
-
-See [`funding_locked`](#the-funding_locked-message) for Requirements and
-Rationale, with the following addition.
-
-#### Requirements
-
-The receiving node:
-  - if the `funding_txid` does not match the `funding_txid` of the funding
-    transaction it observed:
-    - MUST fail the channel.
-
-#### Rationale
-
-`funding_txid` is the transaction hash for the funding transaction that
-is locked in. This is to confirm that both nodes are using the same
-transaction for funding. (It is possible for them to diverge in the unlikely
-case of a network partition concurrent with an RBF attempt.)
-
 
 ### Kicking Off Replace-By-Fee: `init_rbf`
 
 This message initiates the flow to create a replacement funding
 transaction.  It is sent by the channel opener, after the funding
-transaction has been broadcast but before a `funding_locked2` message
+transaction has been broadcast but before a `funding_locked` message
 is exchanged.
 
 Once an `init_rbf` message has been successfully ack'd by the accepter
@@ -818,7 +788,7 @@ all of the previously relayed inputs plus the ones included here.
 All outputs must be transmitted in the `init_rbf` message, including
 ones communicated previously.
 
-If a valid `funding_locked2` message is received in the middle of an
+If a valid `funding_locked` message is received in the middle of an
 RBF workflow, the RBF attempt MUST be abandoned.
 
 
