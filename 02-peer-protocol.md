@@ -468,35 +468,34 @@ This message initiates the v2 channel establishment workflow.
 
 1. type: 56 (`open_channel2`)
 2. data:
-   * [`32`:`chain_hash`]
-   * [`32`:`temporary_channel_id`]
-   * [`8`:`funding_satoshis`]
-   * [`8`:`push_msat`]
-   * [`8`:`dust_limit_satoshis`]
-   * [`8`:`max_htlc_value_in_flight_msat`]
-   * [`8`:`htlc_minimum_msat`]
-   * [`4`:`feerate_per_kw`]
-   * [`4`:`feerate_per_kw_funding`]
-   * [`2`:`contrib_count`]
-   * [`2`:`to_self_delay`]
-   * [`2`:`max_accepted_htlcs`]
-   * [`33`:`funding_pubkey`]
-   * [`33`:`revocation_basepoint`]
-   * [`33`:`payment_basepoint`]
-   * [`33`:`delayed_payment_basepoint`]
-   * [`33`:`htlc_basepoint`]
-   * [`33`:`first_per_commitment_point`]
-   * [`1`:`channel_flags`]
-   * [`var_int`:`opening_tlv_len`]
-   * [`opening_tlv_len`:`opening_tlv`]
+   * [`chain_hash`:`chain_hash`]
+   * [`32*byte`:`temporary_channel_id`]
+   * [`u64`:`funding_satoshis`]
+   * [`u64`:`push_msat`]
+   * [`u64`:`dust_limit_satoshis`]
+   * [`u64`:`max_htlc_value_in_flight_msat`]
+   * [`u64`:`htlc_minimum_msat`]
+   * [`u32`:`feerate_per_kw`]
+   * [`u32`:`feerate_per_kw_funding`]
+   * [`u16`:`contrib_count`]
+   * [`u16`:`to_self_delay`]
+   * [`u16`:`max_accepted_htlcs`]
+   * [`point`:`funding_pubkey`]
+   * [`point`:`revocation_basepoint`]
+   * [`point`:`payment_basepoint`]
+   * [`point`:`delayed_payment_basepoint`]
+   * [`point`:`htlc_basepoint`]
+   * [`point`:`first_per_commitment_point`]
+   * [`byte`:`channel_flags`]
+   * [`opening_tlvs`:`opening_tlv`]
 
 
-1. tlv: `opening_tlv`
+1. tlvs: `opening_tlvs`
 2. types:
    1. type: 1 (`option_upfront_shutdown_script`)
    2. data:
-       * [`2`:`shutdown_len`]
-       * [`shutdown_len`:`shutdown_scriptpubkey`]
+       * [`u16`:`shutdown_len`]
+       * [`shutdown_len*byte`:`shutdown_scriptpubkey`]
 
 Rationale and Requirements are the same as for [`open_channel`](#the-open_channel-message), with the following additions:
 
@@ -525,22 +524,21 @@ acceptance of the new channel.
 
 1. type: 57 (`accept_channel2`)
 2. data:
-    * [`32`:`temporary_channel_id`]
-    * [`8`:`funding_satoshis`]
-    * [`8`:`dust_limit_satoshis`]
-    * [`8`:`max_htlc_value_in_flight_msat`]
-    * [`8`:`htlc_minimum_msat`]
-    * [`4`:`minimum_depth`]
-    * [`2`:`to_self_delay`]
-    * [`2`:`max_accepted_htlcs`]
-    * [`33`:`funding_pubkey`]
-    * [`33`:`revocation_basepoint`]
-    * [`33`:`payment_basepoint`]
-    * [`33`:`delayed_payment_basepoint`]
-    * [`33`:`htlc_basepoint`]
-    * [`33`:`first_per_commitment_point`]
-    * [`var_int`:`opening_tlv_len`]
-    * [`opening_tlv_len`:`opening_tlv`]
+    * [`32*byte`:`temporary_channel_id`]
+    * [`u64`:`funding_satoshis`]
+    * [`u64`:`dust_limit_satoshis`]
+    * [`u64`:`max_htlc_value_in_flight_msat`]
+    * [`u64`:`htlc_minimum_msat`]
+    * [`u32`:`minimum_depth`]
+    * [`u16`:`to_self_delay`]
+    * [`u16`:`max_accepted_htlcs`]
+    * [`point`:`funding_pubkey`]
+    * [`point`:`revocation_basepoint`]
+    * [`point`:`payment_basepoint`]
+    * [`point`:`delayed_payment_basepoint`]
+    * [`point`:`htlc_basepoint`]
+    * [`point`:`first_per_commitment_point`]
+    * [`opening_tlv`:`opening_tlv`]
 
 Rationale and Requirements are the same as listed above,
 for [`accept_channel`](#the-accept_channel-message) with the following additions.
@@ -563,29 +561,29 @@ information necessary to compose the funding transaction.
 
 1. type: 58 (`funding_compose`)
 2. data:
-    * [`32`:`temporary_channel_id`]
-    * [`8`:`channel_reserve_satoshis`]
-    * [`2`:`num_inputs`]
-    * [`num_inputs*input_info`]
-    * [`2`:`num_outputs`]
-    * [`num_outputs*output_info`]
+    * [`32*byte`:`temporary_channel_id`]
+    * [`u64`:`channel_reserve_satoshis`]
+    * [`u16`:`num_inputs`]
+    * [`num_inputs*input_info`:`input_info`]
+    * [`u16`:`num_outputs`]
+    * [`num_outputs*output_info`:`output_info`]
 
 1. subtype: `input_info`
 2. data:
-    * [`8`:`satoshis`]
-    * [`32`:`prevtx_txid`]
-    * [`4`:`prevtx_vout`]
-    * [`2`:`prevtx_scriptpubkey_len`]
-    * [`prevtx_scriptpubkey_len`:`prevtx_scriptpubkey`]
-    * [`2`:`max_witness_len`]
-    * [`2`:`scriptlen`]
-    * [`scriptlen`:`script`]
+    * [`u64`:`satoshis`]
+    * [`sha256`:`prevtx_txid`]
+    * [`u32`:`prevtx_vout`]
+    * [`u16`:`prevtx_scriptpubkey_len`]
+    * [`prevtx_scriptpubkey_len*byte`:`prevtx_scriptpubkey`]
+    * [`u16`:`max_witness_len`]
+    * [`u16`:`scriptlen`]
+    * [`scriptlen*byte`:`script`]
 
 1. subtype: `output_info`
 2. data:
-    * [`8`:`satoshis`]
-    * [`2`:`scriptlen`]
-    * [`scriptlen`:`script`]
+    * [`u64`:`satoshis`]
+    * [`u16`:`scriptlen`]
+    * [`scriptlen*byte`:`script`]
 
 #### Requirements
 
@@ -700,19 +698,19 @@ originally sent in the `funding_compose` message.
 
 1. type: 60 (`funding_signed2`)
 2. data:
-    * [`32`:`channel_id`]
-    * [`2`:`num_witnesses`]
-    * [`num_witnesses*witness_stack`]
+    * [`channel_id`:`channel_id`]
+    * [`u16`:`num_witnesses`]
+    * [`num_witnesses*witness_stack`:`witness_stack`]
 
 1. subtype: `witness_stack`
 2. data:
-    * [`2`:`num_input_witness`]
-    * [`num_input_witness*witness_element`]
+    * [`u16`:`num_input_witness`]
+    * [`num_input_witness*witness_element`:`witness_element`]
 
-1. subsubtype: `witness_element`
+1. subtype: `witness_element`
 2. data:
-    * [`2`:`len`]
-    * [`len`:`witness`]
+    * [`u16`:`len`]
+    * [`len*byte`:`witness`]
 
 #### Requirements
 The sending node:
@@ -750,15 +748,15 @@ indicated above.
 
 1. type: 62 (`init_rbf`)
 2. data:
-    * [`32`:`channel_id`]
-    * [`8`:`funding_satoshis`]
-    * [`8`:`channel_reserve_satoshis`]
-    * [`4`:`feerate_per_kw`]
-    * [`4`:`feerate_per_kw_funding`]
-    * [`2`:`num_additional_inputs`]
-    * [`num_additional_inputs*input_info`]
-    * [`2`:`num_outputs`]
-    * [`num_outputs*output_info`]
+    * [`channel_id`:`channel_id`]
+    * [`u64`:`funding_satoshis`]
+    * [`u64`:`channel_reserve_satoshis`]
+    * [`u32`:`feerate_per_kw`]
+    * [`u32`:`feerate_per_kw_funding`]
+    * [`u16`:`num_additional_inputs`]
+    * [`num_additional_inputs*input_info`:`input_info`]
+    * [`u16`:`num_outputs`]
+    * [`num_outputs*output_info`:`output_info`]
 
 #### Requirements
 
@@ -798,7 +796,7 @@ This message acknowledges the start of an RBF workflow.
 
 1. type: 63 (`ack_rbf`)
 2. data:
-    * [`32`:`channel_id`]
+    * [`channel_id`:`channel_id`]
 
 #### Requirements
 
