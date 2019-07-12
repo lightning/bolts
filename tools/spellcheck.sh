@@ -51,6 +51,7 @@ do
     if [ -n "$CHECK" ]; then
 	# Eliminate the following:
 	# Inline references eg. [Use of segwit](#use-of-segwit)
+	# Code blocks using ```
 	# quoted identifiers eg. `htlc_id`
 	# field descriptions, eg. `* [`num_htlcs*64`:`htlc_signature]'
 	# indented field names, eg. '    `num_htlcs`: 0'
@@ -60,6 +61,7 @@ do
 	# long hex strings
 	# long base58 strings
 	WORDS=$(sed -e 's/\]([-#a-zA-Z0-9_.]*)//g' \
+	    -e '/^```/,/^```/d' \
 	    -e 's/`[a-zA-Z0-9_]*`//g' \
 	    -e 's/\* \[`[_a-z0-9*]\+`://g' \
 	    -e 's/0x[a-fA-F0-9]\+//g' \
