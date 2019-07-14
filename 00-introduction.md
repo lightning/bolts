@@ -230,7 +230,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See related: [final node](#final-node), [origin node](#origin-node)_
 
 * #### *Receiving node*:
-   * A *node* that is receiving a message.
+   * A *[node](#node)* that is receiving a message.
    * _See category: [node](#node)_
    * _See related: [sending node](#sending-node)_
 
