@@ -181,7 +181,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See types: [final node](#final-node), [hop](#hop), [origin node](#origin-node), [processing node](#processing-node), [receiving node](#receiving-node), [sending node](#sending-node)_
 
 * #### *Origin node*:
-   * The *[node](#node)* that originates a packet that will route a payment through some number of [hops](#hop) to a *[final node](#final-node)*. It is also the first _sending peer_ in a chain.
+   * The *[node](#node)* that originates a packet that will route a payment through some number of [hops](#hop) to a *[final node](#final-node)*. It is also the first [sending peer](#sending-peer) in a chain.
    * _See category: [node](#node)_
    * _See related: [final node](#final-node), [processing node](#processing-node)_
 
@@ -225,7 +225,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See derivation: [commitment revocation private key](#commitment-revocation-private-key)_
 
 * #### *Processing node*:
-   * A *[node](#node)* that is processing a packet that originated with an *[origin node](#origin-node)* and that is being sent toward a *[final node](#final-node)* in order to route a payment. It acts as a *[receiving peer](#receiving-peer)* to receive the message, then a _sending peer_ to send on the packet.
+   * A *[node](#node)* that is processing a packet that originated with an *[origin node](#origin-node)* and that is being sent toward a *[final node](#final-node)* in order to route a payment. It acts as a *[receiving peer](#receiving-peer)* to receive the message, then a [sending peer](#sending-peer) to send on the packet.
    * _See category: [node](#node)_
    * _See related: [final node](#final-node), [origin node](#origin-node)_
 
@@ -237,7 +237,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 * #### *Receiving peer*:
    * A *[node](#node)* that is receiving a message from a directly connected *peer*.
    * _See category: [peer](#Peers)_
-   * _See related: sending peer_
+   * _See related: [sending peer](#sending-peer)_
 
 * #### *Revoked commitment transaction*:
    * An old *[commitment transaction](#commitment-transaction)* that has been revoked because a new commitment transaction has been negotiated.
@@ -268,7 +268,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 * #### *Unilateral close*:
    * An uncooperative close of a *[channel](#channel)*, accomplished by broadcasting a
     *[commitment transaction](#commitment-transaction)*. This transaction is larger (i.e. less
-    efficient) than a *[closing transaction](#closing-transaction)*, and the *peer* whose
+    efficient) than a *[closing transaction](#closing-transaction)*, and the *[peer](#peer)* whose
     commitment is broadcast cannot access its own outputs for some
     previously-negotiated duration.
    * _See related: [mutual close](#mutual-close), [revoked transaction close](#revoked-transaction-close)_
