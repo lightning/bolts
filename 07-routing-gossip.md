@@ -698,10 +698,6 @@ The sender:
   that it wants the gossip to refer to.
 
 The receiver:
-  - SHOULD send all gossip messages whose `timestamp` is greater or
-    equal to `first_timestamp`, and less than `first_timestamp` plus
-    `timestamp_range`.
-	- MAY wait for the next outgoing gossip flush to send these.
   - SHOULD restrict future gossip messages to those whose `timestamp`
     is greater or equal to `first_timestamp`, and less than
     `first_timestamp` plus `timestamp_range`.
