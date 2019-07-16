@@ -330,6 +330,8 @@ zlib
 ZLIB
 APIs
 duplicative
+DoS
+ECDSA
 TLV
 namespace
 verifier

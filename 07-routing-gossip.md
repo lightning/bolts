@@ -499,14 +499,18 @@ The receiving node:
   - if the specified `chain_hash` value is unknown (meaning it isn't active on
   the specified chain):
     - MUST ignore the channel update.
-  - if `timestamp` is NOT greater than that of the last-received
+  - if the `timestamp` is equal to the last-received `channel_update` for this
+    `short_channel_id` AND `node_id`:
+  	- if the fields below `timestamp` differ:
+		- MAY blacklist this `node_id`.
+		- MAY forget all channels associated with it.
+	- if the fields below `timestamp` are equal:
+		- SHOULD ignore this message	
+  - if `timestamp` is lower than that of the last-received
   `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
   - otherwise:
-    - if the `timestamp` is equal to the last-received `channel_update`
-    AND the fields (other than `signature`) differ:
-      - MAY blacklist this `node_id`.
-      - MAY forget all channels associated with it.
+    
   - if the `timestamp` is unreasonably far in the future:
     - MAY discard the `channel_update`.
   - otherwise:
@@ -528,6 +532,17 @@ either too far in the future or have not been updated in two weeks; so it
 makes sense to have it be a UNIX timestamp (i.e. seconds since UTC
 1970-01-01). This cannot be a hard requirement, however, given the possible case
 of two `channel_update`s within a single second.
+
+It is assumed that more than one `channel_update` message changing the channel 
+parameters in the same second may be a DoS attempt, and therefore, the node responsible 
+for signing such messages may be blacklisted. However, a node may send a same 
+`channel_update` message with a different signature (changing the nonce in signature 
+signing), and hence fields apart from signature are checked to see if the channel 
+parameters have changed for the same timestamp. It is also important to note that 
+ECDSA signatures are malleable. So, an intermediate node who received the `channel_update` 
+message can rebroadcast it just by changing the `s` component of signature with `-s`. 
+This should however not result in the blacklist of the `node_id` from where
+the message originated.
 
 The explicit `option_channel_htlc_max` flag to indicate the presence
 of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
