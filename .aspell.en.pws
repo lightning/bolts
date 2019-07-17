@@ -1,4 +1,9 @@
 personal_ws-1.1 en 264
+bitfields
+checksums
+timestamps
+tlv
+TLV
 py
 vsprintf
 glibc
@@ -336,6 +341,7 @@ zlib
 ZLIB
 APIs
 duplicative
+CRC
 DoS
 ECDSA
 TLV

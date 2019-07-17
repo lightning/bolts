@@ -587,6 +587,25 @@ contents could decompress to more then 3669960 bytes.
     * [`chain_hash`:`chain_hash`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
+    * [`query_short_channel_ids_tlv`]
+      * type: 1 (`query_flags`)
+      * data:
+        * [`1`:`encoding_type`]
+        * [`query_short_channel_ids_tlv_len-1`:`encoded_query_flags`]
+
+</a>
+
+`encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
+
+| Bit Position  | Meaning                                  |
+| ------------- | ---------------------------------------- |
+| 0             | Sender wants `channel_announcement`      |
+| 1             | Sender wants `channel_update` for node 1 |
+| 2             | Sender wants `channel_update` for node 2 |
+| 3             | Sender wants `node_announcement` for node 1 |
+| 4             | Sender wants `node_announcement` for node 2 |
+
+Query flags must be minimally encoded, which means that one flag will be encoded with a single byte.
 
 1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
 2. data:
@@ -611,6 +630,10 @@ The sender:
   - MAY send this if it receives a `channel_update` for a
    `short_channel_id` for which it has no `channel_announcement`.
   - SHOULD NOT send this if the channel referred to is not an unspent output.
+  - MAY include an optional `query_short_channel_ids_tlv`. If so:
+    - MUST set `encoding_type`, as for `encoded_short_ids`.
+    - Each query flag is a minimally-encoded varint.
+    - MUST encode one query flag per `short_channel_id`.
 
 The receiver:
   - if the first byte of `encoded_short_ids` is not a known encoding type:
@@ -619,8 +642,24 @@ The receiver:
     - MAY fail the connection.
   - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
     - MAY fail the connection.
-  - MUST respond to each known `short_channel_id` with a `channel_announcement`
-    and the latest `channel_update` for each end
+  - if the incoming message includes `query_short_channel_ids_tlv`:
+    - if `encoding_type` is not a known encoding type:
+      - MAY fail the connection
+    - if `encoded_query_flags` does not decode to exactly one flag per `short_channel_id`:
+      - MAY fail the connection.
+  - MUST respond to each known `short_channel_id`:
+    - if the incoming message does not include `encoded_query_flags`:
+      - with a `channel_announcement` and the latest `channel_update` for each end
+    - otherwise:
+      - We define `query_flag` for the Nth `short_channel_id` in
+        `encoded_short_ids` to be the Nth varint of the decoded
+        `encoded_query_flags`.
+      - if bit 0 of `query_flag` is set:
+        - MUST reply with a `channel_announcement`
+      - if bit 1 of `query_flag` is set and it has received a `channel_update` from `node_id_1`:
+        - MUST reply with the latest `channel_update` for `node_id_1`
+      - if bit 2 of `query_flag` is set and it has received a `channel_update` from `node_id_2`:
+        - MUST reply with the latest `channel_update` for `node_id_2`
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
   - MUST follow with any `node_announcement`s for each `channel_announcement`
 	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
