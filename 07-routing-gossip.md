@@ -593,13 +593,14 @@ Query messages can be extended with optional fields that can help reduce the num
     * [`chain_hash`:`chain_hash`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
-    * [`query_short_channel_ids_tlv`]
-      * type: 1 (`query_flags`)
-      * data:
-        * [`1`:`encoding_type`]
-        * [`query_short_channel_ids_tlv_len-1`:`encoded_query_flags`]
+    * [`tlvs`:`query_short_channel_ids_tlvs`]
 
-</a>
+1. tlvs: `query_short_channel_ids_tlv`
+2. types:
+    1. type: 1 (`query_flags`)
+    2. data:
+        * [`byte`:`encoding_type`]
+        * [`len-1`:`encoded_query_flags`]
 
 `encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
 
@@ -636,7 +637,7 @@ The sender:
   - MAY send this if it receives a `channel_update` for a
    `short_channel_id` for which it has no `channel_announcement`.
   - SHOULD NOT send this if the channel referred to is not an unspent output.
-  - MAY include an optional `query_short_channel_ids_tlv`. If so:
+  - MAY include an optional `query_flags`. If so:
     - MUST set `encoding_type`, as for `encoded_short_ids`.
     - Each query flag is a minimally-encoded varint.
     - MUST encode one query flag per `short_channel_id`.
@@ -648,7 +649,7 @@ The receiver:
     - MAY fail the connection.
   - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
     - MAY fail the connection.
-  - if the incoming message includes `query_short_channel_ids_tlv`:
+  - if the incoming message includes `query_short_channel_ids_tlvs`:
     - if `encoding_type` is not a known encoding type:
       - MAY fail the connection
     - if `encoded_query_flags` does not decode to exactly one flag per `short_channel_id`:
@@ -693,9 +694,12 @@ timeouts.  It also causes a natural ratelimiting of queries.
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
     * [`u32`:`number_of_blocks`]
-    * [`query_channel_range_tlv`]
-      * type: 1 (`query_option`)
-      * data:
+    * [`tlvs`:`query_channel_range_tlvs`]
+
+1. tlvs: `query_channel_range_tlvs`
+2. types:
+    1. type: 1 (`query_option`)
+    2. data:
         * [`1`:`query_option_flags`]
 
 `query_option_flags` is a bitfield represented as a minimally-encoded varint. Bits have the following meaning:
@@ -715,19 +719,24 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`byte`:`complete`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
-    * [`reply_channel_range_tlv`]
-      * type: 1 (`timestamps_tlv`)
-      * data:
-        * [`1`:`encoding_type`]
-        * [`timestamps_tlv_len-1`:`encoded_timestamps`]
-      * type: 3 (`checksums_tlv`)
-      * data:
-        * [`checksums_tlv_len`:`encoded_checksums`]
+    * [`tlvs`:`reply_channel_range_tlvs`]
+
+1. tlvs: `query_channel_range_tlvs`
+2. types:
+    1. type: 1 (`timestamps_tlv`)
+    2. data:
+        * [`byte`:`encoding_type`]
+        * [`len-1`:`encoded_timestamps`]
+    1. type: 3 (`checksums_tlv`)
+    2. data:
+        * [`len`:`encoded_checksums`]
 
 For a single `channel_update`, timestamps are encoded as:
 
-* [`4`:`timestamp_node_id_1`]
-* [`4`:`timestamp_node_id_2`]
+1. subtype: `channel_update_timestamps`
+2. data:
+    * [`u32`:`timestamp_node_id_1`]
+    * [`u32`:`timestamp_node_id_2`]
 
 Where:
 * `timestamp_node_id_1` is the timestamp of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
@@ -735,8 +744,10 @@ Where:
 
 For a single `channel_update`, checksums are encoded as:
 
-* [`4`:`checksum_node_id_1`]
-* [`4`:`checksum_node_id_2`]
+1. subtype: `channel_update_checksums`
+2. data:
+    * [`u32`:`checksum_node_id_1`]
+    * [`u32`:`checksum_node_id_2`]
 
 Where:
 * `checksum_node_id_1` is the checksum of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
@@ -772,7 +783,7 @@ The receiver of `query_channel_range`:
     - otherwise:
       - SHOULD set `complete` to 1.
 
-If the incoming message includes a `query_channel_range_tlv` that it understands, the receiver MAY append additional information to its reply.
+If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
 - if bit 0 in `query_option_flags` is set, the receive MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
 - if bit 1 in `query_option_flags` is set, the receive MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
 
