@@ -754,7 +754,7 @@ Where:
 * `checksum_node_id_1` is the checksum of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
 * `checksum_node_id_2` is the checksum of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
 
-The checksum of a `channel_update` is the CRC32 checksum of this `channel_update` without its `signature` and `timestamp` fields.
+The checksum of a `channel_update` is the CRC32C checksum as specified in [RFC3720](https://tools.ietf.org/html/rfc3720#appendix-B.4) of this `channel_update` without its `signature` and `timestamp` fields.
 
 This allows to query for channels within specific blocks.
 
