@@ -581,6 +581,11 @@ are unique 8-byte values, no more than 14 bytes can be duplicated
 across the stream: as each duplicate takes at least 2 bits, no valid
 contents could decompress to more then 3669960 bytes.
 
+Query messages can be extended with optional fields that can help reduce the number of messages needed to synchronize routing tables by enabling:
+
+- timestamp-based filtering of `channel_update` messages: only ask for `channel_update` messages that are newer than the ones you already have.
+- checksum-based filtering of `channel_update` messages: only ask for `channel_update` messages that carry different information from the ones you already have.
+
 ### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
@@ -688,6 +693,19 @@ timeouts.  It also causes a natural ratelimiting of queries.
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
     * [`u32`:`number_of_blocks`]
+    * [`query_channel_range_tlv`]
+      * type: 1 (`query_option`)
+      * data:
+        * [`1`:`query_option_flags`]
+
+`query_option_flags` is a bitfield represented as a minimally-encoded varint. Bits have the following meaning:
+
+| Bit Position  | Meaning                 |
+| ------------- | ----------------------- |
+| 0             | Sender wants timestamps |
+| 1             | Sender wants checksums  |
+
+Though it is possible, it would not be very useful to ask for checksums without asking for timestamps too: the receiving node may have an older `channel_update` with a different checksum, asking for it would be useless. And if a `channel_update` checksum is actually 0 (which is quite unlikely) it will not be queried.
 
 1. type: 264 (`reply_channel_range`) (`gossip_queries`)
 2. data:
@@ -697,8 +715,36 @@ timeouts.  It also causes a natural ratelimiting of queries.
     * [`byte`:`complete`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
+    * [`reply_channel_range_tlv`]
+      * type: 1 (`timestamps_tlv`)
+      * data:
+        * [`1`:`encoding_type`]
+        * [`timestamps_tlv_len-1`:`encoded_timestamps`]
+      * type: 3 (`checksums_tlv`)
+      * data:
+        * [`checksums_tlv_len`:`encoded_checksums`]
 
-This allows a query for channels within specific blocks.
+For a single `channel_update`, timestamps are encoded as:
+
+* [`4`:`timestamp_node_id_1`]
+* [`4`:`timestamp_node_id_2`]
+
+Where:
+* `timestamp_node_id_1` is the timestamp of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
+* `timestamp_node_id_2` is the timestamp of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
+
+For a single `channel_update`, checksums are encoded as:
+
+* [`4`:`checksum_node_id_1`]
+* [`4`:`checksum_node_id_2`]
+
+Where:
+* `checksum_node_id_1` is the checksum of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
+* `checksum_node_id_2` is the checksum of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
+
+The checksum of a `channel_update` is the CRC32 checksum of this `channel_update` without its `signature` and `timestamp` fields.
+
+This allows to query for channels within specific blocks.
 
 #### Requirements
 
@@ -708,6 +754,7 @@ The sender of `query_channel_range`:
   that it wants the `reply_channel_range` to refer to
   - MUST set `first_blocknum` to the first block it wants to know channels for
   - MUST set `number_of_blocks` to 1 or greater.
+  - MAY append an additional `query_channel_range_tlv`, which specifies the type of extended information it would like to receive.  
 
 The receiver of `query_channel_range`:
   - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
@@ -725,11 +772,18 @@ The receiver of `query_channel_range`:
     - otherwise:
       - SHOULD set `complete` to 1.
 
+If the incoming message includes a `query_channel_range_tlv` that it understands, the receiver MAY append additional information to its reply.
+- if bit 0 in `query_option_flags` is set, the receive MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
+- if bit 1 in `query_option_flags` is set, the receive MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
+
+
 #### Rationale
 
 A single response might be too large for a single packet, and also a peer can
 store canned results for (say) 1000-block ranges, and simply offer each reply
 which overlaps the ranges of the request.
+
+The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
 
 ### The `gossip_timestamp_filter` Message
 
