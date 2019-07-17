@@ -729,7 +729,8 @@ Though it is possible, it would not be very useful to ask for checksums without 
         * [`len-1`:`encoded_timestamps`]
     1. type: 3 (`checksums_tlv`)
     2. data:
-        * [`len`:`encoded_checksums`]
+        * [`byte`:`encoding_type`]
+        * [`len-1`:`encoded_checksums`]
 
 For a single `channel_update`, timestamps are encoded as:
 
