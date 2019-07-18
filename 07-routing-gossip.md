@@ -508,14 +508,13 @@ The receiving node:
 		- SHOULD ignore this message	
   - if `timestamp` is lower than that of the last-received
   `channel_update` for this `short_channel_id` AND for `node_id`:
-    - SHOULD ignore the message.
+  	- SHOULD ignore the message.
   - otherwise:
-    
-  - if the `timestamp` is unreasonably far in the future:
-    - MAY discard the `channel_update`.
-  - otherwise:
-    - SHOULD queue the message for rebroadcasting.
-    - MAY choose NOT to for messages longer than the minimum expected length.
+  	- if the `timestamp` is unreasonably far in the future:
+		- MAY discard the `channel_update`.
+  	- otherwise:
+		- SHOULD queue the message for rebroadcasting.
+		- MAY choose NOT to for messages longer than the minimum expected length.
   - if the `option_channel_htlc_max` bit of `message_flags` is 0:
     - MUST consider `htlc_maximum_msat` not to be present.
   - otherwise:
