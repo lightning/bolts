@@ -947,19 +947,19 @@ A more efficient scheme based on inventory messages, similar to how transactions
 
 1. type: 266 (`gossip_inventory`)
 2. data:
-    * [`32`:`chain_hash`]
+    * [`chain_hash`:`chain_hash`]
     * type: 1 (`channel_inv_tlv`)
-      * [`2`:`len`]
-      * [`len`:`encoded_short_ids`]
+      * [`u16`:`len`]
+      * [`len*byte`:`encoded_short_ids`]
       * type: 1 (`timestamps_tlv`)
       * data:
-        * [`1`:`encoding_type`]
+        * [`byte`:`encoding_type`]
         * [`timestamps_tlv_len-1`:`encoded_timestamps`]
       * type: 3 (`checksums_tlv`)
       * data:
         * [`checksums_tlv_len`:`encoded_checksums`]
     * type: 3 (`node_inv_tlv`)
-      * [`2`:`len`]
+      * [`u16`:`len`]
       * [`len`:`node_ids`]
  
 `channel_inv_tlv` contains information about channel announcements and updates. It uses the exact same encoding as `reply_channel_range` and includes:
