@@ -9,6 +9,7 @@ over Lightning.
   * [Human-Readable Part](#human-readable-part)
   * [Data Part](#data-part)
     * [Tagged Fields](#tagged-fields)
+    * [Feature Bits](#feature-bits)
   * [Payer / Payee Interactions](#payer--payee-interactions)
     * [Payer / Payee Requirements](#payer--payee-requirements)
   * [Implementation](#implementation)
@@ -140,6 +141,9 @@ Currently defined tagged fields are:
    * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
+* `9` (5): `data_length` variable. One or more bytes containing features
+  supported or required for receiving this payment.
+  See [Feature Bits](#feature-bits).
 
 ### Requirements
 
@@ -156,10 +160,13 @@ A writer:
       through some unspecified means.
         - SHOULD use a complete description of the purpose of the payment.
   - MAY include one `x` field.
+    - if `x` is included:
+      - SHOULD use the minimum `data_length` possible.
   - MAY include one `c` field.
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
-  - SHOULD use the minimum `data_length` possible for `x` and `c` fields.
+    - if `c` is included:
+      - SHOULD use the minimum `data_length` possible.
   - MAY include one `n` field. (Otherwise performing signature recovery is required)
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
@@ -175,6 +182,10 @@ A writer:
         `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as
         specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message).
     - MAY include more than one `r` field to provide multiple routing options.
+  - if `9` contains non-zero bits:
+    - SHOULD use the minimum `data_length` possible.
+  - otherwise:
+    - MUST omit the `9` field altogether.
   - MUST pad field data to a multiple of 5 bits, using 0s.
   - if a writer offers more than one of any field type, it:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
@@ -182,6 +193,10 @@ A writer:
 A reader:
   - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, or
   `n` fields that do NOT have `data_length`s of 52, 52, or 53, respectively.
+  - if the `9` field contains unknown _odd_ bits that are non-zero:
+    - MUST ignore the bit.
+  - if the `9` field contains unknown _even_ bits that are non-zero:
+    - MUST fail.
   - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed
   description.
   - if a valid `n` field is provided:
@@ -252,6 +267,15 @@ engines that support SQL or other dynamically interpreted querying languages.
 * [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
 
 Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
+
+## Feature Bits
+
+Feature bits allow forward and backward compatibility, and follow the
+_it's ok to be odd_ rule.
+
+The field is big-endian.  The least-significant bit is numbered 0,
+which is _even_, and the next most significant bit is numbered 1,
+which is _odd_.
 
 # Payer / Payee Interactions
 
