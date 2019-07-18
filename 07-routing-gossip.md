@@ -26,6 +26,7 @@ multiple `node_announcement` messages, in order to update the node information.
   * [The `node_announcement` Message](#the-node_announcement-message)
   * [The `channel_update` Message](#the-channel_update-message)
   * [Query Messages](#query-messages)
+  * [Inventory Messages](#inventory-messages)
   * [Initial Sync](#initial-sync)
   * [Rebroadcasting](#rebroadcasting)
   * [HTLC Fees](#htlc-fees)
@@ -744,6 +745,85 @@ is simple to implement.
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
 
+## Inventory Messages
+
+1. type 266 (`inv`) (`option_inv_gossip`,`option_extended_query_flags`)
+2. data:
+  * type: 1 (`channels`)
+  * data:
+    * [`varint`:`num`]
+    * [`num*short_channel_id`:`sids`]
+  * type: 3 (`updates`)
+  * data:
+    * [`varint`:`num`]
+    * [`num*short_channel_id`:`sids`]
+    * [`num*byte`:`directions`]
+    * [`num*u32`:`timestamps`]
+
+This message allows a node to compactly represent set of
+`channel_announcement`s, `channel_update`s, and `node_announcement`s that would
+have been forwarded to a remote peer during a particular interval. Instead of
+sending the messages directly to the peer, the sender encodes identifying
+features of the messages into the `inv`, allowing the remote peer to request
+messages that may be of interest. This reduces the bandwidth required to gossip
+messages at tip, since each message is only required to be sent once in full.
+
+The `varint` uses the BigSize format outlined in BOLT 1.
+
+The `channels` record contains the encoded `short_channel_id`s of any newly
+accepted `channel_announcement`s.
+
+The `updates` record contains the `short_channel_id`, `direction`, and
+`timestamp` of newly accepted `channel_updates`. The i-th `short_channel_id`,
+`direction`, and `timestamp` should all belong to the same `channel_update`.
+
+### Requirements
+
+The sender of `inv`:
+ - For any `channel_announcement` that would have been sent to the remote peer
+   since the last `inv`:
+   - SHOULD include the `channel_announcement`'s `short_channel_id` in
+     `channels`.
+ - For any `channel_update` that would have been sent to the remote peer since
+   the last `inv`:
+   - SHOULD include the `short_channel_id`, `direction`, and `timestamp` in
+     `updates` for the `channel_udpate` with the highest `timestamp` for each
+     unique (`short_channel_id`, `direction`) pair.
+ - MUST NOT include `short_channel_id`s in `channels` if the same
+   `short_channel_id` appears in `updates`.
+ - MUST NOT carry over entries in `channels` or `updates` to subsequent `inv`s.
+
+The receiver of `inv`:
+ - if a `short_channel_id` in `channels` or `updates` is unknown:
+   - SHOULD request the `channel_announcement`s, `channel_update`s, and
+     `node_announcements` using an `extended_gossip_queries` request.
+ - if a `short_channel_id` in `updates` is known and the `timestamp` is greater
+   than any known `channel_update` for the direction encoded in `direction`:
+   - SHOULD request the fresher `channel_update` using an
+     `extended_gossip_queries` request.
+ - SHOULD reply with one `extended_gossip_queries` request for each received
+   `inv` unless the request cannot be contained in single message.
+
+### Rationale
+
+The TLV types for `channels` and `updates` are made optional so that they can be
+omitted if they aren't present. Writers that do not implement this optimization
+should instead send a value of 0 for `num` followed by no additional data.
+
+The sender removes `short_channel_id` from `channels` if it already exists in
+`updates` since the receiver will end up needing to querying for the
+`channel_announcement` anyway if the `short_channel_id` is unknown.
+
+The sender only transmits the `short_channel_id`, `direction`, and `timestamp`
+of the most recent `channel_update` for a given direction since this is
+sufficient for the receiver to learn if it is out of date.
+
+Currently the `inv` message does not cover `node_announcement`s because the
+`extended_gossip_queries` does not support querying for them in isolation. If
+this were to be supported in the future then the `inv` can easily be extended
+with a new optional TLV record that carries `node_id`s and `timestamps`.
+
+
 ## Initial Sync
 
 If a node requires an initial sync of gossip messages, it will be flagged
@@ -794,8 +874,12 @@ A receiving node:
 A node:
   - if the `gossip_queries` feature is negotiated:
 	- MUST not send gossip until it receives `gossip_timestamp_filter`.
-  - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
-  the arrival times of the messages.
+  - if the `option_inv_gossip` feature is negotiated:
+    - MUST not send `inv`s until it receives `gossip_timestamp_filter`.
+    - SHOULD add `channel_announcement`s and `channel_update`s to the next
+      `inv` message instead of adding them to outgoing gossip messages.
+  - SHOULD flush outgoing gossip messages once every 60 seconds,
+    independently of the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not
     duplicated).
   - MAY re-announce its channels regularly.
@@ -817,6 +901,11 @@ The sending of all gossip on reconnection is naive, but simple,
 and allows bootstrapping for new nodes as well as updating for nodes that
 have been offline for some time.  The `gossip_queries` option
 allows for more refined synchronization.
+
+When `option_inv_gossip` is negotiated, `channel_announcement` and
+`channel_update` messages are added to the next `inv` message for that peer,
+instead of sending them directly. This reduces the overall bandwidth
+requirements for gossip since messages are not sent redundantly.
 
 ## HTLC Fees
 
