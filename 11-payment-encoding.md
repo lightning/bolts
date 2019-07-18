@@ -533,6 +533,44 @@ Breakdown:
   * `6c6e626332306d0b25fe64570d0e496dbd9f8b0d000dbb44824f751380da37c6dba89b14f6f92047d63f576e304021a00008101820283038404800081018202830384048000810182028303840480810243500c318a1e0a628b34025e8c9019ab6d09b64c2b3c66a693d0dc63194b02481931000` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `399a8b167029fda8564fd2e99912236b0b8017e7d17e416ae17307812c92cf42` hex of SHA256 of the preimage
 
+> ### Please send $30 for coffee beans to the same peer, which supports features 1 and 9
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdees9qzsze992adudgku8p05pstl6zh7av6rx2f297pv89gu5q93a0hf3g7lynl3xq56t23dpvah6u7y9qey9lccrdml3gaqwc6nxsl5ktzm464sq73t7cl
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
+* `25m`: amount (25 milli-bitcoin)
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `p`: payment hash...
+* `d`: short description
+  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
+  * `vdhkven9v5sxyetpdees`: 'coffee beans'
+* `9`: features
+  * `qz`: `data_length` (`q` = 0, `z` = 2; 0 * 32 + 2 == 2)
+  * `sz`: b1000000010
+* `e992adudgku8p05pstl6zh7av6rx2f297pv89gu5q93a0hf3g7lynl3xq56t23dpvah6u7y9qey9lccrdml3gaqwc6nxsl5ktzm464sq`: signature
+* `73t7cl`: Bech32 checksum
+
+> # Same, but using invalid unknown feature 100
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdees9q4pqqqqqqqqqqqqqqqqqqszk3ed62snp73037h4py4gry05eltlp0uezm2w9ajnerhmxzhzhsu40g9mgyx5v3ad4aqwkmvyftzk4k9zenz90mhjcy9hcevc7r3lx2sphzfxz7
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
+* `25m`: amount (25 milli-bitcoin)
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `p`: payment hash...
+* `d`: short description
+  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
+  * `vdhkven9v5sxyetpdees`: 'coffee beans'
+* `9`: features
+  * `q4`: `data_length` (`q` = 0, `4` = 21; 0 * 32 + 21 == 21)
+  * `pqqqqqqqqqqqqqqqqqqsz`: b00001...(90 zeroes)...1000000010
+* `k3ed62snp73037h4py4gry05eltlp0uezm2w9ajnerhmxzhzhsu40g9mgyx5v3ad4aqwkmvyftzk4k9zenz90mhjcy9hcevc7r3lx2sp`: signature
+* `hzfxz7`: Bech32 checksum
+
 # Authors
 
 [ FIXME: ]
