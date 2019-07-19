@@ -1,4 +1,10 @@
 personal_ws-1.1 en 264
+py
+vsprintf
+glibc
+JSON
+Freenode
+nacks
 secp
 sig
 unguessable
@@ -353,3 +359,6 @@ rfc
 varint
 CompactSize
 tlvs
+snprintf
+GitHub
+IRC
