@@ -245,7 +245,6 @@ This is a more flexible format, which avoids the redundant `short_channel_id` fi
 
 1. tlvs: `tlv_payload`
 2. types:
-    1. type: 0 (`destination_signal`)
     1. type: 2 (`amt_to_forward`)
     2. data:
         * [`tu64`:`amt_to_forward`]
