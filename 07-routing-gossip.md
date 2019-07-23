@@ -84,7 +84,7 @@ A node:
 
 A recipient node:
   - if the `short_channel_id` is NOT correct:
-    - MAY fail the channel.
+    - SHOULD fail the channel.
   - if the `node_signature` OR the `bitcoin_signature` is NOT correct:
     - MAY fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
