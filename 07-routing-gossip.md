@@ -666,6 +666,10 @@ The receiver:
         - MUST reply with the latest `channel_update` for `node_id_1`
       - if bit 2 of `query_flag` is set and it has received a `channel_update` from `node_id_2`:
         - MUST reply with the latest `channel_update` for `node_id_2`
+      - if bit 3 of `query_flag` is set and it has received a `node_announcement` from `node_id_1`:
+        - MUST reply with the latest `node_announcement` for `node_id_1`
+      - if bit 4 of `query_flag` is set and it has received a `node_announcement` from `node_id_2`:
+        - MUST reply with the latest `node_announcement` for `node_id_2`
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
   - MUST follow with any `node_announcement`s for each `channel_announcement`
 	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
@@ -699,7 +703,7 @@ timeouts.  It also causes a natural ratelimiting of queries.
 2. types:
     1. type: 1 (`query_option`)
     2. data:
-        * [`1`:`query_option_flags`]
+        * [`varint`:`query_option_flags`]
 
 `query_option_flags` is a bitfield represented as a minimally-encoded varint. Bits have the following meaning:
 
@@ -784,8 +788,8 @@ The receiver of `query_channel_range`:
       - SHOULD set `complete` to 1.
 
 If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
-- if bit 0 in `query_option_flags` is set, the receive MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
-- if bit 1 in `query_option_flags` is set, the receive MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
+- if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
+- if bit 1 in `query_option_flags` is set, the receiver MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
 
 
 #### Rationale
