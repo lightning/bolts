@@ -22,14 +22,19 @@ import sys
 import re
 import fileinput
 
+# We allow either ordered or unordered lists.
 typeline = re.compile(
-    '1\. type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z0-9_]+)`\)( \(`?(?P<option>[^)`]*)`\))?')
+    '(1\.|\*) type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z0-9_]+)`\)( \(`?(?P<option>[^)`]*)`\))?')
 tlvline = re.compile(
-    '1\. tlvs: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
+    '(1\.|\*) tlvs: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
 subtypeline = re.compile(
-    '1\. subtype: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
+    '(1\.|\*) subtype: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
 dataline = re.compile(
-    '\s+\* \[`(?P<typefield>[-_a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]( \(`?(?P<option>[^)`]*)`?\))?')
+    '\s+([0-9]+\.|\*) \[`(?P<typefield>[-_a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]( \(`?(?P<option>[^)`]*)`?\))?')
+datastartline = re.compile(
+    '(2\.|\*) data:')
+tlvtypesline = re.compile(
+    '(2\.|\*) types:')
 
 # Generator to give us one line at a time.
 def next_line(args, lines):
@@ -96,7 +101,7 @@ def parse_type(genline, output, name, value, option, in_tlv=None):
     print_csv(output, '{},{},{}'.format(type_prefix, name, value), option)
 
     # Expect a data: line before values, if any
-    if line.lstrip() != '2. data:':
+    if not datastartline.fullmatch(line.lstrip()):
         return _, line
 
     while True:
@@ -131,7 +136,7 @@ def parse_tlv(genline, output, name, option):
     i, line = next(genline)
 
     # Expect a types: line after tlvs.
-    if line != '2. types:':
+    if not tlvtypesline.fullmatch(line):
         raise ValueError('{}: Expected "2. types:" line'.format(i))
 
     _, line = next(genline)
@@ -158,7 +163,7 @@ def parse_subtype(genline, output, name, option):
     i, line = next(genline)
 
     # Expect a data: line after subtype.
-    if line != '2. data:':
+    if not datastartline.fullmatch(line):
         raise ValueError('{}: Expected "2. data:" line'.format(i))
 
     print_csv(output, 'subtype,{}'.format(name), option)
