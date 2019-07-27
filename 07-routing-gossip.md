@@ -679,10 +679,10 @@ The receiver of `query_channel_range`:
     - MUST encode a `short_channel_id` for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
     - MUST limit `number_of_blocks` to the maximum number of blocks whose
       results could fit in `encoded_short_ids`
-    - if does not maintain up-to-date channel information for `chain_hash`:
-      - MUST set `complete` to 0.
+    - the last `reply_channel_range` being sent as a response:
+      - MUST set `complete` to 1.
     - otherwise:
-      - SHOULD set `complete` to 1.
+      - MUST set `complete` to 0.
 
 #### Rationale
 
