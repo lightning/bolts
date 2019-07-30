@@ -30,7 +30,7 @@ tlvline = re.compile(
 subtypeline = re.compile(
     '(1\.|\*) subtype: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
 dataline = re.compile(
-    '\s+([0-9]+\.|\*) \[`(?P<typefield>[-_a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]( \(`?(?P<option>[^)`]*)`?\))?')
+    '\s+([0-9]+\.|\*) \[`(?P<typefield>[-._a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]( \(`?(?P<option>[^)`]*)`?\))?')
 datastartline = re.compile(
     '(2\.|\*) data:')
 tlvtypesline = re.compile(
@@ -80,14 +80,14 @@ def print_csv(output, fmt, option):
 #     * [`chain_hash`:`chain_hash`]
 #     * [`u16`:`len`]
 #     * [`len*byte`:`encoded_short_ids`]
-#     * [`tlvs`:`query_short_channel_ids_tlvs`]
+#     * [`query_short_channel_ids_tlvs`:`tlvs`]
 #
 # output:
 #   msgtype,query_short_channel_ids,261,gossip_queries
 #   msgdata,query_short_channel_ids,chain_hash,chain_hash,
 #   msgdata,query_short_channel_ids,len,u16,
 #   msgdata,query_short_channel_ids,encoded_short_ids,byte,len
-#   msgdata,query_short_channel_ids,query_short_channel_ids_tlvs,tlvs,
+#   msgdata,query_short_channel_ids,tlvs,query_short_channel_ids_tlvs,
 def parse_type(genline, output, name, value, option, in_tlv=None):
     _, line = next(genline)
 
@@ -126,12 +126,12 @@ def parse_type(genline, output, name, value, option, in_tlv=None):
 #    1. type: 1 (`query_flags`)
 #    2. data:
 #      * [`byte`:`encoding_type`]
-#      * [`tlv_len-1*byte`:`encoded_query_flags`]
+#      * [`...*byte`:`encoded_query_flags`]
 #
 # output:
 #  tlvtype,query_short_channel_ids_tlvs,query_flags,1
 #  tlvdata,query_short_channel_ids_tlvs,query_flags,encoding_type,byte,
-#  tlvdata,query_short_channel_ids_tlvs,query_flags,encoded_query_flags,byte,tlv_len-1
+#  tlvdata,query_short_channel_ids_tlvs,query_flags,encoded_query_flags,byte,...
 def parse_tlv(genline, output, name, option):
     i, line = next(genline)
 
