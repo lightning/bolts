@@ -58,12 +58,6 @@ A node:
     * [Failure Messages](#failure-messages)
     * [Receiving Failure Codes](#receiving-failure-codes)
   * [Test Vector](#test-vector)
-    * [Packet Creation](#packet-creation)
-      * [Parameters](#parameters)
-      * [Per-Hop Information](#per-hop-information)
-      * [Per-Packet Information](#per-packet-information)
-      * [Wrapping the Onion](#wrapping-the-onion)
-      * [Final Packet](#final-packet)
     * [Returning Errors](#returning-errors)
   * [References](#references)
   * [Authors](#authors)
@@ -151,7 +145,7 @@ The overall structure of the packet is as follows:
 2. data:
    * [`byte`:`version`]
    * [`point`:`public_key`]
-   * [`1300*byte`:`hops_data`]
+   * [`1300*byte`:`hop_payloads`]
    * [`32*byte`:`hmac`]
 
 For this specification (_version 0_), `version` has a constant value of `0x00`.
@@ -187,7 +181,7 @@ The `length` field determines both the length and the format of the `hop_payload
 ## Legacy `hop_data` payload format
 
 The `hop_data` format is identified by a single `0x00`-byte length, for backward compatibility.
-It's payload is defined as:
+Its payload is defined as:
 
 1. type: `hop_data` (for `realm` 0)
 2. data:
@@ -210,7 +204,7 @@ Field descriptions:
      then the HTLC should be rejected as it would indicate that a prior hop has
      deviated from the specified parameters:
 
-        incoming_htlc_amt - fee >= amt_to_forward
+          incoming_htlc_amt - fee >= amt_to_forward
 
      Where `fee` is either calculated according to the receiving peer's advertised fee
      schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
@@ -219,7 +213,7 @@ Field descriptions:
    * `outgoing_cltv_value`: The CLTV value that the _outgoing_ HTLC carrying
      the packet should have.
 
-        cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
+          cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
 
      Inclusion of this field allows a hop to both authenticate the information
      specified by the origin node, and the parameters of the HTLC forwarded,
@@ -261,7 +255,6 @@ The writer:
   - MUST include `amt_to_forward` and `outgoing_cltv_value` for every node.
   - MUST include `short_channel_id` for every non-final node.
   - MUST NOT include `short_channel_id` for the final node.
-  - MUST include the `destination_signal` for the final node.
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
@@ -422,18 +415,18 @@ following operations:
  bytes that exceed its 1300-byte size.
  - The varint-serialized length, serialized `hop_payload` and `HMAC` are copied into the following `shift_size` bytes.
  - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
- which is then applied, with `XOR`, to the `hops_data` field.
+ which is then applied, with `XOR`, to the `hop_payloads` field.
  - If this is the last hop, i.e. the first iteration, then the tail of the
- `hops_data` field is overwritten with the routing information `filler`.
+ `hop_payloads` field is overwritten with the routing information `filler`.
  - The next HMAC is computed (with the _mu_-key as HMAC-key) over the
- concatenated `hops_data` and associated data.
+ concatenated `hop_payloads` and associated data.
 
 The resulting final HMAC value is the HMAC that will be used by the first
 receiving peer in the route.
 
 The packet generation returns a serialized packet that contains the `version`
 byte, the ephemeral pubkey for the first hop, the HMAC for the first hop, and
-the obfuscated `hops_data`.
+the obfuscated `hop_payloads`.
 
 The following Go code is an example implementation of the packet construction:
 
@@ -538,7 +531,7 @@ necessary, in order to constrain the worst-case storage requirements or false
 positives of this log.
 
 Next, the processing node uses the shared secret to compute a _mu_-key, which it
-in turn uses to compute the HMAC of the `hops_data`. The resulting HMAC is then
+in turn uses to compute the HMAC of the `hop_payloads`. The resulting HMAC is then
 compared against the packet's HMAC.
 
 Comparison of the computed HMAC and the packet's HMAC MUST be
@@ -998,7 +991,19 @@ The _origin node_:
 
 ## Returning Errors
 
-The same parameters (node IDs, shared secrets, etc.) as above are used.
+The test vectors use the following parameters:
+
+	pubkey[0] = 0x02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619
+	pubkey[1] = 0x0324653eac434488002cc06bbfb7f10fe18991e35f9fe4302dbea6d2353dc0ab1c
+	pubkey[2] = 0x027f31ebc5462c1fdce1b737ecff52d37d75dea43ce11c74d25aa297165faa2007
+	pubkey[3] = 0x032c0b7cf95324a07d05398b240174dc0c2be444d96b159aa6c7f7b1e668680991
+	pubkey[4] = 0x02edabbd16b41c8371b92ef2f04c1185b4f03b6dcd52ba9b78d9d7c89c8f221145
+
+	nhops = 5/20
+	sessionkey = 0x4141414141414141414141414141414141414141414141414141414141414141
+	associated data = 0x4242424242424242424242424242424242424242424242424242424242424242
+
+The following is an in-depth trace of an example of error message creation:
 
 	# node 4 is returning an error
 	failure_message = 2002
@@ -1035,6 +1040,12 @@ The same parameters (node IDs, shared secrets, etc.) as above are used.
 
 # References
 
+[sphinx]: http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf
+[RFC2104]: https://tools.ietf.org/html/rfc2104
+[fips198]: http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf
+[sec2]: http://www.secg.org/sec2-v2.pdf
+[rfc7539]: https://tools.ietf.org/html/rfc7539
+
 # Authors
 
 [ FIXME: ]
@@ -1042,10 +1053,3 @@ The same parameters (node IDs, shared secrets, etc.) as above are used.
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
-
-
-[sphinx]: http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf
-[RFC2104]: https://tools.ietf.org/html/rfc2104
-[fips198]: http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf
-[sec2]: http://www.secg.org/sec2-v2.pdf
-[rfc7539]: https://tools.ietf.org/html/rfc7539
