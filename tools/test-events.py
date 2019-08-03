@@ -134,9 +134,8 @@ def unpack_from(typename, bytestream, offset):
         size = struct.calcsize(name2structfmt[typename])
         if size + offset > len(bytestream):
             return None, None
-        return (struct.calcsize(name2structfmt[typename]),
-                struct.unpack_from(name2structfmt[typename], bytestream,
-                                   offset)[0])
+        return (size, struct.unpack_from(name2structfmt[typename],
+                                         bytestream, offset)[0])
 
     # FIXME: This is our non-TLV code
     if typename.endswith('_tlvs'):
@@ -505,16 +504,14 @@ class Subtype(Message):
 
     def unpack(self, bytestream, offset):
         """ For every field, unpack it"""
-        net_size = 0
         result = {}
         lenfields = {}
+        offset_start = offset
         for f in self.fields:
-            off, v = unpack_field(f, lenfields, bytestream, offset)
-            offset += off
-            net_size += off
+            offset, v = unpack_field(f, lenfields, bytestream, offset)
             result[f.name] = v
 
-        return net_size, result
+        return offset - offset_start, result
 
     def compare(self, msgname, vals, expected):
         if not bool(expected):
@@ -557,8 +554,8 @@ def unpack_field(field, lenfields, bytestream, offset):
             for i in range(0, num):
                 size, var = unpack_from(field.typename, bytestream, offset)
                 if size is None:
-                    return ('Response too short to extract {}[{}]: {}'
-                            .format(field.name, i, bytestream.hex()))
+                    raise ValueError('Response too short to extract {}[{}]: {}'
+                                     .format(field.name, i, bytestream.hex()))
                 offset += size
                 v += [var]
     else:
@@ -569,8 +566,8 @@ def unpack_field(field, lenfields, bytestream, offset):
                 v = None
                 size = 0
             else:
-                return ('Response too short to extract {}: {}'
-                        .format(field.name, bytestream.hex()))
+                raise ValueError('Response too short to extract {} {} ({}): {}'
+                                 .format(field.name, field.typename, offset, v))
         offset += size
 
     # If it's used as a length, save it.
@@ -791,6 +788,53 @@ class RecvEvent(object):
     def action(self, runner, line):
         runner.recv(which_connection(line, runner, self.connkey),
                     self.b, line)
+
+def compare_results(msgname, f, v, exp):
+    """ f -> field; v -> value; exp -> expected value """
+
+    # If they specify field=absent, it must not be there.
+    if exp is None:
+        if v is not None:
+            return "Field {} is present"
+        else:
+            return None
+
+    if v is None:
+        return ("Optional field {} is not present"
+                .format(f.name))
+    if isinstance(exp, tuple):
+        # Out-of-range bitmaps are considered 0 (eg. feature tests)
+        if len(v) < len(exp[0]):
+            cmpv = b'\x00' * (len(exp[0]) - len(v)) + v
+        elif len(v) > len(exp[0]):
+            cmpv = v[-len(exp[0]):]
+        else:
+            cmpv = v
+
+        for i in range(0, len(exp[0])):
+            if cmpv[i] & exp[1][i] != exp[0][i]:
+                return ("Expected {}.{} mask 0x{}"
+                        " value 0x{} but got 0x{}"
+                        " (offset {} different)"
+                        .format(msgname, f.name,
+                                exp[1].hex(), exp[0].hex(),
+                                v.hex(), len(exp[0]) - 1 - i))
+    # Use subtype comparer
+    elif f.typename in Subtype.objs:
+        return Subtype.objs[f.typename].compare(msgname, v[0], exp[0])
+
+    # Simple comparison
+    elif v != exp:
+        if f.isinteger:
+            valstr = str(v)
+            expectstr = str(exp)
+        else:
+            valstr = v.hex()
+            expectstr = exp.hex()
+        return ("Expected {}.{} {} but got {}"
+                .format(msgname,
+                        f.name, expectstr, valstr))
+    return None
 
 
 def compare_results(msgname, f, v, exp):
