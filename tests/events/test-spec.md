@@ -150,6 +150,21 @@ The peer secret of the test node is assumed
 which makes its public key
 `0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798`.
 
+The `minimum_depth` setting of the test node is assumed to be 3.
+
+The following secrets are used for the first channel (if successive
+channels exist in tests, they are only used for gossip test and their
+exact configuration is not tested); it's assumed that RFC6979 (using
+HMAC-SHA256) is used to generate transaction signatures.
+
+    funding_privkey: 0000000000000000000000000000000000000000000000000000000000000010
+	revocation_basepoint_secret: 0000000000000000000000000000000000000000000000000000000000000011
+	payment_basepoint_secret: 0000000000000000000000000000000000000000000000000000000000000012
+	delayed_payment_basepoint_secret: 0000000000000000000000000000000000000000000000000000000000000013
+	htlc_basepoint_secret: 0000000000000000000000000000000000000000000000000000000000000014
+	per_commitment_secret_seed: FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+
 ## Blockchain Setup
 
 The initial blockchain is a bitcoind `regtest` chain, which has the
