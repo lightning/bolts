@@ -33,6 +33,10 @@
        first_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8
        channel_flags=01
 
+        # Ignore unknown odd messages
+        1. nothing
+        1. recv: type=9999
+
     2. expect-send: type=accept_channel
        temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
        # funding_privkey=0000000000000000000000000000000000000000000000000000000000000010
@@ -52,6 +56,10 @@
        # If these are different, the commitment tx will be different!
        to_self_delay=6
        channel_reserve_satoshis=9998
+
+        # Ignore unknown messages
+        1. nothing
+        1. recv: type=9999
 
     3. recv: type=funding_created
        temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
@@ -76,3 +84,8 @@
     7. recv: type=funding_locked
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        next_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d
+
+        # Ignore unknown odd messages
+        1. nothing
+        1. recv: type=9999
+

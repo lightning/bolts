@@ -1,0 +1,22 @@
+# Init exchange, with unknown messages
+#
+# BOLT #1:
+# The receiving node:
+#...
+#   - upon receiving unknown _odd_ feature bits that are non-zero:
+#     - MUST ignore the bit.
+#   - upon receiving unknown _even_ feature bits that are non-zero:
+#     - MUST fail the connection.
+
+1. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
+2. expect-send: type=init conn=0000000000000000000000000000000000000000000000000000000000000003
+3. recv: type=init globalfeatures= localfeatures=
+
+    1. nothing
+
+    # Unknown odd is OK.
+    1. recv: type=9999
+
+    # Unknown even causes error.
+    1. recv: type=10000
+    2. expect-error:

@@ -208,6 +208,9 @@ MAYBE_UPDATE=maybe-send: type=channel_update
     # Optional reconnection testing.
     1. nothing
 
+    # Ignore unknown odd messages
+    1. recv: type=9999
+
     # tester must have received node's commitment_signed
     1. disconnect:
     2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
@@ -238,6 +241,9 @@ MAYBE_UPDATE=maybe-send: type=channel_update
 
     # Optional reconnection testing.
     1. nothing
+
+    # Ignore unknown odd messages
+    1. recv: type=9999
 
     # tester has not received last commitment_signed
     1. disconnect:
@@ -294,6 +300,9 @@ MAYBE_UPDATE=maybe-send: type=channel_update
     # Optional reconnection testing.
     1. nothing
 
+    # Ignore unknown odd messages
+    1. recv: type=9999
+
     # tester must have received last commitment_signed
     1. disconnect:
     2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
@@ -326,6 +335,9 @@ MAYBE_UPDATE=maybe-send: type=channel_update
 
     # Optional reconnection testing.
     1. nothing
+
+    # Ignore unknown odd messages
+    1. recv: type=9999
 
     # tester *has not* received revoke_and_ack
     1. disconnect:

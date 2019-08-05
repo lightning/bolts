@@ -132,6 +132,9 @@ MAYBE_UPDATE=maybe-send: type=channel_update
     # Optional reconnection testing.
     1. nothing
 
+    # Ignore unknown odd messages
+    1. recv: type=9999
+
     1. disconnect:
     2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
     3. expect-send: type=init
@@ -218,6 +221,9 @@ MAYBE_UPDATE=maybe-send: type=channel_update
     # Optional reconnection testing.
     1. nothing
 
+    # Ignore unknown odd messages
+    1. recv: type=9999
+
     # tester must have received node's commitment_signed
     1. disconnect:
     2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
@@ -263,6 +269,9 @@ MAYBE_UPDATE=maybe-send: type=channel_update
 
     # Optional reconnection testing.
     1. nothing
+
+    # Ignore unknown odd messages
+    1. recv: type=9999
 
     1. disconnect:
     2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
@@ -335,6 +344,9 @@ MAYBE_UPDATE=maybe-send: type=channel_update
 
     # Optional reconnection testing.
     1. nothing
+
+    # Ignore unknown odd messages
+    1. recv: type=9999
 
     1. disconnect:
     2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
