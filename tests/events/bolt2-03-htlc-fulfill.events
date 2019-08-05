@@ -29,7 +29,7 @@ MAYBE_UPDATE=maybe-send: type=channel_update
    channel_reserve_satoshis=9998
    htlc_minimum_msat=0
    feerate_per_kw=253
-   to_self_delay=6
+   to_self_delay=5
    max_accepted_htlcs=483
    # funding_privkey=0000000000000000000000000000000000000000000000000000000000000020
    funding_pubkey=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
@@ -116,7 +116,7 @@ MAYBE_UPDATE=maybe-send: type=channel_update
 16. recv: type=commitment_signed
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    signature=bc5e1b465773cfe59478c5db35e9f9d27bf832436d0ed0c19833b5e7d444e9f26e3522883a110d71e715471727e3ea7703eba0e6e9855e8d59bc0bf93029bb29
-   htlc_signature=cb0e7a9b30062bed56360797083350883f2a5a7626e510027b83f5d0989f109841c01fcc1eb72a561737eabdb2f1aa1a3b3894181771aa8b749553bf9bb6569c
+   htlc_signature=8ef6bc3d35a91a00cd1edb0a22e5ca7204b297d41cd7c4cdb1c4167d2d298d907e23b9dc75356ff2fee9ced4abc9fba796a90a2939df45080d12c7bbadbda8d8
 
 17. expect-send: type=revoke_and_ack
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
@@ -324,7 +324,7 @@ MAYBE_UPDATE=maybe-send: type=channel_update
 
 24. recv: type=commitment_signed
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-   signature=cf1292877b98697abbb2af4a28e7cba5dfeaa3e259ce528248881befa0e9008f6c8d2d1086266abb3bef002aa0fff652ed1d4f3bc60c8e5a22fbb3a3b584c47f
+   signature=85aebf2874c464db7eac10e0bad98b491c9ac943eae263bb4396d4e5feded12f1284e26196397313be31f4e83334eb5a6641cbec158e0fbfb22c4c488b3a28fd
    htlc_signature=
 
 25. expect-send: type=revoke_and_ack
