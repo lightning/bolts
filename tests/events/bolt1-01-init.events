@@ -1,0 +1,61 @@
+# Variations on init exchange.
+# Spec: MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
+
+# Trivial variable to serve as a demonstration
+EXPECT_INIT=expect-send: type=init
+
+1. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
+2. $EXPECT_INIT conn=0000000000000000000000000000000000000000000000000000000000000003
+3. recv: type=init globalfeatures= localfeatures=
+
+    1. nothing
+    1. disconnect:
+
+4. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
+    # Even if we don't send anything, it should send init.
+    1. $EXPECT_INIT
+
+    # Minimal possible init message.
+    # Spec: MUST send `init` as the first Lightning message for any connection.
+    1. $EXPECT_INIT
+    2. recv: type=init globalfeatures= localfeatures=
+
+    # Sanity check that bits 14 and 15 are not used!
+    1. $EXPECT_INIT globalfeatures=0000/C000
+    # init msg with unknown odd global bit (15): no error
+    2. recv: type=init globalfeatures=8000 localfeatures=
+    
+    1. $EXPECT_INIT localfeatures=0000/C000
+    # init msg with unknown odd local bit (15): no error
+    2. recv: type=init globalfeatures= localfeatures=8000
+
+    # init msg with unknown even global bit (14): you will error
+    1. $EXPECT_INIT
+    2. recv: type=init globalfeatures=4000 localfeatures=
+    3. expect-error:
+
+    # init msg with unknown even local bit (14): you will error
+    1. $EXPECT_INIT
+    2. recv: type=init globalfeatures= localfeatures=4000
+    3. expect-error:
+
+    # If you don't support `option_data_loss_protect`, you will be ok if
+    # we ask for it.
+    1. $EXPECT_INIT localfeatures=00/03 !option_data_loss_protect
+    2. recv: type=init globalfeatures= localfeatures=02 !option_data_loss_protect
+
+    # If you don't support `option_data_loss_protect`, you will error if
+    # we require it.
+    1. $EXPECT_INIT localfeatures=00/03 !option_data_loss_protect
+    2. recv: type=init globalfeatures= localfeatures=01 !option_data_loss_protect
+    3. expect-error: !option_data_loss_protect
+
+    # If you support `option_data_loss_protect`, you will advertize it odd.
+    1. $EXPECT_INIT localfeatures=02/03 option_data_loss_protect/odd
+
+    # If you require `option_data_loss_protect`, you will advertize it even.
+    1. $EXPECT_INIT localfeatures=01/03 option_data_loss_protect/even
+
+    # Note: it's undefined what you'll do if implementation requires
+    # an option and isn't offered it.  The recipient of the required feature
+    # bit should notice the requirement and error.
