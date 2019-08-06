@@ -500,7 +500,7 @@ The receiving node:
   - if the `option_channel_htlc_max` bit of `message_flags` is 0:
     - MUST consider `htlc_maximum_msat` not to be present.
   - otherwise:
-    - if `htlc_maximum_msat` is not present, greater than channel capacity or greater than 2^32:
+    - if `htlc_maximum_msat` is not present or greater than channel capacity:
 	  - MAY blacklist this `node_id`
 	  - SHOULD ignore this channel during route considerations.
 	- otherwise:
