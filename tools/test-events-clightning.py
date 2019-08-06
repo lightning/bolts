@@ -131,6 +131,10 @@ class CLightningRunner(object):
             os.makedirs(self.lightning_dir)
         self.lightning_port = reserve()
 
+        self.startup_flags = []
+        for flag in args.startup_flags:
+            self.startup_flags.append("--{}".format(flag))
+
     def start(self):
         self.proc = subprocess.Popen(['{}/lightningd/lightningd'.format(LIGHTNING_SRC),
                                       '--lightning-dir={}'.format(self.lightning_dir),
@@ -146,7 +150,8 @@ class CLightningRunner(object):
                                       '--bitcoin-rpcpassword=rpcpass',
                                       '--bitcoin-rpcport={}'.format(self.bitcoind.port),
                                       '--log-level=debug',
-                                      '--log-file=log'])
+                                      '--log-file=log']
+                                      + self.startup_flags)
         self.rpc = lightning.LightningRpc(os.path.join(self.lightning_dir, "lightning-rpc"))
 
         def node_ready(rpc):

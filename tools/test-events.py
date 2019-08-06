@@ -65,6 +65,9 @@ def setup_cmdline_options():
                         action="store_true")
     parser.add_argument('-o', '--option', action=OptionAction, default=[],
                         help='Indicate supported option')
+    parser.add_argument('-f', '--startup-flags', help="Pass these flags through to daemon "
+                        "under test.\n'--' will be prepended.",
+                        type=str, action="append", default=[])
 
     return parser
 
