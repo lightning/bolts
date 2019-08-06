@@ -1,0 +1,263 @@
+[
+    {
+        "hex": "01070f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206000186a0000005dc", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "firstBlockNum": 100000, 
+            "numberOfBlocks": 1500, 
+            "tlvStream": {
+                "records": [], 
+                "unknown": []
+            }, 
+            "type": "QueryChannelRange"
+        }
+    }, 
+    {
+        "hex": "01070f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206000088b800000064010103", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "firstBlockNum": 35000, 
+            "numberOfBlocks": 100, 
+            "tlvStream": {
+                "records": [
+                    "WANT_TIMESTAMPS | WANT_CHECKSUMS"
+                ], 
+                "unknown": []
+            }, 
+            "type": "QueryChannelRange"
+        }
+    }, 
+    {
+        "hex": "01080f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206000b8a06000005dc01001900000000000000008e0000000000003c69000000000045a6c4", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "complete": 1, 
+            "firstBlockNum": 756230, 
+            "numberOfBlocks": 1500, 
+            "shortChannelIds": {
+                "array": [
+                    "0x0x142", 
+                    "0x0x15465", 
+                    "0x69x42692"
+                ], 
+                "encoding": "UNCOMPRESSED"
+            }, 
+            "type": "ReplyChannelRange"
+        }
+    }, 
+    {
+        "hex": "01080f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206000006400000006e01001601789c636000833e08659309a65878be010010a9023a", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "complete": 1, 
+            "firstBlockNum": 1600, 
+            "numberOfBlocks": 110, 
+            "shortChannelIds": {
+                "array": [
+                    "0x0x142", 
+                    "0x0x15465", 
+                    "0x4x3318"
+                ], 
+                "encoding": "COMPRESSED_ZLIB"
+            }, 
+            "type": "ReplyChannelRange"
+        }
+    }, 
+    {
+        "hex": "01080f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e22060001ddde000005dc01001900000000000000304300000000000778d6000000000046e1c1011900000282c1000e77c5000778ad00490ab00000b57800955bff031800000457000008ae00000d050000115c000015b300001a0a", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "checksums": {
+                "checksums": [
+                    {
+                        "checksum1": 1111, 
+                        "checksum2": 2222
+                    }, 
+                    {
+                        "checksum1": 3333, 
+                        "checksum2": 4444
+                    }, 
+                    {
+                        "checksum1": 5555, 
+                        "checksum2": 6666
+                    }
+                ]
+            }, 
+            "complete": 1, 
+            "firstBlockNum": 122334, 
+            "numberOfBlocks": 1500, 
+            "shortChannelIds": {
+                "array": [
+                    "0x0x12355", 
+                    "0x7x30934", 
+                    "0x70x57793"
+                ], 
+                "encoding": "UNCOMPRESSED"
+            }, 
+            "timestamps": {
+                "encoding": "UNCOMPRESSED", 
+                "timestamps": [
+                    {
+                        "timestamp1": 164545, 
+                        "timestamp2": 948165
+                    }, 
+                    {
+                        "timestamp1": 489645, 
+                        "timestamp2": 4786864
+                    }, 
+                    {
+                        "timestamp1": 46456, 
+                        "timestamp2": 9788415
+                    }
+                ]
+            }, 
+            "type": "ReplyChannelRange"
+        }
+    }, 
+    {
+        "hex": "01080f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e22060001ddde000005dc01001801789c63600001036730c55e710d4cbb3d3c080017c303b1012201789c63606a3ac8c0577e9481bd622d8327d7060686ad150c53a3ff0300554707db031800000457000008ae00000d050000115c000015b300001a0a", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "checksums": {
+                "checksums": [
+                    {
+                        "checksum1": 1111, 
+                        "checksum2": 2222
+                    }, 
+                    {
+                        "checksum1": 3333, 
+                        "checksum2": 4444
+                    }, 
+                    {
+                        "checksum1": 5555, 
+                        "checksum2": 6666
+                    }
+                ]
+            }, 
+            "complete": 1, 
+            "firstBlockNum": 122334, 
+            "numberOfBlocks": 1500, 
+            "shortChannelIds": {
+                "array": [
+                    "0x0x12355", 
+                    "0x7x30934", 
+                    "0x70x57793"
+                ], 
+                "encoding": "COMPRESSED_ZLIB"
+            }, 
+            "timestamps": {
+                "encoding": "COMPRESSED_ZLIB", 
+                "timestamps": [
+                    {
+                        "timestamp1": 164545, 
+                        "timestamp2": 948165
+                    }, 
+                    {
+                        "timestamp1": 489645, 
+                        "timestamp2": 4786864
+                    }, 
+                    {
+                        "timestamp1": 46456, 
+                        "timestamp2": 9788415
+                    }
+                ]
+            }, 
+            "type": "ReplyChannelRange"
+        }
+    }, 
+    {
+        "hex": "01050f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206001900000000000000008e0000000000003c69000000000045a6c4", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "shortChannelIds": {
+                "array": [
+                    "0x0x142", 
+                    "0x0x15465", 
+                    "0x69x42692"
+                ], 
+                "encoding": "UNCOMPRESSED"
+            }, 
+            "tlvStream": {
+                "records": [], 
+                "unknown": []
+            }, 
+            "type": "QueryShortChannelIds"
+        }
+    }, 
+    {
+        "hex": "01050f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206001801789c63600001c12b608a69e73e30edbaec0800203b040e", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "shortChannelIds": {
+                "array": [
+                    "0x0x4564", 
+                    "0x2x47550", 
+                    "0x69x42692"
+                ], 
+                "encoding": "COMPRESSED_ZLIB"
+            }, 
+            "tlvStream": {
+                "records": [], 
+                "unknown": []
+            }, 
+            "type": "QueryShortChannelIds"
+        }
+    }, 
+    {
+        "hex": "01050f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e22060019000000000000002fc80000000000003cc4000000000045a6c4010c01789c6364620100000e0008", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "shortChannelIds": {
+                "array": [
+                    "0x0x12232", 
+                    "0x0x15556", 
+                    "0x69x42692"
+                ], 
+                "encoding": "UNCOMPRESSED"
+            }, 
+            "tlvStream": {
+                "records": [
+                    {
+                        "array": [
+                            1, 
+                            2, 
+                            4
+                        ], 
+                        "encoding": "COMPRESSED_ZLIB"
+                    }
+                ], 
+                "unknown": []
+            }, 
+            "type": "QueryShortChannelIds"
+        }
+    }, 
+    {
+        "hex": "01050f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206001801789c63600001f30a30c5b0cd144cb92e3b020017c6034a010c01789c6364620100000e0008", 
+        "msg": {
+            "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 
+            "shortChannelIds": {
+                "array": [
+                    "0x0x14200", 
+                    "0x0x46645", 
+                    "0x69x42692"
+                ], 
+                "encoding": "COMPRESSED_ZLIB"
+            }, 
+            "tlvStream": {
+                "records": [
+                    {
+                        "array": [
+                            1, 
+                            2, 
+                            4
+                        ], 
+                        "encoding": "COMPRESSED_ZLIB"
+                    }
+                ], 
+                "unknown": []
+            }, 
+            "type": "QueryShortChannelIds"
+        }
+    }
+]
+
