@@ -587,6 +587,8 @@ Query messages can be extended with optional fields that can help reduce the num
 - timestamp-based filtering of `channel_update` messages: only ask for `channel_update` messages that are newer than the ones you already have.
 - checksum-based filtering of `channel_update` messages: only ask for `channel_update` messages that carry different information from the ones you already have.
 
+Nodes can signal that they support extended gossip queries with the `gossip_queries_ex` feature bit.
+
 ### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
