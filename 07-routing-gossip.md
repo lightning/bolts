@@ -575,6 +575,8 @@ Encoding types:
 * `0`: uncompressed array of `short_channel_id` types, in ascending order.
 * `1`: array of `short_channel_id` types, in ascending order, compressed with zlib deflate<sup>[1](#reference-1)</sup>
 
+This encoding is also used for arrays of other types (timestamps, flags, ...), and specified with an `encoded_` prefix. For example, `encoded_timestamps` is an array of timestamps than can be either compressed (with a `1` prefix) or uncompressed (with a `0` prefix).
+
 Note that a 65535-byte zlib message can decompress into 67632120
 bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
@@ -593,14 +595,13 @@ Query messages can be extended with optional fields that can help reduce the num
     * [`chain_hash`:`chain_hash`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
-    * [`tlvs`:`query_short_channel_ids_tlvs`]
+    * [`query_short_channel_ids_tlvs`:`tlvs`]
 
-1. tlvs: `query_short_channel_ids_tlv`
+1. tlvs: `query_short_channel_ids_tlvs`
 2. types:
     1. type: 1 (`query_flags`)
     2. data:
-        * [`byte`:`encoding_type`]
-        * [`len-1`:`encoded_query_flags`]
+        * [`...*byte`:`encoded_query_flags`]
 
 `encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
 
@@ -698,7 +699,7 @@ timeouts.  It also causes a natural ratelimiting of queries.
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
     * [`u32`:`number_of_blocks`]
-    * [`tlvs`:`query_channel_range_tlvs`]
+    * [`query_channel_range_tlvs`:`tlvs`]
 
 1. tlvs: `query_channel_range_tlvs`
 2. types:
@@ -723,18 +724,16 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`byte`:`complete`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
-    * [`tlvs`:`reply_channel_range_tlvs`]
+    * [`reply_channel_range_tlvs`:`tlvs`]
 
 1. tlvs: `query_channel_range_tlvs`
 2. types:
     1. type: 1 (`timestamps_tlv`)
     2. data:
-        * [`byte`:`encoding_type`]
-        * [`len-1`:`encoded_timestamps`]
+        * [`...*byte`:`encoded_timestamps`]
     1. type: 3 (`checksums_tlv`)
     2. data:
-        * [`byte`:`encoding_type`]
-        * [`len-1`:`encoded_checksums`]
+        * [`...*byte`:`checksums`]
 
 For a single `channel_update`, timestamps are encoded as:
 
@@ -760,7 +759,7 @@ Where:
 
 The checksum of a `channel_update` is the CRC32C checksum as specified in [RFC3720](https://tools.ietf.org/html/rfc3720#appendix-B.4) of this `channel_update` without its `signature` and `timestamp` fields.
 
-This allows to query for channels within specific blocks.
+This allows to query for channels within specific blocks. 
 
 #### Requirements
 
