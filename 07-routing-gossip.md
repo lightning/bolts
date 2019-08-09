@@ -441,7 +441,7 @@ or `node_id_2` otherwise.
 
 The origin node:
   - MAY create a `channel_update` to communicate the channel parameters to the
-  channel peer, even though the channel has not yet been announced (i.e. the
+  channel peer after `funding_locked` has been received, even though the channel has not yet been announced (i.e. the
   `announce_channel` bit was not set).
     - MUST NOT forward such a `channel_update` to other peers, for privacy
     reasons.
