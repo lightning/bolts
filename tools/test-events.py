@@ -131,6 +131,10 @@ def unpack_from(typename, bytestream, offset):
                 struct.unpack_from(name2structfmt[typename], bytestream,
                                    offset)[0])
 
+    # FIXME: This is our non-TLV code
+    if typename.endswith('_tlvs'):
+        return len(bytestream) - offset, bytestream[offset:]
+
     # Unpack directly as bytes
     size = name2size[typename]
     if size + offset > len(bytestream):
