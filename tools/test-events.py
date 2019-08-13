@@ -824,6 +824,8 @@ def compare_results(msgname, f, v, exp):
                                 v.hex(), len(exp[0]) - 1 - i))
     # Use subtype comparer
     elif f.typename in Subtype.objs:
+        if not v and not exp:
+            return None
         return Subtype.objs[f.typename].compare(msgname, v[0], exp[0])
 
     # Simple comparison
