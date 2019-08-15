@@ -34,6 +34,7 @@ def wait_for(success, timeout=TIMEOUT):
             interval = 5
     return time.time() <= start_time + timeout
 
+
 # Stolen from lightning/tests/utils.py
 class SimpleBitcoinProxy:
     """Wrapper for BitcoinProxy to reconnect.

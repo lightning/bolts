@@ -386,6 +386,7 @@ def find_message(messages, name):
 
     return None
 
+
 class Subtype(Message):
     objs = {}
 
@@ -484,7 +485,6 @@ class Subtype(Message):
             i += 1
         return -1, None
 
-
     def pack(self, values):
         """ We need to return bytes for each field """
         bites = bytes([])
@@ -526,10 +526,10 @@ class Subtype(Message):
             f = self.findField(name)
             if not f:
                 return ("Field {} is not known for subtype {}({})"
-                       .format(name, self.name, msgname))
+                        .format(name, self.name, msgname))
 
             val = vals[name]
-            err = compare_results(msgname + "." + self.name, f, v, exp_val)
+            err = compare_results(msgname + "." + self.name, f, val, exp_val)
             if err is not None:
                 return err
 
@@ -573,6 +573,7 @@ def unpack_field(field, lenfields, bytestream, offset):
         lenfields[field.name] = int(v)
 
     return offset, v
+
 
 def read_csv(args):
     for line in fileinput.input(args.csv_file):
@@ -639,6 +640,7 @@ class Connection(object):
 
     def __str__(self):
         return str(self.connkey)
+
 
 def optional_connection(line, params):
     """Trivial helper to return & remove conn=key if specified, None if not"""
@@ -760,6 +762,7 @@ class RecvEvent(object):
     def action(self, runner, line):
         runner.recv(which_connection(line, runner, self.connkey),
                     self.b, line)
+
 
 def compare_results(msgname, f, v, exp):
     """ f -> field; v -> value; exp -> expected value """
@@ -1157,6 +1160,7 @@ class OneOfEvent(object):
                                   "None of the sequences matched {}"
                                   .format(msg.hex()))
 
+
 # Loads a Sequence at this indent level (and any children embedded in
 # it, if allow_children).  Returns the initial Sequence, a list of
 # Sequence leaves, and the next linenum.
@@ -1307,7 +1311,7 @@ def filter_out(args, line, filename, linenum):
 
 
 def indentation(s):
-    """Returns str with indent stripped, and effectve indentation amount"""
+    """Returns str with indent stripped, and effective indentation amount"""
     level = 0
     consumed = 0
     for i in range(len(s)):
@@ -1318,7 +1322,7 @@ def indentation(s):
             level = (level + 8) // 8 * 8
         else:
             break
-        consumed = i+1
+        consumed = i + 1
     return s[consumed:], level
 
 
