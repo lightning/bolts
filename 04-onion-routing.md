@@ -248,6 +248,13 @@ This is a more flexible format, which avoids the redundant `short_channel_id` fi
     1. type: 6 (`short_channel_id`)
     2. data:
         * [`short_channel_id`:`short_channel_id`]
+    1. type: 10 (`option_amp`)
+    2. data:
+        * [`32*byte`:`payment_id`]
+        * [`32*byte`:`stream_id`]
+        * [`32*byte`:`share`]
+        * [`u16`:`child_index`]
+        * [`u64`:`total_msat`]
 
 ### Requirements
 
@@ -260,6 +267,197 @@ The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
 
 The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format).
+
+## Atomic Multi-path Payments
+
+If the final node receives an onion packet with `option_amp` field,
+the payment MAY be an atomic multi-path payment. Such atomic multi-path payments
+MAY use a _distinct_ payment hash for each path.
+
+The `amt_to_forward` value will be the amount for this partial payment only. The
+`option_amp` flag flag is a promise by the sender that the rest of the payment
+will follow in succeeding HTLCs with the same `stream_id`; we call these HTLCs,
+which that the same `stream_id`, an "HTLC set".
+
+One key distinction with `option_amp` is that the sender generates all
+preimages, and only reveals them to the final hop if all partial payments arrive
+successfully. As such, the payer _will not_ learn a new preimage as it would in
+the regular payment flow. For accounting purposes, however, `option_amp` can be
+used to fulfill an invoice akin to the regular payment flow, and also enforce
+additional constraints such as amounts and timelocks.
+
+The writer:
+ - MUST NOT include `option_amp` for any non-final node.
+ - if the sender has an invoice and `option_amp` feature was not set in the invoice:
+   - MUST NOT include `option_amp` for the final node.
+ - otherwise:
+   - MAY include `option_amp` for the final node.
+   - if it does include `option_amp`:
+     - MUST generate a random `stream_id` to be used on all HTLCs in the set.
+     - MAY send more than one HTLC using the same `stream_id`.
+     - MUST set the `share` values of all HTLCs such that their xor is a random
+       root seed `r`.
+     - SHOULD choose a unique child_index_i for each HTLC.
+     - MUST derive the `payment_hash` for an HTLC using `amp_child(r, child_index_i)`.
+     - if the invoice specifies a non-zero `amount`:
+       - MUST set `total_msat` to `amount`.
+     - otherwise:
+       - MUST set `total_msat` to the amount it wishes to pay.
+     - MUST ensure the total `amount_to_forward` in the HTLC set which arrives at
+       the payee is equal to `total_msat`.
+     - if the sender has an invoice:
+       - MUST set the `payment_id` of each HTLC to the `payment_hash` in the
+         invoice.
+     - otherwise:
+       - MUST set the `payment_id` of each HTLC to zero.
+
+The reader:
+ - if `option_amp` is present:
+  - MUST fail the HTLC if it is not the final node.
+  - MUST fail the HTLC as it would otherwise fail a single HTLC of
+    `amt_to_forward`, `payment_hash`, and `cltv_expiry` without context of the
+    invoice.
+  - if the `payment_id` is non-zero:
+    - MUST fail the HTLC if an invoice for `payment_id` does not exist.
+    - MUST fail the HTLC if `total_msat` is less than the invoice's `amount`.
+    - MUST fail the HTLC if `cltv_expiry` does not satisfy the invoice's
+      `min_final_cltv_expiry`.
+  - otherwise:
+    - MUST fail the HTLC if `cltv_expiry` does not satisfy the node's default
+      `min_final_cltv_expiry`
+  - MUST fail the entire HTLC set if `total_msat` is not the same for all HTLCs
+    in the set.
+  - if the total `amount_to_forward` of the HTLC set is equal `total_msat`:
+    - MUST reconstructs `r` as the xor of all `share`s in the HTLC set.
+    - MUST compute `p_i, h_i = amp_child(r, child_index_i)` for all HTLCs in the
+      set.
+    - if any `i-th` HTLC's `payment_hash` differs from `h_i`:
+      - MUST fail the HTLC set.
+    - otherwise:
+      - MAY fulfill the `i-th` HTLC in the set using `p_i`.
+  - otherwise:
+    - MUST fail an HTLC in set if its `cltv_expiry` elapses.
+    - MAY fail all HTLCs in the set after a reasonable timeout.
+
+### Atomic Multi-path Payment Derivation
+
+Let the _root seed_ `r` be a random 32-byte value. A unique _child preimage_ and
+_child hash_ can be derived for a given `child_index` using the `amp_child`
+function:
+
+```golang
+func amp_child(root_seed [32]byte, child_index uint16) ([32]byte, [32]byte) {
+        preimage := SHA256(root_seed || child_index)
+        hash := SHA256(preimage)
+        return preimage, hash
+}
+```
+where `child_index` is serialized using big-endian byte order.
+
+The sender will use `amp_child` to derive a child hash for each HTLC it sends
+out, and includes the `child_index` used in the derivation in the final hop's
+payload. The receiver will use `amp_child` to settle each HTLC with its
+corresponding child preimage, and also to verify that the correct child hash was
+set by the sender.
+
+In order to provide cryptographic atomicity over the fulfillment of an HTLC set,
+each partial payment `i` also transmits a 32-byte `share`.  Each share `s_i`
+represents an n-of-n secret sharing of `r`, such that:
+
+```
+    r = s_1 ^ ... ^ s_n
+```
+
+If `n` is known upfront, satisfying this equation can be done simply by
+generating all `s_i` randomly.
+
+Otherwise, the sender can generate the shares _adaptively_ by first generating a
+random `r`. For all but the last outgoing HTLC, a random `s_i` is generated and
+included directly. The final HTLC then computes `s_n` as the xor of all other
+shares and `r`:
+
+```
+    s_n = s_1 ^ ... ^ s_n-1 ^ r
+```
+
+If a partial payment fails, this process can be applied recursively to generate
+smaller partial payments, at the same time guaranteeing that the xor of all
+shares results in `r`.
+
+This construction prevents the receiver from learning `r` until all `s_i` have
+arrived. If `r` is successfully reconstructed, the receiver can verify the
+correctness of child hashes used in the HTLC set, and settle use the child
+preimages if they were offered correctly.
+
+The diagram below depicts the relationship between shares, the root seed, child
+preimages, and child hashes in the non-adaptive case. Lowercase variables are
+used to signal independent variables, while capital letters are used to describe
+dependent variables. All independent variables are chosen upfront by the sender.
+```
+    s_1  s_2  s_3    SHARES OF ROOT SEED
+                   
+     |    |    |     
+     └──┐ | ┌──┘       R = s_1 ^ s_2 ^ s_3
+        V V V        
+                   
+          R          ROOT SEED
+                   
+        | | |        
+     ┌──┘ | └──┐       P_i = SHA256(R || child_index_i)
+     V    V    V     
+                   
+    P_1  P_2  P_3    CHILD PREIMAGES
+                   
+     |    |    |     
+     |    |    |       H_i = SHA256(P_i)
+     V    V    V     
+                   
+    H_1  H_2  H_3    CHILD HASHES
+```
+
+### Rationale
+
+The inclusion of a `payment_id` in `option_amp` allows the receiver to map an
+incoming AMP payment to a particular invoice. The sender should set the
+`payment_id` to the `payment_hash` of the invoice they are trying to pay,
+permitting the receiver to enforce custom parameters, e.g. CLTV deltas,  and
+unify tracking of AMP payments with the existing invoicing system.
+
+At the same time, AMP payments can be made spontaneously (without and invoice),
+since the sender generates all of the necessary secrets. To do so, the sender
+leaves the `payment_id` blank, which can be used to facilitate secure donations.
+
+In the event that two payments are made with the same `payment_id`, either to
+the same invoice for both are spontaneous, a second identifier is introduced
+called the `stream_id`. The `stream_id` should be unique to each HTLC set sent
+by the sender, and allows the receiver to distinguish concurrent payments that
+collide on `payment_id`.
+
+Both the `stream_id` and `payment_id` are only known to sender and receiver,
+preventing intermediaries from introducing griefing via colliding payment
+identifiers with high probability.
+
+The `child_index` is included in the final payload so that the receiver can
+gracefully tolerate reordering of the partial payments. When each `child_index`
+is unique, this offers decorrelation of the partial payments, since they bear
+different child payment hashes while traversing the network.
+
+The `total_msat` field is used to determine when all partial payments have been
+received. If the AMP is paying an invoice, this also allows the sender to
+securely overpay an invoice, for instance, if the invoice's `amount` is
+unspecified. If the AMP is spontaneous, this allows the sender to communicate
+the exact value to be received in a end-to-end authenticated manner, preventing
+certain classes of attacks where intermediaries can steal up to the overpaid
+amount.
+
+The entire payment is contingent on the receiver being able to reconstruct the
+root seed `r`, which prevents the receiver from pulling any of the partial
+payments until the entirety of the HTLC set arrives. This is enforced by the
+n-of-n secret shares provided in the final hop payload of each arriving partial
+payment.
+
+None of the requirements enforce that more than one HTLC is sent, permitting the
+base case of 1 HTLC to function as a standalone spontaneous payment.
 
 # Accepting and Forwarding a Payment
 
