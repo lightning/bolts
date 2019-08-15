@@ -198,6 +198,11 @@ class DummyRunner(object):
         if self.verbose:
             print("[DISCONNECT {}]".format(line))
 
+    def wait_for_finalmsg(self, conn):
+        if self.verbose:
+            print("[WAIT-FOR-FINAL]")
+        return None
+
     def recv(self, conn, outbuf, line):
         if self.verbose:
             print("[RECV {} {}]".format(line, outbuf.hex()))
@@ -637,6 +642,7 @@ class Connection(object):
     def __init__(self, connkey):
         self.connkey = connkey
         self.maybe_sends = []
+        self.must_not_sends = []
 
     def __str__(self):
         return str(self.connkey)
@@ -660,6 +666,27 @@ def which_connection(line, runner, connkey):
         if c.connkey == connkey:
             return c
     raise LineError(line, "No active 'connect' {}".format(connkey))
+
+
+def end_connection(runner, conn, line):
+    """Helper to wait to see if any must-not-send are triggered at end"""
+    if conn.must_not_sends == []:
+        return
+
+    # We assume we don't get an infinite stream of msgs!
+    while True:
+        msg = runner.wait_for_finalmsg(conn)
+        if msg is None:
+            return
+        for m in conn.must_not_sends:
+            if message_match(m.expectmsg, m.expectfields, msg) is None:
+                raise ValidationError(line, "must-not-send at {} violated by {}"
+                                      .format(m.line, msg.hex()))
+
+        # If it was an (unexpected) error, we've failed.
+        if not runner.expected_error and struct.unpack('>H', msg[0:2]) == (17,):
+            raise ValidationError(line,
+                                  "Unexpected error occurred: {}".format(msg.hex()))
 
 
 class NothingEvent(object):
@@ -691,6 +718,8 @@ class DisconnectEvent(object):
 
     def action(self, runner, line):
         conn = which_connection(line, runner, self.connkey)
+
+        end_connection(runner, conn, line)
         runner.disconnect(conn, line)
         runner.connections.remove(conn)
 
@@ -849,9 +878,10 @@ def maybesend_match(conn, msg):
 
 
 class ExpectSendEvent(object):
-    def __init__(self, line, parts, maybe=False):
+    def __init__(self, line, parts, maybe=False, mustnot=False):
         self.line = line
         self.maybe = maybe
+        self.mustnot = mustnot
         if len(parts) < 1:
             raise LineError(line, "Missing type=")
         t = parts[0].partition('=')
@@ -893,6 +923,8 @@ class ExpectSendEvent(object):
                     self.expectfields[v], _ = f.field_value(line, parts[0])
 
     def __repr__(self):
+        if self.mustnot:
+            return "must-not-send:{}:{}".format(self.expectmsg.name, self.line)
         if self.maybe:
             return "maybe-send:{}:{}".format(self.expectmsg.name, self.line)
         return "expect-send:{}:{}".format(self.expectmsg.name, self.line)
@@ -902,6 +934,10 @@ class ExpectSendEvent(object):
         # If this is 'maybe-send' then just add it to maybe list.
         if self.maybe:
             conn.maybe_sends.append(self)
+            return
+        # If this is 'must-not-send' then just add it to maybe list.
+        elif self.mustnot:
+            conn.must_not_sends.append(self)
             return
 
         msg = runner.expect_send(conn, line)
@@ -1025,6 +1061,8 @@ class Event(object):
             self.actor = ExpectSendEvent(line, parts[1:])
         elif parts[0] == 'maybe-send:':
             self.actor = ExpectSendEvent(line, parts[1:], maybe=True)
+        elif parts[0] == 'must-not-send:':
+            self.actor = ExpectSendEvent(line, parts[1:], mustnot=True)
         elif parts[0] == 'block:':
             self.actor = BlockEvent(line, parts[1:])
         elif parts[0] == 'expect-tx:':
@@ -1265,6 +1303,11 @@ def run_test(args, path, runner):
     runner.expected_error = False
     for seq in path:
         seq.run(runner)
+
+    # Make sure they didn't send any must-not-sends at the end.
+    for conn in runner.connections:
+        end_connection(runner, conn, path[-1].line)
+
     if not runner.expected_error:
         error = runner.final_error()
         if error is not None:

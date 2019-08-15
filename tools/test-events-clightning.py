@@ -136,6 +136,7 @@ class CLightningRunner(object):
                                       '--dev-force-bip32-seed=0000000000000000000000000000000000000000000000000000000000000001',
                                       '--dev-force-channel-secrets=0000000000000000000000000000000000000000000000000000000000000010/0000000000000000000000000000000000000000000000000000000000000011/0000000000000000000000000000000000000000000000000000000000000012/0000000000000000000000000000000000000000000000000000000000000013/0000000000000000000000000000000000000000000000000000000000000014/FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
                                       '--dev-bitcoind-poll=1',
+                                      '--dev-broadcast-interval=1000',
                                       '--bind-addr=127.0.0.1:{}'.format(self.lightning_port),
                                       '--network=regtest',
                                       '--bitcoin-rpcuser=rpcuser',
@@ -236,20 +237,29 @@ class CLightningRunner(object):
                          description='invoice from {}'.format(line),
                          preimage=preimage)
 
-    def expect_send(self, conn, line, timeout=TIMEOUT):
-        def readmsg(conn):
-            rawl = conn.proc.stdout.read(2)
-            length = struct.unpack('>H', rawl)[0]
-            msg = bytes()
-            while len(msg) < length:
-                msg += conn.proc.stdout.read(length - len(msg))
-            return msg
+    def _readmsg(self, conn):
+        rawl = conn.proc.stdout.read(2)
+        length = struct.unpack('>H', rawl)[0]
+        msg = bytes()
+        while len(msg) < length:
+            msg += conn.proc.stdout.read(length - len(msg))
+        return msg
 
-        fut = self.executor.submit(readmsg, conn)
+    def expect_send(self, conn, line, timeout=TIMEOUT):
+        fut = self.executor.submit(self._readmsg, conn)
         try:
             return fut.result(timeout)
         except futures.TimeoutError:
             raise test.ValidationError(line, "Timed out")
+
+    def wait_for_finalmsg(self, conn):
+        # We told it to flush gossip every 1000msec, so give 2 seconds here.
+        while True:
+            fut = self.executor.submit(self._readmsg, conn)
+            try:
+                return fut.result(2)
+            except futures.TimeoutError:
+                return None
 
     def expect_tx(self, tx, line):
         def tx_in_mempool(tx):

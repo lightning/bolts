@@ -124,13 +124,15 @@ Input events are:
 
 ## Output Events
 
-OUTPUT_EVENT := EXPECT_SEND | MAYBE_SEND | EXPECT_TX | EXPECT_ERROR
+OUTPUT_EVENT := EXPECT_SEND | MAYBE_SEND | MUST_NOT_SEND | EXPECT_TX | EXPECT_ERROR
 
 EXPECT_SEND := `expect-send:` [CONNSPEC] SPACE+ `type=` TYPENAME SPACE+ SEND_FIELDSPEC*
 SEND_FIELDSPEC := IDENTIFIER`=`SPECVALUE
 SPECVALUE := FIELDVALUE | HEX`/`HEX | `absent`
 
 MAYBE_SEND := `maybe-send:` [CONNSPEC] SPACE+ `type=` TYPENAME SEND_FIELDSPEC*
+
+MUST_NOT_SEND := `must-not-send:` [CONNSPEC] SPACE+ `type=` TYPENAME SEND_FIELDSPEC*
 
 EXPECT_TX := `expect-tx:` SPACE+ `tx=`HEX
 
@@ -139,6 +141,7 @@ EXPECT_ERROR := `expect-error:` [CONNSPEC]
 Output events are:
 * `expect-send`: a message the implementation is expected to send.  Any field specified must match exactly for the test to pass; the value`/`mask notation is used to compare bits against a mask; the field should be zero-padded for comparison if necessary.  The special field value `absent` means the (presumably optional) field must not be present.
 * `maybe-send`: a message the implementation may send, at any point from now on (until the next `disconnect`)
+* `must-not-send`: a message the implementation must not send, at any point from now on (until the next `disconnect`).  This implies waiting at the end of the test (for a gossip flush!) to make sure it doesn't send it.
 * `expect-tx`: a transaction the implementation is expected to broadcast.  The transactions here assume deterministic signatures.
 * `expect-error`: the implementation is expected to detect an error.  This is generally a `expect-send` of `type=error` but it's legal for it to simply close the connection.  If there's no `expect-error` event, the implementation is expected *not* to have an error.
 
