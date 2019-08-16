@@ -312,6 +312,9 @@ class Field(object):
                 try:
                     v = bytes.fromhex(value)
                 except ValueError:
+                    if value.startswith('*'):
+                        v = value
+                        return v, v
                     raise LineError(line,
                                     "Non-hex value for {} byte array: '{}'"
                                     .format(self.name, value))
@@ -837,8 +840,20 @@ def compare_results(msgname, f, v, exp):
     # Simple comparison
     elif v != exp:
         if f.isinteger:
+            # Instead of checking a field's value, allow a test
+            # to specify a range of bytelen that's valid.
+            # This is needed for witness data verifications.
+            # e.g. *71-73 or *73 for exactly 73 bytes
+            if isinstance(exp, str) and exp.startswith('*') and check_range(exp[1:], v):
+                return None
             valstr = str(v)
             expectstr = str(exp)
+        # Same as above note about a range of length
+        elif exp.startswith('*'):
+            if check_range(exp[1:], len(v.hex()) // 2):
+                return None
+            expectstr = "result of bytelen {}".format(exp[1:])
+            valstr = str(len(v.hex()) // 2)
         else:
             valstr = v.hex()
             expectstr = exp.hex()
@@ -847,6 +862,16 @@ def compare_results(msgname, f, v, exp):
                         f.name, expectstr, valstr))
     return None
 
+
+def check_range(exp, val_len):
+    len_range = exp.split('-')
+    if len(len_range) > 2:
+        raise ValueError("Expected size range invalid", exp)
+
+    if len(len_range) == 1:
+        return int(len_range[0]) == val_len
+
+    return int(len_range[0]) <= val_len and int(len_range[1]) >= val_len
 
 def message_match(expectmsg, expectfields, b):
     """Internal helper to see if b matches expectmsg & expectfields.
