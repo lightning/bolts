@@ -316,6 +316,16 @@ class CLightningRunner(object):
                 pass
         return None
 
+    def await_funds(self, timeout):
+        def see_funds(rpc):
+            while len(rpc.listfunds()['outputs']) < 1:
+                time.sleep(0.3)
+            return True
+        if not wait_for(lambda: see_funds(self.rpc), timeout=int(timeout)):
+            raise subprocess.TimeoutExpired(self.proc,
+                                            "No funds processed by node after {}s".format(timeout))
+
+
 
 if __name__ == "__main__":
     parser = test.setup_cmdline_options()
