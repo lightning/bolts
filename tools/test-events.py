@@ -292,6 +292,11 @@ class Field(object):
         except ValueError:
             raise LineError(line, "Non-hex value for {}: '{}'"
                             .format(typename, s))
+
+        # FIXME: This is our non-TLV code
+        if typename.endswith('_tlvs'):
+            return v
+
         if len(v) != name2size[typename]:
             raise LineError(line, "{} must be {} bytes long not {}"
                             .format(typename, name2size[typename], len(v)))
@@ -827,54 +832,6 @@ def compare_results(msgname, f, v, exp):
         if not v and not exp:
             return None
         return Subtype.objs[f.typename].compare(msgname, v[0], exp[0])
-
-    # Simple comparison
-    elif v != exp:
-        if f.isinteger:
-            valstr = str(v)
-            expectstr = str(exp)
-        else:
-            valstr = v.hex()
-            expectstr = exp.hex()
-        return ("Expected {}.{} {} but got {}"
-                .format(msgname,
-                        f.name, expectstr, valstr))
-    return None
-
-
-def compare_results(msgname, f, v, exp):
-    """ f -> field; v -> value; exp -> expected value """
-
-    # If they specify field=absent, it must not be there.
-    if exp is None:
-        if v is not None:
-            return "Field {} is present"
-        else:
-            return None
-
-    if v is None:
-        return ("Optional field {} is not present"
-                .format(f.name))
-    if isinstance(exp, tuple):
-        # Out-of-range bitmaps are considered 0 (eg. feature tests)
-        if len(v) < len(exp[0]):
-            cmpv = b'\x00' * (len(exp[0]) - len(v)) + v
-        elif len(v) > len(exp[0]):
-            cmpv = v[-len(exp[0]):]
-        else:
-            cmpv = v
-
-        for i in range(0, len(exp[0])):
-            if cmpv[i] & exp[1][i] != exp[0][i]:
-                return ("Expected {}.{} mask 0x{}"
-                        " value 0x{} but got 0x{}"
-                        " (offset {} different)"
-                        .format(msgname, f.name,
-                                exp[1].hex(), exp[0].hex(),
-                                v.hex(), len(exp[0]) - 1 - i))
-    # Use subtype comparer
-    elif f.typename in Subtype.objs:
-        return Subtype.objs[f.typename].compare(msgname, v, exp)
 
     # Simple comparison
     elif v != exp:
