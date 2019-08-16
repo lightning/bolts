@@ -247,8 +247,9 @@ class Field(object):
         self.typename = typename
         self.options = options
         self.islenvar = False
-        # This contains all the integer types: otherwise it's a hexstring
-        self.isinteger = typename in name2structfmt
+        # This contains all the integer types: otherwise it's a hexstring,
+        self.isinteger = (typename in name2structfmt and
+            not (typename == 'byte' and count))
 
         # This is set for static-sized array.
         self.arraylen = None
