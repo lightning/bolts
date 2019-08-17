@@ -101,11 +101,6 @@ class Bitcoind(object):
         self.rpc.submitblock('0000002006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f7b8705087f9bddd2777021d2a1dfefc2f1c5afa833b5c4ab00ccc8a556d04283f5a1095dffff7f200100000001020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff03510101ffffffff0200f2052a01000000160014751e76e8199196d454941c45d1b3a323f1433bd60000000000000000266a24aa21a9ede2f61c3f71d1defd3fa999dfa36953755c690689799962b48bebd836974e8cf90120000000000000000000000000000000000000000000000000000000000000000000000000')
         self.rpc.generatetoaddress(100, self.rpc.getnewaddress())
 
-    def activate_funds(self):
-        # This goes into block #101, now we can spend coinbase from #1.
-        self.rpc.sendrawtransaction('020000000001017b8705087f9bddd2777021d2a1dfefc2f1c5afa833b5c4ab00ccc8a556d042830000000000feffffff0580841e0000000000160014fd9658fbd476d318f3b825b152b152aafa49bc9240420f000000000016001483440596268132e6c99d44dae2d151dabd9a2b2338496d2901000000160014d295f76da2319791f36df5759e45b15d5e105221c0c62d000000000016001454d14ae910793e930d8e33d3de0b0cbf05aa533300093d00000000001600141b42e1fc7b1cd93a469fa67ed5eabf36ce354dd6024730440220782128cb0319a8430a687c51411e34cfaa6641da9a8f881d8898128cb5c46897022056e82d011a95fd6bcb6d0d4f10332b0b0d1227b2c4ced59e540eb708a4b24e4701210279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f8179865000000')
-        self.rpc.generatetoaddress(1, self.rpc.getnewaddress())
-
 
     def stop(self):
         self.proc.kill()
@@ -165,19 +160,9 @@ class CLightningRunner(object):
             raise subprocess.TimeoutExpired(self.proc,
                                             "Could not contact lightningd")
 
-        # Make sure there's funds in the node wallet before continuing
+        # Make sure that we see any funds that come to our wallet
         for i in range(5):
             self.rpc.newaddr()
-
-        self.bitcoind.activate_funds()
-        def see_funds(rpc):
-            while len(rpc.listfunds()['outputs']) < 1:
-                time.sleep(0.3)
-            return True
-
-        if not wait_for(lambda: see_funds(self.rpc)):
-            raise subprocess.TimeoutExpired(self.proc,
-                                            "No funds processed by node after 10s")
 
 
     def stop(self):

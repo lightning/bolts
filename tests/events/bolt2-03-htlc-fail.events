@@ -12,10 +12,12 @@ MAYBE_UPDATE=maybe-send: type=channel_update
    short_channel_id=103x1x0
    # FIXME: Fill other expected fields here!
 
-1. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
-2. expect-send: type=init
-3. recv: type=init globalfeatures= localfeatures=02
-4. recv: type=open_channel
+1. block: height=102 tx=020000000001017b8705087f9bddd2777021d2a1dfefc2f1c5afa833b5c4ab00ccc8a556d042830000000000feffffff0580841e0000000000160014fd9658fbd476d318f3b825b152b152aafa49bc9240420f000000000016001483440596268132e6c99d44dae2d151dabd9a2b2338496d2901000000160014d295f76da2319791f36df5759e45b15d5e105221c0c62d000000000016001454d14ae910793e930d8e33d3de0b0cbf05aa533300093d00000000001600141b42e1fc7b1cd93a469fa67ed5eabf36ce354dd6024730440220782128cb0319a8430a687c51411e34cfaa6641da9a8f881d8898128cb5c46897022056e82d011a95fd6bcb6d0d4f10332b0b0d1227b2c4ced59e540eb708a4b24e4701210279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f8179865000000
+
+2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
+3. expect-send: type=init
+4. recv: type=init globalfeatures= localfeatures=02
+5. recv: type=open_channel
    chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
    temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
    funding_satoshis=999878
@@ -43,7 +45,7 @@ MAYBE_UPDATE=maybe-send: type=channel_update
    first_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8
    channel_flags=01
 
-5. expect-send: type=accept_channel
+6. expect-send: type=accept_channel
    temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
    # funding_privkey=0000000000000000000000000000000000000000000000000000000000000010
    funding_pubkey=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
@@ -62,7 +64,7 @@ MAYBE_UPDATE=maybe-send: type=channel_update
    to_self_delay=6
    channel_reserve_satoshis=9998
 
-6. recv: type=funding_created
+7. recv: type=funding_created
    temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
    # Funding tx is 020000000001016b85f654d8186f4d5dd32a977b2cf8c4b01ff4634152acba16b654c1c85a83160100000000ffffffff01c6410f0000000000220020c46bf3d1686d6dbb2d9244f8f67b90370c5aa2747045f1aeccb77d818711738202473044022047e9e6e798ba9adb6c84bdcd6230a96fb6de9dcca84d81103fb2bc08906cb884022027599b1e80289eaf238e9a00119a79a0ccceab7d83d54719e10bd0c3300a0d34012102d6a3c2d0cf7904ab6af54d7c959435a452b24a63194e1c4e7c337d3ebbb3017b00000000
    # txid=41085b995c1f591cfc3ae79ccde012bf0b37c7bde23d80a61c9732bdd6210b2f
@@ -71,23 +73,23 @@ MAYBE_UPDATE=maybe-send: type=channel_update
    # node's commitment tx is 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a980010f410f0000000000160014749af8703f0d1fd8890a553bd62e9caf15f7bad44cff0020
    signature=c0c95040f0c132b5773b05fcc59e4a394059db70e6767567f26cbceecc580bcf27da384471a5efdaabd04090dd1d5c3765e849e5fdfe556eabba1ebca806b02a
 
-7. expect-send: type=funding_signed
+8. expect-send: type=funding_signed
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    # test's commitment tx is 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a980010f410f0000000000220020233d69d88092351875ce0b9fd5ea576b2307c539eaed7abdf97fbb26720f01ac4cff0020
    signature=0adfc07a0168630b2e216aa8068dc8aa353be4b622a32ea7629f6d92c37dddcb1f1d605e686d4f49435f415dd9d76174b96b33c7c3e0d5f4eb1d0a9953ad95a1
 
-8. block: height=103 n=3 tx=020000000001016b85f654d8186f4d5dd32a977b2cf8c4b01ff4634152acba16b654c1c85a83160100000000ffffffff01c6410f0000000000220020c46bf3d1686d6dbb2d9244f8f67b90370c5aa2747045f1aeccb77d818711738202473044022047e9e6e798ba9adb6c84bdcd6230a96fb6de9dcca84d81103fb2bc08906cb884022027599b1e80289eaf238e9a00119a79a0ccceab7d83d54719e10bd0c3300a0d34012102d6a3c2d0cf7904ab6af54d7c959435a452b24a63194e1c4e7c337d3ebbb3017b00000000
+9. block: height=103 n=3 tx=020000000001016b85f654d8186f4d5dd32a977b2cf8c4b01ff4634152acba16b654c1c85a83160100000000ffffffff01c6410f0000000000220020c46bf3d1686d6dbb2d9244f8f67b90370c5aa2747045f1aeccb77d818711738202473044022047e9e6e798ba9adb6c84bdcd6230a96fb6de9dcca84d81103fb2bc08906cb884022027599b1e80289eaf238e9a00119a79a0ccceab7d83d54719e10bd0c3300a0d34012102d6a3c2d0cf7904ab6af54d7c959435a452b24a63194e1c4e7c337d3ebbb3017b00000000
 
-9. expect-send: type=funding_locked
+10. expect-send: type=funding_locked
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    next_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206
 
-10. recv: type=funding_locked
+11. recv: type=funding_locked
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    # per_commitment_secret #1 = dddc3a8d14fddf2b68fa8c7fbad2748274937479dd0f8930d5ebb4ab6bd866a3
    next_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d
 
-11. $MAYBE_UPDATE
+12. $MAYBE_UPDATE
 
     # Add a dust HTLC
     1. recv: type=update_add_htlc
@@ -200,7 +202,7 @@ MAYBE_UPDATE=maybe-send: type=channel_update
         7. $MAYBE_UPDATE
 
 # Either way, it should reject HTLC, as it's not a known preimage.
-12. expect-send: type=update_fail_htlc
+13. expect-send: type=update_fail_htlc
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    id=0
    # FIXME: check that reason is correct!
@@ -234,7 +236,7 @@ MAYBE_UPDATE=maybe-send: type=channel_update
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        id=0
 
-13. expect-send: type=commitment_signed
+14. expect-send: type=commitment_signed
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    signature=2a09e2db7995e4c48feb6ae56bf1a61745250611bfa3cb78865d2cf6c651bc217e1ead697eeafb2bff832ac97f3aae00c24f9e1f57310036381c03b14a5b7a56
    htlc_signature=
@@ -291,7 +293,7 @@ MAYBE_UPDATE=maybe-send: type=channel_update
        my_current_per_commitment_point=02e1ea4f6d28dade887280214c359fc808066a64e750e3c81747dc3074833ff0ad option_data_loss_protect
     7. $MAYBE_UPDATE
 
-14. recv: type=revoke_and_ack
+15. recv: type=revoke_and_ack
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    per_commitment_secret=dddc3a8d14fddf2b68fa8c7fbad2748274937479dd0f8930d5ebb4ab6bd866a3
    # per_commitment_secret #3=ba65d7b0ef55a3ba300d4e87af29868f394f8f138d78a7011669c79b37b936f4
@@ -322,12 +324,12 @@ MAYBE_UPDATE=maybe-send: type=channel_update
        my_current_per_commitment_point=02e1ea4f6d28dade887280214c359fc808066a64e750e3c81747dc3074833ff0ad option_data_loss_protect
     7. $MAYBE_UPDATE
     
-15. recv: type=commitment_signed
+16. recv: type=commitment_signed
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    signature=bd02908f18c3aa740a84b75912a231b9ad773f72ebe2bd0d8d353bef47302e7f08d02272b7077bc8101613695651a756d9339febe714ad5648ff511974c140e7
    htlc_signature=
    
-16. expect-send: type=revoke_and_ack
+17. expect-send: type=revoke_and_ack
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    per_commitment_secret=c7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964
    # per_commitment_secret #3=27cddaa5624534cb6cb9d7da077cf2b22ab21e9b506fd4998a51d54502e99116
