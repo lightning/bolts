@@ -40,6 +40,7 @@ A reader:
   - MUST parse the address as Bech32, as specified in BIP-0173 (also without the character limit).
   - if the checksum is incorrect:
     - MUST fail the payment.
+  - MUST accept uppercase invoices as well, and convert to full lowercase for the sake of parsing and checking checksums.
 
 # Human-Readable Part
 
