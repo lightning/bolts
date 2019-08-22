@@ -875,6 +875,11 @@ The channel from the processing node has been disabled.
 
 The CLTV expiry in the HTLC is too far in the future.
 
+1. type: PERM|22 (`invalid_onion_payload`)
+
+The decrypted onion per-hop payload was not understood by the processing node
+or is incomplete.
+
 ### Requirements
 
 An _erring node_:
@@ -886,6 +891,9 @@ An _erring node_:
 Any _erring node_ MAY:
   - if the `realm` byte is unknown:
     - return an `invalid_realm` error.
+  - if the per-hop payload in the onion is invalid (e.g. it is not a valid tlv stream)
+  or is missing required information (e.g. the amount was not specified):
+    - return an `invalid_onion_payload` error.
   - if an otherwise unspecified transient error occurs for the entire node:
     - return a `temporary_node_failure` error.
   - if an otherwise unspecified permanent error occurs for the entire node:
