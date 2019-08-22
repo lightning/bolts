@@ -876,9 +876,14 @@ The channel from the processing node has been disabled.
 The CLTV expiry in the HTLC is too far in the future.
 
 1. type: PERM|22 (`invalid_onion_payload`)
+2. data:
+   * [`varint`:`type`]
+   * [`u16`:`offset`]
 
 The decrypted onion per-hop payload was not understood by the processing node
-or is incomplete.
+or is incomplete. If the failure can be narrowed down to a specific tlv type in
+the payload, the erring node may include that `type` and its byte `offset` in
+the decrypted byte stream.
 
 ### Requirements
 
