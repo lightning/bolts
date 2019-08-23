@@ -660,6 +660,7 @@ The receiver:
   - MUST respond to each known `short_channel_id`:
     - if the incoming message does not include `encoded_query_flags`:
       - with a `channel_announcement` and the latest `channel_update` for each end
+      - MUST follow with any `node_announcement`s for each `channel_announcement`
     - otherwise:
       - We define `query_flag` for the Nth `short_channel_id` in
         `encoded_short_ids` to be the Nth varint of the decoded
@@ -675,8 +676,7 @@ The receiver:
       - if bit 4 of `query_flag` is set and it has received a `node_announcement` from `node_id_2`:
         - MUST reply with the latest `node_announcement` for `node_id_2`
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
-  - MUST follow with any `node_announcement`s for each `channel_announcement`
-	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
+  - SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
   - MUST follow these responses with `reply_short_channel_ids_end`.
   - if does not maintain up-to-date channel information for `chain_hash`:
 	- MUST set `complete` to 0.
