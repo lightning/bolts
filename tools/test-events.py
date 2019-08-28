@@ -1295,7 +1295,7 @@ def load_sequence(args, lines, linenum, indentlevel, graph):
 
             # We expect indented sequences
             linenum += 1
-            while lines[linenum].indentlevel == indentlevel + 1:
+            while linenum < len(lines) and lines[linenum].indentlevel == indentlevel + 1:
                 # We don't allow sub-nodes here, so terminals will be [child]
                 child, _, linenum = load_sequence(args, lines, linenum,
                                                   indentlevel + 1,
