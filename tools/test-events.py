@@ -1125,7 +1125,7 @@ class Event(object):
         elif parts[0] == 'nothing':
             self.actor = NothingEvent(line, parts[1:])
         else:
-            raise ValueError("Unknown event type {}".format(parts[0]))
+            raise LineError(line, "Unknown event type {}".format(parts[0]))
 
     def __repr__(self):
         return "Event({}, {})".format(self.event, str(self.line))
