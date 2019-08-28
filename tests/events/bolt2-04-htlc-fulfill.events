@@ -198,26 +198,17 @@ MAYBE_UPDATE=maybe-send: type=channel_update
     
 # It should accept both of them, but could be in any order.
 # (Could also do this in two separate commits, but I didn't add that).
-21. One of:
+21. Any order:
     1. expect-send: type=update_fulfill_htlc
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        id=0
        payment_preimage=0000000000000000000000000000000000000000000000000000000000001000
-    2. expect-send: type=update_fulfill_htlc
-       channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-       id=1
-       payment_preimage=0000000000000000000000000000000000000000000000000000000001000000
-
     1. expect-send: type=update_fulfill_htlc
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        id=1
        payment_preimage=0000000000000000000000000000000000000000000000000000000001000000
-    2. expect-send: type=update_fulfill_htlc
-       channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-       id=0
-       payment_preimage=0000000000000000000000000000000000000000000000000000000000001000
 
-# Separator: next is not part of One Of.
+# Separator: next is not part of Any order.
 22. nothing
 
     # Optional reconnection testing.
@@ -245,24 +236,15 @@ MAYBE_UPDATE=maybe-send: type=channel_update
        my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect
     7. $MAYBE_UPDATE
     # Now it will re-transmit
-    8. One of:
+    8. Any order:
         1. expect-send: type=update_fulfill_htlc
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            id=0
            payment_preimage=0000000000000000000000000000000000000000000000000000000000001000
-        2. expect-send: type=update_fulfill_htlc
-           channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-           id=1
-           payment_preimage=0000000000000000000000000000000000000000000000000000000001000000
-    
         1. expect-send: type=update_fulfill_htlc
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            id=1
            payment_preimage=0000000000000000000000000000000000000000000000000000000001000000
-        2. expect-send: type=update_fulfill_htlc
-           channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-           id=0
-           payment_preimage=0000000000000000000000000000000000000000000000000000000000001000
 
 23. expect-send: type=commitment_signed
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
@@ -295,24 +277,15 @@ MAYBE_UPDATE=maybe-send: type=channel_update
            my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect
         2. $MAYBE_UPDATE
         # Now it will re-transmit
-        3. One of:
+        3. Any order:
             1. expect-send: type=update_fulfill_htlc
                channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
                id=0
                payment_preimage=0000000000000000000000000000000000000000000000000000000000001000
-            2. expect-send: type=update_fulfill_htlc
-               channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-               id=1
-               payment_preimage=0000000000000000000000000000000000000000000000000000000001000000
-        
             1. expect-send: type=update_fulfill_htlc
                channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
                id=1
                payment_preimage=0000000000000000000000000000000000000000000000000000000001000000
-            2. expect-send: type=update_fulfill_htlc
-               channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-               id=0
-               payment_preimage=0000000000000000000000000000000000000000000000000000000000001000
         4. expect-send: type=commitment_signed
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            signature=282eb3266f88fb48e3614562d9b5ea3d6ff9ffde640d29de194d208f3ea36b955e16a0706df24548f678efc47bab5d59c9baa87d2fcc357b65e4504763dd2956

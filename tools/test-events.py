@@ -1183,6 +1183,17 @@ class Sequence(object):
             e.act(runner)
 
 
+def match_which_sequence(msg, sequences):
+    """Return which sequence starts with expect-msg: msg, or None"""
+    for s in sequences:
+        failreason = message_match(s.events[0].actor.expectmsg,
+                                   s.events[0].actor.expectfields, msg)
+        if failreason is None:
+            return s
+
+    return None
+
+
 class OneOfEvent(object):
     """Event representing multiple possible sequences"""
     def __init__(self, args, line):
@@ -1232,13 +1243,11 @@ class OneOfEvent(object):
         conn = which_connection(self.line, runner, self.connkey)
         while True:
             msg = runner.expect_send(conn, self.line)
-            for s in self.sequences:
-                failreason = message_match(s.events[0].actor.expectmsg,
-                                           s.events[0].actor.expectfields, msg)
-                if failreason is None:
-                    # We found the sequence, run the rest of it.
-                    s.run(runner, start=1)
-                    return
+            s = match_which_sequence(msg, self.sequences)
+            if s is not None:
+                # We found the sequence, run the rest of it.
+                s.run(runner, start=1)
+                return
 
             if maybesend_match(conn, msg):
                 continue
@@ -1246,6 +1255,66 @@ class OneOfEvent(object):
             raise ValidationError(self.line,
                                   "None of the sequences matched {}"
                                   .format(msg.hex()))
+
+
+class AnyOrderEvent(object):
+    """Event representing sequences in any order"""
+    def __init__(self, args, line):
+        self.line = line
+        self.args = args
+        self.sequences = []
+
+    def __str__(self):
+        return str(self.line)
+
+    def flatten(self, number, stopline, prefix):
+        # FIXME: if stopline is in here, we ignore it
+        _, number = self.line.flatten(number, stopline, prefix)
+        i = 1
+        for s in self.sequences:
+            _, i = s.flatten(i, stopline, '    ')
+        return False, number
+
+    def num_steps(self):
+        return sum([s.num_steps() for s in self.sequences])
+
+    def add_sequence(self, seq):
+        actor = seq.events[0].actor
+        if type(actor) != ExpectSendEvent:
+            # We could relax this a bit if necessary, eg 'expect-error' or
+            # 'expect-tx' would be possible.
+            raise LineError(seq.events[0].line,
+                            "First sequence event in Any Order must be expect-send")
+        # They have to match on what conn the specify, too.
+        if len(self.sequences) != 0:
+            if actor.connkey != self.connkey:
+                raise LineError(seq.events[0].line,
+                                "All first sequence event in Any Order must same conn=")
+        else:
+            self.connkey = actor.connkey
+        self.sequences.append(seq)
+
+    def act(self, runner):
+        if self.args.verbose:
+            print("# running {}".format(self))
+
+        # For DummyRunner, we assume the first.
+        if type(runner) == DummyRunner:
+            return self.sequences[0].run(runner)
+
+        conn = which_connection(self.line, runner, self.connkey)
+        sequences = self.sequences[:]
+        while sequences != []:
+            msg = runner.expect_send(conn, self.line)
+            s = match_which_sequence(msg, sequences)
+
+            if s is not None:
+                sequences.remove(s)
+                s.run(runner, start=1)
+            elif not maybesend_match(conn, msg):
+                raise ValidationError(self.line,
+                                      "None of the sequences matched {}"
+                                      .format(msg.hex()))
 
 
 # Loads a Sequence at this indent level (and any children embedded in
@@ -1276,7 +1345,7 @@ def load_sequence(args, lines, linenum, indentlevel, graph):
         if lines[linenum].indentlevel == indentlevel + 1:
             if graph is None:
                 raise LineError(lines[linenum],
-                                "Cannot have indentations inside 'One of'")
+                                "Cannot have indentations inside 'One of'/'Any order'")
             child, childterms, linenum = load_sequence(args,
                                                        lines, linenum,
                                                        indentlevel + 1, graph)
@@ -1322,6 +1391,21 @@ def load_sequence(args, lines, linenum, indentlevel, graph):
             if event.sequences == []:
                 raise LineError(lines[linenum],
                                 "Expected indented sequences after 'One of:'")
+        elif parts[2].split() == ['Any', 'order:']:
+            event = AnyOrderEvent(args, lines[linenum])
+
+            # We expect indented sequences
+            linenum += 1
+            while linenum < len(lines) and lines[linenum].indentlevel == indentlevel + 1:
+                # We don't allow sub-nodes here, so terminals will be [child]
+                child, _, linenum = load_sequence(args, lines, linenum,
+                                                  indentlevel + 1,
+                                                  None)
+                event.add_sequence(child)
+
+            if event.sequences == []:
+                raise LineError(lines[linenum],
+                                "Expected indented sequences after 'Any order:'")
         else:
             event = Event(args, parts[2], lines[linenum])
             linenum += 1
