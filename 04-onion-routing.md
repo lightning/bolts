@@ -251,7 +251,7 @@ This is a more flexible format, which avoids the redundant `short_channel_id` fi
     1. type: 10 (`option_amp`)
     2. data:
         * [`32*byte`:`payment_id`]
-        * [`32*byte`:`stream_id`]
+        * [`32*byte`:`set_id`]
         * [`32*byte`:`share`]
         * [`u16`:`child_index`]
         * [`u64`:`total_msat`]
@@ -272,12 +272,12 @@ The requirements for the contents of these fields are specified [above](#legacy-
 
 If the final node receives an onion packet with `option_amp` field,
 the payment MAY be an atomic multi-path payment. Such atomic multi-path payments
-MAY use a _distinct_ payment hash for each path.
+SHOULD use a _distinct_ payment hash for each path.
 
 The `amt_to_forward` value will be the amount for this partial payment only. The
-`option_amp` flag flag is a promise by the sender that the rest of the payment
-will follow in succeeding HTLCs with the same `stream_id`; we call these HTLCs,
-which that the same `stream_id`, an "HTLC set".
+`option_amp` flag is a promise by the sender that the rest of the payment will
+follow in succeeding HTLCs with the same `set_id`; we call these HTLCs, which
+share the same `set_id`, an "HTLC set".
 
 One key distinction with `option_amp` is that the sender generates all
 preimages, and only reveals them to the final hop if all partial payments arrive
@@ -293,10 +293,11 @@ The writer:
  - otherwise:
    - MAY include `option_amp` for the final node.
    - if it does include `option_amp`:
-     - MUST generate a random `stream_id` to be used on all HTLCs in the set.
-     - MAY send more than one HTLC using the same `stream_id`.
-     - MUST set the `share` values of all HTLCs such that their xor is a random
+     - MUST generate a random `set_id` to be used on all HTLCs in the set.
+     - MAY send more than one HTLC using the same `set_id`.
+     - MUST set the `share` values of all HTLCs such that their XOR is a random
        root seed `r`.
+       - SHOULD ensure all `share` values are unique and random.
      - SHOULD choose a unique child_index_i for each HTLC.
      - MUST derive the `payment_hash` for an HTLC using `amp_child(r, child_index_i)`.
      - if the invoice specifies a non-zero `amount`:
@@ -328,7 +329,7 @@ The reader:
   - MUST fail the entire HTLC set if `total_msat` is not the same for all HTLCs
     in the set.
   - if the total `amount_to_forward` of the HTLC set is equal `total_msat`:
-    - MUST reconstructs `r` as the xor of all `share`s in the HTLC set.
+    - MUST reconstructs `r` as the XOR of all `share`s in the HTLC set.
     - MUST compute `p_i, h_i = amp_child(r, child_index_i)` for all HTLCs in the
       set.
     - if any `i-th` HTLC's `payment_hash` differs from `h_i`:
@@ -336,7 +337,7 @@ The reader:
     - otherwise:
       - MAY fulfill the `i-th` HTLC in the set using `p_i`.
   - otherwise:
-    - MUST fail an HTLC in set if its `cltv_expiry` elapses.
+    - MUST fail an HTLC in the set if its `cltv_expiry` elapses.
     - MAY fail all HTLCs in the set after a reasonable timeout.
 
 ### Atomic Multi-path Payment Derivation
@@ -352,7 +353,8 @@ func amp_child(root_seed [32]byte, child_index uint16) ([32]byte, [32]byte) {
         return preimage, hash
 }
 ```
-where `child_index` is serialized using big-endian byte order.
+where `child_index` is serialized using big-endian byte order, and `||` denotes
+the concatenation of the left-hand side with the right-hand side.
 
 The sender will use `amp_child` to derive a child hash for each HTLC it sends
 out, and includes the `child_index` used in the derivation in the final hop's
@@ -368,12 +370,14 @@ represents an n-of-n secret sharing of `r`, such that:
     r = s_1 ^ ... ^ s_n
 ```
 
+where `^` denotes the XOR operation.
+
 If `n` is known upfront, satisfying this equation can be done simply by
 generating all `s_i` randomly.
 
 Otherwise, the sender can generate the shares _adaptively_ by first generating a
 random `r`. For all but the last outgoing HTLC, a random `s_i` is generated and
-included directly. The final HTLC then computes `s_n` as the xor of all other
+included directly. The final HTLC then computes `s_n` as the XOR of all other
 shares and `r`:
 
 ```
@@ -381,7 +385,7 @@ shares and `r`:
 ```
 
 If a partial payment fails, this process can be applied recursively to generate
-smaller partial payments, at the same time guaranteeing that the xor of all
+smaller partial payments, at the same time guaranteeing that the XOR of all
 shares results in `r`.
 
 This construction prevents the receiver from learning `r` until all `s_i` have
@@ -412,7 +416,7 @@ dependent variables. All independent variables are chosen upfront by the sender.
      |    |    |       H_i = SHA256(P_i)
      V    V    V     
                    
-    H_1  H_2  H_3    CHILD HASHES
+    H_1  H_2  H_3    CHILD PAYMENT HASHES
 ```
 
 ### Rationale
@@ -423,19 +427,32 @@ incoming AMP payment to a particular invoice. The sender should set the
 permitting the receiver to enforce custom parameters, e.g. CLTV deltas,  and
 unify tracking of AMP payments with the existing invoicing system.
 
-At the same time, AMP payments can be made spontaneously (without and invoice),
+At the same time, AMP payments can be made spontaneously (without an invoice),
 since the sender generates all of the necessary secrets. To do so, the sender
 leaves the `payment_id` blank, which can be used to facilitate secure donations.
 
 In the event that two payments are made with the same `payment_id`, either to
-the same invoice for both are spontaneous, a second identifier is introduced
-called the `stream_id`. The `stream_id` should be unique to each HTLC set sent
-by the sender, and allows the receiver to distinguish concurrent payments that
-collide on `payment_id`.
+the same invoice or both are spontaneous, a second identifier is introduced
+called the `set_id`. The `set_id` should be unique to each HTLC set sent by the
+sender, and allows the receiver to distinguish concurrent payments that collide
+on `payment_id`.
 
-Both the `stream_id` and `payment_id` are only known to sender and receiver,
+All payments made to the invoice can be tracked as a single subscription or
+account, and each payment receives it's own unique `set_id`. Multiple,
+concurrent payments can be made to the same invoice and properly reconstructed
+using the enclosed `set_id`. Two such use cases might involved "subscription" or
+"account" invoices:
+ * A subscription invoice might be generated as an invoice with the desired
+   subscription amount, which will be verified each time the user pays.
+ * An account invoice, e.g. a recurring invoice for funding an exchange, would
+   use a zero-value invoice, allowing deposits (or withdrawals) of arbitrary
+   amounts.
+
+Both the `set_id` and `payment_id` are only known to sender and receiver,
 preventing intermediaries from introducing griefing via colliding payment
-identifiers with high probability.
+identifiers with high probability. In addition, the `set_id` allows the receiver
+to create "subscription" or "account" invoices that can be paid repeatedly using
+different `set_id`s.
 
 The `child_index` is included in the final payload so that the receiver can
 gracefully tolerate reordering of the partial payments. When each `child_index`
@@ -446,7 +463,7 @@ The `total_msat` field is used to determine when all partial payments have been
 received. If the AMP is paying an invoice, this also allows the sender to
 securely overpay an invoice, for instance, if the invoice's `amount` is
 unspecified. If the AMP is spontaneous, this allows the sender to communicate
-the exact value to be received in a end-to-end authenticated manner, preventing
+the exact value to be received in an end-to-end authenticated manner, preventing
 certain classes of attacks where intermediaries can steal up to the overpaid
 amount.
 
