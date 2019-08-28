@@ -228,12 +228,26 @@ class CLightningRunner(object):
         conn.proc.wait(30)
 
     def recv(self, conn, outbuf, line):
-        rawl = struct.pack('>H', len(outbuf))
-        conn.proc.stdin.write(rawl)
+        try:
+            rawl = struct.pack('>H', len(outbuf))
+            conn.proc.stdin.write(rawl)
 
-        while len(outbuf) != 0:
-            written = conn.proc.stdin.write(outbuf)
-            outbuf = outbuf[written:]
+            while len(outbuf) != 0:
+                written = conn.proc.stdin.write(outbuf)
+                outbuf = outbuf[written:]
+        except BrokenPipeError:
+            # This happens when they've sent an error and closed; try
+            # reading it to figure out what went wrong.
+            fut = self.executor.submit(self._readmsg, conn)
+            try:
+                 msg = fut.result(1)
+            except futures.TimeoutError:
+                msg = None
+            if msg:
+                raise test.ValidationError(line, "Connection closed after sending {}".format(msg.hex()))
+            else:
+                raise test.ValidationError(line, "Connection closed")
+
 
     # FIXME: Implement fundchannel.
     # We'll need to import privkey into bitcoind and hand-generate the tx
