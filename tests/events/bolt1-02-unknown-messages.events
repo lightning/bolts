@@ -9,7 +9,7 @@
 #     - MUST fail the connection.
 
 1. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
-2. expect-send: type=init conn=0000000000000000000000000000000000000000000000000000000000000003
+2. expect-send: type=init
 3. recv: type=init globalfeatures= localfeatures=
 
     1. nothing

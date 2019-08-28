@@ -614,24 +614,30 @@ def read_csv(args):
             subtype.addField(Field(subtype, parts[2], parts[3], parts[4], parts[5:]))
 
 
+def line_keyval(line, part):
+    """Return <key>, <val> from key=val part of line, or raise LineError"""
+    p = part.partition('=')
+    if p[1] != '=':
+        raise LineError(line, "Malformed key {} does not contain '='"
+                        .format(part))
+    return p[0], p[2]
+
+
 def parse_params(line, parts, compulsorykeys, optionalkeys=[]):
     """Given an array of <key>=<val> make a dict, checking we have all compulsory
 # keys."""
     ret = {}
     for i in parts:
-        p = i.partition('=')
-        if p[1] != '=':
-            raise LineError(line, "Malformed key {} does not contain '='"
-                            .format(i))
-        if p[0] in ret.keys():
-            raise LineError(line, "Duplicate key {}".format(p[0]))
-        if p[0] in compulsorykeys:
-            compulsorykeys.remove(p[0])
-        elif p[0] in optionalkeys:
-            optionalkeys.remove(p[0])
+        k, v = line_keyval(line, i)
+        if k in ret.keys():
+            raise LineError(line, "Duplicate key {}".format(k))
+        if k in compulsorykeys:
+            compulsorykeys.remove(k)
+        elif k in optionalkeys:
+            optionalkeys.remove(k)
         else:
-            raise LineError(line, "Unknown key {}".format(p[0]))
-        ret[p[0]] = p[2]
+            raise LineError(line, "Unknown key {}".format(k))
+        ret[k] = v
 
     if compulsorykeys != []:
         raise LineError(line, "No specification for key {}"
@@ -663,6 +669,26 @@ def optional_connection(line, params):
     if ret is not None:
         check_hex(line, ret, 64)
     return ret
+
+
+def optional_connection_then_type(line, parts):
+    """Trivial helper to extract & remove conn= and type= from parts"""
+    if len(parts) < 1:
+        raise LineError(line, "Missing type=")
+
+    k, v = line_keyval(line, parts.pop(0))
+    if k == 'conn':
+        check_hex(line, v, 64)
+        conn = v
+        if len(parts) < 1:
+            raise LineError(line, "Missing type=")
+        k, v = line_keyval(line, parts.pop(0))
+    else:
+        conn = None
+
+    if k != 'type':
+        raise LineError(line, "Expected type=")
+    return conn, v
 
 
 def which_connection(line, runner, connkey):
@@ -735,20 +761,16 @@ class DisconnectEvent(object):
 
 class RecvEvent(object):
     def __init__(self, line, parts):
-        if len(parts) < 1:
-            raise LineError(line, "Missing type=")
-        t = parts[0].partition('=')
-        if t[1] != '=':
-            raise LineError(line, "Expected type=")
+        self.connkey, t = optional_connection_then_type(line, parts)
 
-        msg = find_message(messages, t[2])
+        msg = find_message(messages, t)
         if not msg:
             # Allow raw integers.
-            msg = Message('unknown', t[2])
+            msg = Message('unknown', t)
 
         # See what fields are allowed.
         fields = []
-        optfields = ['conn', 'extra']
+        optfields = ['extra']
         for f in msg.fields:
             # Lengths are implied
             if f.islenvar:
@@ -760,8 +782,7 @@ class RecvEvent(object):
                 fields.append(f.name)
 
         # This fails if non-optional fields aren't specified.
-        d = parse_params(line, parts[1:], fields, optfields)
-        self.connkey = optional_connection(line, d)
+        d = parse_params(line, parts, fields, optfields)
 
         # Now get values for assembling the message.
         values = {}
@@ -914,18 +935,15 @@ class ExpectSendEvent(object):
         self.line = line
         self.maybe = maybe
         self.mustnot = mustnot
-        if len(parts) < 1:
-            raise LineError(line, "Missing type=")
-        t = parts[0].partition('=')
-        if t[1] != '=':
-            raise LineError(line, "Expected type=")
 
-        self.expectmsg = find_message(messages, t[2])
+        self.connkey, t = optional_connection_then_type(line, parts)
+
+        self.expectmsg = find_message(messages, t)
         if not self.expectmsg:
             raise LineError(line, "Unknown message type")
         self.expectfields = {}
 
-        optfields = ['conn']
+        optfields = []
         for f in self.expectmsg.fields:
             # Lengths are implied
             if f.islenvar:
@@ -933,8 +951,7 @@ class ExpectSendEvent(object):
             optfields.append(f.name)
 
         # All fields are optional
-        d = parse_params(line, parts[1:], [], optfields)
-        self.connkey = optional_connection(line, d)
+        d = parse_params(line, parts, [], optfields)
 
         for v in d.keys():
             # IDENTIFIER`=`FIELDVALUE | IDENTIFIER`=`HEX/HEX | `absent`
