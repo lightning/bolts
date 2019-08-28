@@ -206,7 +206,7 @@ class CLightningRunner(object):
 
     def trim_blocks(self, newheight):
         h = self.bitcoind.rpc.getblockhash(newheight + 1)
-        self.bitcoind.rpc.invalidateblock([h])
+        self.bitcoind.rpc.invalidateblock(h)
 
     def add_blocks(self, txs, n, line):
         for tx in txs:
