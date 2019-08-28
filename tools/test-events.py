@@ -214,11 +214,6 @@ class DummyRunner(object):
             print("[FUNDCHANNEL TO {} for {} with UTXO {}/{} {}]"
                   .format(conn, amount, txid, outnum, line))
 
-    def await_funds(self, timeout):
-        if self.verbose:
-            print("[WAIT-FUNDS FOR UP TO {}s]"
-                  .format(timeout))
-
     def invoice(self, amount, preimage, line):
         if self.verbose:
             print("[INVOICE for {} with PREIMAGE {} {}]"
@@ -1043,12 +1038,6 @@ class ExpectTxEvent(object):
     def action(self, runner, line):
         runner.expect_tx(self.tx, line)
 
-class WaitFunds(object):
-    def __init__(self, line, parts):
-        self.timeout = parse_params(line, parts, ['timeout'])['timeout']
-
-    def action(self, runner, line):
-        runner.await_funds(self.timeout)
 
 class FundChannelEvent(object):
     def __init__(self, line, parts):
@@ -1114,8 +1103,6 @@ class Event(object):
             self.actor = FundChannelEvent(line, parts[1:])
         elif parts[0] == 'invoice:':
             self.actor = InvoiceEvent(line, parts[1:])
-        elif parts[0] == 'wait-funds:':
-            self.actor = WaitFunds(line, parts[1:])
         elif parts[0] == 'expect-error:':
             self.actor = ExpectErrorEvent(line, parts[1:])
         elif parts[0] == 'nothing':
