@@ -141,7 +141,7 @@ Currently defined tagged fields are:
    * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
-* `9` (5): `data_length` variable. One or more bytes containing features
+* `9` (5): `data_length` variable. One or more 5-bit values containing features
   supported or required for receiving this payment.
   See [Feature Bits](#feature-bits).
 
@@ -196,7 +196,8 @@ A reader:
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
-    - MUST fail.
+    - MUST fail the payment.
+	- SHOULD indicate the unknown bit to the user.
   - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed
   description.
   - if a valid `n` field is provided:
