@@ -358,6 +358,7 @@ optimizations
 structs
 CompactSize
 encodings
+remotekey
 bigsize
 BigSize
 namespaces
