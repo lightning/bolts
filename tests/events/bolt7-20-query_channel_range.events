@@ -66,3 +66,33 @@ include setup.incl
     2. One of: option_gossip_queries
         1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 option_gossip_queries
         1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 option_gossip_queries
+
+    # This should get appended timestamp fields with option_gossip_queries_ex
+    1. recv: type=query_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 tlvs=010101 option_gossip_queries
+    2. One of: option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 option_gossip_queries !option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 option_gossip_queries !option_gossip_queries_ex
+	# Timestamps may or may not be zlib encoded.
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 tlvs=0111005d50f933000000005d50f9355d50f934 option_gossip_queries option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 tlvs=011601789c8b0df869cc0004b1013f4d81d804002b46058f option_gossip_queries option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 tlvs=011601789c8b0df869cc0004b1013f4d81d804002b46058f option_gossip_queries option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 tlvs=011601789c8b0df869cc0004b1013f4d81d804002b46058f option_gossip_queries option_gossip_queries_ex option_gossip_queries option_gossip_queries_ex
+
+    # This should get appended checksum fields with option_gossip_queries_ex
+    1. recv: type=query_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 tlvs=010102 option_gossip_queries
+    2. One of: option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 option_gossip_queries !option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 option_gossip_queries !option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 tlvs=03101112fa3000000000f32ce9689bece840 option_gossip_queries option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 tlvs=03101112fa3000000000f32ce9689bece840 option_gossip_queries option_gossip_queries_ex
+
+    # This should append timestamps and checksums with option_gossip_queries_ex
+    1. recv: type=query_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 tlvs=010103 option_gossip_queries
+    2. One of: option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 option_gossip_queries !option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 option_gossip_queries !option_gossip_queries_ex
+	# Timestamps may or may not be zlib encoded.
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 tlvs=0111005d50f933000000005d50f9355d50f93403101112fa3000000000f32ce9689bece840 option_gossip_queries option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 tlvs=011601789c8b0df869cc0004b1013f4d81d804002b46058f03101112fa3000000000f32ce9689bece840 option_gossip_queries option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 tlvs=0111005d50f933000000005d50f9355d50f93403101112fa3000000000f32ce9689bece840 option_gossip_queries option_gossip_queries_ex
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 tlvs=011601789c8b0df869cc0004b1013f4d81d804002b46058f03101112fa3000000000f32ce9689bece840 option_gossip_queries option_gossip_queries_ex
