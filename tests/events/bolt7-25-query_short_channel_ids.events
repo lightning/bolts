@@ -1,0 +1,76 @@
+# Tests for query_short_channel_ids.
+
+include setup.incl
+1. block: $BLOCK_102
+
+# Our three channels, and four nodes.
+2. block: $BLOCK_103
+3. block: $BLOCK_109
+4. block: $BLOCK_115
+
+5. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
+6. expect-send: type=init
+7. recv: type=init localfeatures= globalfeatures=
+# They can send this, we'll ignore it.
+8. maybe-send: type=gossip_timestamp_filter
+
+# Channel 103x1x0 (between 002 and 003), only one update, both node_announce
+9. recv: $CHAN_ANN_103x1x0
+10. recv: $CHAN_UPDATE_103x1x0_002
+11. recv: $NODE_ANN_002
+12. recv: $NODE_ANN_003
+
+# Channel 109x1x0 (between 004 and 005): both updates, only one node_announce
+13. recv: $CHAN_ANN_109x1x0
+# Node-announce first is legal
+14. recv: $NODE_ANN_004
+15. recv: $CHAN_UPDATE_109x1x0_004
+16. recv: $CHAN_UPDATE_109x1x0_005
+
+# Channel 115x1x0 (between 003 and 004): no updates.
+17. recv: $CHAN_ANN_115x1x0
+
+# New peer connects, with gossip_query option.
+18. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+19. expect-send: type=init
+20. recv: type=init localfeatures=80 globalfeatures=
+21. maybe-send: type=gossip_timestamp_filter
+
+# Query for non-existent channels (104x1x0 105x1x0 106x1x0 107x1x0)
+22. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=000000680000010000000069000001000000006a000001000000006b0000010000
+23. expect-send: type=reply_short_channel_ids_end
+
+# zlib version
+24. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=01789c6360c86060606400824c289d05a5b3c134001de001ab
+25. expect-send: type=reply_short_channel_ids_end
+
+# Query for one channel (103x1x0)
+26. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=000000670000010000
+27. expect-send: $CHAN_ANN_103x1x0
+28. Any order:
+    1. expect-send: $CHAN_UPDATE_103x1x0_002
+    1. expect-send: $NODE_ANN_002
+    1. expect-send: $NODE_ANN_003
+29. expect-send: type=reply_short_channel_ids_end
+
+# Query for two channels (103x1x0 109x1x0)
+30. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000
+31. One of: # the channel_announcements must lead, then it gets messy.
+    1. expect-send: $CHAN_ANN_103x1x0
+    2. Any order: # Not really *any* order, since ann must predate update.
+        1. expect-send: $CHAN_UPDATE_103x1x0_002
+        1. expect-send: $NODE_ANN_002
+        1. expect-send: $NODE_ANN_003
+        1. expect-send: $CHAN_ANN_109x1x0
+        1. expect-send: $CHAN_UPDATE_109x1x0_004
+        1. expect-send: $CHAN_UPDATE_109x1x0_005
+        1. expect-send: $NODE_ANN_004
+    1. expect-send: $CHAN_ANN_109x1x0
+    2. Any order:
+        1. expect-send: $CHAN_ANN_103x1x0
+        1. expect-send: $CHAN_UPDATE_103x1x0_002
+        1. expect-send: $NODE_ANN_002
+        1. expect-send: $NODE_ANN_003
+        1. expect-send: $CHAN_UPDATE_109x1x0_004
+        1. expect-send: $CHAN_UPDATE_109x1x0_005
+        1. expect-send: $NODE_ANN_004
