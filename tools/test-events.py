@@ -18,6 +18,9 @@ import matplotlib.pyplot as plt
 # Populated by read_csv
 messages = []
 
+# Populated by read_csv
+tlvstreams = set()
+
 # From 01-messaging.md#fundamental-types:
 name2size = {'byte': 1,
              'u16': 2,
@@ -120,7 +123,7 @@ def pack(typename, v):
         return struct.pack(name2structfmt[typename], v)
 
     # FIXME: This is our non-TLV code
-    if typename.endswith('_tlvs'):
+    if typename in tlvstreams:
         return v
 
     if typename in Subtype.objs:
@@ -141,7 +144,7 @@ def unpack_from(typename, bytestream, offset):
                                          bytestream, offset)[0])
 
     # FIXME: This is our non-TLV code
-    if typename.endswith('_tlvs'):
+    if typename in tlvstreams:
         return len(bytestream) - offset, bytestream[offset:]
 
     if typename in Subtype.objs:
@@ -264,6 +267,10 @@ class Field(object):
                 self.arrayvar = message.findField(count)
                 self.arrayvar.islenvar = True
 
+    def is_optional(self):
+        """TLVs are always considered optional"""
+        return self.options != [] or self.typename in tlvstreams
+
     @staticmethod
     def field_from_str(line, typename, isinteger, s):
         if typename == "short_channel_id":
@@ -295,7 +302,7 @@ class Field(object):
                             .format(typename, s))
 
         # FIXME: This is our non-TLV code
-        if typename.endswith('_tlvs'):
+        if typename in tlvstreams:
             return v
 
         if len(v) != name2size[typename]:
@@ -323,6 +330,9 @@ class Field(object):
                     raise LineError(line,
                                     "{} byte array should be length {} not {}"
                                     .format(self.name, self.arraylen, len(v)))
+                return v, len(v)
+            elif self.typename in tlvstreams:
+                v = bytes.fromhex(value)
                 return v, len(v)
             elif self.typename in Subtype.objs:  # Subtypes
                 subtype = Subtype.objs[self.typename]
@@ -574,7 +584,7 @@ def unpack_field(field, lenfields, bytestream, offset):
         size, v = unpack_from(field.typename, bytestream, offset)
         if size is None:
             # Optional fields might not exist
-            if field.options != []:
+            if field.is_optional():
                 v = None
                 size = 0
             else:
@@ -612,6 +622,8 @@ def read_csv(args):
             # Insert fields into dict for subtype
             subtype = Subtype.objs[parts[1]]
             subtype.addField(Field(subtype, parts[2], parts[3], parts[4], parts[5:]))
+        elif parts[0] == 'tlvtype':
+            tlvstreams.add(parts[1])
 
 
 def line_keyval(line, part):
@@ -776,7 +788,7 @@ class RecvEvent(object):
             if f.islenvar:
                 continue
             # Optional fields are, um, optional.
-            if f.options:
+            if f.is_optional():
                 optfields.append(f.name)
             else:
                 fields.append(f.name)
@@ -965,8 +977,8 @@ class ExpectSendEvent(object):
                     raise LineError(line, "Unequal value/mask lengths")
             else:
                 if parts[0] == 'absent':
-                    if f.options == []:
-                        raise LineError(line, "Field is not optional")
+                    if not f.is_optional():
+                        raise LineError(line, "{} is not optional".format(f.name))
                     self.expectfields[v] = None
                 else:
                     self.expectfields[v], _ = f.field_value(line, parts[0])
