@@ -1,0 +1,68 @@
+# Tests for query_channel_range.
+
+# Note for gossip_channel_range: we are *allowed* to return a superset
+# of what they ask, so if someone does that this test must be modified
+# to accept it (add an option_IMPL_gossip_query_superset).
+#
+# Meanwhile, we assume an exact reply.
+
+include setup.incl
+1. block: $BLOCK_102
+
+# Our two channels.
+2. block: $BLOCK_103
+3. block: $BLOCK_109
+
+4. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
+5. expect-send: type=init
+6. recv: type=init localfeatures= globalfeatures=
+# They can send this, we'll ignore it.
+7. maybe-send: type=gossip_timestamp_filter
+
+# Channel 103x1x0 (between 002 and 003)
+8. recv: $CHAN_ANN_103x1x0
+9. recv: $CHAN_UPDATE_103x1x0_002
+
+# Channel 109x1x0 (between 004 and 005)
+10. recv: $CHAN_ANN_109x1x0
+11. recv: $CHAN_UPDATE_109x1x0_005
+12. recv: $CHAN_UPDATE_109x1x0_004
+
+# New peer connects, with gossip_query option.
+13. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+14. expect-send: type=init
+15. recv: type=init localfeatures=80 globalfeatures=
+16. maybe-send: type=gossip_timestamp_filter
+
+    # No queries?  Must not get anything.
+    1. must-not-send: type=channel_announcement
+    2. must-not-send: type=channel_update
+    3. must-not-send: type=node_announcement
+
+    # This should elicit an empty response (we assume no zlib for that!)
+    1. recv: type=query_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=0 number_of_blocks=103 option_gossip_queries
+    2. One of: option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=0 number_of_blocks=103 encoded_short_ids=00 option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=0 number_of_blocks=103 encoded_short_ids=01789c030000000001 option_gossip_queries
+
+    # This should get the first one, not the second.
+    1. recv: type=query_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=1 option_gossip_queries
+    2. One of: option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=1 encoded_short_ids=000000670000010000 option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=1 encoded_short_ids=01789c6360486760606460000002750069 option_gossip_queries
+
+    # This should get the second one, not the first.
+    1. recv: type=query_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=109 number_of_blocks=4294967295 option_gossip_queries
+    2. One of: option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=109 number_of_blocks=4294967295 encoded_short_ids=0000006d0000010000 option_gossip_queries
+	# Could truncate number_of_blocks.
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=109 number_of_blocks=4294967187 encoded_short_ids=0000006d0000010000 option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=109 number_of_blocks=4294967295 encoded_short_ids=01789c6360c8656060646000000299006f option_gossip_queries
+	# Could truncate number_of_blocks.
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=109 number_of_blocks=4294967187 encoded_short_ids=01789c6360c8656060646000000299006f option_gossip_queries
+
+    # This should get both.
+    1. recv: type=query_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 option_gossip_queries
+    2. One of: option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=00000067000001000000006d0000010000 option_gossip_queries
+        1. expect-send: type=reply_channel_range chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f first_blocknum=103 number_of_blocks=7 encoded_short_ids=01789c6360486760606400825c300d00084e00d7 option_gossip_queries

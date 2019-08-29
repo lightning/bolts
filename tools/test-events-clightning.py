@@ -191,6 +191,8 @@ class CLightningRunner(object):
         self.start()
 
     def connect(self, conn, line):
+        # FIXME: This serves to settle the gossip, eg tests/events/bolt7-20-query_channel_range.events fails without this.
+        time.sleep(1)
         # FIXME: Open-code the lightning enc protocol in Python!
         conn.proc = subprocess.Popen(['{}/devtools/gossipwith'.format(LIGHTNING_SRC),
                                       '--privkey={}'.format(conn.connkey),
