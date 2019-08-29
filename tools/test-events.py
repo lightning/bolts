@@ -882,7 +882,7 @@ def compare_results(msgname, f, v, exp):
             valstr = str(v)
             expectstr = str(exp)
         # Same as above note about a range of length
-        elif exp.startswith('*'):
+        elif isinstance(exp,str) and exp.startswith('*'):
             if check_range(exp[1:], len(v.hex()) // 2):
                 return None
             expectstr = "result of bytelen {}".format(exp[1:])
