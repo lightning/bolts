@@ -247,7 +247,7 @@ This is a more flexible format, which avoids the redundant `short_channel_id` fi
         * [`tu32`:`outgoing_cltv_value`]
     1. type: 6 (`short_channel_id`)
     2. data:
-        * [`short_channel_id`:`short_channel_id`]
+        * [`tu64`:`short_channel_id`]
 
 ### Requirements
 
