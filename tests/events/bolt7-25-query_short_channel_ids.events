@@ -74,3 +74,51 @@ include setup.incl
         1. expect-send: $CHAN_UPDATE_109x1x0_004
         1. expect-send: $CHAN_UPDATE_109x1x0_005
         1. expect-send: $NODE_ANN_004
+32. expect-send: type=reply_short_channel_ids_end
+
+# Query for specific things only, if supported.
+
+# Announce messages only.
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000101 option_gossip_queries_ex
+    # zlib-encoded variant
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c6364040000050003 option_gossip_queries_ex
+33. Any order: option_gossip_queries_ex
+    1. expect-send: $CHAN_ANN_103x1x0 option_gossip_queries_ex
+    1. expect-send: $CHAN_ANN_109x1x0 option_gossip_queries_ex
+34. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
+
+# Node 1 channel_update messages only.
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000202 option_gossip_queries_ex
+    # zlib-encoded variant
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c6362020000080005 option_gossip_queries_ex
+
+35. Any order: option_gossip_queries_ex
+    1. expect-send: $CHAN_UPDATE_103x1x0_002 option_gossip_queries_ex
+    1. expect-send: $CHAN_UPDATE_109x1x0_005 option_gossip_queries_ex
+36. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
+
+# Node 2 channel_update messages only.
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000404 option_gossip_queries_ex
+    # zlib-encoded variant
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c63610100000e0009 option_gossip_queries_ex
+
+37. expect-send: $CHAN_UPDATE_109x1x0_004 option_gossip_queries_ex
+38. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
+
+# Node 1 announcements only.
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000808 option_gossip_queries_ex
+    # zlib-encoded variant
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789ce3e00000001a0011 option_gossip_queries_ex
+
+39. expect-send: $NODE_ANN_002 option_gossip_queries_ex
+40. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
+
+# Node 2 announcements only.
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103001010 option_gossip_queries_ex
+    # zlib-encoded variant
+    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c1310000000320021 option_gossip_queries_ex
+
+41. Any order: option_gossip_queries_ex
+    1. expect-send: $NODE_ANN_003 option_gossip_queries_ex
+    1. expect-send: $NODE_ANN_004 option_gossip_queries_ex
+42. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
