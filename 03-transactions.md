@@ -481,7 +481,7 @@ And this is used to derive the revocation pubkey from the remote node's
 
 This construction ensures that neither the node providing the
 basepoint nor the node providing the `per_commitment_point` can know the
-private key without the other node's secret.
+public key without the other node's secret.
 
 The corresponding private key can be derived once the `per_commitment_secret`
 is known:
