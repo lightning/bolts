@@ -440,6 +440,7 @@ or `node_id_2` otherwise.
 ### Requirements
 
 The origin node:
+  - MUST NOT send a created `channel_update` before `funding_locked` has been received.
   - MAY create a `channel_update` to communicate the channel parameters to the
   channel peer, even though the channel has not yet been announced (i.e. the
   `announce_channel` bit was not set).
