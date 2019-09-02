@@ -1,0 +1,135 @@
+# Tests for gossip_timestamp_filter.
+
+# Variables for some standard gossiping messages.
+include setup.incl
+1. block: $BLOCK_102
+
+2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
+3. expect-send: type=init
+4. recv: type=init localfeatures= globalfeatures=
+
+5. block: $BLOCK_103
+
+6. recv: $CHAN_ANN_103x1x0
+7. recv: $NODE_ANN_002
+
+# New peer connects, asks for gossip_timestamp_filter=all.  We *won't* relay channel_announcement, as there is no channel_update.
+8. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+9. expect-send: type=init
+10. recv: type=init localfeatures= globalfeatures=
+11. recv: type=gossip_timestamp_filter
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   first_timestamp=0
+   timestamp_range=4294967295
+12. must-not-send: type=channel_announcement
+13. must-not-send: type=node_announcement
+14. disconnect:
+
+15. recv: $CHAN_UPDATE_103x1x0_002
+
+# New peer connects, asks for gossip_timestamp_filter=all.  update and node announcement will be relayed.
+16. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+17. expect-send: type=init
+18. recv: type=init localfeatures= globalfeatures=
+19. recv: type=gossip_timestamp_filter
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   first_timestamp=0
+   timestamp_range=4294967295
+20. expect-send: $CHAN_ANN_103x1x0
+21. Any order:
+    1. expect-send: $CHAN_UPDATE_103x1x0_002
+    1. expect-send: $NODE_ANN_002
+22. disconnect:
+
+# BOLT 7:
+# The receiver:
+#  - SHOULD send all gossip messages whose `timestamp` is greater or
+#    equal to `first_timestamp`, and less than `first_timestamp` plus
+#    `timestamp_range`.
+
+23. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+24. expect-send: type=init
+25. recv: type=init localfeatures= globalfeatures=
+26. recv: type=gossip_timestamp_filter
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   first_timestamp=1000
+   timestamp_range=1565586763
+27. must-not-send: type=channel_announcement
+28. must-not-send: type=channel_update
+29. must-not-send: type=node_announcement
+30. disconnect:
+
+31. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+32. expect-send: type=init
+33. recv: type=init localfeatures= globalfeatures=
+34. recv: type=gossip_timestamp_filter
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   first_timestamp=1565587764
+   timestamp_range=4294967295
+35. must-not-send: type=channel_announcement
+36. must-not-send: type=channel_update
+37. must-not-send: type=node_announcement
+38. disconnect:
+
+# These two succeed in getting the gossip, then stay connected for next test.
+39. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+40. expect-send: type=init
+41. recv: type=init localfeatures= globalfeatures=
+42. recv: type=gossip_timestamp_filter
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   first_timestamp=1565587763
+   timestamp_range=4294967295
+43. expect-send: $CHAN_ANN_103x1x0
+44. Any order:
+    1. expect-send: $CHAN_UPDATE_103x1x0_002
+    1. expect-send: $NODE_ANN_002
+
+45. connect: privkey=0000000000000000000000000000000000000000000000000000000000000006
+46. expect-send: type=init
+47. recv: type=init localfeatures= globalfeatures=
+48. recv: type=gossip_timestamp_filter
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   first_timestamp=1000
+   timestamp_range=1565586764
+49. expect-send: $CHAN_ANN_103x1x0
+50. Any order:
+    1. expect-send: $CHAN_UPDATE_103x1x0_002
+    1. expect-send: $NODE_ANN_002
+
+# BOLT 7:
+#  - SHOULD restrict future gossip messages to those whose `timestamp`
+#    is greater or equal to `first_timestamp`, and less than
+#    `first_timestamp` plus `timestamp_range`.
+
+51. block: $BLOCK_109
+
+52. recv: conn=0000000000000000000000000000000000000000000000000000000000000003
+   $CHAN_ANN_109x1x0
+
+53. recv: conn=0000000000000000000000000000000000000000000000000000000000000003
+   $CHAN_UPDATE_109x1x0_004
+
+54. recv: conn=0000000000000000000000000000000000000000000000000000000000000003 
+   $CHAN_UPDATE_109x1x0_005
+
+55. recv: conn=0000000000000000000000000000000000000000000000000000000000000003 
+   $NODE_ANN_004
+
+# 005's filter covers this, 006's doesn't.
+56. expect-send: conn=0000000000000000000000000000000000000000000000000000000000000005
+   $CHAN_ANN_109x1x0
+
+57. Any order:
+    1. expect-send: conn=0000000000000000000000000000000000000000000000000000000000000005
+       $CHAN_UPDATE_109x1x0_004
+    1. expect-send: conn=0000000000000000000000000000000000000000000000000000000000000005
+       $CHAN_UPDATE_109x1x0_005
+    1. expect-send: conn=0000000000000000000000000000000000000000000000000000000000000005
+       $NODE_ANN_004
+
+58. must-not-send: conn=0000000000000000000000000000000000000000000000000000000000000006
+   type=channel_announcement
+59. must-not-send: conn=0000000000000000000000000000000000000000000000000000000000000006
+   type=channel_update
+60. must-not-send: conn=0000000000000000000000000000000000000000000000000000000000000006
+   type=node_announcement
