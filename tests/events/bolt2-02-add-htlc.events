@@ -18,7 +18,7 @@ include setup.incl
 
 2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
 3. expect-send: type=init
-4. recv: type=init globalfeatures= localfeatures=02
+4. recv: type=init globalfeatures= localfeatures=02000000000002
 5. recv: type=open_channel
    chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
    temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
@@ -72,8 +72,10 @@ include setup.incl
    # txid=41085b995c1f591cfc3ae79ccde012bf0b37c7bde23d80a61c9732bdd6210b2f
    funding_txid=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
    funding_output_index=0
-   # node's commitment tx is 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a980010f410f0000000000160014749af8703f0d1fd8890a553bd62e9caf15f7bad44cff0020
-   signature=c0c95040f0c132b5773b05fcc59e4a394059db70e6767567f26cbceecc580bcf27da384471a5efdaabd04090dd1d5c3765e849e5fdfe556eabba1ebca806b02a
+   # !option_static_remotekey: node's commitment tx is 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a980010f410f0000000000160014749af8703f0d1fd8890a553bd62e9caf15f7bad44cff0020
+   signature=c0c95040f0c132b5773b05fcc59e4a394059db70e6767567f26cbceecc580bcf27da384471a5efdaabd04090dd1d5c3765e849e5fdfe556eabba1ebca806b02a !option_static_remotekey
+   # option_static_remotekey: node's commitment tx is 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a980010f410f0000000000160014e142ca9bfc2d56cd0adb82f8dc870424767389f74cff0020
+   signature=02ce278a17c48e926f93d5134e8f7486e01112a7d06c2ed1b1b5034fb9ace8072d1485ee012440fc85b46cf671a802db4597d482ced68dbfa26ee07b899e936a option_static_remotekey
 
 8. expect-send: type=funding_signed
    channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
@@ -102,19 +104,24 @@ include setup.incl
     1. disconnect:
     2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
     3. expect-send: type=init
+    # Note: if we opened channel with option_static_remotekey, it stands even
+    # if we don't negotiate it again!
     4. recv: type=init globalfeatures= localfeatures=02
     5. expect-send: type=channel_reestablish
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        next_commitment_number=1
        next_revocation_number=0
        your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-       my_current_per_commitment_point=0288a618cb6027c3218a37cbe9e882379f17d87d03f6e99d0b60292478d2aded06 option_data_loss_protect
+       your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+       my_current_per_commitment_point=0288a618cb6027c3218a37cbe9e882379f17d87d03f6e99d0b60292478d2aded06 option_data_loss_protect !option_static_remotekey
+       my_current_per_commitment_point=absent option_static_remotekey
     6. recv: type=channel_reestablish
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        next_commitment_number=1
        next_revocation_number=0
        your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-       my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect
+       your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+       my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
     7. $MAYBE_UPDATE
     # BOLT #2:
     # - if `next_commitment_number` is 1 in both the
@@ -155,13 +162,16 @@ include setup.incl
            next_commitment_number=1
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=0288a618cb6027c3218a37cbe9e882379f17d87d03f6e99d0b60292478d2aded06 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=0288a618cb6027c3218a37cbe9e882379f17d87d03f6e99d0b60292478d2aded06 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=1
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
         8. expect-send: type=funding_locked
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
@@ -178,7 +188,8 @@ include setup.incl
     
     2. recv: type=commitment_signed
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-       signature=a42ddd9ab2b171f945e1ac536cd2fc7e4c39d9f0fbb6172f3ec88020e8240033336f9d79ddad09391b41e5127c457abc2d59e59fb398cdd1cd5baed5ba16480c
+       signature=a42ddd9ab2b171f945e1ac536cd2fc7e4c39d9f0fbb6172f3ec88020e8240033336f9d79ddad09391b41e5127c457abc2d59e59fb398cdd1cd5baed5ba16480c !option_static_remotekey
+       signature=05f85dd6f09a5004f11140b2da5b7c1e2debfd84232b04943b26a10da4f30856670e670e6618629f95d3b76f0167a9d906f92f2023884c8b24354b78be8b6fb8 option_static_remotekey
        htlc_signature=
 
     3. expect-send: type=revoke_and_ack
@@ -208,13 +219,16 @@ include setup.incl
            next_commitment_number=2
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=1
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
         #  - MUST re-send the `revoke_and_ack`.
         8. expect-send: type=revoke_and_ack
@@ -237,13 +251,16 @@ include setup.incl
            next_commitment_number=2
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=1
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
-           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect
+           your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
         8. expect-send: type=commitment_signed
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
@@ -260,13 +277,16 @@ include setup.incl
            next_commitment_number=2
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=2
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
-           my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect
+           your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
 
     5. recv: type=revoke_and_ack
@@ -291,13 +311,16 @@ include setup.incl
            next_commitment_number=2
            next_revocation_number=1
            your_last_per_commitment_secret=02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148 option_data_loss_protect
-           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect
+           your_last_per_commitment_secret=02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=2
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
-           my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect
+           your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
 
     # Add a non-dust HTLC
@@ -326,13 +349,16 @@ include setup.incl
            next_commitment_number=1
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=0288a618cb6027c3218a37cbe9e882379f17d87d03f6e99d0b60292478d2aded06 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=0288a618cb6027c3218a37cbe9e882379f17d87d03f6e99d0b60292478d2aded06 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=1
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
         8. expect-send: type=funding_locked
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
@@ -349,8 +375,24 @@ include setup.incl
     
     2. recv: type=commitment_signed
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
-       signature=31f6f0ec18b50e61b0c0dc8632d0fc8b7a22883e55c01220d1fd4ad83b752a1a52af1978649e6525334d0c07c739a7537c26d38eaf1d7dab4a7bceffac04f6dd
-       htlc_signature=fca89064c648f4264bcc6c0f8c630d7fcc9ede23b0eec23658fc772079e7b46f2fbea7265b1057159ba7a44096ef341fc469790997adaeb31dd3b0cf0478dd80
+       # !option_static_remotekey:
+       ## remote_commitment
+       # input amount 999878sat, funding_wscript 522103d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e652103e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a52ae, key 03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+       # unsigned remote commitment tx: 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a98002e8030000000000002200204a7ee4c37da8a8ab48e53517c27173098a61f794d2adb84faf0c86ec0c18385ffc3c0f0000000000160014ded1a6b285067b547db1d27bc87d32b84ac949cc4dff0020
+       ## Output 0: LOCAL HTLC 0
+       # unsigned htlc tx for output 0: 0200000001d3617e206fcf3d62ccaf0328e6ef88b9936afde335552e720226447eb4afffcc000000000000000000013703000000000000220020c950c75b39235322de605f8d8ff7533edf8cfa4e5edd090425c326cfbf4d216700000000
+       # wscript: 76a9143eb3762c8c276c6298a7aa4b6891873d3a4cacd88763ac6721037c6136c02af011b4f0f592d2dc7fc8b5b273b394ed8e6457130ad7c74dda0b4f7c8201208763a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc688527c21027f79127629a39c5b967ed0f02a27e50e388efd95fe1601a1b74e50ca0eee92fd52ae677502c800b175ac6868
+       signature=31f6f0ec18b50e61b0c0dc8632d0fc8b7a22883e55c01220d1fd4ad83b752a1a52af1978649e6525334d0c07c739a7537c26d38eaf1d7dab4a7bceffac04f6dd !option_static_remotekey
+       htlc_signature=fca89064c648f4264bcc6c0f8c630d7fcc9ede23b0eec23658fc772079e7b46f2fbea7265b1057159ba7a44096ef341fc469790997adaeb31dd3b0cf0478dd80 !option_static_remotekey
+       # option_static_remotekey:
+       ## remote_commitment
+       # input amount 999878sat, funding_wscript 522103d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e652103e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a52ae, key 03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+       # unsigned remote commitment tx: 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a98002e8030000000000002200204a7ee4c37da8a8ab48e53517c27173098a61f794d2adb84faf0c86ec0c18385ffc3c0f0000000000160014e142ca9bfc2d56cd0adb82f8dc870424767389f74dff0020
+       # Output 0: LOCAL HTLC 0
+       # unsigned htlc tx for output 0: 0200000001a366eac6a4f4aad69c3b292d275f1122e34aa97d091ae808422ef4b6d7599c5f000000000000000000013703000000000000220020cdd8da56037931fe7395cbe19893316feb98077ee1acb1b62f31ef850201f29000000000
+       # wscript: 76a9143eb3762c8c276c6298a7aa4b6891873d3a4cacd88763ac6721037c6136c02af011b4f0f592d2dc7fc8b5b273b394ed8e6457130ad7c74dda0b4f7c8201208763a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc688527c21027f79127629a39c5b967ed0f02a27e50e388efd95fe1601a1b74e50ca0eee92fd52ae677502c800b175ac6868
+       signature=69de461fb50707921427c8b204a15188820e21f4711fb72548794ecd036ab8ae1e38461426174f856ec9339f4ad827db42f940f87f916d8e0634521479d1521a option_static_remotekey
+       htlc_signature=3b04f576ccd0c35ad3fae12434f65a9d04bfe5d185a8ddb3a7afe7fef5a2316842c2e7a201474aaa7272b47db216711986b89adadf93f2fffba7613692c10c7d option_static_remotekey
     
     3. expect-send: type=revoke_and_ack
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
@@ -360,6 +402,8 @@ include setup.incl
     
     4. expect-send: type=commitment_signed
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
+       # Note: because we only have to-self output, signatures don't change
+       # with option_static_remotekey
        signature=e8653ec993ef47417e941088f1d41bfa5a51bbf1d49d0633389f5a0bf5960918148113a4a7fdd32f114dc945a7db774ed9756ca84bb0e6aa5c330612f294956a
        htlc_signature=9c3c9fa3c396aae512aaf7eeed42c3c38b9c8507c6ef60173249118fa823d41f1d93d1fd20c255d242813699332cbd7728c49c72a34653cd84a3fddbe41320c3
     
@@ -379,13 +423,16 @@ include setup.incl
            next_commitment_number=2
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=1
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
         #  - MUST re-send the `revoke_and_ack`.
         8. expect-send: type=revoke_and_ack
@@ -408,13 +455,16 @@ include setup.incl
            next_commitment_number=2
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=1
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
-           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect
+           your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
         8. expect-send: type=commitment_signed
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
@@ -431,13 +481,16 @@ include setup.incl
            next_commitment_number=2
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
-           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect
+           your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=2
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
-           my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect
+           your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
 
     5. recv: type=revoke_and_ack
@@ -462,11 +515,14 @@ include setup.incl
            next_commitment_number=2
            next_revocation_number=1
            your_last_per_commitment_secret=02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148 option_data_loss_protect
-           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect
+           your_last_per_commitment_secret=02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148 option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
+           my_current_per_commitment_point=absent option_static_remotekey
         6. recv: type=channel_reestablish
            channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
            next_commitment_number=2
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
-           my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect
+           your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect !option_static_remotekey
         7. $MAYBE_UPDATE
