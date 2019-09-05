@@ -270,7 +270,7 @@ Once a node has decoded the payload it either accepts the payment locally, or fo
 A node MAY forward an HTLC along an outgoing channel other than the one
 specified by `short_channel_id`, so long as the receiver has the same node
 public key intended by `short_channel_id`. Thus, if `short_channel_id` connects
-nodes A and B, the HTLC can forwarded across any channel connecting A and B.
+nodes A and B, the HTLC can be forwarded across any channel connecting A and B.
 Failure to adhere will result in the receiver being unable to decrypt the next
 hop in the onion packet.
 
@@ -350,7 +350,7 @@ the same value.
 
 In order to ensure multiple hops along the route cannot be linked by the
 ephemeral public keys they see, the key is blinded at each hop. The blinding is
-done in a deterministic way that the allows the sender to compute the
+done in a deterministic way that allows the sender to compute the
 corresponding blinded private keys during packet construction.
 
 The blinding of an EC public key is a single scalar multiplication of
@@ -360,7 +360,7 @@ the multiplicative product of the input's corresponding private key with the
 same blinding factor.
 
 The blinding factor itself is computed as a function of the ephemeral public key
-and the 32-byte shared secret. Concretely, is the `SHA256` hash value of the
+and the 32-byte shared secret. Concretely, it is the `SHA256` hash value of the
 concatenation of the public key serialized in its compressed format and the
 shared secret.
 
