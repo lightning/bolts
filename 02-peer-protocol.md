@@ -510,6 +510,10 @@ If nodes have negotiated `option_dual_fund`:
 pay for the funding transaction in satoshi per 1000-weight, as described
 in [BOLT-3, Appendix F](03-transactions.md#appendix-f-dual-funded-transaction-test-vectors).
 
+`channel_reserve_satoshi` has been omitted. The channel reserve is fixed at 1% of
+the total channel balance (sum of `funding_satoshis` from `open_channel2` and `accept_channel2`) 
+or the `dust_limit_satoshis`, whichever is greater.
+
 
 ### The `accept_channel2` Message
 
@@ -548,6 +552,10 @@ Accepter sends their `funding_satoshi` value here instead of allowing the opener
 it from their `funding_compose` response so that the opener can decide whether
 to complete the opening without exposing their output set.
 
+`channel_reserve_satoshi` has been omitted. The channel reserve is fixed at 1% of
+the total channel balance (sum of `funding_satoshis` from `open_channel2` and `accept_channel2`) 
+or the `dust_limit_satoshis`, whichever is greater.
+
 ### The `funding_compose` Message
 
 This message exchanges the transaction input and output
@@ -556,7 +564,6 @@ information necessary to compose the funding transaction.
 1. type: 58 (`funding_compose`)
 2. data:
     * [`32*byte`:`temporary_channel_id`]
-    * [`u64`:`channel_reserve_satoshis`]
     * [`u16`:`num_inputs`]
     * [`num_inputs*input_info`:`input_info`]
     * [`u16`:`num_outputs`]
@@ -619,9 +626,6 @@ The receiving node:
 Each node must have a complete set of the transaction inputs and outputs,
 to derive the funding transaction. This avoids information
 asymmetry between the nodes, as both sides share their input utxo set.
-
-`channel_reserve_satoshis` is the minimum balance that the other node
-must reserve for itself, out of the total channel balance.
 
 `satoshis` is the value of the input or output.
 
@@ -740,7 +744,6 @@ indicated above.
 2. data:
     * [`channel_id`:`channel_id`]
     * [`u64`:`funding_satoshis`]
-    * [`u64`:`channel_reserve_satoshis`]
     * [`u32`:`feerate_per_kw`]
     * [`u32`:`feerate_per_kw_funding`]
     * [`u16`:`num_additional_inputs`]
@@ -754,7 +757,6 @@ The sending node:
   - MUST have sent `open_channel2`.
   - MUST send a `feerate_per_kw_funding` greater than the most recently
     negotiated rate.
-  - MUST update the `channel_reserve_satoshis` to reflect the new input balance.
   - MAY update the `feerate_per_kw`, the commitment transaction feerate.
   - MAY include additional inputs.
   - MAY set the `num_inputs` to zero.
@@ -766,8 +768,6 @@ The receiving node:
   - MUST return an error if:
     - the `feerate_per_kw_funding` is not greater than the previously
       negotiated rate.
-  - MAY return an error if:
-    - the `channel_reserve_satoshis` is not acceptable.
 
 #### Rationale
 The sending node's half of the funding transaction will be composed with
