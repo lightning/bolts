@@ -477,7 +477,6 @@ This message initiates the v2 channel establishment workflow.
    * [`u64`:`htlc_minimum_msat`]
    * [`u32`:`feerate_per_kw`]
    * [`u32`:`feerate_per_kw_funding`]
-   * [`u16`:`contrib_count`]
    * [`u16`:`to_self_delay`]
    * [`u16`:`max_accepted_htlcs`]
    * [`point`:`funding_pubkey`]
@@ -504,8 +503,6 @@ Rationale and Requirements are the same as for [`open_channel`](#the-open_channe
 If nodes have negotiated `option_dual_fund`:
   - the opening node:
     - MUST not send `open_channel`
-    - MUST set the `contrib_count` to the total of `num_inputs` plus
-      `num_outputs' that will be included in `funding_compose`, with minimum 2.
 
 #### Rationale
 
@@ -513,9 +510,6 @@ If nodes have negotiated `option_dual_fund`:
 pay for the funding transaction in satoshi per 1000-weight, as described
 in [BOLT-3, Appendix F](03-transactions.md#appendix-f-dual-funded-transaction-test-vectors).
 
-`contrib_count` is the total number of inputs and outputs that the opener
-will contribute to the funding transaction. This is sent so that the
-accepter can configure appropriate funding values for their `accept_channel2` response.
 
 ### The `accept_channel2` Message
 
@@ -596,25 +590,21 @@ The sending node:
     - MAY specify an output with value zero, which will be used
       as the change address.
   - if is the `accepter`:
-    - consider the `contrib_count` the total of `num_inputs` plus
-      `num_outputs' from `funding_compose`, with minimum 2.
-    - MUST NOT send `input_info`s or `output_info` which
-      exceeds the `contrib_count` limit.
+    - consider the `contribution count` the total of `num_inputs` plus
+      `num_outputs' from `funding_compose`.
+    - MUST NOT send a `funding_compose` message where the `contribution count` 
+      exceeds the limit of 4.
     - MAY send zero inputs and/or outputs.
 
 The receiving node:
   - if the total `input_info`.`satoshis` is less than the total `output_info`.`satoshis`
     - MUST fail the channel.
-  - if is the `accepter`:
-    - MAY fail the channel if:
-      - the total count of `input_infos` and `output_info`s is not equal to the
-        `contrib_count`.
   - if is the `opener`:
     - MAY fail the channel if:
       - the fee cost of the proposed funding transaction is deemed exorbitant.
     - MUST fail the channel if:
       - the total count of `input_info`s and `output_info`s is greater than
-        the `contrib_count`.
+        the `contribution count` limit of 4.
   - if has not yet sent a `funding_compose`:
     - MUST send its `funding_compose` message.
   - otherwise:
