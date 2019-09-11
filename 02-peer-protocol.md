@@ -536,7 +536,14 @@ acceptance of the new channel.
     * [`point`:`delayed_payment_basepoint`]
     * [`point`:`htlc_basepoint`]
     * [`point`:`first_per_commitment_point`]
-    * [`opening_tlv`:`opening_tlv`]
+    * [`accept_tlvs`:`accept_tlv`]
+
+1. tlvs: `accept_tlvs`
+2. types:
+   1. type: 1 (`option_upfront_shutdown_script`)
+   2. data:
+       * [`u16`:`shutdown_len`]
+       * [`shutdown_len*byte`:`shutdown_scriptpubkey`]
 
 Rationale and Requirements are the same as listed above,
 for [`accept_channel`](#the-accept_channel-message) with the following additions.
