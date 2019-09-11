@@ -441,23 +441,20 @@ It extends version one to allow the non-`open_channel` participant
 The protocol is also expanded to include a mechanism for initiating RBF.
 
         +-------+                              +-------+
-        |       |--(1)---  open_channel2 ----->|       |
-        |       |<-(2)--  accept_channel2 -----|       |
+        |       |--(1)--- open_channel2  ----->|       |
+        |       |<-(2)--- accept_channel2 -----|       |
         |       |                              |       |
         |       |--(3)--  funding_compose ---->|       |
         |       |<-(4)--  funding_compose -----|       |
         |       |                              |       |
-    --->|       |--(5)-- commitment_signed  -->|       |
-    |   |       |<-(6)-- commitment_signed  ---|       |
-    |   |   A   |                              |   B   |
-    |   |       |--(7)--- funding_signed2 ---->|       |
-    |   |       |<-(8)--- funding_signed2 -----|       |
+    --->|       |--(5)--  commitment_signed -->|       |
+    |   |   A   |<-(6)--  accepter_sigs    ----|   B   |
     |   |       |                              |       |
     |   |       |--(a)--- init_rbf ----------->|       |
     ----|       |<-(b)--- ack_rbf  ------------|       |
         |       |                              |       |
-        |       |--(9)--- funding_locked ----->|       |
-        |       |<-(10)-- funding_locked ------|       |
+        |       |--(7)--- funding_locked ----->|       |
+        |       |<-(8)--- funding_locked ------|       |
         +-------+                              +-------+
 
         - where node A is 'opener' and node B is 'accepter'
@@ -556,12 +553,13 @@ The accepting node:
 #### Rationale
 
 Accepter sends their `funding_satoshi` value here instead of allowing the opener to derive
-it from their `funding_compose` response so that the opener can decide whether
+it from their `funding_compose` response so that the opener can notionally decide whether
 to complete the opening without exposing their output set.
 
 `channel_reserve_satoshi` has been omitted. The channel reserve is fixed at 1% of
 the total channel balance (sum of `funding_satoshis` from `open_channel2` and `accept_channel2`) 
 or the `dust_limit_satoshis`, whichever is greater.
+
 
 ### The `funding_compose` Message
 
@@ -602,10 +600,10 @@ The sending node:
   - if is the `opener`:
     - MUST NOT send zero inputs (`num_inputs` cannot be zero).
     - MAY specify an output with value zero, which will be used
-      as the change address.
+      as the change address if applicable.
   - if is the `accepter`:
-    - consider the `contribution count` the total of `num_inputs` plus
-      `num_outputs' from `funding_compose`.
+    - consider the `contribution count` the total of their `num_inputs` plus
+      `num_outputs'
     - MUST NOT send a `funding_compose` message where the `contribution count` 
       exceeds the limit of 4.
     - MAY send zero inputs and/or outputs.
@@ -631,8 +629,7 @@ The receiving node:
 
 #### Rationale
 Each node must have a complete set of the transaction inputs and outputs,
-to derive the funding transaction. This avoids information
-asymmetry between the nodes, as both sides share their input utxo set.
+to derive the funding transaction and subsequent commitment signatures.
 
 `satoshis` is the value of the input or output.
 
@@ -673,6 +670,9 @@ independently.
 
 ### The `commitment_signed` Message
 
+This message is sent by the opening node. It contains the signatures for
+the first commitment transaction.
+
 Rationale and Requirements are the same as listed above,
 for [`commitment_signed`](#commiting-updates-so-far-commitment_signed) with the following additions.
 
@@ -692,14 +692,16 @@ The first commitment transaction has no HTLC's in it.
 Note that the `commitment_signed` message will include the `channel_id` derived from
 the `funding_txid`, instead of the `temporary_node_id`.
 
-### The `funding_signed2` Message
+### The `accepter_sigs` Message
 
-This message exchanges the witness data for the inputs that were
-originally sent in the `funding_compose` message.
+This message is sent by the accepting node. It contains the witness data
+for the inputs that were originally sent in the `funding_compose` message, plus
+the signatures for the commitment transaction.
 
-1. type: 60 (`funding_signed2`)
+1. type: 60 (`accepter_sigs`)
 2. data:
     * [`channel_id`:`channel_id`]
+    * [`signature`:`commitment_signature`]
     * [`u16`:`num_witnesses`]
     * [`num_witnesses*witness_stack`:`witness_stack`]
 
@@ -715,6 +717,7 @@ originally sent in the `funding_compose` message.
 
 #### Requirements
 The sending node:
+  - MUST verify it has received valid commitment signatures from its peer
   - MUST set `witness` to the serialized witness data for each of its
     inputs, in funding transaction order. FIXME: link to funding tx order
   - MUST remember the details of this funding transaction.
@@ -726,14 +729,14 @@ The sending node:
 The receiving node:
   - if the `witness_stack` length exceeds `max_witness_len`:
     - MUST error.
-  - if the recipient was the sender of `open_channel2`:
-    - SHOULD reply with its own `funding_signed2`.
+  - MUST verify it has received valid commitment signatures
   - SHOULD apply `witness`es to the funding transaction and
     broadcast it.
 
 #### Rationale
-Exchanging witness data allows both sides to broadcast the funding
-transaction.
+
+The accepting node sends both their comitment signatures and funding 
+transaction signatures.  This completes the `open_channel2` dialogue.
 
 
 ### Kicking Off Replace-By-Fee: `init_rbf`
