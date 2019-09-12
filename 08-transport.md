@@ -494,7 +494,7 @@ to it exceeds 1000.
 
 Key rotation for a key `k` is performed according to the following steps:
 
-1. Let `ck` be the chaining key obtained at the end of Act Three.
+1. Let `ck` be the chaining key obtained at the end of the last key rotation. If no key rotation has taken place, use the chaining key from Act Three.
 2. `ck', k' = HKDF(ck, k)`
 3. Reset the nonce for the key to `n = 0`.
 4. `k = k'`
