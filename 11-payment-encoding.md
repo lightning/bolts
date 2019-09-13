@@ -128,9 +128,10 @@ Each Tagged Field is of the form:
 
 Currently defined tagged fields are:
 
-* `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment.
-* `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8), e.g. '1 cup of coffee' or 'ナンセンス 1杯'
-* `n` (19): `data_length` 53. 33-byte public key of the payee node
+* `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of the payment_hash provides proof of payment.
+* `s` (16): `data_length` 26. 128-bit payment_secret. This secret prevents forwarding nodes from probing the payment recipient.
+* `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8), e.g. '1 cup of coffee' or 'ナンセンス 1杯'.
+* `n` (19): `data_length` 53. 33-byte public key of the payee node.
 * `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is over 639 bytes, but the transport mechanism for the description in that case is transport specific and not defined here.
 * `x` (6): `data_length` variable. `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
 * `c` (24): `data_length` variable. `min_final_cltv_expiry` to use for the last HTLC in the route. Default is 9 if not specified.
@@ -148,7 +149,7 @@ Currently defined tagged fields are:
 ### Requirements
 
 A writer:
-  - MUST include exactly one `p` field.
+  - MUST include exactly one `p` and `s` fields.
   - MUST set `payment_hash` to the SHA2 256-bit hash of the `payment_preimage`
   that will be given in return for payment.
   - MUST include either exactly one `d` or exactly one `h` field.
@@ -191,8 +192,8 @@ A writer:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
 
 A reader:
-  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, or
-  `n` fields that do NOT have `data_length`s of 52, 52, or 53, respectively.
+  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `s`, `h`, or
+  `n` fields that do NOT have `data_length`s of 52, 26, 52, or 53, respectively.
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
@@ -214,6 +215,10 @@ The `p` field supports the current 256-bit payment hash, but future
 specs could add a new variant of different length: in which case,
 writers could support both old and new variants, and old readers would
 ignore the variant not the correct length.
+
+The `s` field prevents forwarding nodes from probing to test if a node is the
+recipient of the payment. The length of the `s` field could change in the
+future so readers ignore it if it's not 128 bits.
 
 The `d` field allows inline descriptions, but may be insufficient for
 complex orders. Thus, the `h` field allows a summary: though the method
@@ -277,6 +282,16 @@ _it's ok to be odd_ rule.
 The field is big-endian.  The least-significant bit is numbered 0,
 which is _even_, and the next most significant bit is numbered 1,
 which is _odd_.
+
+The following feature bits are currently assigned by this specification:
+
+| Bits | Name                    | Description                                           |
+|------|-------------------------|-------------------------------------------------------|
+| 0/1  | `option_payment_secret` | Requires or supports the `payment_secret` field (`s`) |
+
+The payee should set the _even_ `payment_secret` bit to prevent probing attacks
+by the next-to-last node. If the payee wants to allow legacy payers, he may set
+the _odd_ `payment_secret` bit instead. In that case probing attacks are possible.
 
 # Payer / Payee Interactions
 

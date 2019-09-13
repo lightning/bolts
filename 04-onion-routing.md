@@ -235,10 +235,13 @@ parameters may lead to extraneous routing failure.
 
 ### `tlv_payload` payload format
 
-This is a more flexible format, which avoids the redundant `short_channel_id` field for the final node. 
+This is a more flexible format, which avoids the redundant `short_channel_id` field for the final node.
 
 1. tlvs: `tlv_payload`
 2. types:
+    1. type: 1 (`payment_secret`)
+    2. data:
+        * [`u16`:`payment_secret`]
     1. type: 2 (`amt_to_forward`)
     2. data:
         * [`tu64`:`amt_to_forward`]
@@ -253,6 +256,8 @@ This is a more flexible format, which avoids the redundant `short_channel_id` fi
 
 The writer:
   - MUST include `amt_to_forward` and `outgoing_cltv_value` for every node.
+  - MUST include `payment_secret` for the final node if provided by the recipient.
+  - MUST NOT include `payment_secret` for non-final nodes.
   - MUST include `short_channel_id` for every non-final node.
   - MUST NOT include `short_channel_id` for the final node.
 
@@ -282,7 +287,7 @@ sent across.
 
 Nodes implementing non-strict forwarding are able to make real-time assessments
 of channel bandwidths with a particular peer, and use the channel that is
-locally-optimal. 
+locally-optimal.
 
 For example, if the channel specified by `short_channel_id` connecting A and B
 does not have enough bandwidth at forwarding time, then A is able use a
@@ -313,6 +318,8 @@ using an alternate channel.
 When building the route, the origin node MUST use a payload for
 the final node with the following values:
 
+* `payment_secret`: set to the payment secret specified by the recipient (e.g.
+  `payment_secret` from a [BOLT #11](11-payment-encoding.md) payment invoice)
 * `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
   `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
 * `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
@@ -577,7 +584,6 @@ The processing node:
     - MUST drop the packet.
     - MUST signal a route failure.
 
-
 # Filler Generation
 
 Upon receiving a packet, the processing node extracts the information destined
@@ -827,9 +833,10 @@ handling by the processing node.
    * [`u64`:`htlc_msat`]
    * [`u32`:`height`]
 
-The `payment_hash` is unknown to the final node, the amount for that
-`payment_hash` is incorrect or the CLTV expiry of the htlc is too close to the
-current block height for safe handling.
+The `payment_hash` is unknown to the final node, the `payment_secret` doesn't
+match the `payment_hash`, the amount for that `payment_hash` is incorrect or
+the CLTV expiry of the htlc is too close to the current block height for safe
+handling.
 
 The `htlc_msat` parameter is superfluous, but left in for backwards
 compatibility. The value of `htlc_msat` always matches the amount specified in
@@ -952,6 +959,9 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the payment hash has already been paid:
     - MAY treat the payment hash as unknown.
     - MAY succeed in accepting the HTLC.
+  - if the `payment_secret` doesn't match the expected value for that `payment_hash`:
+    - MUST fail the HTLC.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the amount paid is less than the amount expected:
     - MUST fail the HTLC.
     - MUST return an `incorrect_or_unknown_payment_details` error.
