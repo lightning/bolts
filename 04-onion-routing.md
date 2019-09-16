@@ -241,7 +241,7 @@ This is a more flexible format, which avoids the redundant `short_channel_id` fi
 2. types:
     1. type: 1 (`payment_secret`)
     2. data:
-        * [`u16`:`payment_secret`]
+        * [`16*byte`:`payment_secret`]
     1. type: 2 (`amt_to_forward`)
     2. data:
         * [`tu64`:`amt_to_forward`]
