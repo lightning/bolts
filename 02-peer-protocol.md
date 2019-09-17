@@ -187,8 +187,6 @@ The `shutdown_scriptpubkey` allows the sending node to commit to where
 funds will go on mutual close, which the remote node should enforce
 even if a node is compromised later.
 
-[ FIXME: Describe dangerous feature bit for larger channel amounts. ]
-
 #### Requirements
 
 The sending node:
@@ -263,12 +261,6 @@ would be eliminated as dust.  The similar requirements in
 are above both `dust_limit_satoshis`.
 
 Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
-
-#### Future
-
-It would be easy to have a local feature bit which indicated that a
-receiving node was prepared to fund a channel, which would reverse this
-protocol.
 
 ### The `accept_channel` Message
 

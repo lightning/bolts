@@ -180,7 +180,8 @@ The origin node:
   - MUST set `bitcoin_signature_1` and `bitcoin_signature_2` to valid
   signatures of the hash `h` (using `bitcoin_key_1` and `bitcoin_key_2`'s
   respective secrets).
-  - SHOULD set `len` to the minimum length required to hold the `features` bits
+  - MUST set `features` based on what features were negotiated for this channel, according to [BOLT #9](09-features.md#assigned-features-flags)
+  - MUST set `len` to the minimum length required to hold the `features` bits
   it sets.
 
 The receiving node:
@@ -311,6 +312,7 @@ The origin node:
   to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST NOT include more than one `address descriptor` of the same type.
+  - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
 

@@ -226,18 +226,17 @@ The following convenience types are also defined:
 
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of global and local features. Each feature is generally represented in `globalfeatures` or `localfeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
+[BOLT #9](09-features.md) specifies lists of features. Each feature is generally represented by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.  For historical reasons, features are divided into global and local feature bitmasks.
 
-Both fields `globalfeatures` and `localfeatures` MUST be padded to bytes with 0s.
+The `features` field MUST be padded to bytes with 0s.
 
 1. type: 16 (`init`)
 2. data:
    * [`u16`:`gflen`]
    * [`gflen*byte`:`globalfeatures`]
-   * [`u16`:`lflen`]
-   * [`lflen*byte`:`localfeatures`]
+   * [`u16`:`flen`]
+   * [`flen*byte`:`features`]
 
-The 2-byte `gflen` and `lflen` fields indicate the number of bytes in the immediately following field.
 
 #### Requirements
 
@@ -245,10 +244,12 @@ The sending node:
   - MUST send `init` as the first Lightning message for any connection.
   - MUST set feature bits as defined in [BOLT #9](09-features.md).
   - MUST set any undefined feature bits to 0.
-  - SHOULD use the minimum lengths required to represent the feature fields.
+  - SHOULD NOT set features greater than 13 in `globalfeatures`.
+  - SHOULD use the minimum length required to represent the `features` field.
 
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
+  - MUST combine (logical OR) the two feature bitmaps into one logical `features` map.
   - MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
   - upon receiving unknown _odd_ feature bits that are non-zero:
     - MUST ignore the bit.
@@ -257,14 +258,13 @@ The receiving node:
 
 #### Rationale
 
+There used to be two feature bitfields here, but for backwards compatibility they're now
+combined into one.
+
 This semantic allows both future incompatible changes and future backward compatible changes. Bits should generally be assigned in pairs, in order that optional features may later become compulsory.
 
 Nodes wait for receipt of the other's features to simplify error
 diagnosis when features are incompatible.
-
-The feature masks are split into local features (which only affect the
-protocol between these two nodes) and global features (which can affect
-HTLCs and are thus also advertised to other nodes).
 
 ### The `error` Message
 
