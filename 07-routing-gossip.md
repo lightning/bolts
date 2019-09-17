@@ -188,9 +188,7 @@ The receiving node:
   - MUST verify the integrity AND authenticity of the message by verifying the
   signatures.
   - if there is an unknown even bit in the `features` field:
-    - MUST NOT parse the remainder of the message.
-    - MUST NOT add the channel to its local network view.
-    - SHOULD NOT forward the announcement.
+    - MUST NOT attempt to route messages through the channel.
   - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using
     `bitcoin_key_1` and `bitcoin_key_2`, as specified in
     [BOLT #3](03-transactions.md#funding-transaction-output)) OR the output is
@@ -244,8 +242,6 @@ New channel features are possible in the future: backwards compatible (or
 optional) features will have _odd_ feature bits, while incompatible features
 will have _even_ feature bits
 (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
-Incompatible features will result in the announcement not being forwarded by
-nodes that do not understand them.
 
 ## The `node_announcement` Message
 
@@ -326,11 +322,7 @@ any future fields appended to the end):
     - SHOULD fail the connection.
     - MUST NOT process the message further.
   - if `features` field contains _unknown even bits_:
-    - MUST NOT parse the remainder of the message.
-    - MAY discard the message altogether.
     - SHOULD NOT connect to the node.
-  - MAY forward `node_announcement`s that contain an _unknown_ `features` _bit_,
-  regardless of if it has parsed the announcement or not.
   - SHOULD ignore the first `address descriptor` that does NOT match the types
   defined above.
   - if `addrlen` is insufficient to hold the address descriptors of the
@@ -354,8 +346,9 @@ any future fields appended to the end):
 
 New node features are possible in the future: backwards compatible (or
 optional) ones will have _odd_ `feature` _bits_, incompatible ones will have
-_even_ `feature` _bits_. These may be propagated by nodes even if they
-cannot process the announcements themselves.
+_even_ `feature` _bits_. These will be propagated normally; incompatible
+feature bits here refer to the nodes, not the `node_announcement` message
+itself.
 
 New address types may be added in the future; as address descriptors have
 to be ordered in ascending order, unknown ones can be safely ignored.
