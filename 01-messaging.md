@@ -221,7 +221,8 @@ The `features` field MUST be padded to bytes with 0s.
 
 1. type: 16 (`init`)
 2. data:
-   * [`u16`:`mbz`]
+   * [`u16`:`ignorelen`]
+   * [`ignorelen*byte`:`ignore`]
    * [`u16`:`flen`]
    * [`flen*byte`:`features`]
 
@@ -230,7 +231,7 @@ The `features` field MUST be padded to bytes with 0s.
 
 The sending node:
   - MUST send `init` as the first Lightning message for any connection.
-  - MUST set `mbz` to zero.
+  - MUST set `ignorelen` to zero.
   - MUST set feature bits as defined in [BOLT #9](09-features.md).
   - MUST set any undefined feature bits to 0.
   - SHOULD use the minimum length required to represent the `feature` field.
@@ -244,6 +245,8 @@ The receiving node:
     - MUST fail the connection.
 
 #### Rationale
+
+There used to be two feature bitfields here, but the first is now ignored.
 
 This semantic allows both future incompatible changes and future backward compatible changes. Bits should generally be assigned in pairs, in order that optional features may later become compulsory.
 
