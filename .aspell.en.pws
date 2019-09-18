@@ -386,3 +386,4 @@ csv
 CHECKSIGVERIFY
 IFDUP
 sats
+anysegwit
