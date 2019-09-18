@@ -234,7 +234,7 @@ The sending node:
   - MUST set `ignorelen` to zero.
   - MUST set feature bits as defined in [BOLT #9](09-features.md).
   - MUST set any undefined feature bits to 0.
-  - SHOULD use the minimum length required to represent the `feature` field.
+  - SHOULD use the minimum length required to represent the `features` field.
 
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
