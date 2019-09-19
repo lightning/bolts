@@ -603,6 +603,7 @@ Nodes can signal that they support extended gossip queries with the `gossip_quer
 2. types:
     1. type: 1 (`query_flags`)
     2. data:
+        * [`u8`:`encoding_type`]
         * [`...*byte`:`encoded_query_flags`]
 
 `encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
@@ -732,6 +733,7 @@ Though it is possible, it would not be very useful to ask for checksums without 
 2. types:
     1. type: 1 (`timestamps_tlv`)
     2. data:
+	    * [`u8`:`encoding_type`]
         * [`...*byte`:`encoded_timestamps`]
     1. type: 3 (`checksums_tlv`)
     2. data:
