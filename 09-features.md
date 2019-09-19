@@ -18,7 +18,6 @@ features may be required for opening a channel, but not a requirement
 for use of the channel, so the presentation of those features depends
 on the feature itself.
 
-
 The Context column decodes as follows:
 * `I`: presented in the `init` message.
 * `N`: presented in the `node_announcement` messages
@@ -38,7 +37,7 @@ The Context column decodes as follows:
 | 12/13 | `option_static_remotekey`        | Static key for remote output                              | IN       |                   | [BOLT #3](03-transactions.md)         |
 | 14/15 | `payment_secret`                 | Node supports `payment_secret` field                      | IN9      | `var_onion_optin` | [Routing Onion Specification][bolt04] |
 | 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | `payment_secret`  | [BOLT #4][bolt04-mpp]                 |
-| 17/18 | `option_dual_fund`               | Use v2 of channel open, enables dual funding              | IN9      |                   | [BOLT #2](02-peer-protocol.md)        |
+| 28/29 | `option_dual_fund`               | Use v2 of channel open, enables dual funding              | IN9      |                   | [BOLT #2](02-peer-protocol.md)        |
 
 ## Requirements
 
