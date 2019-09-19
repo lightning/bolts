@@ -728,7 +728,7 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`len*byte`:`encoded_short_ids`]
     * [`reply_channel_range_tlvs`:`tlvs`]
 
-1. tlvs: `query_channel_range_tlvs`
+1. tlvs: `reply_channel_range_tlvs`
 2. types:
     1. type: 1 (`timestamps_tlv`)
     2. data:
