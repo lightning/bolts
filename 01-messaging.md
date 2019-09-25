@@ -158,7 +158,7 @@ structs, should do so by defining the encoding such that the object is
 serialized within a single `tlv_record`. The uniqueness constraint, among other
 things, enables the following optimizations:
  - canonical ordering is defined independent of the encoded `value`s.
- - canonical ordering can be known at compile-time, rather that being determined
+ - canonical ordering can be known at compile-time, rather than being determined
    dynamically at the time of encoding.
  - verifying canonical ordering requires less state and is less-expensive.
  - variable-size fields can reserve their expected size up front, rather than

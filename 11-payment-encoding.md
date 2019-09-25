@@ -285,9 +285,9 @@ but it's worth noting that [BOLT #4](04-onion-routing.md#requirements-2) specifi
 accept up to twice the expected `amount`, so the payer can make
 payments harder to track by adding small variations.
 
-The intent is that the payer recover the payee's node ID from the
+The intent is that the payer recovers the payee's node ID from the
 signature, and after checking that conditions such as fees,
-expiry, and block timeout are acceptable, attempt a payment. It can use `r` fields to
+expiry, and block timeout are acceptable, attempts a payment. It can use `r` fields to
 augment its routing information, if necessary to reach the final node.
 
 If the payment succeeds but there is a later dispute, the payer can

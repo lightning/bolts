@@ -472,7 +472,7 @@ The origin node:
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
   settlement).
-    - MAY sent a subsequent `channel_update` with the `disable` bit  set to 0 to
+    - MAY sent a subsequent `channel_update` with the `disable` bit set to 0 to
     re-enable the channel.
   - MUST set `timestamp` to greater than 0, AND to greater than any
   previously-sent `channel_update` for this `short_channel_id`.
@@ -581,7 +581,7 @@ Note that a 65535-byte zlib message can decompress into 67632120
 bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
 across the stream: as each duplicate takes at least 2 bits, no valid
-contents could decompress to more then 3669960 bytes.
+contents could decompress to more than 3669960 bytes.
 
 Query messages can be extended with optional fields that can help reduce the number of messages needed to synchronize routing tables by enabling:
 
