@@ -401,6 +401,8 @@ This message indicates that the funding transaction has reached the `minimum_dep
 #### Requirements
 
 The sender MUST:
+  - NOT send `funding_locked` unless outpoint of given by `funding_txid` and
+   `funding_output_index` in the `funding_created` message pays exactly `funding_satoshis` to the scriptpubkey specified in [BOLT #3](03-transactions.md#funding-transaction-output).
   - wait until the funding transaction has reached
 `minimum_depth` before sending this message.
   - set `next_per_commitment_point` to the
@@ -409,7 +411,7 @@ transaction, derived as specified in
 [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
 A non-funding node (fundee):
-  - SHOULD forget the channel if it does not see the
+  - SHOULD forget the channel if it does not see the correct
 funding transaction after a reasonable timeout.
 
 From the point of waiting for `funding_locked` onward, either node MAY
