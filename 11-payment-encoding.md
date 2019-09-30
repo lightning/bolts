@@ -35,10 +35,12 @@ encoding.
 
 A writer:
    - MUST encode the payment request in Bech32 (see BIP-0173)
+   - SHOULD use upper case for QR codes (see BIP-0173)
    - MAY exceed the 90-character limit specified in BIP-0173.
 
 A reader:
   - MUST parse the address as Bech32, as specified in BIP-0173 (also without the character limit).
+	- Note: this includes handling uppercase as specified by BIP-0173
   - if the checksum is incorrect:
     - MUST fail the payment.
 
