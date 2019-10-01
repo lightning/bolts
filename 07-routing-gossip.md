@@ -645,6 +645,7 @@ The sender:
     - MUST set `encoding_type`, as for `encoded_short_ids`.
     - Each query flag is a minimally-encoded varint.
     - MUST encode one query flag per `short_channel_id`.
+  - MAY fail the connection if it receives a `reply_short_channel_ids_end` with `complete` to `0`.
 
 The receiver:
   - if the first byte of `encoded_short_ids` is not a known encoding type:
@@ -773,7 +774,8 @@ The sender of `query_channel_range`:
   that it wants the `reply_channel_range` to refer to
   - MUST set `first_blocknum` to the first block it wants to know channels for
   - MUST set `number_of_blocks` to 1 or greater.
-  - MAY append an additional `query_channel_range_tlv`, which specifies the type of extended information it would like to receive.  
+  - MAY append an additional `query_channel_range_tlv`, which specifies the type of extended information it would like to receive.
+  - MAY fail the connection if it receives a `reply_channel_range` with `complete` to `0` and `len` to `0`.
 
 The receiver of `query_channel_range`:
   - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
@@ -787,7 +789,7 @@ The receiver of `query_channel_range`:
     - MUST limit `number_of_blocks` to the maximum number of blocks whose
       results could fit in `encoded_short_ids`
     - if does not maintain up-to-date channel information for `chain_hash`:
-      - MUST set `complete` to 0.
+      - MUST set `complete` to 0 and `len` to 0.
     - otherwise:
       - SHOULD set `complete` to 1.
 
