@@ -24,6 +24,7 @@ operation, and closing.
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
+      * [Assigning Random `short_channel_id`](#assigning-random-short-channel-id)
     * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
   * [Authors](#authors)
 
@@ -178,10 +179,21 @@ third parties.
 `first_per_commitment_point` is the per-commitment point to be used
 for the first commitment transaction,
 
-Only the least-significant bit of `channel_flags` is currently
-defined: `announce_channel`. This indicates whether the initiator of
+The following table specifies the meaning of individual `channel_flags` bits:
+
+| Bit Position  | Name               |
+| ------------- | ------------------ |
+| 0             | `announce_channel` |
+| 1             | `disable_incoming` |
+
+`announce_channel` indicates whether the initiator of
 the funding flow wishes to advertise this channel publicly to the
 network, as detailed within [BOLT #7](07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
+
+`disable_incoming` indicates that no payments are to be accepted for this
+channel: this is only effective if `announce_channel` is not set, and the
+recipient offers `option_scid_assign`.  See [Assigning Random
+`short_channel_id`](#assigning-random-short-channel-id).
 
 The `shutdown_scriptpubkey` allows the sending node to commit to where
 funds will go on mutual close, which the remote node should enforce
@@ -1105,6 +1117,75 @@ channel creation always pays the fees for the commitment transaction),
 it's simplest to only allow it to set fee levels; however, as the same
 fee rate applies to HTLC transactions, the receiving node must also
 care about the reasonableness of the fee.
+
+### Assigning Random `short_channel_id`
+
+To facilitate privacy of unannounced channels, peers can request a random
+short_channel_id to use which does not have any relationship to the actual
+channel funding transaction.  Note that these messages are all even, so it
+is illegal to send them to peers which do not offer `option_scid_assign`.
+
+1. type: 260 (`assign_scid`) (`option_scid_assign`)
+2. data:
+   * [`channel_id`:`channel_id`]
+
+1. type: 268 (`assign_scid_reply`) (`option_scid_assign`)
+   * [`channel_id`:`channel_id`]
+   * [`short_channel_id`:`short_channel_id`]
+
+1. type: 270 (`unassign_scid`) (`option_scid_assign`)
+2. data:
+   * [`channel_id`:`channel_id`]
+
+1. type: 272 (`unassign_scid_reply`) (`option_scid_assign`)
+   * [`channel_id`:`channel_id`]
+
+#### Requirements
+
+A sending node:
+  - if it did not offer `option_scid_assign`:
+    - MUST NOT send `assign_scid` or `unassign_scid`
+  - SHOULD remember the last `assign_scid_reply` `short_channel_id` for use in
+    receiving payments.
+  - MAY send `unassign_scid` when no invoices are pending, and send `assign_scid` when
+    it wants to create a new invoice and none are pending.
+
+A receiving node:
+  - on receiving `assign_scid`:
+    - MUST assign an unpredictable unique 64-bit number to this channel
+      (see [Assigned `short_channel_id` Forwarding](04-onion-routing.md#assigned-short_channel_id-forwarding)).
+	  and return it in an ``assign_scid_reply` message.
+	  - SHOULD ensure this does not conflict with future `short_channel_id`s.
+    - MUST discard any previous assigned `short_channel_id` for this channel
+  - on receiving `unassign_scid`:
+    - MUST discard any previous assigned `short_channel_id` for this channel
+	  - Note: it's not an error if there are no previous assignments.
+	- MUST reply with `unassign_scid_reply`.
+
+#### Rationale
+
+There are two ways of hiding a private channel's funding-transaction-derived
+`short_channel_id`.  The most thorough is `disable_incoming` which ensures
+that the private `short_channel_id` is never used for forwarding.  However,
+since channels may have been opened before `option_scid_assign` was
+implemented, assigning or unassigning a random short_channel_id has the same
+effect of disabling the original `short_channel_id`.  See [Assigned
+`short_channel_id` Forwarding](04-onion-routing.md#assigned-short_channel_id-forwarding).
+
+The space of short_channel_id is only 64 bits, so it's possible for an
+adversary to probe for them over time, using payment attempts.  Thus it's
+recommended that they only be assigned when they're actually likely to be
+used, and unassigned afterwards.
+
+If it were to conflict with a future `short_channel_id` for a real
+channel, misrouting may occur.  The simplest way to minimize this is
+to use old block numbers, but that also reduces the search space.
+Simpler is to select a random value which isn't already used, and
+close (before funding_locked) any future channel unfortunate enough to
+clash.
+
+Assigning and unassigning are idempotent, so can be safely retransmitted in
+case of packet loss.
 
 ## Message Retransmission
 

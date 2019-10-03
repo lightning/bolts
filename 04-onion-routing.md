@@ -50,6 +50,7 @@ A node:
   * [Packet Structure](#packet-structure)
     * [Payload for the Last Node](#payload-for-the-last-node)
   * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
+    * [Assigned `short_channel_id` Forwarding](#assigned-short_channel_id-forwarding)
   * [Shared Secret](#shared-secret)
   * [Blinding Ephemeral Keys](#blinding-ephemeral-keys)
   * [Packet Construction](#packet-construction)
@@ -283,6 +284,27 @@ compare its values against those of the HTLC. See the
 If not for the above, since it need not forward payments, the final node could
 simply discard its payload.
 
+## Payload for the Last Node
+
+When building the route, the origin node MUST use a payload for
+the final node with the following values:
+
+* `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
+  `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
+* `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
+  from a [BOLT #11](11-payment-encoding.md) payment invoice)
+
+This allows the final node to check these values and return errors if needed,
+but it also eliminates the possibility of probing attacks by the second-to-last
+node. Such attacks could, otherwise, attempt to discover if the receiving peer is the
+last one by re-sending HTLCs with different amounts/expiries.
+The final node will extract its onion payload from the HTLC it has received and
+compare its values against those of the HTLC. See the
+[Returning Errors](#returning-errors) section below for more details.
+
+If not for the above, since it need not forward payments, the final node could
+simply discard its payload.
+
 # Accepting and Forwarding a Payment
 
 Once a node has decoded the payload it either accepts the payment locally, or forwards it to the peer indicated as the next hop in the payload.
@@ -329,6 +351,23 @@ across all channels with the same peer.
 Alternatively, implementations may choose to apply non-strict forwarding only to
 like-policy channels to ensure their expected fee revenue does not deviate by
 using an alternate channel.
+
+## Assigned `short_channel_id` Forwarding
+
+A node SHOULD forward an HTLC to an outgoing channel if the
+`short_channel_id` matches the `short_channel_id` given in the latest
+`assign_scid_reply` message for that channel.
+
+### Rationale
+
+Private channels can hide their actual funding transaction information
+by having their peer assign a (random) short_channel_id for their use
+(i.e. in BOLT 11 invoices), if `option_scid_assign` is offered by the
+peer.
+
+Note the requirements in [Failure Messages](#failure-messages) which
+disable the use of the original `short_channel_id` once assigned
+`short_channel_id`s are used.
 
 # Shared Secret
 
@@ -783,7 +822,9 @@ the onion.
 1. type: PERM|10 (`unknown_next_peer`)
 
 The onion specified a `short_channel_id` which doesn't match any
-leading from the processing node.
+leading from the processing node, or it's the funding-transaction-based
+`short_channel_id` for a private channel which has
+`disable_incoming` set or has a random `short_channel_id` assigned.
 
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
@@ -927,6 +968,12 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
     - return a `required_channel_feature_missing` error.
   - if the receiving peer specified by the onion is NOT known:
     - return an `unknown_next_peer` error.
+  - if it supports `option_scid_assign` and the `short_channel_id` is the
+    funding-transaction-based `short_channel_id` of a channel opened with
+    `announce_channel` `false`:
+	- if the peer opened or accepted the channel with `disable_incoming` `true` or
+      this node has ever sent the peer `assign_scid_reply` or `unassign_scid_reply`:
+      - MUST return an `unknown_next_peer` error.
   - if the HTLC amount is less than the currently specified minimum amount:
     - report the amount of the outgoing HTLC and the current channel setting for
     the outgoing channel.

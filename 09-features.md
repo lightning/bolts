@@ -28,6 +28,7 @@ These flags may only be used in the `init` message:
 | 6/7   | `gossip_queries`                 | More sophisticated gossip control                                         | [BOLT #7][bolt07-query]      |
 | 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information                         | [BOLT #7][bolt07-query]      |
 | 12/13| `option_static_remotekey`     | Static key for remote output                                              | [BOLT #3](03-transactions.md)    |
+| 114/115| `option_scid_assign`              | Random short-channel-id assignment                                        | [BOLT #2](bolt03-assign-scid)|
 
 ## Assigned `globalfeatures` flags
 
