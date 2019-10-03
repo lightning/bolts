@@ -6,9 +6,8 @@ This document describes the construction of an onion routed packet that is
 used to route a payment from an _origin node_ to a _final node_. The packet
 is routed through a number of intermediate nodes, called _hops_.
 
-The routing schema is based on the
-[Sphinx](http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf)
-construction and is extended with a per-hop payload.
+The routing schema is based on the [Sphinx][sphinx] construction and is
+extended with a per-hop payload.
 
 Intermediate nodes forwarding the message can verify the integrity of
 the packet and can learn which node they should forward the
@@ -59,12 +58,6 @@ A node:
     * [Failure Messages](#failure-messages)
     * [Receiving Failure Codes](#receiving-failure-codes)
   * [Test Vector](#test-vector)
-    * [Packet Creation](#packet-creation)
-      * [Parameters](#parameters)
-      * [Per-Hop Information](#per-hop-information)
-      * [Per-Packet Information](#per-packet-information)
-      * [Wrapping the Onion](#wrapping-the-onion)
-      * [Final Packet](#final-packet)
     * [Returning Errors](#returning-errors)
   * [References](#references)
   * [Authors](#authors)
@@ -73,42 +66,39 @@ A node:
 
 There are a number of conventions adhered to throughout this document:
 
- - Length: the maximum route length is limited to 20 hops.
  - HMAC: the integrity verification of the packet is based on Keyed-Hash
- Message Authentication Code, as defined by the
- [FIPS 198 Standard](http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf)/[RFC 2104](https://tools.ietf.org/html/rfc2104),
- and using a `SHA256` hashing algorithm.
- - Elliptic curve: for all computations involving elliptic curves, the
-   Bitcoin curve is used, as specified in [`secp256k1`](http://www.secg.org/sec2-v2.pdf).
- - Pseudo-random stream: [`ChaCha20`](https://tools.ietf.org/html/rfc7539) is
- used to generate a pseudo-random byte stream. For its generation, a fixed
- null-nonce (`0x0000000000000000`) is used, along with a key derived from a
- shared secret and with a `0x00`-byte stream of the desired output size as the
- message.
-
+   Message Authentication Code, as defined by the [FIPS 198
+   Standard][fips198]/[RFC 2104][RFC2104], and using a `SHA256` hashing
+   algorithm.
+ - Elliptic curve: for all computations involving elliptic curves, the Bitcoin
+   curve is used, as specified in [`secp256k1`][sec2]
+ - Pseudo-random stream: [`ChaCha20`][rfc7539] is used to generate a
+   pseudo-random byte stream. For its generation, a fixed null-nonce
+   (`0x0000000000000000`) is used, along with a key derived from a shared
+   secret and with a `0x00`-byte stream of the desired output size as the
+   message.
  - The terms _origin node_ and _final node_ refer to the initial packet sender
- and the final packet recipient, respectively.
+   and the final packet recipient, respectively.
  - The terms _hop_ and _node_ are sometimes used interchangeably, but a _hop_
- usually refers to an intermediate node in the route rather than an end node.
+   usually refers to an intermediate node in the route rather than an end node.
         _origin node_ --> _hop_ --> ... --> _hop_ --> _final node_
  - The term _processing node_ refers to the specific node along the route that is
- currently processing the forwarded packet.
+   currently processing the forwarded packet.
  - The term _peers_ refers only to hops that are direct neighbors (in the
- overlay network): more specifically, _sending peers_ forward packets to
- _receiving peers_.
-        _sending peer_ --> _receiving peer_
-
-
-# Clarifications
-
-The longest route supported has 20 hops without counting the _origin node_ and _final node_, thus 19 _intermediate nodes_ and a maximum of 20 channels to be traversed.
+   overlay network): more specifically, _sending peers_ forward packets
+   to _receiving peers_.
+ - Each hop in the route has a variable length `hop_payload`, or a fixed-size
+   legacy `hop_data` payload.
+    - The legacy `hop_data` is identified by a single `0x00`-byte prefix
+	- The variable length `hop_payload` is prefixed with a `varint` encoding
+      the length in bytes, excluding the prefix and the trailing HMAC.
 
 # Key Generation
 
 A number of encryption and verification keys are derived from the shared secret:
 
  - _rho_: used as key when generating the pseudo-random byte stream that is used
- to obfuscate the per-hop information
+   to obfuscate the per-hop information
  - _mu_: used during the HMAC generation
  - _um_: used during error reporting
 
@@ -139,9 +129,9 @@ The packet consists of four sections:
 
  - a `version` byte
  - a 33-byte compressed `secp256k1` `public_key`, used during the shared secret
- generation
- - a 1300-byte `hops_data` consisting of twenty fixed-size packets, each containing
- information to be used by its associated hop during message forwarding
+   generation
+ - a 1300-byte `hop_payloads` consisting of multiple, variable length,
+   `hop_payload` payloads or up to 20 fixed sized legacy `hop_data` payloads.
  - a 32-byte `HMAC`, used to verify the packet's integrity
 
 The network format of the packet consists of the individual sections
@@ -153,53 +143,52 @@ The overall structure of the packet is as follows:
 
 1. type: `onion_packet`
 2. data:
-   * [`1`:`version`]
-   * [`33`:`public_key`]
-   * [`20*65`:`hops_data`]
-   * [`32`:`hmac`]
+   * [`byte`:`version`]
+   * [`point`:`public_key`]
+   * [`1300*byte`:`hop_payloads`]
+   * [`32*byte`:`hmac`]
 
 For this specification (_version 0_), `version` has a constant value of `0x00`.
 
-The `hops_data` field is a structure that holds obfuscations of the next hop's
-address, transfer information, and its associated HMAC. It is 1300 bytes (`20x65`) long
-and has the following structure:
+The `hop_payloads` field is a structure that holds obfuscated routing information, and associated HMAC.
+It is 1300 bytes long and has the following structure:
 
-1. type: `hops_data`
+1. type: `hop_payloads`
 2. data:
-   * [`1`:`realm`]
-   * [`32`:`per_hop`]
-   * [`32`:`HMAC`]
+   * [`varint`:`length`]
+   * [`hop_payload_length`:`hop_payload`]
+   * [`32*byte`:`HMAC`]
    * ...
    * `filler`
 
-Where, the `realm`, `per_hop` (with contents dependent on `realm`), and `HMAC`
-are repeated for each hop; and where, `filler` consists of obfuscated,
-deterministically-generated padding, as detailed in
-[Filler Generation](#filler-generation). Additionally, `hops_data` is
-incrementally obfuscated at each hop.
+Where, the `length`, `hop_payload` (with contents dependent on `length`), and `HMAC` are repeated for each hop;
+and where, `filler` consists of obfuscated, deterministically-generated padding, as detailed in [Filler Generation](#filler-generation).
+Additionally, `hop_payloads` is incrementally obfuscated at each hop.
 
-The `realm` byte determines the format of the `per_hop` field; currently, only `realm`
-0 is defined, for which the `per_hop` format follows:
+Using the `hop_payload` field, the origin node is able to specify the path and structure of the HTLCs forwarded at each hop.
+As the `hop_payload` is protected under the packet-wide HMAC, the information it contains is fully authenticated with each pair-wise relationship between the HTLC sender (origin node) and each hop in the path.
 
-1. type: `per_hop` (for `realm` 0)
+Using this end-to-end authentication, each hop is able to cross-check the HTLC
+parameters with the `hop_payload`'s specified values and to ensure that the
+sending peer hasn't forwarded an ill-crafted HTLC.
+
+The `length` field determines both the length and the format of the `hop_payload` field; the following formats are defined:
+
+ - Legacy `hop_data` format, identified by a single `0x00` byte for length. In this case the `hop_payload_length` is defined to be 32 bytes.
+ - `tlv_payload` format, identified by any length over `1`. In this case the `hop_payload_length` is equal to the numeric value of `length`.
+ - A single `0x01` byte for length is reserved for future use to signal a different payload format. This is safe since no TLV value can ever be shorter than 2 bytes. In this case the `hop_payload_length` MUST be defined in the future specification making use of this `length`.
+
+## Legacy `hop_data` payload format
+
+The `hop_data` format is identified by a single `0x00`-byte length, for backward compatibility.
+Its payload is defined as:
+
+1. type: `hop_data` (for `realm` 0)
 2. data:
-   * [`8`:`short_channel_id`]
-   * [`8`:`amt_to_forward`]
-   * [`4`:`outgoing_cltv_value`]
-   * [`12`:`padding`]
-
-Using the `per_hop` field, the origin node is able to precisely specify the path and
-structure of the HTLCs forwarded at each hop. As the `per_hop` is protected
-under the packet-wide HMAC, the information it contains is fully authenticated
-with each pair-wise relationship between the HTLC sender (origin node) and each
-hop in the path.
-
-Using this end-to-end authentication,
-each
-hop is able to
-cross-check the HTLC parameters with the `per_hop`'s specified values
-and to ensure that the sending peer hasn't forwarded an
-ill-crafted HTLC.
+   * [`short_channel_id`:`short_channel_id`]
+   * [`u64`:`amt_to_forward`]
+   * [`u32`:`outgoing_cltv_value`]
+   * [`12*byte`:`padding`]
 
 Field descriptions:
 
@@ -215,7 +204,7 @@ Field descriptions:
      then the HTLC should be rejected as it would indicate that a prior hop has
      deviated from the specified parameters:
 
-        incoming_htlc_amt - fee >= amt_to_forward
+          incoming_htlc_amt - fee >= amt_to_forward
 
      Where `fee` is either calculated according to the receiving peer's advertised fee
      schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
@@ -224,7 +213,7 @@ Field descriptions:
    * `outgoing_cltv_value`: The CLTV value that the _outgoing_ HTLC carrying
      the packet should have.
 
-        cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
+          cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
 
      Inclusion of this field allows a hop to both authenticate the information
      specified by the origin node, and the parameters of the HTLC forwarded,
@@ -238,18 +227,50 @@ Field descriptions:
      leaking its position in the route.
 
    * `padding`: This field is for future use and also for ensuring that future non-0-`realm`
-     `per_hop`s won't change the overall `hops_data` size.
+     `hop_data`s won't change the overall `hop_payloads` size.
 
-When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified within
-`per_hop` above; otherwise, deviation from the specified HTLC parameters
-may lead to extraneous routing failure.
+When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified
+within `hop_data` above; otherwise, deviation from the specified HTLC
+parameters may lead to extraneous routing failure.
+
+### `tlv_payload` payload format
+
+This is a more flexible format, which avoids the redundant `short_channel_id` field for the final node. 
+
+1. tlvs: `tlv_payload`
+2. types:
+    1. type: 2 (`amt_to_forward`)
+    2. data:
+        * [`tu64`:`amt_to_forward`]
+    1. type: 4 (`outgoing_cltv_value`)
+    2. data:
+        * [`tu32`:`outgoing_cltv_value`]
+    1. type: 6 (`short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`short_channel_id`]
+
+### Requirements
+
+The writer:
+  - MUST include `amt_to_forward` and `outgoing_cltv_value` for every node.
+  - MUST include `short_channel_id` for every non-final node.
+  - MUST NOT include `short_channel_id` for the final node.
+
+The reader:
+  - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
+
+The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format).
+
+# Accepting and Forwarding a Payment
+
+Once a node has decoded the payload it either accepts the payment locally, or forwards it to the peer indicated as the next hop in the payload.
 
 ## Non-strict Forwarding
 
 A node MAY forward an HTLC along an outgoing channel other than the one
 specified by `short_channel_id`, so long as the receiver has the same node
 public key intended by `short_channel_id`. Thus, if `short_channel_id` connects
-nodes A and B, the HTLC can forwarded across any channel connecting A and B.
+nodes A and B, the HTLC can be forwarded across any channel connecting A and B.
 Failure to adhere will result in the receiver being unable to decrypt the next
 hop in the onion packet.
 
@@ -291,8 +312,11 @@ using an alternate channel.
 
 When building the route, the origin node MUST use a payload for
 the final node with the following values:
-* `outgoing_cltv_value`: set to the final expiry specified by the recipient
-* `amt_to_forward`: set to the final amount specified by the recipient
+
+* `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
+  `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
+* `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
+  from a [BOLT #11](11-payment-encoding.md) payment invoice)
 
 This allows the final node to check these values and return errors if needed,
 but it also eliminates the possibility of probing attacks by the second-to-last
@@ -326,7 +350,7 @@ the same value.
 
 In order to ensure multiple hops along the route cannot be linked by the
 ephemeral public keys they see, the key is blinded at each hop. The blinding is
-done in a deterministic way that the allows the sender to compute the
+done in a deterministic way that allows the sender to compute the
 corresponding blinded private keys during packet construction.
 
 The blinding of an EC public key is a single scalar multiplication of
@@ -336,7 +360,7 @@ the multiplicative product of the input's corresponding private key with the
 same blinding factor.
 
 The blinding factor itself is computed as a function of the ephemeral public key
-and the 32-byte shared secret. Concretely, is the `SHA256` hash value of the
+and the 32-byte shared secret. Concretely, it is the `SHA256` hash value of the
 concatenation of the public key serialized in its compressed format and the
 shared secret.
 
@@ -372,38 +396,37 @@ shared secret `ss_k` and ephemeral key for the next hop `ek_{k+1}` as follows:
 Once the sender has all the required information above, it can construct the
 packet. Constructing a packet routed over `r` hops requires `r` 32-byte
 ephemeral public keys, `r` 32-byte shared secrets, `r` 32-byte blinding factors,
-and `r` 65-byte `per_hop` payloads. The construction returns a single 1366-byte
-packet along with the first receiving peer's address.
+and `r` variable length `hop_payload` payloads.
+The construction returns a single 1366-byte packet along with the first receiving peer's address.
 
 The packet construction is performed in the reverse order of the route, i.e.
 the last hop's operations are applied first.
 
 The packet is initialized with 1366 `0x00`-bytes.
 
-A 65-byte filler is generated (see [Filler Generation](#filler-generation))
-using the shared secret.
+A filler is generated (see [Filler Generation](#filler-generation)) using the shared secret.
 
 For each hop in the route, in reverse order, the sender applies the
 following operations:
 
  - The _rho_-key and _mu_-key are generated using the hop's shared secret.
- - The `hops_data` field is right-shifted by 65 bytes, discarding the last 65
+ - `shift_size` is defined as the length of the `hop_payload` plus the varint encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the varint encoding of `l`.
+ - The `hop_payload` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
  bytes that exceed its 1300-byte size.
- - The `version`, `short_channel_id`, `amt_to_forward`, `outgoing_cltv_value`,
-   `padding`, and `HMAC` are copied into the following 65 bytes.
+ - The varint-serialized length, serialized `hop_payload` and `HMAC` are copied into the following `shift_size` bytes.
  - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
- which is then applied, with `XOR`, to the `hops_data` field.
+ which is then applied, with `XOR`, to the `hop_payloads` field.
  - If this is the last hop, i.e. the first iteration, then the tail of the
- `hops_data` field is overwritten with the routing information `filler`.
+ `hop_payloads` field is overwritten with the routing information `filler`.
  - The next HMAC is computed (with the _mu_-key as HMAC-key) over the
- concatenated `hops_data` and associated data.
+ concatenated `hop_payloads` and associated data.
 
 The resulting final HMAC value is the HMAC that will be used by the first
 receiving peer in the route.
 
 The packet generation returns a serialized packet that contains the `version`
 byte, the ephemeral pubkey for the first hop, the HMAC for the first hop, and
-the obfuscated `hops_data`.
+the obfuscated `hop_payloads`.
 
 The following Go code is an example implementation of the packet construction:
 
@@ -508,7 +531,7 @@ necessary, in order to constrain the worst-case storage requirements or false
 positives of this log.
 
 Next, the processing node uses the shared secret to compute a _mu_-key, which it
-in turn uses to compute the HMAC of the `hops_data`. The resulting HMAC is then
+in turn uses to compute the HMAC of the `hop_payloads`. The resulting HMAC is then
 compared against the packet's HMAC.
 
 Comparison of the computed HMAC and the packet's HMAC MUST be
@@ -518,20 +541,17 @@ At this point, the processing node can generate a _rho_-key and a _gamma_-key.
 
 The routing information is then deobfuscated, and the information about the
 next hop is extracted.
-To do so, the processing node copies the `hops_data` field, appends 65 `0x00`-bytes,
-generates 1365 pseudo-random bytes (using the _rho_-key), and applies the result
-,using `XOR`, to the copy of the `hops_data`.
-The first 65 bytes of the resulting routing information become the `per_hop`
-field used for the next hop. The next 1300 bytes are the `hops_data` for the
-outgoing packet.
+To do so, the processing node copies the `hop_payloads` field, appends 1300 `0x00`-bytes,
+generates `2*1300` pseudo-random bytes (using the _rho_-key), and applies the result, using `XOR`, to the copy of the `hop_payloads`.
+The first few bytes correspond to the varint-encoded length `l` of the `hop_payload`, followed by `l` bytes of the resulting routing information become the `hop_payload`, and the 32 byte HMAC.
+The next 1300 bytes are the `hop_payloads` for the outgoing packet.
 
-A special `per_hop` `HMAC` value of 32 `0x00`-bytes indicates that the currently
-processing hop is the intended recipient and that the packet should not be forwarded.
+A special `HMAC` value of 32 `0x00`-bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
 
 If the HMAC does not indicate route termination, and if the next hop is a peer of the
 processing node; then the new packet is assembled. Packet assembly is accomplished
 by blinding the ephemeral key with the processing node's public key, along with the
-shared secret, and by serializing the `hops_data`.
+shared secret, and by serializing the `hop_payloads`.
 The resulting packet is then forwarded to the addressed peer.
 
 ## Requirements
@@ -569,17 +589,17 @@ Since the padding is part of the HMAC, the origin node will have to pre-generate
 identical padding (to that which each hop will generate) in order to compute the
 HMACs correctly for each hop.
 The filler is also used to pad the field-length, in the case that the selected
-route is shorter than the maximum allowed route length of 20.
+route is shorter than 1300 bytes.
 
-Before deobfuscating the `hops_data`, the processing node pads it with 65
-`0x00`-bytes, such that the total length is `(20 + 1) * 65`.
+Before deobfuscating the `hop_payloads`, the processing node pads it with 1300
+`0x00`-bytes, such that the total length is `2*1300`.
 It then generates the pseudo-random byte stream, of matching length, and applies
-it with `XOR` to the `hops_data`.
+it with `XOR` to the `hop_payloads`.
 This deobfuscates the information destined for it, while simultaneously
 obfuscating the added `0x00`-bytes at the end.
 
 In order to compute the correct HMAC, the origin node has to pre-generate the
-`hops_data` for each hop, including the incrementally obfuscated padding added
+`hop_payloads` for each hop, including the incrementally obfuscated padding added
 by each hop. This incrementally obfuscated padding is referred to as the
 `filler`.
 
@@ -637,11 +657,11 @@ The node generating the error message (_erring node_) builds a return packet
 consisting of the following fields:
 
 1. data:
-   * [`32`:`hmac`]
-   * [`2`:`failure_len`]
-   * [`failure_len`:`failuremsg`]
-   * [`2`:`pad_len`]
-   * [`pad_len`:`pad`]
+   * [`32*byte`:`hmac`]
+   * [`u16`:`failure_len`]
+   * [`failure_len*byte`:`failuremsg`]
+   * [`u16`:`pad_len`]
+   * [`pad_len*byte`:`pad`]
 
 Where `hmac` is an HMAC authenticating the remainder of the packet, with a key
 generated using the above process, with key type `um`, `failuremsg` as defined
@@ -726,26 +746,26 @@ The processing node has a required feature which was not in this onion.
 
 1. type: BADONION|PERM|4 (`invalid_onion_version`)
 2. data:
-   * [`32`:`sha256_of_onion`]
+   * [`sha256`:`sha256_of_onion`]
 
 The `version` byte was not understood by the processing node.
 
 1. type: BADONION|PERM|5 (`invalid_onion_hmac`)
 2. data:
-   * [`32`:`sha256_of_onion`]
+   * [`sha256`:`sha256_of_onion`]
 
 The HMAC of the onion was incorrect when it reached the processing node.
 
 1. type: BADONION|PERM|6 (`invalid_onion_key`)
 2. data:
-   * [`32`:`sha256_of_onion`]
+   * [`sha256`:`sha256_of_onion`]
 
 The ephemeral key was unparsable by the processing node.
 
 1. type: UPDATE|7 (`temporary_channel_failure`)
 2. data:
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The channel from the processing node was unable to handle this HTLC,
 but may be able to handle it, or others, later.
@@ -766,27 +786,27 @@ leading from the processing node.
 
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
-   * [`8`:`htlc_msat`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u64`:`htlc_msat`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The HTLC amount was below the `htlc_minimum_msat` of the channel from
 the processing node.
 
 1. type: UPDATE|12 (`fee_insufficient`)
 2. data:
-   * [`8`:`htlc_msat`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u64`:`htlc_msat`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The fee amount was below that required by the channel from the
 processing node.
 
 1. type: UPDATE|13 (`incorrect_cltv_expiry`)
 2. data:
-   * [`4`:`cltv_expiry`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u32`:`cltv_expiry`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The `cltv_expiry` does not comply with the `cltv_expiry_delta` required by
 the channel from the processing node: it does not satisfy the following
@@ -796,54 +816,74 @@ requirement:
 
 1. type: UPDATE|14 (`expiry_too_soon`)
 2. data:
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The CLTV expiry is too close to the current block height for safe
 handling by the processing node.
 
 1. type: PERM|15 (`incorrect_or_unknown_payment_details`)
 2. data:
-   * [`8`:`htlc_msat`]
+   * [`u64`:`htlc_msat`]
+   * [`u32`:`height`]
 
-The `payment_hash` is unknown to the final node or the amount for that
-`payment_hash` is incorrect.
+The `payment_hash` is unknown to the final node, the amount for that
+`payment_hash` is incorrect or the CLTV expiry of the htlc is too close to the
+current block height for safe handling.
 
-Note: Originally PERM|16 (`incorrect_payment_amount`) was
-used to differentiate incorrect final amount from unknown payment
-hash. Sadly, sending this response allows for probing attacks whereby a node
-which receives an HTLC for forwarding can check guesses as to its final
-destination by sending payments with the same hash but much lower values to
-potential destinations and check the response.
+The `htlc_msat` parameter is superfluous, but left in for backwards
+compatibility. The value of `htlc_msat` always matches the amount specified in
+the final hop onion payload. It therefore does not have any informative value to
+the sender. A penultimate hop sending a different amount or expiry for the htlc
+is handled through `final_incorrect_cltv_expiry` and
+`final_incorrect_htlc_amount`.
 
-1. type: 17 (`final_expiry_too_soon`)
+The `height` parameter is set by the final node to the best known block height
+at the time of receiving the htlc. This can be used by the sender to distinguish
+between sending a payment with the wrong final CLTV expiry and an intermediate
+hop delaying the payment so that the receiver's invoice CLTV delta requirement
+is no longer met.
 
-The CLTV expiry is too close to the current block height for safe
-handling by the final node.
+Note: Originally PERM|16 (`incorrect_payment_amount`) and PERM|17
+(`final_expiry_too_soon`) were used to differentiate incorrect htlc parameters
+from unknown payment hash. Sadly, sending this response allows for probing
+attacks whereby a node which receives an HTLC for forwarding can check guesses
+as to its final destination by sending payments with the same hash but much
+lower values or expiry heights to potential destinations and check the response.
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
-   * [`4`:`cltv_expiry`]
+   * [`u32`:`cltv_expiry`]
 
 The CLTV expiry in the HTLC doesn't match the value in the onion.
 
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
-   * [`8`:`incoming_htlc_amt`]
+   * [`u64`:`incoming_htlc_amt`]
 
 The amount in the HTLC doesn't match the value in the onion.
 
 1. type: UPDATE|20 (`channel_disabled`)
 2. data:
-   * [`2`: `flags`]
-   * [`2`:`len`]
-   * [`len`:`channel_update`]
+   * [`u16`: `flags`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
 
 The channel from the processing node has been disabled.
 
 1. type: 21 (`expiry_too_far`)
 
 The CLTV expiry in the HTLC is too far in the future.
+
+1. type: PERM|22 (`invalid_onion_payload`)
+2. data:
+   * [`varint`:`type`]
+   * [`u16`:`offset`]
+
+The decrypted onion per-hop payload was not understood by the processing node
+or is incomplete. If the failure can be narrowed down to a specific tlv type in
+the payload, the erring node may include that `type` and its byte `offset` in
+the decrypted byte stream.
 
 ### Requirements
 
@@ -856,6 +896,9 @@ An _erring node_:
 Any _erring node_ MAY:
   - if the `realm` byte is unknown:
     - return an `invalid_realm` error.
+  - if the per-hop payload in the onion is invalid (e.g. it is not a valid tlv stream)
+  or is missing required information (e.g. the amount was not specified):
+    - return an `invalid_onion_payload` error.
   - if an otherwise unspecified transient error occurs for the entire node:
     - return a `temporary_node_failure` error.
   - if an otherwise unspecified permanent error occurs for the entire node:
@@ -922,7 +965,7 @@ An _intermediate hop_ MUST NOT, but the _final node_:
       altering the amount while not allowing for accidental gross overpayment.
   - if the `cltv_expiry` value is unreasonably near the present:
     - MUST fail the HTLC.
-    - MUST return a `final_expiry_too_soon` error.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
   the final node's HTLC:
     - MUST return `final_incorrect_cltv_expiry` error.
@@ -969,12 +1012,9 @@ The _origin node_:
 
 # Test Vector
 
-## Packet Creation
+## Returning Errors
 
-The following is an in-depth trace (including intermediate data) of an example
-of packet creation:
-
-### Parameters
+The test vectors use the following parameters:
 
 	pubkey[0] = 0x02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619
 	pubkey[1] = 0x0324653eac434488002cc06bbfb7f10fe18991e35f9fe4302dbea6d2353dc0ab1c
@@ -986,89 +1026,7 @@ of packet creation:
 	sessionkey = 0x4141414141414141414141414141414141414141414141414141414141414141
 	associated data = 0x4242424242424242424242424242424242424242424242424242424242424242
 
-The HMAC is omitted in the following `hop_data`, since it's likely to be filled
-by the onion construction. Hence, the values below are the `realm`, the
-`short_channel_id`, the `amt_to_forward`, the `outgoing_cltv`, and the 12-byte
-`padding`. They were initialized by byte-filling the `short_channel_id` to the
-each hop's respective position in the route and then, starting at 0, setting
-`amt_to_forward` and `outgoing_cltv` to the same route position.
-
-	hop_payload[0] = 0x000000000000000000000000000000000000000000000000000000000000000000
-	hop_payload[1] = 0x000101010101010101000000000000000100000001000000000000000000000000
-	hop_payload[2] = 0x000202020202020202000000000000000200000002000000000000000000000000
-	hop_payload[3] = 0x000303030303030303000000000000000300000003000000000000000000000000
-	hop_payload[4] = 0x000404040404040404000000000000000400000004000000000000000000000000
-
-### Per-Hop Information
-
-	hop_shared_secret[0] = 0x53eb63ea8a3fec3b3cd433b85cd62a4b145e1dda09391b348c4e1cd36a03ea66
-	hop_blinding_factor[0] = 0x2ec2e5da605776054187180343287683aa6a51b4b1c04d6dd49c45d8cffb3c36
-	hop_ephemeral_pubkey[0] = 0x02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619
-
-	hop_shared_secret[1] = 0xa6519e98832a0b179f62123b3567c106db99ee37bef036e783263602f3488fae
-	hop_blinding_factor[1] = 0xbf66c28bc22e598cfd574a1931a2bafbca09163df2261e6d0056b2610dab938f
-	hop_ephemeral_pubkey[1] = 0x028f9438bfbf7feac2e108d677e3a82da596be706cc1cf342b75c7b7e22bf4e6e2
-
-	hop_shared_secret[2] = 0x3a6b412548762f0dbccce5c7ae7bb8147d1caf9b5471c34120b30bc9c04891cc
-	hop_blinding_factor[2] = 0xa1f2dadd184eb1627049673f18c6325814384facdee5bfd935d9cb031a1698a5
-	hop_ephemeral_pubkey[2] = 0x03bfd8225241ea71cd0843db7709f4c222f62ff2d4516fd38b39914ab6b83e0da0
-
-	hop_shared_secret[3] = 0x21e13c2d7cfe7e18836df50872466117a295783ab8aab0e7ecc8c725503ad02d
-	hop_blinding_factor[3] = 0x7cfe0b699f35525029ae0fa437c69d0f20f7ed4e3916133f9cacbb13c82ff262
-	hop_ephemeral_pubkey[3] = 0x031dde6926381289671300239ea8e57ffaf9bebd05b9a5b95beaf07af05cd43595
-
-	hop_shared_secret[4] = 0xb5756b9b542727dbafc6765a49488b023a725d631af688fc031217e90770c328
-	hop_blinding_factor[4] = 0xc96e00dddaf57e7edcd4fb5954be5b65b09f17cb6d20651b4e90315be5779205
-	hop_ephemeral_pubkey[4] = 0x03a214ebd875aab6ddfd77f22c5e7311d7f77f17a169e599f157bbcdae8bf071f4
-
-### Per-Packet Information
-
-	filler = 0xc6b008cf6414ed6e4c42c291eb505e9f22f5fe7d0ecdd15a833f4d016ac974d33adc6ea3293e20859e87ebfb937ba406abd025d14af692b12e9c9c2adbe307a679779259676211c071e614fdb386d1ff02db223a5b2fae03df68d321c7b29f7c7240edd3fa1b7cb6903f89dc01abf41b2eb0b49b6b8d73bb0774b58204c0d0e96d3cce45ad75406be0bc009e327b3e712a4bd178609c00b41da2daf8a4b0e1319f07a492ab4efb056f0f599f75e6dc7e0d10ce1cf59088ab6e873de377343880f7a24f0e36731a0b72092f8d5bc8cd346762e93b2bf203d00264e4bc136fc142de8f7b69154deb05854ea88e2d7506222c95ba1aab065c8a851391377d3406a35a9af3ac
-
-### Wrapping the Onion
-
-	rhokey[4] = 0x034e18b8cc718e8af6339106e706c52d8df89e2b1f7e9142d996acf88df8799b
-	mukey[4] = 0x8e45e5c61c2b24cb6382444db6698727afb063adecd72aada233d4bf273d975a
-	routing_info[4] (unencrypted) = 0x00040404040404040400000000000000040000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-	routing_info[4] (encrypted) = 0xf6a9e85e5c6a0458c98282b782ffe8efb2f3f0e2cae0283a71aa4d873686d7efeac03dcb113fd91113df4bb5d5e8c13cde4bd12eced21d367381fdc31efe09695d6ecc095083c1571d10ed076ee914745479dfedcab84efd3889e6375f544562ea4a6522035738a9ba1a9ab4204339569d3d0c217324f1d5f3a107e930ade50b913777d1140096e2b26ce47486b66a6740f026ae91429115e17270c5a542b4c82ce438725060248726956e7639da64a55cec00b61719383271e0ab97dafe44ad194e7338ea841bf25a505d0041eb53dc0d0e6c3f7986f6647ede9327467212a3ca5724ece8503bfaba3800372d747abe2c174cbc2da01dd967fc0bae56d2bc7184e1d5d823661b8ff06eb466d483d6fa69a4f8b592ebc3006b7c047055b12407925ea74c2bb09ca21f4bc9d39dc4a7237ef6facbb15f5ba56d8e2ab94ad24267bf85cea55b0605cd6260b4b0f17994a03e39bebfcad0834849b188e83bf5c954dc112d33b0fada26f25d76d53ec9b95ed344059a279719d5edc953a4de2b1cc4f47d5da090c3b0f4c7eef14830f9a2230bffb722f11fd2ea82c43d58261e5a868361262abbd81b9f1e6145562ed6765aac732e7d91bfff7716509d72314d46904bcc8053cfd1e3cd7824b4b6499bf8c77762275fa4f651d163a8701f02a5ca67bb7d37787a66d269d4079aa92a489493020b11d87791a3e3ef66780bd0007c8fa2782bac7a839b57e8ace7618a75fe03604097960d2236616d579207fb943c85bef4f804e7f13d7d78ff3aab0f7f440a3005a363f32c31567b8d64669a7ae0299b06b80e4d224d2d70b80077ff966cfb8c11cf763954f398c592ca619acc2e0e86dad54b9cfa47bc10520f3c9ba2e0d2e27e0ba8ef8ece3e71c8a1ff75fe0c8369a3555e42db30565b2e12a8e862d0f873bd781ebf8255372e540bf6fbf4c1dae200823144f8da8df82ccd41b1b678eb91a289b88c6ee5aff71d98b64e8b17e2027fcb6826c418dbdb51f06bec866d69d9554931412808bd90021be2e0dad1d1ececfdd41fcdf6f67b88ef09eb9edcc4c226e07bdfe86b8e50e3bf68b19c0c9e0bf9aaaaddb15bc05a5666733789fa6efde866a49d0329185d852dc84a7e16c41f6c2daadc04665197152d9c0db63d0bd926c06bf3646b810186ae908a2f27a33d010b3262b0c0805c3adf135b41f15a033bb82a8db2c38160dbce672290878d7ad8d08fdd483ef9d95b3a1b2ea2b6ff0adde762e9df7b78fe5f3644df54c6d98709d70924ce6ec94650cb207b4f90d35569acb55811ad3f01b28bb2b16cfde454531b9462024abf419fb3bef80db9bb9fa5bd62a7e94f61a667e74140c8da4b27ad7b934c0824756fbc56f8ac7529fc4c5224158fd4915eba25a3f2a72a7f718a5cda6395bd8b2bc484a950aba483c8cadec376f9bee62c93f886d83371b41c361a36c15679ff933422e09c5eaf98d3c6b008cf6414ed6e4c42c291eb505e9f22f5fe7d0ecdd15a833f4d016ac974d33adc6ea3293e20859e87ebfb937ba406abd025d14af692b12e9c9c2adbe307a679779259676211c071e614fdb386d1ff02db223a5b2fae03df68d321c7b29f7c7240edd3fa1b7cb6903f89dc01abf41b2eb0b49b6b8d73bb0774b58204c0d0e96d3cce45ad75406be0bc009e327b3e712a4bd178609c00b41da2daf8a4b0e1319f07a492ab4efb056f0f599f75e6dc7e0d10ce1cf59088ab6e873de377343880f7a24f0e36731a0b72092f8d5bc8cd346762e93b2bf203d00264e4bc136fc142de8f7b69154deb05854ea88e2d7506222c95ba1aab065c8a851391377d3406a35a9af3ac
-	hmac_data[4] = 0xf6a9e85e5c6a0458c98282b782ffe8efb2f3f0e2cae0283a71aa4d873686d7efeac03dcb113fd91113df4bb5d5e8c13cde4bd12eced21d367381fdc31efe09695d6ecc095083c1571d10ed076ee914745479dfedcab84efd3889e6375f544562ea4a6522035738a9ba1a9ab4204339569d3d0c217324f1d5f3a107e930ade50b913777d1140096e2b26ce47486b66a6740f026ae91429115e17270c5a542b4c82ce438725060248726956e7639da64a55cec00b61719383271e0ab97dafe44ad194e7338ea841bf25a505d0041eb53dc0d0e6c3f7986f6647ede9327467212a3ca5724ece8503bfaba3800372d747abe2c174cbc2da01dd967fc0bae56d2bc7184e1d5d823661b8ff06eb466d483d6fa69a4f8b592ebc3006b7c047055b12407925ea74c2bb09ca21f4bc9d39dc4a7237ef6facbb15f5ba56d8e2ab94ad24267bf85cea55b0605cd6260b4b0f17994a03e39bebfcad0834849b188e83bf5c954dc112d33b0fada26f25d76d53ec9b95ed344059a279719d5edc953a4de2b1cc4f47d5da090c3b0f4c7eef14830f9a2230bffb722f11fd2ea82c43d58261e5a868361262abbd81b9f1e6145562ed6765aac732e7d91bfff7716509d72314d46904bcc8053cfd1e3cd7824b4b6499bf8c77762275fa4f651d163a8701f02a5ca67bb7d37787a66d269d4079aa92a489493020b11d87791a3e3ef66780bd0007c8fa2782bac7a839b57e8ace7618a75fe03604097960d2236616d579207fb943c85bef4f804e7f13d7d78ff3aab0f7f440a3005a363f32c31567b8d64669a7ae0299b06b80e4d224d2d70b80077ff966cfb8c11cf763954f398c592ca619acc2e0e86dad54b9cfa47bc10520f3c9ba2e0d2e27e0ba8ef8ece3e71c8a1ff75fe0c8369a3555e42db30565b2e12a8e862d0f873bd781ebf8255372e540bf6fbf4c1dae200823144f8da8df82ccd41b1b678eb91a289b88c6ee5aff71d98b64e8b17e2027fcb6826c418dbdb51f06bec866d69d9554931412808bd90021be2e0dad1d1ececfdd41fcdf6f67b88ef09eb9edcc4c226e07bdfe86b8e50e3bf68b19c0c9e0bf9aaaaddb15bc05a5666733789fa6efde866a49d0329185d852dc84a7e16c41f6c2daadc04665197152d9c0db63d0bd926c06bf3646b810186ae908a2f27a33d010b3262b0c0805c3adf135b41f15a033bb82a8db2c38160dbce672290878d7ad8d08fdd483ef9d95b3a1b2ea2b6ff0adde762e9df7b78fe5f3644df54c6d98709d70924ce6ec94650cb207b4f90d35569acb55811ad3f01b28bb2b16cfde454531b9462024abf419fb3bef80db9bb9fa5bd62a7e94f61a667e74140c8da4b27ad7b934c0824756fbc56f8ac7529fc4c5224158fd4915eba25a3f2a72a7f718a5cda6395bd8b2bc484a950aba483c8cadec376f9bee62c93f886d83371b41c361a36c15679ff933422e09c5eaf98d3c6b008cf6414ed6e4c42c291eb505e9f22f5fe7d0ecdd15a833f4d016ac974d33adc6ea3293e20859e87ebfb937ba406abd025d14af692b12e9c9c2adbe307a679779259676211c071e614fdb386d1ff02db223a5b2fae03df68d321c7b29f7c7240edd3fa1b7cb6903f89dc01abf41b2eb0b49b6b8d73bb0774b58204c0d0e96d3cce45ad75406be0bc009e327b3e712a4bd178609c00b41da2daf8a4b0e1319f07a492ab4efb056f0f599f75e6dc7e0d10ce1cf59088ab6e873de377343880f7a24f0e36731a0b72092f8d5bc8cd346762e93b2bf203d00264e4bc136fc142de8f7b69154deb05854ea88e2d7506222c95ba1aab065c8a851391377d3406a35a9af3ac4242424242424242424242424242424242424242424242424242424242424242
-	hmac[4] = 0x62cc962876e734e089e79eda497077fb411fac5f36afd43329040ecd1e16c6d9
-
-	rhokey[3] = 0xcbe784ab745c13ff5cffc2fbe3e84424aa0fd669b8ead4ee562901a4a4e89e9e
-	mukey[3] = 0x5052aa1b3d9f0655a0932e50d42f0c9ba0705142c25d225515c45f47c0036ee9
-	routing_info[3] (unencrypted) = 0x00030303030303030300000000000000030000000300000000000000000000000062cc962876e734e089e79eda497077fb411fac5f36afd43329040ecd1e16c6d9f6a9e85e5c6a0458c98282b782ffe8efb2f3f0e2cae0283a71aa4d873686d7efeac03dcb113fd91113df4bb5d5e8c13cde4bd12eced21d367381fdc31efe09695d6ecc095083c1571d10ed076ee914745479dfedcab84efd3889e6375f544562ea4a6522035738a9ba1a9ab4204339569d3d0c217324f1d5f3a107e930ade50b913777d1140096e2b26ce47486b66a6740f026ae91429115e17270c5a542b4c82ce438725060248726956e7639da64a55cec00b61719383271e0ab97dafe44ad194e7338ea841bf25a505d0041eb53dc0d0e6c3f7986f6647ede9327467212a3ca5724ece8503bfaba3800372d747abe2c174cbc2da01dd967fc0bae56d2bc7184e1d5d823661b8ff06eb466d483d6fa69a4f8b592ebc3006b7c047055b12407925ea74c2bb09ca21f4bc9d39dc4a7237ef6facbb15f5ba56d8e2ab94ad24267bf85cea55b0605cd6260b4b0f17994a03e39bebfcad0834849b188e83bf5c954dc112d33b0fada26f25d76d53ec9b95ed344059a279719d5edc953a4de2b1cc4f47d5da090c3b0f4c7eef14830f9a2230bffb722f11fd2ea82c43d58261e5a868361262abbd81b9f1e6145562ed6765aac732e7d91bfff7716509d72314d46904bcc8053cfd1e3cd7824b4b6499bf8c77762275fa4f651d163a8701f02a5ca67bb7d37787a66d269d4079aa92a489493020b11d87791a3e3ef66780bd0007c8fa2782bac7a839b57e8ace7618a75fe03604097960d2236616d579207fb943c85bef4f804e7f13d7d78ff3aab0f7f440a3005a363f32c31567b8d64669a7ae0299b06b80e4d224d2d70b80077ff966cfb8c11cf763954f398c592ca619acc2e0e86dad54b9cfa47bc10520f3c9ba2e0d2e27e0ba8ef8ece3e71c8a1ff75fe0c8369a3555e42db30565b2e12a8e862d0f873bd781ebf8255372e540bf6fbf4c1dae200823144f8da8df82ccd41b1b678eb91a289b88c6ee5aff71d98b64e8b17e2027fcb6826c418dbdb51f06bec866d69d9554931412808bd90021be2e0dad1d1ececfdd41fcdf6f67b88ef09eb9edcc4c226e07bdfe86b8e50e3bf68b19c0c9e0bf9aaaaddb15bc05a5666733789fa6efde866a49d0329185d852dc84a7e16c41f6c2daadc04665197152d9c0db63d0bd926c06bf3646b810186ae908a2f27a33d010b3262b0c0805c3adf135b41f15a033bb82a8db2c38160dbce672290878d7ad8d08fdd483ef9d95b3a1b2ea2b6ff0adde762e9df7b78fe5f3644df54c6d98709d70924ce6ec94650cb207b4f90d35569acb55811ad3f01b28bb2b16cfde454531b9462024abf419fb3bef80db9bb9fa5bd62a7e94f61a667e74140c8da4b27ad7b934c0824756fbc56f8ac7529fc4c5224158fd4915eba25a3f2a72a7f718a5cda6395bd8b2bc484a950aba483c8cadec376f9bee62c93f886d83371b41c361a36c15679ff933422e09c5eaf98d3c6b008cf6414ed6e4c42c291eb505e9f22f5fe7d0ecdd15a833f4d016ac974d33adc6ea3293e20859e87ebfb937ba406abd025d14af692b12e9c9c2adbe307a679779259676211c071e614fdb386d1ff02db223a5b2fae03df68d321c7b29f7c7240edd3fa1b7cb6903f89dc01abf41b2eb0b49b6b8d73bb0774b58204c0d0e96d3cce45ad75406be0bc009e327b3e712a4bd178609c00b41da2daf8a4b0e1319f07a492ab4efb056f0f599f75e6dc7e0d10ce1cf59088ab6e873de377343880f7a24f
-	routing_info[3] (encrypted) = 0x35dd8ba6f4e53e2f0372992046827fc994c3312b57591844fc713c0cca433626a0b62453d756641c1372dfde1a586ef971823104027062465283f8ff9b89ea3c3daf3e17e529ce3c0c58316f255a42848df14bce0785a4653c84ac8f58bf89671cd0d4b692e9e42584a52509e03f8769bb4ef6a0f6f4002c81011da7f5f9a8da9b19bd25cb25aeb3873c5fa95396b56900847794a97935e542637ef5f42f088c6e24e8e95de7be71d110872c84a60a53bbd789f3a58c1072c5fbb84192dd5f780deb14bdbbf458be297eb3244499a7921db98912625c88350cb29e71ca8d788bfb9bd11146e48659b0d86afe13b47685ec49d36e57292d819442ba516d365be31e7980c0e7b14f40807393b1391d9b83c30191d4bfe49c143da2848d2d7bfd54c32bdfdaefcd4cb84ea895e2305745d2ae257b0414563224af66f3b25d3d451bdd8331670e9dcac78b0690c4ae849d0bd8e956dbc56b5a8114008e9dc54f1252544a45861521efd6376b6c0fb34c1c433b677c08d6bf5356e81772bfeed5a894b590859cd409dedd1cd9881c3b8caed81d4d8d834dbd3e870a39e69d6a1ce2dc15df8f8c34d64d292b0b99bf17bb92b263176b65634dc8f368cf7b558fef5b259964f42ec94eeac74d0abd829baa9b04f89ea3606074a4aace03e7f2217f2dec855f4028392f64f0baddd178d56d84cab16c8484633f7c5e8e7f8651ce8a7f5ce1ca3a966562a0a2a7247d105a3114ab2adbd10cfd70b2765113c42e4d1cbcb8721a719f46b25d8579a670be085d1afd2d2e541c4a27bdfffe49674798cf690f28bf4f58ec1495561be071d1c94156f15c95f3426a7409680ef8cf335a0d4786bbb0bf108589c3c8baf10f04dc7f8beda2f70117f28c771a83890d4e1c47903d642fef8a93a216576f377db3ad5be3abe7eaa924e1e7de9ac88e07177e57cad41ef5a561f6bdb741961eddee56f3d9aef9fc4e52343f2efda3a2d40b8d2b4afa735cd5655d3014d21b41eba3a8cf34a8c29cbf94dfb9a4312ee0851c6e32896b33d52d991560e3ae97c769071453a4969374aecf7423f07ee17ce71111dc925294b0130249ad00d49e26dbfddcaf214dc8356cee3a0d7486fa6144c6c826be0892ceea30e52d7b64a13b08eda3e991f37e210ccd216108c847adb58df3b2a53553689f5119e41b4f4f221474c21e197d8a13e9cf7cf23875a0dbc6ddaeca9eb6d95add2a0054528d9dc03d59bc108157291b4caa0faa53f2511bec3088a164a0768d38d7fe3281ea8459abbe3a5b5f43c697e5cbdc995832220a3c6fcf1e82bd35f4b94b13cc9312efc3ca4e3c8199e862c551fa7916e3cb0ad17ba24e456fcd2159f9e81628c508da4c2de4825100fee1c3226d1d431a740d2d8ab0c04953b073d9a20919e0f2d03e97b3f34a1644cbeeab7d0c78d898e8c523fbccc75ffc329fafe45288e21c82817e23589d0c6db453be7d3f8ecfa0ae1d24ae80c63511193c718195255a576c1b43c8d941ba22f6d9f743a7dd558e08ac2262fd67056d60e837edd3e21ce23ef27d48c9180d845ce8c5d6d4c488fcf55af99aef02f3bdf6a07833660628a672b878f8b15427189e49bf2d9e0e7e63e3c5632d9ef1e412e9bbd732b616a353097e90494a098df6a21729f1d3658f91b1bde4aaaae58530ab0e402fc10eb0910c07cace1afd0aacb579690e6dcbc184025e4160cf4de3e47106339046724d098b5b7b92f5a2bb33c11f86d4953f372fdd9ebc260b0ee2e391420c4b11145bd439954834d9a79e78abc57e03d3ee20d239d8a13014976e3f057ab3c38ca79ee81ff8849d94dca37b0920cc3e72
-	hmac_data[3] = 0x35dd8ba6f4e53e2f0372992046827fc994c3312b57591844fc713c0cca433626a0b62453d756641c1372dfde1a586ef971823104027062465283f8ff9b89ea3c3daf3e17e529ce3c0c58316f255a42848df14bce0785a4653c84ac8f58bf89671cd0d4b692e9e42584a52509e03f8769bb4ef6a0f6f4002c81011da7f5f9a8da9b19bd25cb25aeb3873c5fa95396b56900847794a97935e542637ef5f42f088c6e24e8e95de7be71d110872c84a60a53bbd789f3a58c1072c5fbb84192dd5f780deb14bdbbf458be297eb3244499a7921db98912625c88350cb29e71ca8d788bfb9bd11146e48659b0d86afe13b47685ec49d36e57292d819442ba516d365be31e7980c0e7b14f40807393b1391d9b83c30191d4bfe49c143da2848d2d7bfd54c32bdfdaefcd4cb84ea895e2305745d2ae257b0414563224af66f3b25d3d451bdd8331670e9dcac78b0690c4ae849d0bd8e956dbc56b5a8114008e9dc54f1252544a45861521efd6376b6c0fb34c1c433b677c08d6bf5356e81772bfeed5a894b590859cd409dedd1cd9881c3b8caed81d4d8d834dbd3e870a39e69d6a1ce2dc15df8f8c34d64d292b0b99bf17bb92b263176b65634dc8f368cf7b558fef5b259964f42ec94eeac74d0abd829baa9b04f89ea3606074a4aace03e7f2217f2dec855f4028392f64f0baddd178d56d84cab16c8484633f7c5e8e7f8651ce8a7f5ce1ca3a966562a0a2a7247d105a3114ab2adbd10cfd70b2765113c42e4d1cbcb8721a719f46b25d8579a670be085d1afd2d2e541c4a27bdfffe49674798cf690f28bf4f58ec1495561be071d1c94156f15c95f3426a7409680ef8cf335a0d4786bbb0bf108589c3c8baf10f04dc7f8beda2f70117f28c771a83890d4e1c47903d642fef8a93a216576f377db3ad5be3abe7eaa924e1e7de9ac88e07177e57cad41ef5a561f6bdb741961eddee56f3d9aef9fc4e52343f2efda3a2d40b8d2b4afa735cd5655d3014d21b41eba3a8cf34a8c29cbf94dfb9a4312ee0851c6e32896b33d52d991560e3ae97c769071453a4969374aecf7423f07ee17ce71111dc925294b0130249ad00d49e26dbfddcaf214dc8356cee3a0d7486fa6144c6c826be0892ceea30e52d7b64a13b08eda3e991f37e210ccd216108c847adb58df3b2a53553689f5119e41b4f4f221474c21e197d8a13e9cf7cf23875a0dbc6ddaeca9eb6d95add2a0054528d9dc03d59bc108157291b4caa0faa53f2511bec3088a164a0768d38d7fe3281ea8459abbe3a5b5f43c697e5cbdc995832220a3c6fcf1e82bd35f4b94b13cc9312efc3ca4e3c8199e862c551fa7916e3cb0ad17ba24e456fcd2159f9e81628c508da4c2de4825100fee1c3226d1d431a740d2d8ab0c04953b073d9a20919e0f2d03e97b3f34a1644cbeeab7d0c78d898e8c523fbccc75ffc329fafe45288e21c82817e23589d0c6db453be7d3f8ecfa0ae1d24ae80c63511193c718195255a576c1b43c8d941ba22f6d9f743a7dd558e08ac2262fd67056d60e837edd3e21ce23ef27d48c9180d845ce8c5d6d4c488fcf55af99aef02f3bdf6a07833660628a672b878f8b15427189e49bf2d9e0e7e63e3c5632d9ef1e412e9bbd732b616a353097e90494a098df6a21729f1d3658f91b1bde4aaaae58530ab0e402fc10eb0910c07cace1afd0aacb579690e6dcbc184025e4160cf4de3e47106339046724d098b5b7b92f5a2bb33c11f86d4953f372fdd9ebc260b0ee2e391420c4b11145bd439954834d9a79e78abc57e03d3ee20d239d8a13014976e3f057ab3c38ca79ee81ff8849d94dca37b0920cc3e724242424242424242424242424242424242424242424242424242424242424242
-	hmac[3] = 0x0daed5f832ef34ea8d0d2cc0699134287a2739c77152d9edc8fe5ccce7ec838f
-
-	rhokey[2] = 0x11bf5c4f960239cb37833936aa3d02cea82c0f39fd35f566109c41f9eac8deea
-	mukey[2] = 0xcaafe2820fa00eb2eeb78695ae452eba38f5a53ed6d53518c5c6edf76f3f5b78
-	routing_info[2] (unencrypted) = 0x0002020202020202020000000000000002000000020000000000000000000000000daed5f832ef34ea8d0d2cc0699134287a2739c77152d9edc8fe5ccce7ec838f35dd8ba6f4e53e2f0372992046827fc994c3312b57591844fc713c0cca433626a0b62453d756641c1372dfde1a586ef971823104027062465283f8ff9b89ea3c3daf3e17e529ce3c0c58316f255a42848df14bce0785a4653c84ac8f58bf89671cd0d4b692e9e42584a52509e03f8769bb4ef6a0f6f4002c81011da7f5f9a8da9b19bd25cb25aeb3873c5fa95396b56900847794a97935e542637ef5f42f088c6e24e8e95de7be71d110872c84a60a53bbd789f3a58c1072c5fbb84192dd5f780deb14bdbbf458be297eb3244499a7921db98912625c88350cb29e71ca8d788bfb9bd11146e48659b0d86afe13b47685ec49d36e57292d819442ba516d365be31e7980c0e7b14f40807393b1391d9b83c30191d4bfe49c143da2848d2d7bfd54c32bdfdaefcd4cb84ea895e2305745d2ae257b0414563224af66f3b25d3d451bdd8331670e9dcac78b0690c4ae849d0bd8e956dbc56b5a8114008e9dc54f1252544a45861521efd6376b6c0fb34c1c433b677c08d6bf5356e81772bfeed5a894b590859cd409dedd1cd9881c3b8caed81d4d8d834dbd3e870a39e69d6a1ce2dc15df8f8c34d64d292b0b99bf17bb92b263176b65634dc8f368cf7b558fef5b259964f42ec94eeac74d0abd829baa9b04f89ea3606074a4aace03e7f2217f2dec855f4028392f64f0baddd178d56d84cab16c8484633f7c5e8e7f8651ce8a7f5ce1ca3a966562a0a2a7247d105a3114ab2adbd10cfd70b2765113c42e4d1cbcb8721a719f46b25d8579a670be085d1afd2d2e541c4a27bdfffe49674798cf690f28bf4f58ec1495561be071d1c94156f15c95f3426a7409680ef8cf335a0d4786bbb0bf108589c3c8baf10f04dc7f8beda2f70117f28c771a83890d4e1c47903d642fef8a93a216576f377db3ad5be3abe7eaa924e1e7de9ac88e07177e57cad41ef5a561f6bdb741961eddee56f3d9aef9fc4e52343f2efda3a2d40b8d2b4afa735cd5655d3014d21b41eba3a8cf34a8c29cbf94dfb9a4312ee0851c6e32896b33d52d991560e3ae97c769071453a4969374aecf7423f07ee17ce71111dc925294b0130249ad00d49e26dbfddcaf214dc8356cee3a0d7486fa6144c6c826be0892ceea30e52d7b64a13b08eda3e991f37e210ccd216108c847adb58df3b2a53553689f5119e41b4f4f221474c21e197d8a13e9cf7cf23875a0dbc6ddaeca9eb6d95add2a0054528d9dc03d59bc108157291b4caa0faa53f2511bec3088a164a0768d38d7fe3281ea8459abbe3a5b5f43c697e5cbdc995832220a3c6fcf1e82bd35f4b94b13cc9312efc3ca4e3c8199e862c551fa7916e3cb0ad17ba24e456fcd2159f9e81628c508da4c2de4825100fee1c3226d1d431a740d2d8ab0c04953b073d9a20919e0f2d03e97b3f34a1644cbeeab7d0c78d898e8c523fbccc75ffc329fafe45288e21c82817e23589d0c6db453be7d3f8ecfa0ae1d24ae80c63511193c718195255a576c1b43c8d941ba22f6d9f743a7dd558e08ac2262fd67056d60e837edd3e21ce23ef27d48c9180d845ce8c5d6d4c488fcf55af99aef02f3bdf6a07833660628a672b878f8b15427189e49bf2d9e0e7e63e3c5632d9ef1e412e9bbd732b616a353097e90494a098df6a21729f1d3658f91b1bde4aaaae58530ab0e402fc10eb0910c07cace1afd0aacb579690e6dcbc184025e4160cf4de3e47106339046724d098b5b7b92f5a2bb33c11f86d4
-	routing_info[2] (encrypted) = 0xe22ca641baa077154733abc584fae578ea0ed4c1871d0554235171e45e1e2a1868760d4c61ed34c17bc188784a4684939fd54d7b4aa9d83c21aec9ad843035b63836277ec6404d85da476af5cfbce7a392d4b8c931b67629c04ff70c08e51fa8d73eaef8c0bdad85ad9872ba87afe0846b75a05e004a744b02687a8c3110a88471b7faea10de1025016f6fcb6f685abdaf55c7908fd922f531d27e206307f7c9086355a351298fd6ed1f05d8724a6b159f52ed4cb988cde07f1d0eb0384803511b480ed31a1ecb7320bbd98da168ae64de73347d59df8ed0588aba661dc2d0bba2bc74ac0d2c479f466ee73def4a32cd806b0966b8f535e742c6a907af0f3dad003016db95194d381109c53499efcf4d868677c3a6dc4a184eccc2198aec260673a801814e60405670f557e618bb3b5df1e51cc90d995d0832b307c102b3fd1d083f52794ccb5a185885280dbd9e36ce64ddf320b6a7e340180e4f525c682bcd1f9cfa3ae5bbd8cdbd83e3d291e98606a7890bd8abbcf57aea1492fc1d6c876cad86446fc85b2db47ff2c6ea384fdda8bc53e81152687a702318c91f657253403612393ec7f864ddf5e807497cb88816f736f08a593d8d1e2c46c13675de2b2aa8c383b8610a5c772bbcf831e426f750c6358e623d9938890aa1d70297c4e4d238b14967f48da074ca469212336a77a2fe0fc80dc2ecd59a2ca389440cb2c1f9835786ad7e1f5bf3ceb27c8abe10178bffcbd888a9b31b9b9a5e308cefe00bdc25c82597dc22ff814b4dcb717be6ec6d87cf25dbb9fde6726461d504d4b9707d708238415ca3dc6e86d3738b902ff4a449597fcac06757fd97e0fe52c1addf7b34731366e2a5694883c60f4c9676ea6167a9fbf8b7d64932676e11fd38f7338e8954236ae31dbd7e2732d74a16b4d0809229ce44e696ceb383c41375ea0e40686f4e0c3967fa22a9e8a2ebb637816c8d1875edf86b1a4998b8525708a027a57852e28e7e84ab3d0db6b73b7e6775604d317139bc0146fedf45a17bc8b3559d4921cb87c51a21f374e040da55e013f4748b22e58f3a53f8ba733bf823eec2f2e8250d3584bd0719bdc36c1f411bfc3d6baf0db966ff2f60dc348da8ed5d011634677ff04c705b6a6942eaffbea4dc0ff5451083f5f7117df044b868df8ae2291ee68998f4c159e885ebcd1073f751899557546e5d8ddbee87a5747e5fa3f5610adf7dece55a339276e7efc3d9a152f222dd3f0452ee4ec56af7a5c1f3b9130ccf1c689e8e1401e8b885ca67349b69526ff523f217c3b36c643a9c46c46b0dc2d0f1d80c83435f752740ee7e423a59badfd5981706ec62d38ce07295ef4fbe23a4ab6cf85a2289e09cc5ad0bae981d3f42e9c6c85eeaff1f257e8ab99c2e93754e88ccd23fe3ad9c78be182b3944b79877aa1eced48b8fcf1f51c5cd01c4b2b111c97f0338e0efccc61e728e784c51d50371f453d926b02fae5c46e118a2f23a28d6f0830ec04b736ed84cf09ea1b0e228d13d7c8794ae6f363d100538a9baa9fbe533a909717dcce4c012d7f258aaee4b41c2e3f1bfe44a652ba8da51dc67164c43112805d474372b9076f3f3f0e7af94604f4fcddd2136dd7dc80ce3ff845924462cf52f5818aebf3b64f38f98edf8cb9c460477a2f94b891573929c4b51deafe6db81bc30680f7226a68567588f195ce96a791e28204b9b5844c28a61736ac20722fe156175210c7b9b6e1804c89c0a7ee136597b5b3de5d54be23671bc9477805ba10d03afb0715782845d2ab45df012f6644207cc5fa4739aa3eaf6bf84e790128aa08aede33bf30c6be2b264b33fac566209
-	hmac_data[2] = 0xe22ca641baa077154733abc584fae578ea0ed4c1871d0554235171e45e1e2a1868760d4c61ed34c17bc188784a4684939fd54d7b4aa9d83c21aec9ad843035b63836277ec6404d85da476af5cfbce7a392d4b8c931b67629c04ff70c08e51fa8d73eaef8c0bdad85ad9872ba87afe0846b75a05e004a744b02687a8c3110a88471b7faea10de1025016f6fcb6f685abdaf55c7908fd922f531d27e206307f7c9086355a351298fd6ed1f05d8724a6b159f52ed4cb988cde07f1d0eb0384803511b480ed31a1ecb7320bbd98da168ae64de73347d59df8ed0588aba661dc2d0bba2bc74ac0d2c479f466ee73def4a32cd806b0966b8f535e742c6a907af0f3dad003016db95194d381109c53499efcf4d868677c3a6dc4a184eccc2198aec260673a801814e60405670f557e618bb3b5df1e51cc90d995d0832b307c102b3fd1d083f52794ccb5a185885280dbd9e36ce64ddf320b6a7e340180e4f525c682bcd1f9cfa3ae5bbd8cdbd83e3d291e98606a7890bd8abbcf57aea1492fc1d6c876cad86446fc85b2db47ff2c6ea384fdda8bc53e81152687a702318c91f657253403612393ec7f864ddf5e807497cb88816f736f08a593d8d1e2c46c13675de2b2aa8c383b8610a5c772bbcf831e426f750c6358e623d9938890aa1d70297c4e4d238b14967f48da074ca469212336a77a2fe0fc80dc2ecd59a2ca389440cb2c1f9835786ad7e1f5bf3ceb27c8abe10178bffcbd888a9b31b9b9a5e308cefe00bdc25c82597dc22ff814b4dcb717be6ec6d87cf25dbb9fde6726461d504d4b9707d708238415ca3dc6e86d3738b902ff4a449597fcac06757fd97e0fe52c1addf7b34731366e2a5694883c60f4c9676ea6167a9fbf8b7d64932676e11fd38f7338e8954236ae31dbd7e2732d74a16b4d0809229ce44e696ceb383c41375ea0e40686f4e0c3967fa22a9e8a2ebb637816c8d1875edf86b1a4998b8525708a027a57852e28e7e84ab3d0db6b73b7e6775604d317139bc0146fedf45a17bc8b3559d4921cb87c51a21f374e040da55e013f4748b22e58f3a53f8ba733bf823eec2f2e8250d3584bd0719bdc36c1f411bfc3d6baf0db966ff2f60dc348da8ed5d011634677ff04c705b6a6942eaffbea4dc0ff5451083f5f7117df044b868df8ae2291ee68998f4c159e885ebcd1073f751899557546e5d8ddbee87a5747e5fa3f5610adf7dece55a339276e7efc3d9a152f222dd3f0452ee4ec56af7a5c1f3b9130ccf1c689e8e1401e8b885ca67349b69526ff523f217c3b36c643a9c46c46b0dc2d0f1d80c83435f752740ee7e423a59badfd5981706ec62d38ce07295ef4fbe23a4ab6cf85a2289e09cc5ad0bae981d3f42e9c6c85eeaff1f257e8ab99c2e93754e88ccd23fe3ad9c78be182b3944b79877aa1eced48b8fcf1f51c5cd01c4b2b111c97f0338e0efccc61e728e784c51d50371f453d926b02fae5c46e118a2f23a28d6f0830ec04b736ed84cf09ea1b0e228d13d7c8794ae6f363d100538a9baa9fbe533a909717dcce4c012d7f258aaee4b41c2e3f1bfe44a652ba8da51dc67164c43112805d474372b9076f3f3f0e7af94604f4fcddd2136dd7dc80ce3ff845924462cf52f5818aebf3b64f38f98edf8cb9c460477a2f94b891573929c4b51deafe6db81bc30680f7226a68567588f195ce96a791e28204b9b5844c28a61736ac20722fe156175210c7b9b6e1804c89c0a7ee136597b5b3de5d54be23671bc9477805ba10d03afb0715782845d2ab45df012f6644207cc5fa4739aa3eaf6bf84e790128aa08aede33bf30c6be2b264b33fac5662094242424242424242424242424242424242424242424242424242424242424242
-	hmac[2] = 0x548e58057ab0a0e6c2d8ad8e855d89f9224279a5652895ea14f60bffb81590eb
-
-	rhokey[1] = 0x450ffcabc6449094918ebe13d4f03e433d20a3d28a768203337bc40b6e4b2c59
-	mukey[1] = 0x05ed2b4a3fb023c2ff5dd6ed4b9b6ea7383f5cfe9d59c11d121ec2c81ca2eea9
-	routing_info[1] (unencrypted) = 0x000101010101010101000000000000000100000001000000000000000000000000548e58057ab0a0e6c2d8ad8e855d89f9224279a5652895ea14f60bffb81590ebe22ca641baa077154733abc584fae578ea0ed4c1871d0554235171e45e1e2a1868760d4c61ed34c17bc188784a4684939fd54d7b4aa9d83c21aec9ad843035b63836277ec6404d85da476af5cfbce7a392d4b8c931b67629c04ff70c08e51fa8d73eaef8c0bdad85ad9872ba87afe0846b75a05e004a744b02687a8c3110a88471b7faea10de1025016f6fcb6f685abdaf55c7908fd922f531d27e206307f7c9086355a351298fd6ed1f05d8724a6b159f52ed4cb988cde07f1d0eb0384803511b480ed31a1ecb7320bbd98da168ae64de73347d59df8ed0588aba661dc2d0bba2bc74ac0d2c479f466ee73def4a32cd806b0966b8f535e742c6a907af0f3dad003016db95194d381109c53499efcf4d868677c3a6dc4a184eccc2198aec260673a801814e60405670f557e618bb3b5df1e51cc90d995d0832b307c102b3fd1d083f52794ccb5a185885280dbd9e36ce64ddf320b6a7e340180e4f525c682bcd1f9cfa3ae5bbd8cdbd83e3d291e98606a7890bd8abbcf57aea1492fc1d6c876cad86446fc85b2db47ff2c6ea384fdda8bc53e81152687a702318c91f657253403612393ec7f864ddf5e807497cb88816f736f08a593d8d1e2c46c13675de2b2aa8c383b8610a5c772bbcf831e426f750c6358e623d9938890aa1d70297c4e4d238b14967f48da074ca469212336a77a2fe0fc80dc2ecd59a2ca389440cb2c1f9835786ad7e1f5bf3ceb27c8abe10178bffcbd888a9b31b9b9a5e308cefe00bdc25c82597dc22ff814b4dcb717be6ec6d87cf25dbb9fde6726461d504d4b9707d708238415ca3dc6e86d3738b902ff4a449597fcac06757fd97e0fe52c1addf7b34731366e2a5694883c60f4c9676ea6167a9fbf8b7d64932676e11fd38f7338e8954236ae31dbd7e2732d74a16b4d0809229ce44e696ceb383c41375ea0e40686f4e0c3967fa22a9e8a2ebb637816c8d1875edf86b1a4998b8525708a027a57852e28e7e84ab3d0db6b73b7e6775604d317139bc0146fedf45a17bc8b3559d4921cb87c51a21f374e040da55e013f4748b22e58f3a53f8ba733bf823eec2f2e8250d3584bd0719bdc36c1f411bfc3d6baf0db966ff2f60dc348da8ed5d011634677ff04c705b6a6942eaffbea4dc0ff5451083f5f7117df044b868df8ae2291ee68998f4c159e885ebcd1073f751899557546e5d8ddbee87a5747e5fa3f5610adf7dece55a339276e7efc3d9a152f222dd3f0452ee4ec56af7a5c1f3b9130ccf1c689e8e1401e8b885ca67349b69526ff523f217c3b36c643a9c46c46b0dc2d0f1d80c83435f752740ee7e423a59badfd5981706ec62d38ce07295ef4fbe23a4ab6cf85a2289e09cc5ad0bae981d3f42e9c6c85eeaff1f257e8ab99c2e93754e88ccd23fe3ad9c78be182b3944b79877aa1eced48b8fcf1f51c5cd01c4b2b111c97f0338e0efccc61e728e784c51d50371f453d926b02fae5c46e118a2f23a28d6f0830ec04b736ed84cf09ea1b0e228d13d7c8794ae6f363d100538a9baa9fbe533a909717dcce4c012d7f258aaee4b41c2e3f1bfe44a652ba8da51dc67164c43112805d474372b9076f3f3f0e7af94604f4fcddd2136dd7dc80ce3ff845924462cf52f5818aebf3b64f38f98edf8cb9c460477a2f94b891573929c4b51deafe6db81bc30680f7226a68567588f195ce96a791e28204b9b5844c28a61736ac20722fe156175210c7b9b6e1804c89c0a7ee136
-	routing_info[1] (encrypted) = 0x03445185327b8cbf5c5bfa27f825f3a9af4f431f6e7a16ad786704887cbd85bd93ea121ae2ef7bd3e013160bcd3f3221de72fb18b2817404cb6ed0f761eacda9a22e464b80d7772900ad5040e65374840ee298625c75768d6199fa32154615bb0bd8d9876f25d08d2569c04c58f1b425b6719fe213327d45f13b277a6334bd175ae300b29fe5456be97ea49b4b0b4501a96b8432e111c936ae7d94c9de13ecda4ed4b79d2d3e3936e59384ae852d338141b196ea5fe26ad429bf1372a003730981f0bb85a7e9c07d9fba335719c04ec58607918874c513a94c6426bd0181a3233ba12283b03be24cb8e2a530a8cb92b9bed43889267aab86d69d3d72f734e6768324125c75b25988ac2aab93da5939e2059fc0d5479d7c404b6bd1e5a9e995e47cb6966bb063377aedd689052f0a72c6576548f7264989ccd9838068b56cf7e3620f88627276674be6376007208afb027234b9e2a0267a51141ffa8ae1f3da72a8604417e63cffc3d5c4263c7e96c7ef2baa91dcf629efb87a088550b6165686c75ff9f60f24d79b5e560ceb38e987f0371cd002c1ebd09cfe3bfa1191ea1e4b23886d20a64a4526584d7beb2db9c51c3895d84cc9ecb15bff52cc64320c1f79f7d3659e2ee54a4aeed1cebb412eacd782f83ae2288c623e1a1256370262fd1afbb1a61d5e323d5bd679690105b597f027141d035a0f6ec4ef468d9a3ab39b9d54f1817878b745567f181b6678b9900299c11f21c92618da90cb10b2ecbef3d07a0b78cd35ddcc11d02e2e859f9296687268979557b99a9eaffd0875bdce1c03b1f507537916d0aba5aa437c3611ddf9e6975fc82545b67344a4f02125b08a27873079e4490519ec839a105638728d6b2dffa8024b6c4eb08dd793fbd7e53aac0e327401e1de38f826d7ac66beea3925232b0c7d086095a474b1c4f5dbb5651f5de1d1699b90bb500202673d867d00654244ece624c820d7a84db2c5e9515ace71158e45d52790a47b3b7c33ffda69b04dcf107a61a5bb0e6ab6bf06d6b44552d823f2b5969ccbe2f3986cb7180bf7acad66684117c391ff428a2023d7d29063766bb9fbb2c276c3067fab08c7fcf18fa3741b2bd409a58a4fc67d9cffde1faeb39dd86b21fa9b7930c2c6b8d28e4aeea263b3bec2bbc95b939c6ad208689204b83ea8eec2e90a42c0fde1ca8de5aaacd8a614328f83480b4a5bb5e12546ba0e56aef9e88d813dcc7c83f905c91bc5853b7d734a160f3e0efc10237aae97767abea0181c48861f2fabe52a38bcd7859d25ac5dc80eb457615d5064d77a81516b97f90c2feab7861dd9728d51a05247ef5defa05d77486812bd909195ef11c772b374d6cbe18a218af26aa19c72de077307567fa90b18eb1bc77a357ab09cc637b93d5d55793ea075285d60b04ca48bcdd45a32f55932358687db09440ff4ba255fa72e4dacee47e9029bfc16af51e121efdeb189b31dd5be103ef9dd2b5eac641768a81fce1056e6416cb8fc53b8fe946f8e37ab1f94520c3fb0d01dc15207cdec370b0fe76e5234343db30b2f8e0afdc50f1d52d761fbcd3dfcca053f01cfd3c43763546f9d5fc66e1adba7c9d66af0f61d27622f12372c4a75af5861151dcd2da571c7e90c7bde4dae9aea645f85c0781e4472e2b68d63d6789e3dc7ccb543ec47d68d1fa700c0081908a8d2e4687b6e826f4254bc169921b7e02643f3faa0264c7ff77a52205a9388d0a98c0394dc4dee81989115ade30d309374fea8435815418038534d12e4ffe88b91406a71d89d5a083e3b8224d86b2be11be32169afb04b9ea997854be9085472c342ef5fca19bf5479
-	hmac_data[1] = 0x03445185327b8cbf5c5bfa27f825f3a9af4f431f6e7a16ad786704887cbd85bd93ea121ae2ef7bd3e013160bcd3f3221de72fb18b2817404cb6ed0f761eacda9a22e464b80d7772900ad5040e65374840ee298625c75768d6199fa32154615bb0bd8d9876f25d08d2569c04c58f1b425b6719fe213327d45f13b277a6334bd175ae300b29fe5456be97ea49b4b0b4501a96b8432e111c936ae7d94c9de13ecda4ed4b79d2d3e3936e59384ae852d338141b196ea5fe26ad429bf1372a003730981f0bb85a7e9c07d9fba335719c04ec58607918874c513a94c6426bd0181a3233ba12283b03be24cb8e2a530a8cb92b9bed43889267aab86d69d3d72f734e6768324125c75b25988ac2aab93da5939e2059fc0d5479d7c404b6bd1e5a9e995e47cb6966bb063377aedd689052f0a72c6576548f7264989ccd9838068b56cf7e3620f88627276674be6376007208afb027234b9e2a0267a51141ffa8ae1f3da72a8604417e63cffc3d5c4263c7e96c7ef2baa91dcf629efb87a088550b6165686c75ff9f60f24d79b5e560ceb38e987f0371cd002c1ebd09cfe3bfa1191ea1e4b23886d20a64a4526584d7beb2db9c51c3895d84cc9ecb15bff52cc64320c1f79f7d3659e2ee54a4aeed1cebb412eacd782f83ae2288c623e1a1256370262fd1afbb1a61d5e323d5bd679690105b597f027141d035a0f6ec4ef468d9a3ab39b9d54f1817878b745567f181b6678b9900299c11f21c92618da90cb10b2ecbef3d07a0b78cd35ddcc11d02e2e859f9296687268979557b99a9eaffd0875bdce1c03b1f507537916d0aba5aa437c3611ddf9e6975fc82545b67344a4f02125b08a27873079e4490519ec839a105638728d6b2dffa8024b6c4eb08dd793fbd7e53aac0e327401e1de38f826d7ac66beea3925232b0c7d086095a474b1c4f5dbb5651f5de1d1699b90bb500202673d867d00654244ece624c820d7a84db2c5e9515ace71158e45d52790a47b3b7c33ffda69b04dcf107a61a5bb0e6ab6bf06d6b44552d823f2b5969ccbe2f3986cb7180bf7acad66684117c391ff428a2023d7d29063766bb9fbb2c276c3067fab08c7fcf18fa3741b2bd409a58a4fc67d9cffde1faeb39dd86b21fa9b7930c2c6b8d28e4aeea263b3bec2bbc95b939c6ad208689204b83ea8eec2e90a42c0fde1ca8de5aaacd8a614328f83480b4a5bb5e12546ba0e56aef9e88d813dcc7c83f905c91bc5853b7d734a160f3e0efc10237aae97767abea0181c48861f2fabe52a38bcd7859d25ac5dc80eb457615d5064d77a81516b97f90c2feab7861dd9728d51a05247ef5defa05d77486812bd909195ef11c772b374d6cbe18a218af26aa19c72de077307567fa90b18eb1bc77a357ab09cc637b93d5d55793ea075285d60b04ca48bcdd45a32f55932358687db09440ff4ba255fa72e4dacee47e9029bfc16af51e121efdeb189b31dd5be103ef9dd2b5eac641768a81fce1056e6416cb8fc53b8fe946f8e37ab1f94520c3fb0d01dc15207cdec370b0fe76e5234343db30b2f8e0afdc50f1d52d761fbcd3dfcca053f01cfd3c43763546f9d5fc66e1adba7c9d66af0f61d27622f12372c4a75af5861151dcd2da571c7e90c7bde4dae9aea645f85c0781e4472e2b68d63d6789e3dc7ccb543ec47d68d1fa700c0081908a8d2e4687b6e826f4254bc169921b7e02643f3faa0264c7ff77a52205a9388d0a98c0394dc4dee81989115ade30d309374fea8435815418038534d12e4ffe88b91406a71d89d5a083e3b8224d86b2be11be32169afb04b9ea997854be9085472c342ef5fca19bf54794242424242424242424242424242424242424242424242424242424242424242
-	hmac[1] = 0x9b122c79c8aee73ea2cdbc22eca15bbcc9409a4cdd73d2b3fcd4fe26a492d376
-
-	rhokey[0] = 0xce496ec94def95aadd4bec15cdb41a740c9f2b62347c4917325fcc6fb0453986
-	mukey[0] = 0xb57061dc6d0a2b9f261ac410c8b26d64ac5506cbba30267a649c28c179400eba
-	routing_info[0] (unencrypted) = 0x0000000000000000000000000000000000000000000000000000000000000000009b122c79c8aee73ea2cdbc22eca15bbcc9409a4cdd73d2b3fcd4fe26a492d37603445185327b8cbf5c5bfa27f825f3a9af4f431f6e7a16ad786704887cbd85bd93ea121ae2ef7bd3e013160bcd3f3221de72fb18b2817404cb6ed0f761eacda9a22e464b80d7772900ad5040e65374840ee298625c75768d6199fa32154615bb0bd8d9876f25d08d2569c04c58f1b425b6719fe213327d45f13b277a6334bd175ae300b29fe5456be97ea49b4b0b4501a96b8432e111c936ae7d94c9de13ecda4ed4b79d2d3e3936e59384ae852d338141b196ea5fe26ad429bf1372a003730981f0bb85a7e9c07d9fba335719c04ec58607918874c513a94c6426bd0181a3233ba12283b03be24cb8e2a530a8cb92b9bed43889267aab86d69d3d72f734e6768324125c75b25988ac2aab93da5939e2059fc0d5479d7c404b6bd1e5a9e995e47cb6966bb063377aedd689052f0a72c6576548f7264989ccd9838068b56cf7e3620f88627276674be6376007208afb027234b9e2a0267a51141ffa8ae1f3da72a8604417e63cffc3d5c4263c7e96c7ef2baa91dcf629efb87a088550b6165686c75ff9f60f24d79b5e560ceb38e987f0371cd002c1ebd09cfe3bfa1191ea1e4b23886d20a64a4526584d7beb2db9c51c3895d84cc9ecb15bff52cc64320c1f79f7d3659e2ee54a4aeed1cebb412eacd782f83ae2288c623e1a1256370262fd1afbb1a61d5e323d5bd679690105b597f027141d035a0f6ec4ef468d9a3ab39b9d54f1817878b745567f181b6678b9900299c11f21c92618da90cb10b2ecbef3d07a0b78cd35ddcc11d02e2e859f9296687268979557b99a9eaffd0875bdce1c03b1f507537916d0aba5aa437c3611ddf9e6975fc82545b67344a4f02125b08a27873079e4490519ec839a105638728d6b2dffa8024b6c4eb08dd793fbd7e53aac0e327401e1de38f826d7ac66beea3925232b0c7d086095a474b1c4f5dbb5651f5de1d1699b90bb500202673d867d00654244ece624c820d7a84db2c5e9515ace71158e45d52790a47b3b7c33ffda69b04dcf107a61a5bb0e6ab6bf06d6b44552d823f2b5969ccbe2f3986cb7180bf7acad66684117c391ff428a2023d7d29063766bb9fbb2c276c3067fab08c7fcf18fa3741b2bd409a58a4fc67d9cffde1faeb39dd86b21fa9b7930c2c6b8d28e4aeea263b3bec2bbc95b939c6ad208689204b83ea8eec2e90a42c0fde1ca8de5aaacd8a614328f83480b4a5bb5e12546ba0e56aef9e88d813dcc7c83f905c91bc5853b7d734a160f3e0efc10237aae97767abea0181c48861f2fabe52a38bcd7859d25ac5dc80eb457615d5064d77a81516b97f90c2feab7861dd9728d51a05247ef5defa05d77486812bd909195ef11c772b374d6cbe18a218af26aa19c72de077307567fa90b18eb1bc77a357ab09cc637b93d5d55793ea075285d60b04ca48bcdd45a32f55932358687db09440ff4ba255fa72e4dacee47e9029bfc16af51e121efdeb189b31dd5be103ef9dd2b5eac641768a81fce1056e6416cb8fc53b8fe946f8e37ab1f94520c3fb0d01dc15207cdec370b0fe76e5234343db30b2f8e0afdc50f1d52d761fbcd3dfcca053f01cfd3c43763546f9d5fc66e1adba7c9d66af0f61d27622f12372c4a75af5861151dcd2da571c7e90c7bde4dae9aea645f85c0781e4472e2b68d63d6789e3dc7ccb543ec47d68d1fa700c0081908a8d2e4687b6e826f4254bc169921b7e02643f3faa0264c7ff77a52205a9388d0a98c0394dc4dee81
-	routing_info[0] (encrypted) = 0xe5f14350c2a76fc232b5e46d421e9615471ab9e0bc887beff8c95fdb878f7b3a71da571226458c510bbadd1276f045c21c520a07d35da256ef75b4367962437b0dd10f7d61ab590531cf08000178a333a347f8b4072e216400406bdf3bf038659793a86cae5f52d32f3438527b47a1cfc54285a8afec3a4c9f3323db0c946f5d4cb2ce721caad69320c3a469a202f3e468c67eaf7a7cda226d0fd32f7b48084dca885d15222e60826d5d971f64172d98e0760154400958f00e86697aa1aa9d41bee8119a1ec866abe044a9ad635778ba61fc0776dc832b39451bd5d35072d2269cf9b040d6ba38b54ec35f81d7fc67678c3be47274f3c4cc472aff005c3469eb3bc140769ed4c7f0218ff8c6c7dd7221d189c65b3b9aaa71a01484b122846c7c7b57e02e679ea8469b70e14fe4f70fee4d87b910cf144be6fe48eef24da475c0b0bcc6565ae82cd3f4e3b24c76eaa5616c6111343306ab35c1fe5ca4a77c0e314ed7dba39d6f1e0de791719c241a939cc493bea2bae1c1e932679ea94d29084278513c77b899cc98059d06a27d171b0dbdf6bee13ddc4fc17a0c4d2827d488436b57baa167544138ca2e64a11b43ac8a06cd0c2fba2d4d900ed2d9205305e2d7383cc98dacb078133de5f6fb6bed2ef26ba92cea28aafc3b9948dd9ae5559e8bd6920b8cea462aa445ca6a95e0e7ba52961b181c79e73bd581821df2b10173727a810c92b83b5ba4a0403eb710d2ca10689a35bec6c3a708e9e92f7d78ff3c5d9989574b00c6736f84c199256e76e19e78f0c98a9d580b4a658c84fc8f2096c2fbea8f5f8c59d0fdacb3be2802ef802abbecb3aba4acaac69a0e965abd8981e9896b1f6ef9d60f7a164b371af869fd0e48073742825e9434fc54da837e120266d53302954843538ea7c6c3dbfb4ff3b2fdbe244437f2a153ccf7bdb4c92aa08102d4f3cff2ae5ef86fab4653595e6a5837fa2f3e29f27a9cde5966843fb847a4a61f1e76c281fe8bb2b0a181d096100db5a1a5ce7a910238251a43ca556712eaadea167fb4d7d75825e440f3ecd782036d7574df8bceacb397abefc5f5254d2722215c53ff54af8299aaaad642c6d72a14d27882d9bbd539e1cc7a527526ba89b8c037ad09120e98ab042d3e8652b31ae0e478516bfaf88efca9f3676ffe99d2819dcaeb7610a626695f53117665d267d3f7abebd6bbd6733f645c72c389f03855bdf1e4b8075b516569b118233a0f0971d24b83113c0b096f5216a207ca99a7cddc81c130923fe3d91e7508c9ac5f2e914ff5dccab9e558566fa14efb34ac98d878580814b94b73acbfde9072f30b881f7f0fff42d4045d1ace6322d86a97d164aa84d93a60498065cc7c20e636f5862dc81531a88c60305a2e59a985be327a6902e4bed986dbf4a0b50c217af0ea7fdf9ab37f9ea1a1aaa72f54cf40154ea9b269f1a7c09f9f43245109431a175d50e2db0132337baa0ef97eed0fcf20489da36b79a1172faccc2f7ded7c60e00694282d93359c4682135642bc81f433574aa8ef0c97b4ade7ca372c5ffc23c7eddd839bab4e0f14d6df15c9dbeab176bec8b5701cf054eb3072f6dadc98f88819042bf10c407516ee58bce33fbe3b3d86a54255e577db4598e30a135361528c101683a5fcde7e8ba53f3456254be8f45fe3a56120ae96ea3773631fcb3873aa3abd91bcff00bd38bd43697a2e789e00da6077482e7b1b1a677b5afae4c54e6cbdf7377b694eb7d7a5b913476a5be923322d3de06060fd5e819635232a2cf4f0731da13b8546d1d6d4f8d75b9fce6c2341a71b0ea6f780df54bfdb0dd5cd9855179f602f9172
-	hmac_data[0] = 0xe5f14350c2a76fc232b5e46d421e9615471ab9e0bc887beff8c95fdb878f7b3a71da571226458c510bbadd1276f045c21c520a07d35da256ef75b4367962437b0dd10f7d61ab590531cf08000178a333a347f8b4072e216400406bdf3bf038659793a86cae5f52d32f3438527b47a1cfc54285a8afec3a4c9f3323db0c946f5d4cb2ce721caad69320c3a469a202f3e468c67eaf7a7cda226d0fd32f7b48084dca885d15222e60826d5d971f64172d98e0760154400958f00e86697aa1aa9d41bee8119a1ec866abe044a9ad635778ba61fc0776dc832b39451bd5d35072d2269cf9b040d6ba38b54ec35f81d7fc67678c3be47274f3c4cc472aff005c3469eb3bc140769ed4c7f0218ff8c6c7dd7221d189c65b3b9aaa71a01484b122846c7c7b57e02e679ea8469b70e14fe4f70fee4d87b910cf144be6fe48eef24da475c0b0bcc6565ae82cd3f4e3b24c76eaa5616c6111343306ab35c1fe5ca4a77c0e314ed7dba39d6f1e0de791719c241a939cc493bea2bae1c1e932679ea94d29084278513c77b899cc98059d06a27d171b0dbdf6bee13ddc4fc17a0c4d2827d488436b57baa167544138ca2e64a11b43ac8a06cd0c2fba2d4d900ed2d9205305e2d7383cc98dacb078133de5f6fb6bed2ef26ba92cea28aafc3b9948dd9ae5559e8bd6920b8cea462aa445ca6a95e0e7ba52961b181c79e73bd581821df2b10173727a810c92b83b5ba4a0403eb710d2ca10689a35bec6c3a708e9e92f7d78ff3c5d9989574b00c6736f84c199256e76e19e78f0c98a9d580b4a658c84fc8f2096c2fbea8f5f8c59d0fdacb3be2802ef802abbecb3aba4acaac69a0e965abd8981e9896b1f6ef9d60f7a164b371af869fd0e48073742825e9434fc54da837e120266d53302954843538ea7c6c3dbfb4ff3b2fdbe244437f2a153ccf7bdb4c92aa08102d4f3cff2ae5ef86fab4653595e6a5837fa2f3e29f27a9cde5966843fb847a4a61f1e76c281fe8bb2b0a181d096100db5a1a5ce7a910238251a43ca556712eaadea167fb4d7d75825e440f3ecd782036d7574df8bceacb397abefc5f5254d2722215c53ff54af8299aaaad642c6d72a14d27882d9bbd539e1cc7a527526ba89b8c037ad09120e98ab042d3e8652b31ae0e478516bfaf88efca9f3676ffe99d2819dcaeb7610a626695f53117665d267d3f7abebd6bbd6733f645c72c389f03855bdf1e4b8075b516569b118233a0f0971d24b83113c0b096f5216a207ca99a7cddc81c130923fe3d91e7508c9ac5f2e914ff5dccab9e558566fa14efb34ac98d878580814b94b73acbfde9072f30b881f7f0fff42d4045d1ace6322d86a97d164aa84d93a60498065cc7c20e636f5862dc81531a88c60305a2e59a985be327a6902e4bed986dbf4a0b50c217af0ea7fdf9ab37f9ea1a1aaa72f54cf40154ea9b269f1a7c09f9f43245109431a175d50e2db0132337baa0ef97eed0fcf20489da36b79a1172faccc2f7ded7c60e00694282d93359c4682135642bc81f433574aa8ef0c97b4ade7ca372c5ffc23c7eddd839bab4e0f14d6df15c9dbeab176bec8b5701cf054eb3072f6dadc98f88819042bf10c407516ee58bce33fbe3b3d86a54255e577db4598e30a135361528c101683a5fcde7e8ba53f3456254be8f45fe3a56120ae96ea3773631fcb3873aa3abd91bcff00bd38bd43697a2e789e00da6077482e7b1b1a677b5afae4c54e6cbdf7377b694eb7d7a5b913476a5be923322d3de06060fd5e819635232a2cf4f0731da13b8546d1d6d4f8d75b9fce6c2341a71b0ea6f780df54bfdb0dd5cd9855179f602f91724242424242424242424242424242424242424242424242424242424242424242
-	hmac[0] = 0x65f21f9190c70217774a6fbaaa7d63ad64199f4664813b955cff954949076dcf
-
-### Final Packet
-
-	onionpacket = 0x0002eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619e5f14350c2a76fc232b5e46d421e9615471ab9e0bc887beff8c95fdb878f7b3a71da571226458c510bbadd1276f045c21c520a07d35da256ef75b4367962437b0dd10f7d61ab590531cf08000178a333a347f8b4072e216400406bdf3bf038659793a86cae5f52d32f3438527b47a1cfc54285a8afec3a4c9f3323db0c946f5d4cb2ce721caad69320c3a469a202f3e468c67eaf7a7cda226d0fd32f7b48084dca885d15222e60826d5d971f64172d98e0760154400958f00e86697aa1aa9d41bee8119a1ec866abe044a9ad635778ba61fc0776dc832b39451bd5d35072d2269cf9b040d6ba38b54ec35f81d7fc67678c3be47274f3c4cc472aff005c3469eb3bc140769ed4c7f0218ff8c6c7dd7221d189c65b3b9aaa71a01484b122846c7c7b57e02e679ea8469b70e14fe4f70fee4d87b910cf144be6fe48eef24da475c0b0bcc6565ae82cd3f4e3b24c76eaa5616c6111343306ab35c1fe5ca4a77c0e314ed7dba39d6f1e0de791719c241a939cc493bea2bae1c1e932679ea94d29084278513c77b899cc98059d06a27d171b0dbdf6bee13ddc4fc17a0c4d2827d488436b57baa167544138ca2e64a11b43ac8a06cd0c2fba2d4d900ed2d9205305e2d7383cc98dacb078133de5f6fb6bed2ef26ba92cea28aafc3b9948dd9ae5559e8bd6920b8cea462aa445ca6a95e0e7ba52961b181c79e73bd581821df2b10173727a810c92b83b5ba4a0403eb710d2ca10689a35bec6c3a708e9e92f7d78ff3c5d9989574b00c6736f84c199256e76e19e78f0c98a9d580b4a658c84fc8f2096c2fbea8f5f8c59d0fdacb3be2802ef802abbecb3aba4acaac69a0e965abd8981e9896b1f6ef9d60f7a164b371af869fd0e48073742825e9434fc54da837e120266d53302954843538ea7c6c3dbfb4ff3b2fdbe244437f2a153ccf7bdb4c92aa08102d4f3cff2ae5ef86fab4653595e6a5837fa2f3e29f27a9cde5966843fb847a4a61f1e76c281fe8bb2b0a181d096100db5a1a5ce7a910238251a43ca556712eaadea167fb4d7d75825e440f3ecd782036d7574df8bceacb397abefc5f5254d2722215c53ff54af8299aaaad642c6d72a14d27882d9bbd539e1cc7a527526ba89b8c037ad09120e98ab042d3e8652b31ae0e478516bfaf88efca9f3676ffe99d2819dcaeb7610a626695f53117665d267d3f7abebd6bbd6733f645c72c389f03855bdf1e4b8075b516569b118233a0f0971d24b83113c0b096f5216a207ca99a7cddc81c130923fe3d91e7508c9ac5f2e914ff5dccab9e558566fa14efb34ac98d878580814b94b73acbfde9072f30b881f7f0fff42d4045d1ace6322d86a97d164aa84d93a60498065cc7c20e636f5862dc81531a88c60305a2e59a985be327a6902e4bed986dbf4a0b50c217af0ea7fdf9ab37f9ea1a1aaa72f54cf40154ea9b269f1a7c09f9f43245109431a175d50e2db0132337baa0ef97eed0fcf20489da36b79a1172faccc2f7ded7c60e00694282d93359c4682135642bc81f433574aa8ef0c97b4ade7ca372c5ffc23c7eddd839bab4e0f14d6df15c9dbeab176bec8b5701cf054eb3072f6dadc98f88819042bf10c407516ee58bce33fbe3b3d86a54255e577db4598e30a135361528c101683a5fcde7e8ba53f3456254be8f45fe3a56120ae96ea3773631fcb3873aa3abd91bcff00bd38bd43697a2e789e00da6077482e7b1b1a677b5afae4c54e6cbdf7377b694eb7d7a5b913476a5be923322d3de06060fd5e819635232a2cf4f0731da13b8546d1d6d4f8d75b9fce6c2341a71b0ea6f780df54bfdb0dd5cd9855179f602f917265f21f9190c70217774a6fbaaa7d63ad64199f4664813b955cff954949076dcf
-
-## Returning Errors
-
-The same parameters (node IDs, shared secrets, etc.) as above are used.
+The following is an in-depth trace of an example of error message creation:
 
 	# node 4 is returning an error
 	failure_message = 2002
@@ -1104,6 +1062,12 @@ The same parameters (node IDs, shared secrets, etc.) as above are used.
 	error packet for node 0: 9c5add3963fc7f6ed7f148623c84134b5647e1306419dbe2174e523fa9e2fbed3a06a19f899145610741c83ad40b7712aefaddec8c6baf7325d92ea4ca4d1df8bce517f7e54554608bf2bd8071a4f52a7a2f7ffbb1413edad81eeea5785aa9d990f2865dc23b4bc3c301a94eec4eabebca66be5cf638f693ec256aec514620cc28ee4a94bd9565bc4d4962b9d3641d4278fb319ed2b84de5b665f307a2db0f7fbb757366067d88c50f7e829138fde4f78d39b5b5802f1b92a8a820865af5cc79f9f30bc3f461c66af95d13e5e1f0381c184572a91dee1c849048a647a1158cf884064deddbf1b0b88dfe2f791428d0ba0f6fb2f04e14081f69165ae66d9297c118f0907705c9c4954a199bae0bb96fad763d690e7daa6cfda59ba7f2c8d11448b604d12d
 
 # References
+
+[sphinx]: http://www.cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf
+[RFC2104]: https://tools.ietf.org/html/rfc2104
+[fips198]: http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf
+[sec2]: http://www.secg.org/sec2-v2.pdf
+[rfc7539]: https://tools.ietf.org/html/rfc7539
 
 # Authors
 

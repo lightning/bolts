@@ -94,14 +94,14 @@ The amounts for each output MUST be rounded down to whole satoshis. If this amou
 
 #### `to_local` Output
 
-This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CSV`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
+This output sends funds back to the owner of this commitment transaction and thus must be timelocked using `OP_CHECKSEQUENCEVERIFY`. It can be claimed, without delay, by the other party if they know the revocation private key. The output is a version-0 P2WSH, with a witness script:
 
     OP_IF
         # Penalty transaction
         <revocationpubkey>
     OP_ELSE
         `to_self_delay`
-        OP_CSV
+        OP_CHECKSEQUENCEVERIFY
         OP_DROP
         <local_delayedpubkey>
     OP_ENDIF
@@ -147,7 +147,7 @@ If a revoked commitment transaction is published, the remote node can spend this
 
     <revocation_sig> <revocationpubkey>
 
-The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below.
+The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below. This is the only way that the local node can timeout the HTLC, and this branch requires `<remotehtlcsig>`, which ensures that the local node cannot prematurely timeout the HTLC since the HTLC-timeout transaction has `cltv_expiry` as its specified `locktime`. The local node must also wait `to_self_delay` before accessing these funds, allowing for the remote node to claim these funds if the transaction has been revoked.
 
 #### Received HTLC Outputs
 
@@ -178,7 +178,7 @@ If a revoked commitment transaction is published, the remote node can spend this
 
     <revocation_sig> <revocationpubkey>
 
-To redeem the HTLC, the HTLC-success transaction is used as detailed below.
+To redeem the HTLC, the HTLC-success transaction is used as detailed below. This is the only way that the local node can spend the HTLC, since this branch requires `<remotehtlcsig>`, which ensures that the local node must wait `to_self_delay` before accessing these funds allowing for the remote node to claim these funds if the transaction has been revoked.
 
 ### Trimmed Outputs
 
@@ -244,7 +244,7 @@ The witness script for the output is:
         <revocationpubkey>
     OP_ELSE
         `to_self_delay`
-        OP_CSV
+        OP_CHECKSEQUENCEVERIFY
         OP_DROP
         <local_delayedpubkey>
     OP_ENDIF
@@ -552,40 +552,40 @@ secret is stored:
 
     # a.k.a. count trailing 0s
     where_to_put_secret(I):
-		for B in 0 to 47:
-			if testbit(I) in B == 1:
-				return B
+        for B in 0 to 47:
+            if testbit(I) in B == 1:
+                return B
         # I = 0, this is the seed.
-		return 48
+        return 48
 
 A double-check, that all previous secrets derive correctly, is needed;
 if this check fails, the secrets were not generated from the same seed:
 
     insert_secret(secret, I):
-		B = where_to_put_secret(secret, I)
+        B = where_to_put_secret(secret, I)
 
         # This tracks the index of the secret in each bucket across the traversal.
-		for b in 0 to B:
-			if derive_secret(secret, B, known[b].index) != known[b].secret:
-				error The secret for I is incorrect
-				return
+        for b in 0 to B:
+            if derive_secret(secret, B, known[b].index) != known[b].secret:
+                error The secret for I is incorrect
+                return
 
         # Assuming this automatically extends known[] as required.
-		known[B].index = I
-		known[B].secret = secret
+        known[B].index = I
+        known[B].secret = secret
 
 Finally, if an unknown secret at index `I` needs be derived, it must be
 discovered which known secret can be used to derive it. The simplest
 method is iterating over all the known secrets, and testing if each
 can be used to derive the unknown secret:
 
-	derive_old_secret(I):
-		for b in 0 to len(secrets):
-		    # Mask off the non-zero prefix of the index.
-		    MASK = ~((1 << b) - 1)
-			if (I & MASK) == secrets[b].index:
-				return derive_secret(known, i, I)
-	    error Index 'I' hasn't been received yet.
+    derive_old_secret(I):
+        for b in 0 to len(secrets):
+            # Mask off the non-zero prefix of the index.
+            MASK = ~((1 << b) - 1)
+            if (I & MASK) == secrets[b].index:
+                return derive_secret(known, i, I)
+        error Index 'I' hasn't been received yet.
 
 This looks complicated, but remember that the index in entry `b` has
 `b` trailing 0s; the mask and compare simply checks if the index

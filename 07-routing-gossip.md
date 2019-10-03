@@ -20,6 +20,7 @@ multiple `node_announcement` messages, in order to update the node information.
 
 # Table of Contents
 
+  * [Definition of `short_channel_id`](#definition-of-short-channel-id)
   * [The `announcement_signatures` Message](#the-announcement_signatures-message)
   * [The `channel_announcement` Message](#the-channel_announcement-message)
   * [The `node_announcement` Message](#the-node_announcement-message)
@@ -32,24 +33,7 @@ multiple `node_announcement` messages, in order to update the node information.
   * [Recommendations for Routing](#recommendations-for-routing)
   * [References](#references)
 
-## The `announcement_signatures` Message
-
-This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
-It contains the necessary signatures, by the sender, to construct the `channel_announcement` message.
-
-1. type: 259 (`announcement_signatures`)
-2. data:
-    * [`32`:`channel_id`]
-    * [`8`:`short_channel_id`]
-    * [`64`:`node_signature`]
-    * [`64`:`bitcoin_signature`]
-
-The willingness of the initiating node to announce the channel is signaled during channel opening by setting the `announce_channel` bit in `channel_flags` (see [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
-
-### Requirements
-
-The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. After it's signed, the
-`announcement_signatures` message may be sent.
+## Definition of `short_channel_id`
 
 The `short_channel_id` is the unique description of the funding transaction.
 It is constructed as follows:
@@ -66,6 +50,36 @@ For example, a `short_channel_id` might be written as `539268x845x1`,
 indicating a channel on the output 1 of the transaction at index 845
 of the block at height 539268.
 
+### Rationale
+
+The `short_channel_id` human readable format is designed
+so that double-clicking or double-tapping it will select the entire ID
+on most systems.
+Humans prefer decimal when reading numbers,
+so the ID components are written in decimal.
+The small letter `x` is used since on most fonts,
+the `x` is visibly smaller than decimal digits,
+making it easy to visibly group each component of the ID.
+
+## The `announcement_signatures` Message
+
+This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
+It contains the necessary signatures, by the sender, to construct the `channel_announcement` message.
+
+1. type: 259 (`announcement_signatures`)
+2. data:
+    * [`channel_id`:`channel_id`]
+    * [`short_channel_id`:`short_channel_id`]
+    * [`signature`:`node_signature`]
+    * [`signature`:`bitcoin_signature`]
+
+The willingness of the initiating node to announce the channel is signaled during channel opening by setting the `announce_channel` bit in `channel_flags` (see [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
+
+### Requirements
+
+The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. After it's signed, the
+`announcement_signatures` message may be sent.
+
 A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
@@ -80,6 +94,8 @@ A node:
       - SHOULD retransmit the `announcement_signatures` message.
 
 A recipient node:
+  - if the `short_channel_id` is NOT correct:
+    - SHOULD fail the channel.
   - if the `node_signature` OR the `bitcoin_signature` is NOT correct:
     - MAY fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
@@ -96,15 +112,6 @@ The reason for allowing deferring of a premature announcement_signatures is
 that an earlier version of the spec did not require waiting for receipt of
 funding locked: deferring rather than ignoring it allows compatibility with
 this behavior.
-
-The `short_channel_id` human readable format is designed
-so that double-clicking or double-tapping it will select the entire ID
-on most systems.
-Humans prefer decimal when reading numbers,
-so the ID components are written in decimal.
-The small letter `x` is used since on most fonts,
-the `x` is visibly smaller than decimal digits,
-making it easy to visibly group each component of the ID.
 
 ## The `channel_announcement` Message
 
@@ -135,18 +142,18 @@ announcement message: this is accomplished by having a signature from each
 
 1. type: 256 (`channel_announcement`)
 2. data:
-    * [`64`:`node_signature_1`]
-    * [`64`:`node_signature_2`]
-    * [`64`:`bitcoin_signature_1`]
-    * [`64`:`bitcoin_signature_2`]
-    * [`2`:`len`]
-    * [`len`:`channelfeatures`]
-    * [`32`:`chain_hash`]
-    * [`8`:`short_channel_id`]
-    * [`33`:`node_id_1`]
-    * [`33`:`node_id_2`]
-    * [`33`:`bitcoin_key_1`]
-    * [`33`:`bitcoin_key_2`]
+    * [`signature`:`node_signature_1`]
+    * [`signature`:`node_signature_2`]
+    * [`signature`:`bitcoin_signature_1`]
+    * [`signature`:`bitcoin_signature_2`]
+    * [`u16`:`len`]
+    * [`len*byte`:`features`]
+    * [`chain_hash`:`chain_hash`]
+    * [`short_channel_id`:`short_channel_id`]
+    * [`point`:`node_id_1`]
+    * [`point`:`node_id_2`]
+    * [`point`:`bitcoin_key_1`]
+    * [`point`:`bitcoin_key_2`]
 
 ### Requirements
 
@@ -173,16 +180,15 @@ The origin node:
   - MUST set `bitcoin_signature_1` and `bitcoin_signature_2` to valid
   signatures of the hash `h` (using `bitcoin_key_1` and `bitcoin_key_2`'s
   respective secrets).
-  - SHOULD set `len` to the minimum length required to hold the `channelfeatures` bits
+  - MUST set `features` based on what features were negotiated for this channel, according to [BOLT #9](09-features.md#assigned-features-flags)
+  - MUST set `len` to the minimum length required to hold the `features` bits
   it sets.
-  - MUST set a `channelfeatures` bit for each `channelfeature` negotiated for
-    the channel, according to [BOLT #9](09-features.md).
 
 The receiving node:
   - MUST verify the integrity AND authenticity of the message by verifying the
   signatures.
-  - if there is an unknown even bit in the `channelfeatures` field:
-    - MUST NOT add the channel to its local network view.
+  - if there is an unknown even bit in the `features` field:
+    - MUST NOT attempt to route messages through the channel.
   - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using
     `bitcoin_key_1` and `bitcoin_key_2`, as specified in
     [BOLT #3](03-transactions.md#funding-transaction-output)) OR the output is
@@ -236,8 +242,6 @@ New channel features are possible in the future: backwards compatible (or
 optional) features will have _odd_ feature bits, while incompatible features
 will have _even_ feature bits
 (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
-Incompatible features will result in the announcement not being forwarded by
-nodes that do not understand them.
 
 ## The `node_announcement` Message
 
@@ -247,15 +251,15 @@ nodes not associated with an already known channel are ignored.
 
 1. type: 257 (`node_announcement`)
 2. data:
-   * [`64`:`signature`]
-   * [`2`:`cflen`]
-   * [`cflen`:`combinedfeatures`]
-   * [`4`:`timestamp`]
-   * [`33`:`node_id`]
-   * [`3`:`rgb_color`]
-   * [`32`:`alias`]
-   * [`2`:`addrlen`]
-   * [`addrlen`:`addresses`]
+   * [`signature`:`signature`]
+   * [`u16`:`flen`]
+   * [`flen*byte`:`features`]
+   * [`u32`:`timestamp`]
+   * [`point`:`node_id`]
+   * [`3*byte`:`rgb_color`]
+   * [`32*byte`:`alias`]
+   * [`u16`:`addrlen`]
+   * [`addrlen*byte`:`addresses`]
 
 `timestamp` allows for the ordering of messages, in the case of multiple
 announcements. `rgb_color` and `alias` allow intelligence services to assign
@@ -304,9 +308,9 @@ The origin node:
   to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST NOT include more than one `address descriptor` of the same type.
-  - SHOULD set `cflen` to the minimum length required to hold the `combinedfeatures`
+  - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
+  - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
-  - MUST set `combinedfeatures` to the logical OR of `nodefeatures` and `channelfeatures`.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -317,6 +321,8 @@ The receiving node:
 any future fields appended to the end):
     - SHOULD fail the connection.
     - MUST NOT process the message further.
+  - if `features` field contains _unknown even bits_:
+    - SHOULD NOT connect to the node.
   - SHOULD ignore the first `address descriptor` that does NOT match the types
   defined above.
   - if `addrlen` is insufficient to hold the address descriptors of the
@@ -337,6 +343,12 @@ any future fields appended to the end):
     - SHOULD insinuate their self-signed origins.
 
 ### Rationale
+
+New node features are possible in the future: backwards compatible (or
+optional) ones will have _odd_ `feature` _bits_, incompatible ones will have
+_even_ `feature` _bits_. These will be propagated normally; incompatible
+feature bits here refer to the nodes, not the `node_announcement` message
+itself.
 
 New address types may be added in the future; as address descriptors have
 to be ordered in ascending order, unknown ones can be safely ignored.
@@ -381,17 +393,17 @@ of *relaying* payments, not *sending* payments. When making a payment
 
 1. type: 258 (`channel_update`)
 2. data:
-    * [`64`:`signature`]
-    * [`32`:`chain_hash`]
-    * [`8`:`short_channel_id`]
-    * [`4`:`timestamp`]
-    * [`1`:`message_flags`]
-    * [`1`:`channel_flags`]
-    * [`2`:`cltv_expiry_delta`]
-    * [`8`:`htlc_minimum_msat`]
-    * [`4`:`fee_base_msat`]
-    * [`4`:`fee_proportional_millionths`]
-    * [`8`:`htlc_maximum_msat`] (option_channel_htlc_max)
+    * [`signature`:`signature`]
+    * [`chain_hash`:`chain_hash`]
+    * [`short_channel_id`:`short_channel_id`]
+    * [`u32`:`timestamp`]
+    * [`byte`:`message_flags`]
+    * [`byte`:`channel_flags`]
+    * [`u16`:`cltv_expiry_delta`]
+    * [`u64`:`htlc_minimum_msat`]
+    * [`u32`:`fee_base_msat`]
+    * [`u32`:`fee_proportional_millionths`]
+    * [`u64`:`htlc_maximum_msat`] (option_channel_htlc_max)
 
 The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
@@ -423,6 +435,7 @@ or `node_id_2` otherwise.
 ### Requirements
 
 The origin node:
+  - MUST NOT send a created `channel_update` before `funding_locked` has been received.
   - MAY create a `channel_update` to communicate the channel parameters to the
   channel peer, even though the channel has not yet been announced (i.e. the
   `announce_channel` bit was not set).
@@ -484,19 +497,22 @@ The receiving node:
   - if the specified `chain_hash` value is unknown (meaning it isn't active on
   the specified chain):
     - MUST ignore the channel update.
-  - if `timestamp` is NOT greater than that of the last-received
+  - if the `timestamp` is equal to the last-received `channel_update` for this
+    `short_channel_id` AND `node_id`:
+    - if the fields below `timestamp` differ:
+      - MAY blacklist this `node_id`.
+      - MAY forget all channels associated with it.
+    - if the fields below `timestamp` are equal:
+      - SHOULD ignore this message	
+  - if `timestamp` is lower than that of the last-received
   `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
   - otherwise:
-    - if the `timestamp` is equal to the last-received `channel_update`
-    AND the fields (other than `signature`) differ:
-      - MAY blacklist this `node_id`.
-      - MAY forget all channels associated with it.
-  - if the `timestamp` is unreasonably far in the future:
-    - MAY discard the `channel_update`.
-  - otherwise:
-    - SHOULD queue the message for rebroadcasting.
-    - MAY choose NOT to for messages longer than the minimum expected length.
+    - if the `timestamp` is unreasonably far in the future:
+      - MAY discard the `channel_update`.
+    - otherwise:
+      - SHOULD queue the message for rebroadcasting.
+      - MAY choose NOT to for messages longer than the minimum expected length.
   - if the `option_channel_htlc_max` bit of `message_flags` is 0:
     - MUST consider `htlc_maximum_msat` not to be present.
   - otherwise:
@@ -513,6 +529,17 @@ either too far in the future or have not been updated in two weeks; so it
 makes sense to have it be a UNIX timestamp (i.e. seconds since UTC
 1970-01-01). This cannot be a hard requirement, however, given the possible case
 of two `channel_update`s within a single second.
+
+It is assumed that more than one `channel_update` message changing the channel 
+parameters in the same second may be a DoS attempt, and therefore, the node responsible 
+for signing such messages may be blacklisted. However, a node may send a same 
+`channel_update` message with a different signature (changing the nonce in signature 
+signing), and hence fields apart from signature are checked to see if the channel 
+parameters have changed for the same timestamp. It is also important to note that 
+ECDSA signatures are malleable. So, an intermediate node who received the `channel_update` 
+message can rebroadcast it just by changing the `s` component of signature with `-s`. 
+This should however not result in the blacklist of the `node_id` from where
+the message originated.
 
 The explicit `option_channel_htlc_max` flag to indicate the presence
 of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
@@ -543,24 +570,52 @@ Encoding types:
 * `0`: uncompressed array of `short_channel_id` types, in ascending order.
 * `1`: array of `short_channel_id` types, in ascending order, compressed with zlib deflate<sup>[1](#reference-1)</sup>
 
+This encoding is also used for arrays of other types (timestamps, flags, ...), and specified with an `encoded_` prefix. For example, `encoded_timestamps` is an array of timestamps than can be either compressed (with a `1` prefix) or uncompressed (with a `0` prefix).
+
 Note that a 65535-byte zlib message can decompress into 67632120
 bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
 across the stream: as each duplicate takes at least 2 bits, no valid
 contents could decompress to more then 3669960 bytes.
 
+Query messages can be extended with optional fields that can help reduce the number of messages needed to synchronize routing tables by enabling:
+
+- timestamp-based filtering of `channel_update` messages: only ask for `channel_update` messages that are newer than the ones you already have.
+- checksum-based filtering of `channel_update` messages: only ask for `channel_update` messages that carry different information from the ones you already have.
+
+Nodes can signal that they support extended gossip queries with the `gossip_queries_ex` feature bit.
+
 ### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`2`:`len`]
-    * [`len`:`encoded_short_ids`]
+    * [`chain_hash`:`chain_hash`]
+    * [`u16`:`len`]
+    * [`len*byte`:`encoded_short_ids`]
+    * [`query_short_channel_ids_tlvs`:`tlvs`]
+
+1. tlvs: `query_short_channel_ids_tlvs`
+2. types:
+    1. type: 1 (`query_flags`)
+    2. data:
+        * [`...*byte`:`encoded_query_flags`]
+
+`encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
+
+| Bit Position  | Meaning                                  |
+| ------------- | ---------------------------------------- |
+| 0             | Sender wants `channel_announcement`      |
+| 1             | Sender wants `channel_update` for node 1 |
+| 2             | Sender wants `channel_update` for node 2 |
+| 3             | Sender wants `node_announcement` for node 1 |
+| 4             | Sender wants `node_announcement` for node 2 |
+
+Query flags must be minimally encoded, which means that one flag will be encoded with a single byte.
 
 1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`1`:`complete`]
+    * [`chain_hash`:`chain_hash`]
+    * [`byte`:`complete`]
 
 This is a general mechanism which lets a node query for the
 `channel_announcement` and `channel_update` messages for specific channels
@@ -580,6 +635,10 @@ The sender:
   - MAY send this if it receives a `channel_update` for a
    `short_channel_id` for which it has no `channel_announcement`.
   - SHOULD NOT send this if the channel referred to is not an unspent output.
+  - MAY include an optional `query_flags`. If so:
+    - MUST set `encoding_type`, as for `encoded_short_ids`.
+    - Each query flag is a minimally-encoded varint.
+    - MUST encode one query flag per `short_channel_id`.
 
 The receiver:
   - if the first byte of `encoded_short_ids` is not a known encoding type:
@@ -588,11 +647,31 @@ The receiver:
     - MAY fail the connection.
   - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
     - MAY fail the connection.
-  - MUST respond to each known `short_channel_id` with a `channel_announcement`
-    and the latest `channel_update` for each end
+  - if the incoming message includes `query_short_channel_ids_tlvs`:
+    - if `encoding_type` is not a known encoding type:
+      - MAY fail the connection
+    - if `encoded_query_flags` does not decode to exactly one flag per `short_channel_id`:
+      - MAY fail the connection.
+  - MUST respond to each known `short_channel_id`:
+    - if the incoming message does not include `encoded_query_flags`:
+      - with a `channel_announcement` and the latest `channel_update` for each end
+      - MUST follow with any `node_announcement`s for each `channel_announcement`
+    - otherwise:
+      - We define `query_flag` for the Nth `short_channel_id` in
+        `encoded_short_ids` to be the Nth varint of the decoded
+        `encoded_query_flags`.
+      - if bit 0 of `query_flag` is set:
+        - MUST reply with a `channel_announcement`
+      - if bit 1 of `query_flag` is set and it has received a `channel_update` from `node_id_1`:
+        - MUST reply with the latest `channel_update` for `node_id_1`
+      - if bit 2 of `query_flag` is set and it has received a `channel_update` from `node_id_2`:
+        - MUST reply with the latest `channel_update` for `node_id_2`
+      - if bit 3 of `query_flag` is set and it has received a `node_announcement` from `node_id_1`:
+        - MUST reply with the latest `node_announcement` for `node_id_1`
+      - if bit 4 of `query_flag` is set and it has received a `node_announcement` from `node_id_2`:
+        - MUST reply with the latest `node_announcement` for `node_id_2`
 	- SHOULD NOT wait for the next outgoing gossip flush to send these.
-  - MUST follow with any `node_announcement`s for each `channel_announcement`
-	- SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
+  - SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
   - MUST follow these responses with `reply_short_channel_ids_end`.
   - if does not maintain up-to-date channel information for `chain_hash`:
 	- MUST set `complete` to 0.
@@ -614,20 +693,70 @@ timeouts.  It also causes a natural ratelimiting of queries.
 
 1. type: 263 (`query_channel_range`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`4`:`first_blocknum`]
-    * [`4`:`number_of_blocks`]
+    * [`chain_hash`:`chain_hash`]
+    * [`u32`:`first_blocknum`]
+    * [`u32`:`number_of_blocks`]
+    * [`query_channel_range_tlvs`:`tlvs`]
+
+1. tlvs: `query_channel_range_tlvs`
+2. types:
+    1. type: 1 (`query_option`)
+    2. data:
+        * [`varint`:`query_option_flags`]
+
+`query_option_flags` is a bitfield represented as a minimally-encoded varint. Bits have the following meaning:
+
+| Bit Position  | Meaning                 |
+| ------------- | ----------------------- |
+| 0             | Sender wants timestamps |
+| 1             | Sender wants checksums  |
+
+Though it is possible, it would not be very useful to ask for checksums without asking for timestamps too: the receiving node may have an older `channel_update` with a different checksum, asking for it would be useless. And if a `channel_update` checksum is actually 0 (which is quite unlikely) it will not be queried.
 
 1. type: 264 (`reply_channel_range`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`4`:`first_blocknum`]
-    * [`4`:`number_of_blocks`]
-    * [`1`:`complete`]
-    * [`2`:`len`]
-    * [`len`:`encoded_short_ids`]
+    * [`chain_hash`:`chain_hash`]
+    * [`u32`:`first_blocknum`]
+    * [`u32`:`number_of_blocks`]
+    * [`byte`:`complete`]
+    * [`u16`:`len`]
+    * [`len*byte`:`encoded_short_ids`]
+    * [`reply_channel_range_tlvs`:`tlvs`]
 
-This allows a query for channels within specific blocks.
+1. tlvs: `query_channel_range_tlvs`
+2. types:
+    1. type: 1 (`timestamps_tlv`)
+    2. data:
+        * [`...*byte`:`encoded_timestamps`]
+    1. type: 3 (`checksums_tlv`)
+    2. data:
+        * [`...*byte`:`checksums`]
+
+For a single `channel_update`, timestamps are encoded as:
+
+1. subtype: `channel_update_timestamps`
+2. data:
+    * [`u32`:`timestamp_node_id_1`]
+    * [`u32`:`timestamp_node_id_2`]
+
+Where:
+* `timestamp_node_id_1` is the timestamp of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
+* `timestamp_node_id_2` is the timestamp of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
+
+For a single `channel_update`, checksums are encoded as:
+
+1. subtype: `channel_update_checksums`
+2. data:
+    * [`u32`:`checksum_node_id_1`]
+    * [`u32`:`checksum_node_id_2`]
+
+Where:
+* `checksum_node_id_1` is the checksum of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
+* `checksum_node_id_2` is the checksum of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
+
+The checksum of a `channel_update` is the CRC32C checksum as specified in [RFC3720](https://tools.ietf.org/html/rfc3720#appendix-B.4) of this `channel_update` without its `signature` and `timestamp` fields.
+
+This allows to query for channels within specific blocks. 
 
 #### Requirements
 
@@ -637,6 +766,7 @@ The sender of `query_channel_range`:
   that it wants the `reply_channel_range` to refer to
   - MUST set `first_blocknum` to the first block it wants to know channels for
   - MUST set `number_of_blocks` to 1 or greater.
+  - MAY append an additional `query_channel_range_tlv`, which specifies the type of extended information it would like to receive.  
 
 The receiver of `query_channel_range`:
   - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
@@ -654,19 +784,26 @@ The receiver of `query_channel_range`:
     - otherwise:
       - SHOULD set `complete` to 1.
 
+If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
+- if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
+- if bit 1 in `query_option_flags` is set, the receiver MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
+
+
 #### Rationale
 
 A single response might be too large for a single packet, and also a peer can
 store canned results for (say) 1000-block ranges, and simply offer each reply
 which overlaps the ranges of the request.
 
+The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
+
 ### The `gossip_timestamp_filter` Message
 
 1. type: 265 (`gossip_timestamp_filter`) (`gossip_queries`)
 2. data:
-    * [`32`:`chain_hash`]
-    * [`4`:`first_timestamp`]
-    * [`4`:`timestamp_range`]
+    * [`chain_hash`:`chain_hash`]
+    * [`u32`:`first_timestamp`]
+    * [`u32`:`timestamp_range`]
 
 This message allows a node to constrain future gossip messages to
 a specific range.  A node which wants any gossip messages would have
@@ -717,7 +854,7 @@ In the case where the `channel_announcement` is nonetheless missed,
 ## Initial Sync
 
 If a node requires an initial sync of gossip messages, it will be flagged
-in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-nodefeatures-flags)).
+in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
 
 Note that the `initial_routing_sync` feature is overridden (and should
 be considered equal to 0) by the `gossip_queries` feature if the
@@ -763,7 +900,7 @@ A receiving node:
 
 A node:
   - if the `gossip_queries` feature is negotiated:
-	- MUST not send gossip until it receives `gossip_timestamp_range`.
+	- MUST not send gossip until it receives `gossip_timestamp_filter`.
   - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
   the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not

@@ -207,15 +207,15 @@ can be ignored.
 
 ## HTLC Output Handling: Local Commitment, Local Offers
 
-Each HTLC output can only be spent by either a local offerer, by using the HTLC-timeout
-transaction after it's timed out, or a remote recipient, if it has the payment
-preimage.
+Each HTLC output can only be spent by either the *local offerer*, by using the
+HTLC-timeout transaction after it's timed out, or the *remote recipient*, if it
+has the payment preimage.
 
-There can be HTLCs which are not represented by an output: either
+There can be HTLCs which are not represented by any outputs: either
 because they were trimmed as dust, or because the transaction has only been
 partially committed.
 
-The HTLC has *timed out* once the depth of the latest block is equal to
+The HTLC output has *timed out* once the depth of the latest block is equal to
 or greater than the HTLC `cltv_expiry`.
 
 ### Requirements
@@ -370,15 +370,16 @@ will be unable to salvage the HTLCs.
 
 ## HTLC Output Handling: Remote Commitment, Local Offers
 
-Each HTLC output can only be spent by the *offerer*, after it's timed out, or by
-the *recipient*, if it has the payment preimage.
+Each HTLC output can only be spent by either the *local offerer*, after it's
+timed out, or by the *remote recipient*, by using the HTLC-success transaction
+if it has the payment preimage.
+
+There can be HTLCs which are not represented by any outputs: either
+because the outputs were trimmed as dust, or because the remote node has two
+*valid* commitment transactions with differing HTLCs.
 
 The HTLC output has *timed out* once the depth of the latest block is equal to
 or greater than the HTLC `cltv_expiry`.
-
-There can be HTLCs which are not represented by any outputs: either
-because the outputs were trimmed as dust or because the remote node has two
-*valid* commitment transactions with differing HTLCs.
 
 ### Requirements
 
@@ -433,11 +434,6 @@ the wait. The requirement that the incoming HTLC be failed before its
 own timeout still applies as an upper bound.
 
 ## HTLC Output Handling: Remote Commitment, Remote Offers
-
-Each HTLC output can only be spent by the recipient if it uses the payment
-preimage. If a node does not possess the preimage (and doesn't discover
-it), it's the offerer's responsibility to spend the HTLC output once it's timed
-out.
 
 The remote HTLC outputs can only be spent by the local node if it has the
 payment preimage. If the local node does not have the preimage (and doesn't

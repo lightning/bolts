@@ -13,11 +13,15 @@ All data fields are unsigned big-endian unless otherwise specified.
 
   * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
   * [Lightning Message Format](#lightning-message-format)
+  * [Type-Length-Value Format](#type-length-value-format)
+  * [Fundamental Types](#fundamental-types)
   * [Setup Messages](#setup-messages)
     * [The `init` Message](#the-init-message)
     * [The `error` Message](#the-error-message)
   * [Control Messages](#control-messages)
     * [The `ping` and `pong` Messages](#the-ping-and-pong-messages)
+  * [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
+  * [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
   * [Acknowledgments](#acknowledgments)
   * [References](#references)
   * [Authors](#authors)
@@ -82,53 +86,172 @@ however, adding a 6-byte padding after the type field was considered
 wasteful: alignment may be achieved by decrypting the message into
 a buffer with 6-bytes of pre-padding.
 
+## Type-Length-Value Format
+
+Throughout the protocol, a TLV (Type-Length-Value) format is used to allow for
+the backwards-compatible addition of new fields to existing message types.
+
+A `tlv_record` represents a single field, encoded in the form:
+
+* [`varint`: `type`]
+* [`varint`: `length`]
+* [`length`: `value`]
+
+A `varint` is a variable-length, unsigned integer encoding using the
+[BigSize](#appendix-a-bigsize-test-vectors) format, which resembles the bitcoin
+CompactSize encoding but uses big-endian for multi-byte values rather than
+little-endian. 
+
+A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
+concatenation of the encoded `tlv_record`s. When used to extend existing
+messages, a `tlv_stream` is typically placed after all currently defined fields.
+
+The `type` is a varint encoded using the BigSize format. It functions as a
+message-specific, 64-bit identifier for the `tlv_record` determining how the
+contents of `value` should be decoded.
+
+The `length` is a varint encoded using the BigSize format signaling the size of
+`value` in bytes.
+
+The `value` depends entirely on the `type`, and should be encoded or decoded
+according to the message-specific format determined by `type`.
+
+### Requirements
+
+The sending node:
+ - MUST order `tlv_record`s in a `tlv_stream` by monotonically-increasing `type`.
+ - MUST minimally encode `type` and `length`.
+ - SHOULD NOT use redundant, variable-length encodings in a `tlv_record`.
+
+The receiving node:
+ - if zero bytes remain before parsing a `type`:
+   - MUST stop parsing the `tlv_stream`.
+ - if a `type` or `length` is not minimally encoded:
+   - MUST fail to parse the `tlv_stream`.
+ - if decoded `type`s are not monotonically-increasing:
+   - MUST fail to parse the `tlv_stream`.
+ - if `length` exceeds the number of bytes remaining in the message:
+   - MUST fail to parse the `tlv_stream`.
+ - if `type` is known:
+   - MUST decode the next `length` bytes using the known encoding for `type`.
+   - if `length` is not exactly equal to that required for the known encoding for `type`:
+     - MUST fail to parse the `tlv_stream`.
+   - if variable-length fields within the known encoding for `type` are not minimal:
+     - MUST fail to parse the `tlv_stream`.
+ - otherwise, if `type` is unknown:
+   - if `type` is even:
+     - MUST fail to parse the `tlv_stream`.
+   - otherwise, if `type` is odd:
+     - MUST discard the next `length` bytes.
+
+### Rationale
+
+The primary advantage in using TLV is that a reader is able to ignore new fields
+that it does not understand, since each field carries the exact size of the
+encoded element. Without TLV, even if a node does not wish to use a particular
+field, the node is forced to add parsing logic for that field in order to
+determine the offset of any fields that follow.
+
+The monotonicity constraint ensures that all `type`s are unique and can appear
+at most once. Fields that map to complex objects, e.g. vectors, maps, or
+structs, should do so by defining the encoding such that the object is
+serialized within a single `tlv_record`. The uniqueness constraint, among other
+things, enables the following optimizations:
+ - canonical ordering is defined independent of the encoded `value`s.
+ - canonical ordering can be known at compile-time, rather that being determined
+   dynamically at the time of encoding.
+ - verifying canonical ordering requires less state and is less-expensive.
+ - variable-size fields can reserve their expected size up front, rather than
+   appending elements sequentially and incurring double-and-copy overhead.
+
+The use of a varint for `type` and `length` permits a space savings for small
+`type`s or short `value`s. This potentially leaves more space for application
+data over the wire or in an onion payload.
+
+All `type`s must appear in increasing order to create a canonical encoding of
+the underlying `tlv_record`s. This is crucial when computing signatures over a
+`tlv_stream`, as it ensures verifiers will be able to recompute the same message
+digest as the signer. Note that the canonical ordering over the set of fields
+can be enforced even if the verifier does not understand what the fields
+contain.
+
+Writers should avoid using redundant, variable-length encodings in a
+`tlv_record` since this results in encoding the length twice and complicates
+computing the outer length. As an example, when writing a variable length byte
+array, the `value` should contain only the raw bytes and forgo an additional
+internal length since the `tlv_record` already carries the number of bytes that
+follow. On the other hand, if a `tlv_record` contains multiple, variable-length
+elements then this would not be considered redundant, and is needed to allow the
+receiver to parse individual elements from `value`.
+
+## Fundamental Types
+
+Various fundamental types are referred to in the message specifications:
+
+* `byte`: an 8-bit byte
+* `u16`: a 2 byte unsigned integer
+* `u32`: a 4 byte unsigned integer
+* `u64`: an 8 byte unsigned integer
+
+Inside TLV records which contain a single value, leading zeros in
+integers can be omitted:
+
+* `tu16`: a 0 to 2 byte unsigned integer
+* `tu32`: a 0 to 4 byte unsigned integer
+* `tu64`: a 0 to 8 byte unsigned integer
+
+The following convenience types are also defined:
+
+* `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
+* `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id)
+* `sha256`: a 32-byte SHA2-256 hash
+* `signature`: a 64-byte bitcoin Elliptic Curve signature
+* `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
+* `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
+
 ## Setup Messages
 
 ### The `init` Message
 
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of channel and node features. Each feature is generally represented in `channelfeatures` or `nodefeatures` by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
+[BOLT #9](09-features.md) specifies lists of features. Each feature is generally represented by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
 
-Both fields `channelfeatures` and `nodefeatures` MUST be padded to bytes with 0s.
+The `features` field MUST be padded to bytes with 0s.
 
 1. type: 16 (`init`)
 2. data:
-   * [`2`:`cflen`]
-   * [`cflen`:`channelfeatures`]
-   * [`2`:`nflen`]
-   * [`nflen`:`nodefeatures`]
+   * [`u16`:`ignorelen`]
+   * [`ignorelen*byte`:`ignore`]
+   * [`u16`:`flen`]
+   * [`flen*byte`:`features`]
 
-The 2-byte `cflen` and `nflen` fields indicate the number of bytes in the immediately following field.
 
 #### Requirements
 
 The sending node:
   - MUST send `init` as the first Lightning message for any connection.
+  - MUST set `ignorelen` to zero.
   - MUST set feature bits as defined in [BOLT #9](09-features.md).
   - MUST set any undefined feature bits to 0.
-  - SHOULD use the minimum lengths required to represent the feature fields.
+  - SHOULD use the minimum length required to represent the `features` field.
 
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
   - MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
-  - upon receiving unknown _odd_ `nodefeatures` bits that are non-zero:
+  - upon receiving unknown _odd_ feature bits that are non-zero:
     - MUST ignore the bit.
-  - upon receiving unknown _even_ `nodefeatures` bits that are non-zero:
+  - upon receiving unknown _even_ feature bits that are non-zero:
     - MUST fail the connection.
 
 #### Rationale
+
+There used to be two feature bitfields here, but the first is now ignored.
 
 This semantic allows both future incompatible changes and future backward compatible changes. Bits should generally be assigned in pairs, in order that optional features may later become compulsory.
 
 Nodes wait for receipt of the other's features to simplify error
 diagnosis when features are incompatible.
-
-The feature masks are split into node features (which only affect the
-protocol between these two nodes) and channel features (which can affect
-routing and are thus also advertised to other nodes).  A node may
-connect to a node with unknown channel features, even though it won't be
-able to establish a channel.
 
 ### The `error` Message
 
@@ -136,9 +259,9 @@ For simplicity of diagnosis, it's often useful to tell a peer that something is 
 
 1. type: 17 (`error`)
 2. data:
-   * [`32`:`channel_id`]
-   * [`2`:`len`]
-   * [`len`:`data`]
+   * [`channel_id`:`channel_id`]
+   * [`u16`:`len`]
+   * [`len*byte`:`data`]
 
 The 2-byte `len` field indicates the number of bytes in the immediately following field.
 
@@ -196,9 +319,9 @@ application level. Such messages also allow obfuscation of traffic patterns.
 
 1. type: 18 (`ping`)
 2. data:
-    * [`2`:`num_pong_bytes`]
-    * [`2`:`byteslen`]
-    * [`byteslen`:`ignored`]
+    * [`u16`:`num_pong_bytes`]
+    * [`u16`:`byteslen`]
+    * [`byteslen*byte`:`ignored`]
 
 The `pong` message is to be sent whenever a `ping` message is received. It
 serves as a reply and also serves to keep the connection alive, while
@@ -208,8 +331,8 @@ included within the data payload of the `pong` message.
 
 1. type: 19 (`pong`)
 2. data:
-    * [`2`:`byteslen`]
-    * [`byteslen`:`ignored`]
+    * [`u16`:`byteslen`]
+    * [`byteslen*byte`:`ignored`]
 
 #### Requirements
 
@@ -272,6 +395,466 @@ every message maximally).
 
 Finally, the usage of periodic `ping` messages serves to promote frequent key
 rotations as specified within [BOLT #8](08-transport.md).
+
+## Appendix A: BigSize Test Vectors
+
+The following test vectors can be used to assert the correctness of a BigSize
+implementation used in the TLV format. The format is identical to the
+CompactSize encoding used in bitcoin, but replaces the little-endian encoding of
+multi-byte values with big-endian.
+
+Values encoded with BigSize will produce an encoding of either 1, 3, 5, or 9
+bytes depending on the size of the integer. The encoding is a piece-wise
+function that takes a `uint64` value `x` and produces:
+```
+        uint8(x)                if x < 0xfd
+        0xfd + be16(uint16(x))  if x < 0x10000
+        0xfe + be32(uint32(x))  if x < 0x100000000
+        0xff + be64(x)          otherwise.
+```
+
+Here `+` denotes concatenation and `be16`, `be32`, and `be64` produce a
+big-endian encoding of the input for 16, 32, and 64-bit integers, respectively.
+
+A value is said to be _minimally encoded_ if it could have been encoded using a
+smaller representation. For example, a BigSize encoding that occupies 5 bytes
+but whose value is less than 0x10000 is not minimally encoded. All values
+decoded with BigSize should be checked to ensure they are minimally encoded.
+
+### BigSize Decoding Tests
+
+The following is an example of how to execute the BigSize decoding tests.
+```golang
+func testReadVarInt(t *testing.T, test varIntTest) {
+        var buf [8]byte 
+        r := bytes.NewReader(test.Bytes)
+        val, err := tlv.ReadVarInt(r, &buf)
+        if err != nil && err.Error() != test.ExpErr {
+                t.Fatalf("expected decoding error: %v, got: %v",
+                        test.ExpErr, err)
+        }
+
+        // If we expected a decoding error, there's no point checking the value.
+        if test.ExpErr != "" {
+                return
+        }
+
+        if val != test.Value {
+                t.Fatalf("expected value: %d, got %d", test.Value, val)
+        }
+}
+```
+
+A correct implementation should pass against these test vectors:
+```json
+[
+    {
+        "name": "zero",
+        "value": 0,
+        "bytes": "00"
+    },
+    {
+        "name": "one byte high",
+        "value": 252,
+        "bytes": "fc"
+    },
+    {
+        "name": "two byte low",
+        "value": 253,
+        "bytes": "fd00fd"
+    },
+    {
+        "name": "two byte high",
+        "value": 65535,
+        "bytes": "fdffff"
+    },
+    {
+        "name": "four byte low",
+        "value": 65536,
+        "bytes": "fe00010000"
+    },
+    {
+        "name": "four byte high",
+        "value": 4294967295,
+        "bytes": "feffffffff"
+    },
+    {
+        "name": "eight byte low",
+        "value": 4294967296,
+        "bytes": "ff0000000100000000"
+    },
+    {
+        "name": "eight byte high",
+        "value": 18446744073709551615,
+        "bytes": "ffffffffffffffffff"
+    },
+    {
+        "name": "two byte not canonical",
+        "value": 0,
+        "bytes": "fd00fc",
+        "exp_error": "decoded varint is not canonical"
+    },
+    {
+        "name": "four byte not canonical",
+        "value": 0,
+        "bytes": "fe0000ffff",
+        "exp_error": "decoded varint is not canonical"
+    },
+    {
+        "name": "eight byte not canonical",
+        "value": 0,
+        "bytes": "ff00000000ffffffff",
+        "exp_error": "decoded varint is not canonical"
+    },
+    {
+        "name": "two byte short read",
+        "value": 0,
+        "bytes": "fd00",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "four byte short read",
+        "value": 0,
+        "bytes": "feffff",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "eight byte short read",
+        "value": 0,
+        "bytes": "ffffffffff",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "one byte no read",
+        "value": 0,
+        "bytes": "",
+        "exp_error": "EOF"
+    },
+    {
+        "name": "two byte no read",
+        "value": 0,
+        "bytes": "fd",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "four byte no read",
+        "value": 0,
+        "bytes": "fe",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "eight byte no read",
+        "value": 0,
+        "bytes": "ff",
+        "exp_error": "unexpected EOF"
+    }
+]
+```
+
+### BigSize Encoding Tests
+
+The following is an example of how to execute the BigSize encoding tests.
+```golang
+func testWriteVarInt(t *testing.T, test varIntTest) {
+        var (
+                w   bytes.Buffer
+                buf [8]byte
+        )
+        err := tlv.WriteVarInt(&w, test.Value, &buf)
+        if err != nil {
+                t.Fatalf("unable to encode %d as varint: %v",
+                        test.Value, err)
+        }
+
+        if bytes.Compare(w.Bytes(), test.Bytes) != 0 {
+                t.Fatalf("expected bytes: %v, got %v",
+                        test.Bytes, w.Bytes())
+        }
+}
+```
+
+A correct implementation should pass against the following test vectors:
+```json
+[
+    {
+        "name": "zero",
+        "value": 0,
+        "bytes": "00"
+    },
+    {
+        "name": "one byte high",
+        "value": 252,
+        "bytes": "fc"
+    },
+    {
+        "name": "two byte low",
+        "value": 253,
+        "bytes": "fd00fd"
+    },
+    {
+        "name": "two byte high",
+        "value": 65535,
+        "bytes": "fdffff"
+    },
+    {
+        "name": "four byte low",
+        "value": 65536,
+        "bytes": "fe00010000"
+    },
+    {
+        "name": "four byte high",
+        "value": 4294967295,
+        "bytes": "feffffffff"
+    },
+    {
+        "name": "eight byte low",
+        "value": 4294967296,
+        "bytes": "ff0000000100000000"
+    },
+    {
+        "name": "eight byte high",
+        "value": 18446744073709551615,
+        "bytes": "ffffffffffffffffff"
+    }
+]
+```
+
+## Appendix B: Type-Length-Value Test Vectors
+
+The following tests assume that two separate TLV namespaces exist: n1 and n2.
+
+The n1 namespace supports the following TLV types:
+
+1. tlvs: `n1`
+2. types:
+   1. type: 1 (`tlv1`)
+   2. data:
+     * [`tu64`:`amount_msat`]
+   1. type: 2 (`tlv2`)
+   2. data:
+     * [`short_channel_id`:`scid`]
+   1. type: 3 (`tlv3`)
+   2. data:
+     * [`point`:`node_id`]
+     * [`u64`:`amount_msat_1`]
+     * [`u64`:`amount_msat_2`]
+   1. type: 254 (`tlv4`)
+   2. data:
+     * [`u16`:`cltv_delta`]
+
+The n2 namespace supports the following TLV types:
+
+1. tlvs: `n2`
+2. types:
+   1. type: 0 (`tlv1`)
+   2. data:
+     * [`tu64`:`amount_msat`]
+   1. type: 11 (`tlv2`)
+   2. data:
+     * [`tu32`:`cltv_expiry`]
+
+### TLV Decoding Failures
+
+The following TLV streams in any namespace should trigger a decoding failure:
+
+1. Invalid stream: 0xfd
+2. Reason: type truncated
+
+1. Invalid stream: 0xfd01
+2. Reason: type truncated
+
+1. Invalid stream: 0xfd0001 00
+2. Reason: not minimally encoded type
+
+1. Invalid stream: 0xfd0101
+2. Reason: missing length
+
+1. Invalid stream: 0x0f fd
+2. Reason: (length truncated)
+
+1. Invalid stream: 0x0f fd26
+2. Reason: (length truncated)
+
+1. Invalid stream: 0x0f fd2602
+2. Reason: missing value
+
+1. Invalid stream: 0x0f fd0001 00
+2. Reason: not minimally encoded length
+
+1. Invalid stream: 0x0f fd0201 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+2. Reason: value truncated
+
+The following TLV streams in either namespace should trigger a
+decoding failure:
+
+1. Invalid stream: 0x12 00
+2. Reason: unknown even type.
+
+1. Invalid stream: 0xfd0102 00
+2. Reason: unknown even type.
+
+1. Invalid stream: 0xfe01000002 00
+2. Reason: unknown even type.
+
+1. Invalid stream: 0xff0100000000000002 00
+2. Reason: unknown even type.
+
+The following TLV streams in namespace `n1` should trigger a decoding
+failure:
+
+1. Invalid stream: 0x01 09 ffffffffffffffffff
+2. Reason: greater than encoding length for `n1`s `tlv1`.
+
+1. Invalid stream: 0x01 01 00
+2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
+
+1. Invalid stream: 0x01 02 0001
+2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
+
+1. Invalid stream: 0x01 03 000100
+2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
+
+1. Invalid stream: 0x01 04 00010000
+2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
+
+1. Invalid stream: 0x01 05 0001000000
+2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
+
+1. Invalid stream: 0x01 06 000100000000
+2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
+
+1. Invalid stream: 0x01 07 00010000000000
+2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
+
+1. Invalid stream: 0x01 08 0001000000000000
+2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
+
+1. Invalid stream: 0x02 07 01010101010101
+2. Reason: less than encoding length for `n1`s `tlv2`.
+
+1. Invalid stream: 0x02 09 010101010101010101
+2. Reason: greater than encoding length for `n1`s `tlv2`.
+
+1. Invalid stream: 0x03 21 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb
+2. Reason: less than encoding length for `n1`s `tlv3`.
+
+1. Invalid stream: 0x03 29 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb0000000000000001
+2. Reason: less than encoding length for `n1`s `tlv3`.
+
+1. Invalid stream: 0x03 30 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb000000000000000100000000000001
+2. Reason: less than encoding length for `n1`s `tlv3`.
+
+1. Invalid stream: 0x03 31 043da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb00000000000000010000000000000002
+2. Reason: `n1`s `node_id` is not a valid point.
+
+1. Invalid stream: 0x03 32 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb0000000000000001000000000000000001
+2. Reason: greater than encoding length for `n1`s `tlv3`.
+
+1. Invalid stream: 0xfd00fe 00
+2. Reason: less than encoding length for `n1`s `tlv4`.
+
+1. Invalid stream: 0xfd00fe 01 01
+2. Reason: less than encoding length for `n1`s `tlv4`.
+
+1. Invalid stream: 0xfd00fe 03 010101
+2. Reason: greater than encoding length for `n1`s `tlv4`.
+
+1. Invalid stream: 0x00 00
+2. Reason: unknown even field for `n1`s namespace.
+
+### TLV Decoding Successes
+
+The following TLV streams in either namespace should correctly decode,
+and be ignored:
+
+1. Valid stream: 0x
+2. Explanation: empty message
+
+1. Valid stream: 0x21 00
+2. Explanation: Unknown odd type.
+
+1. Valid stream: 0xfd0201 00
+2. Explanation: Unknown odd type.
+
+1. Valid stream: 0xfd00fd 00
+2. Explanation: Unknown odd type.
+
+1. Valid stream: 0xfd00ff 00
+2. Explanation: Unknown odd type.
+
+1. Valid stream: 0xfe02000001 00
+2. Explanation: Unknown odd type.
+
+1. Valid stream: 0xff0200000000000001 00
+2. Explanation: Unknown odd type.
+
+The following TLV streams in `n1` namespace should correctly decode,
+with the values given here:
+
+1. Valid stream: 0x01 00
+2. Values: `tlv1` `amount_msat`=0
+
+1. Valid stream: 0x01 01 01
+2. Values: `tlv1` `amount_msat`=1
+
+1. Valid stream: 0x01 02 0100
+2. Values: `tlv1` `amount_msat`=256
+
+1. Valid stream: 0x01 03 010000
+2. Values: `tlv1` `amount_msat`=65536
+
+1. Valid stream: 0x01 04 01000000
+2. Values: `tlv1` `amount_msat`=16777216
+
+1. Valid stream: 0x01 05 0100000000
+2. Values: `tlv1` `amount_msat`=4294967296
+
+1. Valid stream: 0x01 06 010000000000
+2. Values: `tlv1` `amount_msat`=1099511627776
+
+1. Valid stream: 0x01 07 01000000000000
+2. Values: `tlv1` `amount_msat`=281474976710656
+
+1. Valid stream: 0x01 08 0100000000000000
+2. Values: `tlv1` `amount_msat`=72057594037927936
+
+1. Valid stream: 0x02 08 0000000000000226
+2. Values: `tlv2` `scid`=0x0x550
+
+1. Valid stream: 0x03 31 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb00000000000000010000000000000002
+2. Values: `tlv3` `node_id`=023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb `amount_msat_1`=1 `amount_msat_2`=2
+
+1. Valid stream: 0xfd00fe 02 0226
+2. Values: `tlv4` `cltv_delta`=550
+
+### TLV Stream Decoding Failure
+
+Any appending of an invalid stream to a valid stream should trigger
+a decoding failure.
+
+Any appending of a higher-numbered valid stream to a lower-numbered
+valid stream should not trigger a decoding failure.
+
+In addition, the following TLV streams in namespace `n1` should
+trigger a decoding failure:
+
+1. Invalid stream: 0x02 08 0000000000000226 01 01 2a
+2. Reason: valid TLV records but invalid ordering
+
+1. Invalid stream: 0x02 08 0000000000000231 02 08 0000000000000451
+2. Reason: duplicate TLV type
+
+1. Invalid stream: 0x1f 00 0f 01 2a
+2. Reason: valid (ignored) TLV records but invalid ordering
+
+1. Invalid stream: 0x1f 00 1f 01 2a
+2. Reason: duplicate TLV type (ignored)
+
+The following TLV stream in namespace `n2` should trigger a decoding
+failure:
+
+1. Invalid stream: 0xffffffffffffffffff 00 00 00
+2. Reason: valid TLV records but invalid ordering
 
 ## Acknowledgments
 
