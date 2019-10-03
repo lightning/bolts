@@ -906,6 +906,8 @@ A node:
   the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not
     duplicated).
+    - SHOULD NOT forward gossip messages to peers who sent `networks` in `init`
+      and did not specify the `chain_hash` of this gossip message.
   - MAY re-announce its channels regularly.
     - Note: this is discouraged, in order to keep the resource requirements low.
   - upon connection establishment:
