@@ -187,7 +187,7 @@ The `shutdown_scriptpubkey` allows the sending node to commit to where
 funds will go on mutual close, which the remote node should enforce
 even if a node is compromised later.
 
-The `option_support_large_channel` is a node feature used to let everyone 
+The `option_support_large_channel` is a feature used to let everyone 
 know this node will accept `funding_satoshis` greater than or equal to 2^24.
 Since it's broadcast in the `node_announcement` message other nodes can use it to identify peers 
 willing to accept large channel even before exchanging the `init` message with them. 
