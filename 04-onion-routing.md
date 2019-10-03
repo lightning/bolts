@@ -49,6 +49,7 @@ A node:
   * [Pseudo Random Byte Stream](#pseudo-random-byte-stream)
   * [Packet Structure](#packet-structure)
     * [Payload for the Last Node](#payload-for-the-last-node)
+  * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
   * [Shared Secret](#shared-secret)
   * [Blinding Ephemeral Keys](#blinding-ephemeral-keys)
   * [Packet Construction](#packet-construction)
@@ -261,6 +262,27 @@ The reader:
 
 The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format).
 
+## Payload for the Last Node
+
+When building the route, the origin node MUST use a payload for
+the final node with the following values:
+
+* `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
+  `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
+* `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
+  from a [BOLT #11](11-payment-encoding.md) payment invoice)
+
+This allows the final node to check these values and return errors if needed,
+but it also eliminates the possibility of probing attacks by the second-to-last
+node. Such attacks could, otherwise, attempt to discover if the receiving peer is the
+last one by re-sending HTLCs with different amounts/expiries.
+The final node will extract its onion payload from the HTLC it has received and
+compare its values against those of the HTLC. See the
+[Returning Errors](#returning-errors) section below for more details.
+
+If not for the above, since it need not forward payments, the final node could
+simply discard its payload.
+
 # Accepting and Forwarding a Payment
 
 Once a node has decoded the payload it either accepts the payment locally, or forwards it to the peer indicated as the next hop in the payload.
@@ -307,27 +329,6 @@ across all channels with the same peer.
 Alternatively, implementations may choose to apply non-strict forwarding only to
 like-policy channels to ensure their expected fee revenue does not deviate by
 using an alternate channel.
-
-## Payload for the Last Node
-
-When building the route, the origin node MUST use a payload for
-the final node with the following values:
-
-* `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
-  `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
-* `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
-  from a [BOLT #11](11-payment-encoding.md) payment invoice)
-
-This allows the final node to check these values and return errors if needed,
-but it also eliminates the possibility of probing attacks by the second-to-last
-node. Such attacks could, otherwise, attempt to discover if the receiving peer is the
-last one by re-sending HTLCs with different amounts/expiries.
-The final node will extract its onion payload from the HTLC it has received and
-compare its values against those of the HTLC. See the
-[Returning Errors](#returning-errors) section below for more details.
-
-If not for the above, since it need not forward payments, the final node could
-simply discard its payload.
 
 # Shared Secret
 
