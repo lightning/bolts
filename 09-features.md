@@ -36,7 +36,7 @@ The Context column decodes as follows:
 | 6/7   | `gossip_queries`                 | More sophisticated gossip control                         | IN       | [BOLT #7][bolt07-query]               |
 | 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN       | [Routing Onion Specification][bolt04] |
 | 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | [BOLT #7][bolt07-query]               |
-| 14/15 | `option_support_large_channel`   | Can create large channels                                 | INC      | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
+| 14/15 | `option_support_large_channel`   | Can create large channels                                 | INC+     | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 
 ## Requirements
 
