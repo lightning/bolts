@@ -325,6 +325,8 @@ if __name__ == "__main__":
     args.option += ['option_data_loss_protect/odd',
                     'option_initial_routing_sync/odd',
                     'option_upfront_shutdown_script/odd',
+                    'option_static_remotekey/odd',
+                    'option_dual_fund/odd',
                     'option_gossip_queries/odd']
 
     # We use a context here, so we can always kill processes at exit
