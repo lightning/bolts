@@ -898,21 +898,24 @@ The sending node:
   - MAY update the `feerate_per_kw`, the commitment transaction feerate.
   - MAY include additional inputs.
   - MAY set the `num_inputs` to zero.
-  - MUST transmit all outputs.
-  - MAY include at least one output with the `satoshis` set to zero,
+  - MUST transmit all outputs, excluding the channel funding output.
+  - MAY include at least one output with the `sats` set to zero,
     to be used as the change output.
 
 The receiving node:
   - MUST return an error if:
     - the `feerate_per_kw_funding` is not greater than the previously
       negotiated rate.
+  - MUST return an error, but not fail the channel if:
+    - it has already received a `funding_locked` message
+
 
 #### Rationale
 The sending node's half of the funding transaction will be composed with
 all of the previously relayed inputs plus the ones included here.
 
 All outputs must be transmitted in the `init_rbf` message, including
-ones communicated previously.
+ones communicated previously, except for the channel funding output.
 
 If a valid `funding_locked` message is received in the middle of an
 RBF workflow, the RBF attempt MUST be abandoned.
@@ -928,13 +931,19 @@ This message acknowledges the start of an RBF workflow.
 
 #### Requirements
 
+The sending node:
+  - MUST NOT have already sent or received a `funding_locked` message
+    for this channel.
+  - MUST NOT have seen the previously signed funding transaction appear
+    in a block
+
 The receiving node:
   - MUST respond with a `commitment_signed` message for the
     updated funding transaction.
 
 #### Rationale
 
-Signals to receiving node to proceed with exchanging commitment signatures.
+Signals to receiving node to proceed with commitment signature exchange.
 
 
 ## Channel Close
