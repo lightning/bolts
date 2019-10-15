@@ -16,7 +16,9 @@ operation, and closing.
     * [Channel Establishment v2](#channel-establishment-v2)
       * [The `open_channel2` Message](#the-open_channel2-message)
       * [The `accept_channel2` Message](#the-accept_channel2-message)
-      * [The `funding_compose` Message](#the-funding_compose-message)
+      * [The `funding_add_input` Message](#the-funding_add_input-message)
+      * [The `funding_add_output` Message](#the-funding_add_output-message)
+      * [The `funding_add_complete` Message](#the-funding_add_complete-message)
       * [The `funding_signed2` Message](#the-funding_signed2-message)
       * [Kicking Off Replace-By-Fee: `init_rbf` Message](#kicking-off-replace-by-fee-init_rbf)
       * [Acknowledging Replace-By-Fee `ack_rbf` Message](#acknowledging-replace-by-fee-ack_rbf)
@@ -444,17 +446,26 @@ The protocol is also expanded to include a mechanism for initiating RBF.
         |       |--(1)--- open_channel2  ----->|       |
         |       |<-(2)--- accept_channel2 -----|       |
         |       |                              |       |
-        |       |--(3)--  funding_compose ---->|       |
-        |       |<-(4)--  funding_compose -----|       |
+        |       |--(3a)-  funding_add_input -->|       |
+        |       |<-(3b)-  funding_add_input ---|       |
+        |       |--(3c)-  funding_add_input -->|       |
+        |       |--(3d)-  funding_add_output ->|       |
+        |       |<-(3e)-  funding_add_output --|       |
         |       |                              |       |
+        |       |--(4a)- funding_add_complete >|       |
+        |       |<-(4b)- funding_add_complete -|       |
+        |   A   |                              |   B   |
     --->|       |--(5)--  commitment_signed -->|       |
-    |   |   A   |<-(6)--  accepter_sigs    ----|   B   |
+    |   |       |<-(6)--  commitment_signed ---|       |
+    |   |       |                              |       |
+    |   |       |--(7)--  funding_signed2   -->|       |
+    |   |       |<-(8)--  funding_signed2   ---|       |
     |   |       |                              |       |
     |   |       |--(a)--- init_rbf ----------->|       |
     ----|       |<-(b)--- ack_rbf  ------------|       |
         |       |                              |       |
-        |       |--(7)--- funding_locked ----->|       |
-        |       |<-(8)--- funding_locked ------|       |
+        |       |--(9)--- funding_locked ----->|       |
+        |       |<-(10)-- funding_locked ------|       |
         +-------+                              +-------+
 
         - where node A is 'opener' and node B is 'accepter'
@@ -561,22 +572,29 @@ the total channel balance (sum of `funding_satoshis` from `open_channel2` and `a
 or the `dust_limit_satoshis`, whichever is greater.
 
 
-### The `funding_compose` Message
+### Funding Composition
+There are three messages which nodes use to communicate their input and output set
+for a funding transaction: `funding_add_input`, `funding_add_output`, and `funding_add_complete`.
 
-This message exchanges the transaction input and output
-information necessary to compose the funding transaction.
+To add inputs to a transaction, a node may send one or more `funding_add_input` messages.
+To add outputs to a transaction, a node may send one or more `funding_add_output` messages.
 
-1. type: 58 (`funding_compose`)
+Once a node has relayed all of their inputs and output contributions, it sends
+`funding_add_complete` to signal the completion of their contribution transmission.
+
+#### The `funding_add_input` Message
+
+This message contains information for inputs to a funding transaction.
+
+1. type: 58 (`funding_add_input`)
 2. data:
     * [`32*byte`:`temporary_channel_id`]
     * [`u16`:`num_inputs`]
     * [`num_inputs*input_info`:`input_info`]
-    * [`u16`:`num_outputs`]
-    * [`num_outputs*output_info`:`output_info`]
 
 1. subtype: `input_info`
 2. data:
-    * [`u64`:`input_satoshis`]
+    * [`u64`:`sats`]
     * [`sha256`:`prevtx_txid`]
     * [`u32`:`prevtx_vout`]
     * [`u16`:`prevtx_scriptpubkey_len`]
@@ -585,53 +603,43 @@ information necessary to compose the funding transaction.
     * [`u16`:`scriptlen`]
     * [`scriptlen*byte`:`script`]
 
-1. subtype: `output_info`
-2. data:
-    * [`u64`:`output_satoshis`]
-    * [`u16`:`scriptlen`]
-    * [`scriptlen*byte`:`script`]
+##### Requirements
 
-#### Requirements
+The `accepter` node:
+  - MAY omit this message
 
 The sending node:
+  - MUST NOT send `funding_add_input` if it has already transmitted `funding_add_complete`
+  - MUST send this after `accept_channel2` has been exchanged, but before `funding_add_complete`
+  - MUST add all sent inputs to the funding transaction
+  - MUST NOT re-transmit inputs it has already received from the peer
   - MUST ensure each `input_info` refers to a non-malleable (segwit) UTXO.
-  - MUST ensure the `output_info`.`script` is a standard script
-  - MUST NOT include the channel funding output.
   - if is the `opener`:
-    - MUST NOT send zero inputs (`num_inputs` cannot be zero).
-    - MAY specify an output with value zero, which will be used
-      as the change address if applicable.
+    - MUST send at least one `funding_add_input` message
+    - MUST NOT send a total count of more than 64 inputs, across all `funding_add_input` messages.
   - if is the `accepter`:
-    - consider the `contribution count` the total of their `num_inputs` plus
-      `num_outputs'
-    - MUST NOT send a `funding_compose` message where the `contribution count` 
-      exceeds the limit of 4.
-    - MAY send zero inputs and/or outputs.
+    - MAY omit this message
+    - MUST NOT send a total count of more than 16 inputs, across all `funding_add_input` messages.
 
 The receiving node:
-  - if the total `input_info`.`satoshis` is less than the total `output_info`.`satoshis`
-    - MUST fail the channel.
+  - MUST add all received inputs to the funding transaction
+  - MUST fail the channel if:
+    - it receives a duplicate input to one it sent previously
+    - if it receives this message after `funding_add_complete` is received.
+    - it receives an input that is malleable (P2SH/P2PKH)
   - if is the `opener`:
-    - MAY fail the channel if:
-      - the fee cost of the proposed funding transaction is deemed exorbitant.
     - MUST fail the channel if:
-      - the total count of `input_info`s and `output_info`s is greater than
-        the `contribution count` limit of 4.
-  - if has not yet sent a `funding_compose`:
-    - MUST send its `funding_compose` message.
-  - otherwise:
-    - MUST use the sent and received `input_info` and `output_info`
-      to create the funding transaction, using `max_witness_len`
-      for each `input_info` and `feerate_per_kw_funding` as specified in
-      `open_channel2`.
-    - MUST send `commitment_signed`.
+      - the total count of `input_info`s is greater than 16
+  - is is the `accepter`:
+    - MUST fail the channel if:
+      - the total count of `input_info`s is greater than 64
 
 
-#### Rationale
-Each node must have a complete set of the transaction inputs and outputs,
+##### Rationale
+Each node must have a complete set of the transaction inputs
 to derive the funding transaction and subsequent commitment signatures.
 
-`satoshis` is the value of the input or output.
+`sats` is the satoshi value of the input.
 
 `prevtx_txid`, `prevtx_vout`, and `prevtx_scriptpubkey` specify the output
 to be spent.  `prevtx_txid` is the hash of the transaction that this input is
@@ -642,15 +650,67 @@ corresponding `scriptPubKey` value.
 witness data that will be supplied (e.g. sizeof(varint) +
 sizeof(witness) for each) in `funding_signed2`.
 
-`input_info`.`script` is the scriptPubkey data for the input.
-NB: for native SegWit inputs (P2WPKH and P2WSH) inputs, the `script` field
-will be empty. See [BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#examples).
+`input_info`.`script` is the script signature field for the input. Only applicable
+for P2SH-wrapped inputs.
+Native SegWit inputs (P2WPKH and P2WSH) inputs, will have an empty `script` field
+See [BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#examples).
 
-The opening node may include one output with `satoshis` value
+The `accepter` node may omit this message.
+
+
+#### The `funding_add_output` Message
+
+This message contains information for outputs to a funding transaction.
+
+1. type: 60 (`funding_add_output`)
+2. data:
+    * [`32*byte`:`temporary_channel_id`]
+    * [`u16`:`num_outputs`]
+    * [`num_outputs*output_info`:`output_info`]
+
+1. subtype: `output_info`
+2. data:
+    * [`u64`:`sats`]
+    * [`u16`:`scriptlen`]
+    * [`scriptlen*byte`:`script`]
+
+##### Requirements
+
+Either node:
+  - MAY omit this message
+
+The sending node:
+  - MUST NOT send `funding_add_output` if it has already transmitted `funding_add_complete`
+  - MUST send this after `accept_channel2` has been exchanged, but before `funding_add_complete`
+  - MUST add all sent outputs to the funding transaction
+  - MUST ensure the `output_info`.`script` is a standard script
+  - MUST NOT include the channel funding output.
+  - if is the `opener`:
+    - MAY specify an output with value zero, which will be used
+      as the change address for any resulting funds after fees are deducted
+  - if is the `accepter`:
+    - MUST NOT send a total count of more than 8 outputs, across all `funding_add_output` messages.
+
+The receiving node:
+  - MUST add all received outputs to the funding transaction
+  - MUST fail the channel if
+    - it receives this message after receiving `funding_add_complete`
+  - if is the `opener`:
+    - MUST fail the channel if:
+      - receives a total count of more than 8 outputs, across all `funding_add_output`s
+
+
+##### Rationale
+Each node must have a complete set of the transaction outputs
+to derive the funding transaction and subsequent commitment signatures.
+
+`sats` is the satoshi value of the output.
+
+The opening node may include one output with `sats` value
 of zero. This will be used for change, or discarded if its value is
 be below `dust_limit_satoshis`.
 
-Change is calculated as the sum of the opener's `input_info`.`satoshis`
+Change is calculated as the sum of the opener's `input_info`.`sats`
 minus the estimated funding transaction size times the
 `feerate_per_kw_funding` minus the `funding_satoshis` minus all other
 `output_info`.`satoshis`. If the `change_satoshis` value is negative,
@@ -668,6 +728,65 @@ found in [BOLT-3, v2 Funding Transaction Fees](03-transactions.md#channel-establ
 The channel funding output is not exchanged, as it can be derived
 independently.
 
+
+#### The `funding_add_complete` Message
+
+This message signals the conclusion of a peer's funding transaction
+contributions.
+
+1. type: 62 (`funding_add_complete`)
+2. data:
+    * [`32*byte`:`temporary_channel_id`]
+    * [`u16`:`num_inputs`]
+    * [`u16`:`num_outputs`]
+
+
+##### Requirements
+
+Both nodes:
+  - MUST send this message after `accept_channel2` has been sent/received.
+
+The sending node:
+  - MUST ensure that the `num_inputs` corresponds to the total sum of all `num_inputs`
+    sent in all `funding_add_input` messages that originated from them
+  - MUST ensure that the `num_outputs` corresponds to the total sum of all `num_outputs`
+    sent in all `funding_add_output` messages that originated from them
+
+The receiving node:
+  - MUST fail the channel if:
+    - the `num_inputs` does not correspond to the total sum of all `num_inputs`
+      received in all `funding_add_input` messages
+    - the `num_outputs` does not correspond to the total sum of all `num_outputs`
+      received in all `funding_add_output` messages
+    - the total satoshis of the senders inputs is less than their outputs plus
+      the funding_sats, specified earlier
+  - if is the `opener`:
+    - MAY fail the channel if:
+      - the fee cost of the proposed funding transaction is deemed exorbitant.
+  - if has not yet sent a `funding_add_complete`:
+    - MUST send its `funding_add_complete` message.
+  - otherwise:
+    - MUST use the sent and received `input_info` and `output_info`
+      to create the funding transaction, using `max_witness_len`
+      for each `input_info` and `feerate_per_kw_funding` as specified in
+      `open_channel2`.
+    - MUST send `commitment_signed`.
+
+
+##### Rationale
+
+Each node must have a complete set of the transaction inputs and outputs,
+to derive the funding transaction and subsequent commitment signatures.
+
+`funding_add_complete` concludes a node's transmission of its contributions
+to the funding transaction, which serve as an early check that all
+`funding_add_input` and `funding_add_output` messages have been received.
+
+Upon successful exchange of `funding_add_complete` messages, both nodes
+should build the funding transaction and update their channel id
+to be transmitted in `commitment_signed`.
+
+
 ### The `commitment_signed` Message
 
 This message is sent by the opening node. It contains the signatures for
@@ -684,6 +803,10 @@ The sending node:
 The receiving node:
   - if the message has one or more HTLC's:
     - MUST fail the channel.
+  - if it has not already transmitted its `commitment_signed`:
+    - MUST send `commitment_signed`
+  - Otherwise:
+    - MUST send `funding_signed2`
 
 #### Rationale
 
@@ -692,21 +815,22 @@ The first commitment transaction has no HTLC's in it.
 Note that the `commitment_signed` message will include the `channel_id` derived from
 the `funding_txid`, instead of the `temporary_node_id`.
 
-### The `accepter_sigs` Message
 
-This message is sent by the accepting node. It contains the witness data
-for the inputs that were originally sent in the `funding_compose` message, plus
-the signatures for the commitment transaction.
+### The `funding_signed2` Message
 
-1. type: 60 (`accepter_sigs`)
+This message contains witness data for for the inputs that were
+originally exchanged in `funding_add_input`.
+
+1. type: 64 (`funding_signed2`)
 2. data:
     * [`channel_id`:`channel_id`]
-    * [`signature`:`commitment_signature`]
     * [`u16`:`num_witnesses`]
     * [`num_witnesses*witness_stack`:`witness_stack`]
 
 1. subtype: `witness_stack`
 2. data:
+    * [`sha256`:`prevtx_txid`]
+    * [`u32`:`prevtx_vout`]
     * [`u16`:`num_input_witness`]
     * [`num_input_witness*witness_element`:`witness_element`]
 
@@ -718,8 +842,8 @@ the signatures for the commitment transaction.
 #### Requirements
 The sending node:
   - MUST verify it has received valid commitment signatures from its peer
-  - MUST set `witness` to the serialized witness data for each of its
-    inputs, in funding transaction order. FIXME: link to funding tx order
+  - MUST set `witness` to the serialized witness data for the input
+    corresponding to `prevtx_txid`:`prevtx_vout`
   - MUST remember the details of this funding transaction.
   - MUST NOT send a `witness_stack` whose length exceeds its
     previously indicated `max_witness_len`.
@@ -735,9 +859,13 @@ The receiving node:
 
 #### Rationale
 
-The accepting node sends both their comitment signatures and funding 
-transaction signatures.  This completes the `open_channel2` dialogue.
+Every node must transmit their complete set of witness data for
+the inputs included in the funding transaction.
 
+`prevtx_txid` and `prevtx_vout` are the identifier for the input
+which the witness data pertain to
+
+`witness` is the data for a witness element in a witness stack
 
 ### Kicking Off Replace-By-Fee: `init_rbf`
 
