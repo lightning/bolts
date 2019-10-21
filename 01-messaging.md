@@ -418,8 +418,8 @@ function that takes a `uint64` value `x` and produces:
 Here `+` denotes concatenation and `be16`, `be32`, and `be64` produce a
 big-endian encoding of the input for 16, 32, and 64-bit integers, respectively.
 
-A value is said to be _minimally encoded_ if it could have been encoded using a
-smaller representation. For example, a BigSize encoding that occupies 5 bytes
+A value is said to be _minimally encoded_ if it could not be encoded using
+fewer bytes. For example, a BigSize encoding that occupies 5 bytes
 but whose value is less than 0x10000 is not minimally encoded. All values
 decoded with BigSize should be checked to ensure they are minimally encoded.
 
