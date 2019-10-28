@@ -629,10 +629,7 @@ The receiving node:
     - it receives an input that is malleable (P2SH/P2PKH)
   - if is the `opener`:
     - MUST fail the channel if:
-      - the total count of `input_info`s is greater than 16
-  - is is the `accepter`:
-    - MUST fail the channel if:
-      - the total count of `input_info`s is greater than 64
+      - the total count of `input_info`s is greater than 6
 
 
 ##### Rationale
@@ -697,7 +694,7 @@ The receiving node:
     - it receives this message after receiving `funding_add_complete`
   - if is the `opener`:
     - MUST fail the channel if:
-      - receives a total count of more than 8 outputs, across all `funding_add_output`s
+      - receives a total count of more than 3 outputs, across all `funding_add_output`s
 
 
 ##### Rationale
