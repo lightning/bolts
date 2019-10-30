@@ -1123,7 +1123,7 @@ operation, acknowledgments of updates are delayed until the
 that the updates have been received. This also means that the receiving
 node only needs to store updates upon receipt of `commitment_signed`.
 
-Note that messages described in [BOLT #7](07-routing-gossip.md) are
+Note that gossip message described in [BOLT #7](07-routing-gossip.md#gossip-messages) are
 independent of particular channels; their transmission requirements
 are covered there, and besides being transmitted after `init` (as all
 messages are), they are independent of requirements here.
