@@ -181,17 +181,17 @@ for the first commitment transaction,
 
 The following table specifies the meaning of individual `channel_flags` bits:
 
-| Bit Position  | Name               |
-| ------------- | ------------------ |
-| 0             | `announce_channel` |
-| 1             | `disable_incoming` |
+| Bit Position  | Name                   |
+| ------------- | ---------------------- |
+| 0             | `announce_channel`     |
+| 1             | `disable_funding_scid` |
 
 `announce_channel` indicates whether the initiator of
 the funding flow wishes to advertise this channel publicly to the
 network, as detailed within [BOLT #7](07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery).
 
-`disable_incoming` indicates that no payments are to be accepted for this
-channel: this is only effective if `announce_channel` is not set, and the
+`disable_funding_scid` indicates that no payments are to be accepted for this
+channel via its funding-transaction-based `short_channel_id`.   This only makes sense if `announce_channel` is not set, and the
 recipient offers `option_scid_assign`.  See [Assigning Random
 `short_channel_id`](#assigning-random-short-channel-id).
 
@@ -1165,8 +1165,8 @@ A receiving node:
 #### Rationale
 
 There are two ways of hiding a private channel's funding-transaction-derived
-`short_channel_id`.  The most thorough is `disable_incoming` which ensures
-that the private `short_channel_id` is never used for forwarding.  However,
+`short_channel_id`.  The most thorough is `disable_funding_scid` which ensures
+that the original private `short_channel_id` is never used for forwarding.  However,
 since channels may have been opened before `option_scid_assign` was
 implemented, assigning or unassigning a random short_channel_id has the same
 effect of disabling the original `short_channel_id`.  See [Assigned
@@ -1178,11 +1178,7 @@ recommended that they only be assigned when they're actually likely to be
 used, and unassigned afterwards.
 
 If it were to conflict with a future `short_channel_id` for a real
-channel, misrouting may occur.  The simplest way to minimize this is
-to use old block numbers, but that also reduces the search space.
-Simpler is to select a random value which isn't already used, and
-close (before funding_locked) any future channel unfortunate enough to
-clash.
+channel, misrouting may occur.
 
 Assigning and unassigning are idempotent, so can be safely retransmitted in
 case of packet loss.

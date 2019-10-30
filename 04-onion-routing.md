@@ -824,7 +824,8 @@ the onion.
 The onion specified a `short_channel_id` which doesn't match any
 leading from the processing node, or it's the funding-transaction-based
 `short_channel_id` for a private channel which has
-`disable_incoming` set or has a random `short_channel_id` assigned.
+`disable_funding_scid` set or has ever used `assign_scid`
+(in either direction).
 
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
@@ -971,7 +972,7 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
   - if it supports `option_scid_assign` and the `short_channel_id` is the
     funding-transaction-based `short_channel_id` of a channel opened with
     `announce_channel` `false`:
-	- if the peer opened or accepted the channel with `disable_incoming` `true` or
+	- if the peer opened or accepted the channel with `disable_funding_scid` `true` or
       this node has ever sent the peer `assign_scid_reply` or `unassign_scid_reply`:
       - MUST return an `unknown_next_peer` error.
   - if the HTLC amount is less than the currently specified minimum amount:
