@@ -258,6 +258,7 @@ The writer:
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
+  - MUST return an error if it is not the final node and `short_channel_id` is not present.
 
 The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format).
 
