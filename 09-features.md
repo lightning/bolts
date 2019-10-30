@@ -24,6 +24,7 @@ The Context column decodes as follows:
 * `C`: presented in the `channel_announcement` message.
 * `C-`: presented in the `channel_announcement` message, but always odd (optional).
 * `C+`: presented in the `channel_announcement` message, but always even (required).
+* `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
 
 | Bits  | Name                             | Description                                               | Context  | Link                                  |
 |-------|----------------------------------|-----------------------------------------------------------|----------|---------------------------------------|

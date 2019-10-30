@@ -272,7 +272,8 @@ Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
 ## Feature Bits
 
 Feature bits allow forward and backward compatibility, and follow the
-_it's ok to be odd_ rule.
+_it's ok to be odd_ rule.  Features appropriate for use in the `9` field
+are marked in [BOLT 9](09-features.md).
 
 The field is big-endian.  The least-significant bit is numbered 0,
 which is _even_, and the next most significant bit is numbered 1,
