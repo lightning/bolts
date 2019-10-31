@@ -182,6 +182,9 @@ class DummyRunner(object):
             print("[RESTART]")
         self.blockheight = 102
 
+    def shutdown(self):
+        print("[SHUTDOWN]")
+
     def connect(self, id, line):
         if self.verbose:
             print("[CONNECT {}]".format(line))
@@ -1712,6 +1715,8 @@ def main(args, runner):
                 raise
             if not args.verbose:
                 print('.', end='', flush=True)
+
+        runner.shutdown()
         print("OK")
 
 

@@ -165,6 +165,8 @@ class CLightningRunner(object):
         for i in range(5):
             self.rpc.newaddr()
 
+    def shutdown(self):
+        self.executor.shutdown(wait=False)
 
     def stop(self):
         self.rpc.stop()
