@@ -254,9 +254,53 @@ class CLightningRunner(object):
                 raise test.ValidationError(line, "Connection closed")
 
 
-    # FIXME: Implement fundchannel.
-    # We'll need to import privkey into bitcoind and hand-generate the tx
-    # then use fundchannel_start.
+    def fundchannel(self, conn, amount, txid, outnum, feerate, line):
+        """
+            amount  - amount to fund the channel with
+            txid    - txid of the utxo to use
+            outnum  - outnum of the utxo to use
+            feerate - feerate to use when building the tx
+            line    - line where this event was invoked, for error logging
+        """
+        def _fundchannel(self, amount, txid, outnum, feerate, line):
+            # node_id, amount, feerate=, announce=, close_to=
+            if not wait_for(lambda: len(self.rpc.listpeers()['peers']) > 0):
+                raise test.InternalError(line, "No peers found to fund channel with")
+
+            peer_id = self.rpc.listpeers()['peers'][0]['id']
+            result = self.rpc.fundchannel_start(peer_id, amount, feerate=feerate)
+
+            # Build a transaction
+            funding_addr = result['funding_address']
+            tx = self.rpc.txprepare([{funding_addr:amount}], feerate=feerate, utxos=["{}:{}".format(txid, outnum)])
+
+            # Get the vout index of the funding output
+            decode = self.bitcoind.rpc.decoderawtransaction(tx['unsigned_tx'])
+            txout = -1
+            for vout in decode['vout']:
+                if vout['scriptPubKey']['addresses'][0] == funding_addr:
+                    txout = vout['n']
+                    break
+
+            if txout < 0:
+                raise test.InternalError(line,
+                        "Unable to find txout for {} (tx:{})".format(funding_addr, decode))
+
+            self.rpc.fundchannel_complete(peer_id, tx['txid'], txout)
+            self.rpc.txsend(tx['txid'])
+            return True
+
+        def _done(fut):
+            exception = fut.exception(0)
+            if exception and not self.is_shutdown:
+                # Exit immediately, instead of waiting for a timeout
+                self.shutdown()
+                raise(exception)
+
+        fut = self.executor.submit(_fundchannel, self, amount,
+                                   txid, outnum, feerate, line)
+        fut.add_done_callback(_done)
+
 
     def invoice(self, amount, preimage, line):
         self.rpc.invoice(msatoshi=amount,
