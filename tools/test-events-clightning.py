@@ -116,6 +116,8 @@ class Bitcoind(object):
 class CLightningRunner(object):
     def __init__(self, args):
         self.connections = []
+        self.fundchannel_future = None
+        self.is_shutdown = False
         directory = tempfile.mkdtemp(prefix='test-events-')
         self.bitcoind = Bitcoind(directory)
         self.bitcoind.start()
@@ -166,6 +168,13 @@ class CLightningRunner(object):
             self.rpc.newaddr()
 
     def shutdown(self):
+        if self.fundchannel_future:
+            self.is_shutdown = True
+            try:
+                self.fundchannel_future.result(0)
+            except:
+                pass
+        self.fundchannel_future = None
         self.executor.shutdown(wait=False)
 
     def stop(self):
@@ -262,6 +271,13 @@ class CLightningRunner(object):
             feerate - feerate to use when building the tx
             line    - line where this event was invoked, for error logging
         """
+        # First, check that another fundchannel isn't already running
+        if self.fundchannel_future:
+            if not self.fundchannel_future.done():
+                raise test.InternalError(line,
+                    "Called fundchannel while another fundchannel is still in process")
+            self.fundchannel_future = None
+
         def _fundchannel(self, amount, txid, outnum, feerate, line):
             # node_id, amount, feerate=, announce=, close_to=
             if not wait_for(lambda: len(self.rpc.listpeers()['peers']) > 0):
@@ -296,10 +312,12 @@ class CLightningRunner(object):
                 # Exit immediately, instead of waiting for a timeout
                 self.shutdown()
                 raise(exception)
+            self.fundchannel_future = None
 
         fut = self.executor.submit(_fundchannel, self, amount,
                                    txid, outnum, feerate, line)
         fut.add_done_callback(_done)
+        self.fundchannel_future = fut
 
 
     def invoice(self, amount, preimage, line):
