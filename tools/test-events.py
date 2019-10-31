@@ -171,6 +171,12 @@ class LineError(Exception):
         super().__init__(str(line) + ": Parsing failed:" + message)
 
 
+class InternalError(Exception):
+    def __init__(self, line, message):
+        # Call the base class constructor with the parameters it needs
+        super().__init__(str(line) + ": Error encountered:" + message)
+
+
 # #### Dummy runner which you should replace with real one. ####
 class DummyRunner(object):
     def __init__(self, args):
