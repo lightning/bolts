@@ -221,10 +221,10 @@ class DummyRunner(object):
         if self.verbose:
             print("[RECV {} {}]".format(line, outbuf.hex()))
 
-    def fundchannel(self, conn, amount, txid, outnum, line):
+    def fundchannel(self, conn, amount, txid, outnum, feerate, line):
         if self.verbose:
-            print("[FUNDCHANNEL TO {} for {} with UTXO {}/{} {}]"
-                  .format(conn, amount, txid, outnum, line))
+            print("[FUNDCHANNEL TO {} for {} with UTXO {}/{} {} {}]"
+                  .format(conn, amount, txid, outnum, feerate, line))
 
     def invoice(self, amount, preimage, line):
         if self.verbose:
@@ -1079,17 +1079,18 @@ class ExpectTxEvent(object):
 
 class FundChannelEvent(object):
     def __init__(self, line, parts):
-        d = parse_params(line, parts, ['amount', 'utxo'], ['conn'])
+        d = parse_params(line, parts, ['amount', 'utxo', 'feerate'], ['conn'])
         self.connkey = optional_connection(line, d)
         self.amount = int(d['amount'])
         parts = d['utxo'].partition('/')
-        check_hex(line, parts[0], 66)
+        check_hex(line, parts[0], 64)
         self.utxo = (parts[0], int(parts[2]))
+        self.feerate = d['feerate']
 
     def action(self, runner, line):
         runner.fundchannel(which_connection(line, runner, self.connkey),
                            self.amount, self.utxo[0],
-                           self.utxo[1], line)
+                           self.utxo[1], self.feerate, line)
 
 
 class InvoiceEvent(object):
