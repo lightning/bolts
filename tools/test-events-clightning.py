@@ -114,10 +114,13 @@ class Bitcoind(object):
 
 
 class CLightningRunner(object):
+
     def __init__(self, args):
         self.connections = []
+        self.cleanup_callbacks = []
         self.fundchannel_future = None
-        self.is_shutdown = False
+        self.is_fundchannel_kill = False
+
         directory = tempfile.mkdtemp(prefix='test-events-')
         self.bitcoind = Bitcoind(directory)
         self.bitcoind.start()
@@ -167,17 +170,23 @@ class CLightningRunner(object):
         for i in range(5):
             self.rpc.newaddr()
 
-    def shutdown(self):
-        if self.fundchannel_future:
-            self.is_shutdown = True
+    def kill_fundchannel(self):
+        fut = self.fundchannel_future
+        self.fundchannel_future = None
+        self.is_fundchannel_kill = True
+        if fut:
             try:
-                self.fundchannel_future.result(0)
+                fut.result(0)
             except:
                 pass
-        self.fundchannel_future = None
-        self.executor.shutdown(wait=False)
+
+    def shutdown(self):
+        for cb in self.cleanup_callbacks:
+            cb()
 
     def stop(self):
+        for cb in self.cleanup_callbacks:
+            cb()
         self.rpc.stop()
         self.bitcoind.stop()
         for c in self.connections:
@@ -191,6 +200,8 @@ class CLightningRunner(object):
         self.stop()
 
     def restart(self):
+        for cb in self.cleanup_callbacks:
+            cb()
         self.rpc.stop()
         self.bitcoind.restart()
         for c in self.connections:
@@ -302,22 +313,23 @@ class CLightningRunner(object):
                 raise test.InternalError(line,
                         "Unable to find txout for {} (tx:{})".format(funding_addr, decode))
 
-            self.rpc.fundchannel_complete(peer_id, tx['txid'], txout)
+            self.rpc.fundchannel_complete(peers[0]['id'], tx['txid'], txout)
             self.rpc.txsend(tx['txid'])
             return True
 
         def _done(fut):
             exception = fut.exception(0)
-            if exception and not self.is_shutdown:
-                # Exit immediately, instead of waiting for a timeout
-                self.shutdown()
+            if exception and not self.is_fundchannel_kill:
                 raise(exception)
             self.fundchannel_future = None
+            self.is_fundchannel_kill = False
+            self.cleanup_callbacks.remove(self.kill_fundchannel)
 
         fut = self.executor.submit(_fundchannel, self, amount,
                                    txid, outnum, feerate, line)
         fut.add_done_callback(_done)
         self.fundchannel_future = fut
+        self.cleanup_callbacks.append(self.kill_fundchannel)
 
 
     def invoice(self, amount, preimage, line):
