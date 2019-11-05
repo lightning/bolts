@@ -1154,7 +1154,7 @@ A receiving node:
   - on receiving `assign_scid`:
     - MUST assign an unpredictable unique 64-bit number to this channel
       (see [Assigned `short_channel_id` Forwarding](04-onion-routing.md#assigned-short_channel_id-forwarding)).
-	  and return it in an ``assign_scid_reply` message.
+	  and return it in an `assign_scid_reply` message.
 	  - SHOULD ensure this does not conflict with future `short_channel_id`s.
     - MUST discard any previous assigned `short_channel_id` for this channel
   - on receiving `unassign_scid`:
