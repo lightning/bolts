@@ -141,6 +141,7 @@ Currently defined tagged fields are:
    * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
+* `v` (12): `data_length` variable.  Optional name of vendor/supplier (UTF-8).
 * `9` (5): `data_length` variable. One or more 5-bit values containing features
   supported or required for receiving this payment.
   See [Feature Bits](#feature-bits).
