@@ -1129,15 +1129,15 @@ is illegal to send them to peers which do not offer `option_scid_assign`.
 2. data:
    * [`channel_id`:`channel_id`]
 
-1. type: 268 (`assign_scid_reply`) (`option_scid_assign`)
+1. type: 266 (`assign_scid_reply`) (`option_scid_assign`)
    * [`channel_id`:`channel_id`]
    * [`short_channel_id`:`short_channel_id`]
 
-1. type: 270 (`unassign_scid`) (`option_scid_assign`)
+1. type: 268 (`unassign_scid`) (`option_scid_assign`)
 2. data:
    * [`channel_id`:`channel_id`]
 
-1. type: 272 (`unassign_scid_reply`) (`option_scid_assign`)
+1. type: 270 (`unassign_scid_reply`) (`option_scid_assign`)
    * [`channel_id`:`channel_id`]
 
 #### Requirements
