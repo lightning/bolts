@@ -138,7 +138,7 @@ class CLightningRunner(object):
                                       '--dev-force-bip32-seed=0000000000000000000000000000000000000000000000000000000000000001',
                                       '--dev-force-channel-secrets=0000000000000000000000000000000000000000000000000000000000000010/0000000000000000000000000000000000000000000000000000000000000011/0000000000000000000000000000000000000000000000000000000000000012/0000000000000000000000000000000000000000000000000000000000000013/0000000000000000000000000000000000000000000000000000000000000014/FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
                                       '--dev-bitcoind-poll=1',
-                                      '--dev-broadcast-interval=1000',
+                                      '--dev-fast-gossip',
                                       '--bind-addr=127.0.0.1:{}'.format(self.lightning_port),
                                       '--network=regtest',
                                       '--bitcoin-rpcuser=rpcuser',
