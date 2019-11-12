@@ -139,6 +139,7 @@ class CLightningRunner(object):
                                       '--dev-force-channel-secrets=0000000000000000000000000000000000000000000000000000000000000010/0000000000000000000000000000000000000000000000000000000000000011/0000000000000000000000000000000000000000000000000000000000000012/0000000000000000000000000000000000000000000000000000000000000013/0000000000000000000000000000000000000000000000000000000000000014/FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
                                       '--dev-bitcoind-poll=1',
                                       '--dev-fast-gossip',
+                                      '--dev-gossip-time=1565587763',
                                       '--bind-addr=127.0.0.1:{}'.format(self.lightning_port),
                                       '--network=regtest',
                                       '--bitcoin-rpcuser=rpcuser',
