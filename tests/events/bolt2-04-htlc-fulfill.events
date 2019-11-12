@@ -22,7 +22,7 @@ include setup.incl
 
 4. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
 5. expect-send: type=init
-6. recv: type=init globalfeatures= localfeatures=02000000000002
+6. recv: type=init globalfeatures= localfeatures=2002
 7. recv: type=open_channel
    chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
    temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
@@ -169,7 +169,6 @@ include setup.incl
        your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
 
        my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
-       my_current_per_commitment_point=absent option_static_remotekey
 
         # If tester did not receive node's revoke_and_ack:
 	1. recv: type=channel_reestablish
@@ -178,6 +177,8 @@ include setup.incl
            next_revocation_number=0
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_data_loss_protect
            your_last_per_commitment_secret=0000000000000000000000000000000000000000000000000000000000000000 option_static_remotekey !option_data_loss_protect
+           # If we have option_static_remotekey, this field is ignored (must be valid point though!)
+           my_current_per_commitment_point=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65 option_static_remotekey
            my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
         2. $MAYBE_UPDATE
         #  - MUST re-send the `revoke_and_ack` and `commitment_signed`
@@ -198,6 +199,8 @@ include setup.incl
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           # If we have option_static_remotekey, this field is ignored (must be valid point though!)
+           my_current_per_commitment_point=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65 option_static_remotekey
            my_current_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8 option_data_loss_protect !option_static_remotekey
         2. $MAYBE_UPDATE
         #  - MUST re-send `commitment_signed`
@@ -213,6 +216,8 @@ include setup.incl
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           # If we have option_static_remotekey, this field is ignored (must be valid point though!)
+           my_current_per_commitment_point=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65 option_static_remotekey
            my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect !option_static_remotekey
         2. $MAYBE_UPDATE
 
@@ -255,13 +260,14 @@ include setup.incl
        your_last_per_commitment_secret=02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148 option_data_loss_protect
        your_last_per_commitment_secret=02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148 option_static_remotekey !option_data_loss_protect
        my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
-       my_current_per_commitment_point=absent option_static_remotekey
     6. recv: type=channel_reestablish
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        next_commitment_number=2
        next_revocation_number=1
        your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
        your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+       # If we have option_static_remotekey, this field is ignored (must be valid point though!)
+       my_current_per_commitment_point=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65 option_static_remotekey
        my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect !option_static_remotekey
     7. $MAYBE_UPDATE
     # Now it will re-transmit
@@ -303,7 +309,6 @@ include setup.incl
        your_last_per_commitment_secret=02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148 option_data_loss_protect
        your_last_per_commitment_secret=02a40c85b6f28da08dfdbe0926c53fab2de6d28c10301f8f7c4073d5e42e3148 option_static_remotekey !option_data_loss_protect
        my_current_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206 option_data_loss_protect !option_static_remotekey
-       my_current_per_commitment_point=absent option_static_remotekey
 
         # tester has not received last commitment_signed
         1. recv: type=channel_reestablish
@@ -312,6 +317,8 @@ include setup.incl
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           # If we have option_static_remotekey, this field is ignored (must be valid point though!)
+           my_current_per_commitment_point=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65 option_static_remotekey
            my_current_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d option_data_loss_protect !option_static_remotekey
         2. $MAYBE_UPDATE
         # Now it will re-transmit
@@ -337,6 +344,8 @@ include setup.incl
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           # If we have option_static_remotekey, this field is ignored (must be valid point though!)
+           my_current_per_commitment_point=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65 option_static_remotekey
            my_current_per_commitment_point=02e1ea4f6d28dade887280214c359fc808066a64e750e3c81747dc3074833ff0ad option_data_loss_protect !option_static_remotekey
         2. $MAYBE_UPDATE
 
@@ -375,7 +384,6 @@ include setup.incl
        your_last_per_commitment_secret=dddc3a8d14fddf2b68fa8c7fbad2748274937479dd0f8930d5ebb4ab6bd866a3 option_data_loss_protect
        your_last_per_commitment_secret=dddc3a8d14fddf2b68fa8c7fbad2748274937479dd0f8930d5ebb4ab6bd866a3 option_static_remotekey !option_data_loss_protect
        my_current_per_commitment_point=03bca7c4ebe7eb7e8e40b8c2a7b4dde7f4d48404c9a62859d09fe2d00151af40ad option_data_loss_protect !option_static_remotekey
-       my_current_per_commitment_point=absent option_static_remotekey
 
         # tester *has not* received revoke_and_ack
         1. recv: type=channel_reestablish
@@ -384,6 +392,8 @@ include setup.incl
            next_revocation_number=1
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_data_loss_protect
            your_last_per_commitment_secret=7cc854b54e3e0dcdb010d7a3fee464a9687be6e8db3be6854c475621e007a5dc option_static_remotekey !option_data_loss_protect
+           # If we have option_static_remotekey, this field is ignored (must be valid point though!)
+           my_current_per_commitment_point=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65 option_static_remotekey
            my_current_per_commitment_point=02e1ea4f6d28dade887280214c359fc808066a64e750e3c81747dc3074833ff0ad option_data_loss_protect !option_static_remotekey
         2. $MAYBE_UPDATE
         3. expect-send: type=revoke_and_ack
@@ -399,5 +409,7 @@ include setup.incl
            next_revocation_number=2
            your_last_per_commitment_secret=c7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964 option_data_loss_protect
            your_last_per_commitment_secret=c7518c8ae4660ed02894df8976fa1a3659c1a8b4b5bec0c4b872abeba4cb8964 option_static_remotekey !option_data_loss_protect
+           # If we have option_static_remotekey, this field is ignored (must be valid point though!)
+           my_current_per_commitment_point=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65 option_static_remotekey
            my_current_per_commitment_point=02e1ea4f6d28dade887280214c359fc808066a64e750e3c81747dc3074833ff0ad option_data_loss_protect !option_static_remotekey
         2. $MAYBE_UPDATE

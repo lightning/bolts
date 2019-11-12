@@ -58,20 +58,20 @@ EXPECT_INIT=expect-send: type=init
 
     # If you don't support `option_static_remotekey`, you will be ok if
     # we ask for it.
-    1. $EXPECT_INIT localfeatures=0000/0C00 !option_static_remotekey
-    2. recv: type=init globalfeatures= localfeatures=0800 !option_static_remotekey
+    1. $EXPECT_INIT localfeatures=0000/3000 !option_static_remotekey
+    2. recv: type=init globalfeatures= localfeatures=2000 !option_static_remotekey
 
     # If you don't support `option_static_remotekey`, you will error if
     # we require it.
-    1. $EXPECT_INIT localfeatures=0000/0C00 !option_static_remotekey
-    2. recv: type=init globalfeatures= localfeatures=0400 !option_static_remotekey
+    1. $EXPECT_INIT localfeatures=0000/3000 !option_static_remotekey
+    2. recv: type=init globalfeatures= localfeatures=1000 !option_static_remotekey
     3. expect-error: !option_static_remotekey
 
     # If you support `option_static_remotekey`, you will advertize it odd.
-    1. $EXPECT_INIT localfeatures=0800/0C00 option_static_remotekey/odd
+    1. $EXPECT_INIT localfeatures=2000/3000 option_static_remotekey/odd
 
     # If you require `option_static_remotekey`, you will advertize it even.
-    1. $EXPECT_INIT localfeatures=0400/0C00 option_static_remotekey/even
+    1. $EXPECT_INIT localfeatures=1000/3000 option_static_remotekey/even
 
     # Note: it's undefined what you'll do if implementation requires
     # an option and isn't offered it.  The recipient of the required feature
