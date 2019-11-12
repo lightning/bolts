@@ -425,11 +425,6 @@ funds are at risk. If the fundee were to remember the channel forever, this
 would create a Denial of Service risk; therefore, forgetting it is recommended
 (even if the promise of `push_msat` is significant).
 
-#### Future
-
-An SPV proof could be added and block hashes could be routed in separate
-messages.
-
 ## Channel Close
 
 Nodes can negotiate a mutual close of the connection, which unlike a
