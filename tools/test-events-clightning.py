@@ -322,12 +322,9 @@ if __name__ == "__main__":
     parser = test.setup_cmdline_options()
     args = parser.parse_args()
     # Here are the options we support.
-    args.option += ['option_data_loss_protect/odd',
-                    'option_initial_routing_sync/odd',
-                    'option_upfront_shutdown_script/odd',
-                    'option_static_remotekey/odd',
-                    'option_dual_fund/odd',
-                    'option_gossip_queries/odd']
+    args.option += subprocess.run(['{}/lightningd/lightningd'.format(LIGHTNING_SRC),
+                                   '--list-features-only'],
+                                  stdout=subprocess.PIPE, check=True).stdout.decode('utf-8').splitlines()
 
     # We use a context here, so we can always kill processes at exit
     with CLightningRunner(args) as runner:
