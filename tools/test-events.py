@@ -840,7 +840,7 @@ def compare_results(msgname, f, v, exp):
     # If they specify field=absent, it must not be there.
     if exp is None:
         if v is not None:
-            return "Field {} is present"
+            return "Field {} is present".format(f.name)
         else:
             return None
 
