@@ -72,6 +72,7 @@ FIPS
 responder
 UTF
 blockchain
+Blockstream
 nSequence
 decrypt
 flen
@@ -320,6 +321,7 @@ incentivize
 redemptions
 vbytes
 BTC
+USD
 XSS
 SQL
 DOM

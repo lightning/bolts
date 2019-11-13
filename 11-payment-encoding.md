@@ -609,6 +609,27 @@ Breakdown:
 * `40wa3khl49yue3zsgm26jrepqr2eghqlx86rttutve3ugd05em86nsefzh4pfurpd9ek9w2vp95zxqnfe2u7ckudyahsa52q66tgzcp`: signature
 * `6t2dyk`: Bech32 checksum
 
+> ### Please send 0.00967878534 BTC for a list of items within one week, amount in pico-BTC
+> lnbc9678785340p1pwmna7lpp5gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0sd8dgfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khxxqyjw5qcqp2rzjq0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9qs4x9qlmd57lq7wwr23n3a6pkayy3jpfucyptlncs2maswe3dnnjy3ce2cgrvykmxlfpvn6ptqfqz4df5uaulvd4hjkckuqxrqqkz8jgphputwh
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on bitcoin mainnet
+* `9678785340p`: amount (9678785340 pico-bitcoin = 967878534 milli satoshi)
+* `1`: Bech32 separator
+* `pwmna7l`: timestamp (1572468703)
+* `p`: payment hash...
+* `d`: short description
+  * `8d`: `data_length` (`8` = 7, `d` = 13; 7 * 32 + 13 == 237)
+  * `gfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khx`: 'Blockstream Store: 88.85 USD for Blockstream Ledger Nano S x 1, \"Back In My Day\" Sticker x 2, \"I Got Lightning Working\" Sticker x 2 and 1 more items'
+* `x`: expiry time
+  * `qy`: `data_length` (`q` = 0, `y` = 2; 0 * 32 + 4 == 4)
+  * `jw5q`: 604800 seconds (`j` = 18, `w` = 14, `5` = 20, `q` = 0; 18 * 32^3 + 14 * 32^2 + 20 * 32 + 0 == 604800)
+* `r`: tagged field: route information
+  * `zj`: `data_length` (`z` = 2, `j` = 18; 2 * 32 + 18 == 82)
+* `s4x9qlmd57lq7wwr23n3a6pkayy3jpfucyptlncs2maswe3dnnjy3ce2cgrvykmxlfpvn6ptqfqz4df5uaulvd4hjkckuqxrqqkz8jgp`: signature
+* `hputwh`: Bech32 checksum
+
 # Authors
 
 [ FIXME: ]
