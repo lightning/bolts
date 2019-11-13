@@ -510,7 +510,7 @@ Rationale and Requirements are the same as for [`open_channel`](#the-open_channe
 
 If nodes have negotiated `option_dual_fund`:
   - the opening node:
-    - MUST not send `open_channel`
+    - MUST NOT send `open_channel`
 
 #### Rationale
 
@@ -625,7 +625,7 @@ The receiving node:
   - MUST add all received inputs to the funding transaction
   - MUST fail the channel if:
     - it receives a duplicate input to one it sent previously
-    - if it receives this message after `funding_add_complete` is received.
+    - it receives this message after `funding_add_complete` is received.
     - it receives an input that is malleable (P2SH/P2PKH)
   - if is the `opener`:
     - MUST fail the channel if:
@@ -651,8 +651,6 @@ sizeof(witness) for each) in `funding_signed2`.
 for P2SH-wrapped inputs.
 Native SegWit inputs (P2WPKH and P2WSH) inputs, will have an empty `script` field
 See [BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#examples).
-
-The `accepter` node may omit this message.
 
 
 #### The `funding_add_output` Message
@@ -694,7 +692,7 @@ The receiving node:
     - it receives this message after receiving `funding_add_complete`
   - if is the `opener`:
     - MUST fail the channel if:
-      - receives a total count of more than 3 outputs, across all `funding_add_output`s
+      - receives a total count of more than 8 outputs, across all `funding_add_output`s
 
 
 ##### Rationale
@@ -705,7 +703,7 @@ to derive the funding transaction and subsequent commitment signatures.
 
 The opening node may include one output with `sats` value
 of zero. This will be used for change, or discarded if its value is
-be below `dust_limit_satoshis`.
+below `dust_limit_satoshis`.
 
 Change is calculated as the sum of the opener's `input_info`.`sats`
 minus the estimated funding transaction size times the
@@ -756,7 +754,7 @@ The receiving node:
     - the `num_outputs` does not correspond to the total sum of all `num_outputs`
       received in all `funding_add_output` messages
     - the total satoshis of the senders inputs is less than their outputs plus
-      the funding_sats, specified earlier
+      the `funding_satoshis`, specified earlier
   - if is the `opener`:
     - MAY fail the channel if:
       - the fee cost of the proposed funding transaction is deemed exorbitant.
@@ -815,7 +813,7 @@ the `funding_txid`, instead of the `temporary_node_id`.
 
 ### The `funding_signed2` Message
 
-This message contains witness data for for the inputs that were
+This message contains witness data for the inputs that were
 originally exchanged in `funding_add_input`.
 
 1. type: 64 (`funding_signed2`)
@@ -890,6 +888,7 @@ indicated above.
 
 The sending node:
   - MUST have sent `open_channel2`.
+  - MUST NOT have sent or received a `funding_locked` message.
   - MUST send a `feerate_per_kw_funding` greater than the most recently
     negotiated rate.
   - MAY update the `feerate_per_kw`, the commitment transaction feerate.
@@ -903,8 +902,6 @@ The receiving node:
   - MUST return an error if:
     - the `feerate_per_kw_funding` is not greater than the previously
       negotiated rate.
-  - MUST return an error, but not fail the channel if:
-    - it has already received a `funding_locked` message
 
 
 #### Rationale
