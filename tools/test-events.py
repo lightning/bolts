@@ -6,6 +6,7 @@
 
 import argparse
 from copy import copy
+import importlib
 import fileinput
 import networkx as nx
 from os import path
@@ -14,6 +15,9 @@ import string
 import struct
 import sys
 import matplotlib.pyplot as plt
+
+# Helper for validating / generating signatures
+Sigs = importlib.import_module('sig-verify')
 
 # Populated by read_csv
 messages = []
@@ -128,6 +132,10 @@ def pack(typename, v):
 
     if typename in Subtype.objs:
         return Subtype.objs[typename].pack(v)
+
+    # Is 'SIG()' tuple?
+    if typename == 'signature' and isinstance(v, tuple):
+        return Sigs.generate_sig(v[0], v[1])
 
     # Pack directly as bytes
     assert len(v) == name2size[typename]
@@ -302,6 +310,14 @@ class Field(object):
                 raise LineError(line, "{} must be < {} bytes"
                                 .format(typename, name2size[typename]))
             return v
+
+        # Special handling for 'SIG(privkey:hash)'
+        if s.startswith('SIG('):
+            if not s.endswith(')'):
+                raise LineError(line, "SIG() improperly formatted. {}".format(s))
+
+            privkey, hash_digest = s[4:-1].split(':')
+            return (privkey, hash_digest)
 
         # Everything else is a hex string.
         try:
@@ -832,8 +848,13 @@ class RecvEvent(object):
             v = values[f.name]
             if f.arrayvar or f.arraylen:
                 for a in v:
+                    if f.typename == 'signature' and isinstance(a, tuple):
+                        sig = Sigs.generate_sig(a[0], a[1])
+                        a = sig
                     self.b += pack(f.typename, a)
             else:
+                if f.typename == 'signature' and isinstance(v, tuple):
+                    v = Sigs.generate_sig(v[0], v[1])
                 self.b += pack(f.typename, v)
 
         if 'extra' in d:
@@ -856,6 +877,27 @@ def compare_results(msgname, f, v, exp):
     if v is None:
         return ("Optional field {} is not present"
                 .format(f.name))
+
+    # Do signature verification, if necessary
+    if (f.typename == 'signature' and isinstance(exp,tuple)) or (f.typename == 'signature'
+            and (f.arrayvar or f.arraylen) and isinstance(exp,list)):
+            if f.arrayvar or f.arraylen:
+                for (e, val) in list(map(lambda x,y: (x,y), exp, v)):
+                    if isinstance(e, tuple):
+                        if not Sigs.verify_sig(e[0], e[1], val):
+                            return "Invalid signature ({}) for privkey {}, hash {}".format(
+                                    val.hex(), e[0], e[1])
+                    elif e != val:
+                        return ("Expected {}.{}(type:{}) {} but got {}"
+                                .format(msgname,
+                                        f.name, f.typename, e.hex(), val.hex()))
+            else:
+                # v should be a valid signature, a byte-array r||s
+                if not Sigs.verify_sig(exp[0], exp[1], v):
+                    return "Invalid signature ({}) for privkey {}, hash {}".format(v.hex(), exp[0], exp[1])
+            # Successfully matched all sigs!!
+            return None
+
     if isinstance(exp, tuple):
         # Out-of-range bitmaps are considered 0 (eg. feature tests)
         if len(v) < len(exp[0]):
@@ -975,7 +1017,8 @@ class ExpectSendEvent(object):
         d = parse_params(line, parts, [], optfields)
 
         for v in d.keys():
-            # IDENTIFIER`=`FIELDVALUE | IDENTIFIER`=`HEX/HEX | `absent`
+            # IDENTIFIER`=`FIELDVALUE | IDENTIFIER`=`HEX/HEX | `absent` |
+            #   IDENTIFIER`=`SIG(HEX:HEX)
             f = self.expectmsg.findField(v)
 
             parts = d[v].partition('/')
