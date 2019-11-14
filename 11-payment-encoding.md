@@ -64,6 +64,7 @@ A writer:
   - if a specific minimum `amount` is required for successful payment:
 	  - MUST include that `amount`.
 	- MUST encode `amount` as a positive decimal integer with no leading 0s.
+	- MUST request `amount` divisible by ten if the `p` multiplier is used.
 	- SHOULD use the shortest representation possible, by using the largest
 	  multiplier or omitting the multiplier.
 
