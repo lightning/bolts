@@ -875,7 +875,7 @@ failure:
 
 ## References
 
-1. <a id="reference-2">http://www.unicode.org/charts/PDF/U2600.pdf</a>
+1. <a id="reference-1">http://www.unicode.org/charts/PDF/U2600.pdf</a>
 
 ## Authors
 
