@@ -416,7 +416,8 @@ The fee for a v2 funding transaction is calculated in up to two rounds.
          will be added to the funding output, and credited to the opener's
          initial channel balance.
    - if the resulting `change_satoshis` is less than zero:
-      - sum(`funding_satoshis`) will be decreased by the difference.
+      - `opener_funding` will be decreased by the difference.
+
 
 Computation details are included in [Appendix A](#appendix-a-expected-weights) and [Appendix F, Dual Funded Transaction Test Vectors](#appendix-f-dual-funded-transaction-test-vectors).
 

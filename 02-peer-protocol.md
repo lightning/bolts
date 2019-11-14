@@ -755,6 +755,7 @@ The receiving node:
       received in all `funding_add_output` messages
     - the total satoshis of the senders inputs is less than their outputs plus
       the `funding_satoshis`, specified earlier
+    - the resulting `funding_output` value is less than the `dust_limit`.
   - if is the `opener`:
     - MAY fail the channel if:
       - the fee cost of the proposed funding transaction is deemed exorbitant.
@@ -765,6 +766,9 @@ The receiving node:
       to create the funding transaction, using `max_witness_len`
       for each `input_info` and `feerate_per_kw_funding` as specified in
       `open_channel2`.
+      - if the `funding_output` of the resulting transaction is less than
+        the `dust_limit` ([BOLT #3: Calculating `est_tx_fee`](03-transactions.md#channel-establishment-v2-funding-transaction-fees)):
+        - MUST fail the channel
     - MUST send `commitment_signed`.
 
 
