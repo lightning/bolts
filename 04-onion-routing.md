@@ -527,7 +527,7 @@ following operations:
  - `shift_size` is defined as the length of the `hop_payload` plus the bigsize encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the bigsize encoding of `l`.
  - The `hop_payload` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
  bytes that exceed its 1300-byte size.
- - The bigsize-serialized length, serialized `hop_payload` and `hmac` are copied into the following `shift_size` bytes.
+ - The bigsize-serialized length, serialized `hop_payload` and `hmac` are copied into the following `shift_size` bytes. Note that if `hop_payload` is a legacy payload, the realm byte can serve as the 0-byte-prefix and therefore the length encoding prefix can be omitted.
  - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
  which is then applied, with `XOR`, to the `hop_payloads` field.
  - If this is the last hop, i.e. the first iteration, then the tail of the
