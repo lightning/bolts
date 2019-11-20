@@ -6,7 +6,7 @@ operation, and closing.
 # Table of Contents
 
   * [Channel](#channel)
-    * [Definition of `channel_id`](#definition-of-channel-id)
+    * [Definition of `channel_id`](#definition-of-channel_id)
     * [Channel Establishment](#channel-establishment)
       * [The `open_channel` Message](#the-open_channel-message)
       * [The `accept_channel` Message](#the-accept_channel-message)
