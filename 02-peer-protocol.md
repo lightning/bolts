@@ -474,7 +474,7 @@ The protocol is also expanded to include a mechanism for initiating RBF.
 
 This message initiates the v2 channel establishment workflow.
 
-1. type: 56 (`open_channel2`)
+1. type: 64 (`open_channel2`)
 2. data:
    * [`chain_hash`:`chain_hash`]
    * [`32*byte`:`temporary_channel_id`]
@@ -528,7 +528,7 @@ or the `dust_limit_satoshis`, whichever is greater.
 This message contains information about a node and indicates its
 acceptance of the new channel.
 
-1. type: 57 (`accept_channel2`)
+1. type: 65 (`accept_channel2`)
 2. data:
     * [`32*byte`:`temporary_channel_id`]
     * [`u64`:`funding_satoshis`]
@@ -586,7 +586,7 @@ Once a node has relayed all of their inputs and output contributions, it sends
 
 This message contains information for inputs to a funding transaction.
 
-1. type: 58 (`funding_add_input`)
+1. type: 66 (`funding_add_input`)
 2. data:
     * [`32*byte`:`temporary_channel_id`]
     * [`u16`:`num_inputs`]
@@ -657,7 +657,7 @@ See [BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#exam
 
 This message contains information for outputs to a funding transaction.
 
-1. type: 60 (`funding_add_output`)
+1. type: 67 (`funding_add_output`)
 2. data:
     * [`32*byte`:`temporary_channel_id`]
     * [`u16`:`num_outputs`]
@@ -729,7 +729,7 @@ independently.
 This message signals the conclusion of a peer's funding transaction
 contributions.
 
-1. type: 62 (`funding_add_complete`)
+1. type: 68 (`funding_add_complete`)
 2. data:
     * [`32*byte`:`temporary_channel_id`]
     * [`u16`:`num_inputs`]
@@ -820,7 +820,7 @@ the `funding_txid`, instead of the `temporary_node_id`.
 This message contains witness data for the inputs that were
 originally exchanged in `funding_add_input`.
 
-1. type: 64 (`funding_signed2`)
+1. type: 69 (`funding_signed2`)
 2. data:
     * [`channel_id`:`channel_id`]
     * [`u16`:`num_witnesses`]
@@ -877,7 +877,7 @@ Once an `init_rbf` message has been successfully ack'd by the accepter
 node, the message flow returns to `commitment_signed` and proceeds as
 indicated above.
 
-1. type: 62 (`init_rbf`)
+1. type: 70 (`init_rbf`)
 2. data:
     * [`channel_id`:`channel_id`]
     * [`u64`:`funding_satoshis`]
@@ -923,7 +923,7 @@ RBF workflow, the RBF attempt MUST be abandoned.
 
 This message acknowledges the start of an RBF workflow.
 
-1. type: 63 (`ack_rbf`)
+1. type: 71 (`ack_rbf`)
 2. data:
     * [`channel_id`:`channel_id`]
 
