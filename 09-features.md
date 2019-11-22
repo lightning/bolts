@@ -33,9 +33,10 @@ These flags may only be used in the `init` message:
 
 The following `globalfeatures` bits are currently assigned by this specification:
 
-| Bits | Name              | Description                                                        | Link                                  |
-|------|-------------------|--------------------------------------------------------------------|---------------------------------------|
-| 8/9  | `var_onion_optin` | This node requires/supports variable-length routing onion payloads | [Routing Onion Specification][bolt04] |
+| Bits  | Name              | Description                                                        | Link                                  |
+|-------|-------------------|--------------------------------------------------------------------|---------------------------------------|
+| 8/9   | `var_onion_optin` | This node requires/supports variable-length routing onion payloads | [Routing Onion Specification][bolt04] |
+| 12/13 | `option_amp`      | Payee supports AMP                                                 | [BOLT #4](04-onion-routing#atomic-multi-path-payments)
 
 ## Requirements
 
