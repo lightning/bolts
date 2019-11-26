@@ -453,21 +453,21 @@ The origin node:
   - otherwise:
     - MUST set the `direction` bit of `channel_flags` to 1.
   - if the `htlc_maximum_msat` field is present:
-	- MUST set the `option_channel_htlc_max` bit of `message_flags` to 1.
-	- MUST set `htlc_maximum_msat` to the maximum value it will send through this channel for a single HTLC.
-		- MUST set this to less than or equal to the channel capacity.
-		- MUST set this to less than or equal to `max_htlc_value_in_flight_msat`
-		  it received from the peer.
-        - for channels with `chain_hash` identifying the Bitcoin blockchain:
-          - MUST set this to less than 2^32.
+    - MUST set the `option_channel_htlc_max` bit of `message_flags` to 1.
+    - MUST set `htlc_maximum_msat` to the maximum value it will send through this channel for a single HTLC.
+      - MUST set this to less than or equal to the channel capacity.
+      - MUST set this to less than or equal to `max_htlc_value_in_flight_msat`
+    it received from the peer.
+      - for channels with `chain_hash` identifying the Bitcoin blockchain:
+        - MUST set this to less than 2^32.
   - otherwise:
-	- MUST set the `option_channel_htlc_max` bit of `message_flags` to 0.
+    - MUST set the `option_channel_htlc_max` bit of `message_flags` to 0.
   - MUST set bits in `channel_flags` and `message_flags `that are not assigned a meaning to 0.
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
   settlement).
-    - MAY sent a subsequent `channel_update` with the `disable` bit  set to 0 to
+    - MAY sent a subsequent `channel_update` with the `disable` bit set to 0 to
     re-enable the channel.
   - MUST set `timestamp` to greater than 0, AND to greater than any
   previously-sent `channel_update` for this `short_channel_id`.
@@ -517,10 +517,10 @@ The receiving node:
     - MUST consider `htlc_maximum_msat` not to be present.
   - otherwise:
     - if `htlc_maximum_msat` is not present or greater than channel capacity:
-	  - MAY blacklist this `node_id`
-	  - SHOULD ignore this channel during route considerations.
-	- otherwise:
-	  - SHOULD consider the `htlc_maximum_msat` when routing.
+      - MAY blacklist this `node_id`
+      - SHOULD ignore this channel during route considerations.
+    - otherwise:
+      - SHOULD consider the `htlc_maximum_msat` when routing.
 
 ### Rationale
 
@@ -576,7 +576,7 @@ Note that a 65535-byte zlib message can decompress into 67632120
 bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
 across the stream: as each duplicate takes at least 2 bits, no valid
-contents could decompress to more then 3669960 bytes.
+contents could decompress to more than 3669960 bytes.
 
 Query messages can be extended with optional fields that can help reduce the number of messages needed to synchronize routing tables by enabling:
 
@@ -598,6 +598,7 @@ Nodes can signal that they support extended gossip queries with the `gossip_quer
 2. types:
     1. type: 1 (`query_flags`)
     2. data:
+        * [`u8`:`encoding_type`]
         * [`...*byte`:`encoded_query_flags`]
 
 `encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
@@ -670,13 +671,13 @@ The receiver:
         - MUST reply with the latest `node_announcement` for `node_id_1`
       - if bit 4 of `query_flag` is set and it has received a `node_announcement` from `node_id_2`:
         - MUST reply with the latest `node_announcement` for `node_id_2`
-	- SHOULD NOT wait for the next outgoing gossip flush to send these.
+    - SHOULD NOT wait for the next outgoing gossip flush to send these.
   - SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
   - MUST follow these responses with `reply_short_channel_ids_end`.
   - if does not maintain up-to-date channel information for `chain_hash`:
-	- MUST set `complete` to 0.
+    - MUST set `complete` to 0.
   - otherwise:
-	- SHOULD set `complete` to 1.
+    - SHOULD set `complete` to 1.
 
 #### Rationale
 
@@ -723,14 +724,15 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`len*byte`:`encoded_short_ids`]
     * [`reply_channel_range_tlvs`:`tlvs`]
 
-1. tlvs: `query_channel_range_tlvs`
+1. tlvs: `reply_channel_range_tlvs`
 2. types:
     1. type: 1 (`timestamps_tlv`)
     2. data:
+        * [`u8`:`encoding_type`]
         * [`...*byte`:`encoded_timestamps`]
     1. type: 3 (`checksums_tlv`)
     2. data:
-        * [`...*byte`:`checksums`]
+        * [`...*channel_update_checksums`:`checksums`]
 
 For a single `channel_update`, timestamps are encoded as:
 
@@ -772,8 +774,7 @@ The receiver of `query_channel_range`:
   - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
     - MAY fail the connection.
   - MUST respond with one or more `reply_channel_range` whose combined range
-	cover the requested `first_blocknum` to `first_blocknum` plus
-	`number_of_blocks` minus one.
+  cover the requested `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
   - For each `reply_channel_range`:
     - MUST set with `chain_hash` equal to that of `query_channel_range`,
     - MUST encode a `short_channel_id` for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
@@ -823,17 +824,17 @@ The receiver:
   - SHOULD send all gossip messages whose `timestamp` is greater or
     equal to `first_timestamp`, and less than `first_timestamp` plus
     `timestamp_range`.
-	- MAY wait for the next outgoing gossip flush to send these.
+    - MAY wait for the next outgoing gossip flush to send these.
   - SHOULD restrict future gossip messages to those whose `timestamp`
     is greater or equal to `first_timestamp`, and less than
     `first_timestamp` plus `timestamp_range`.
   - If a `channel_announcement` has no corresponding `channel_update`s:
-	- MUST NOT send the `channel_announcement`.
+    - MUST NOT send the `channel_announcement`.
   - Otherwise:
-	  - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
-	  - MUST consider whether to send the `channel_announcement` after receiving the first corresponding `channel_update`.
+    - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
+    - MUST consider whether to send the `channel_announcement` after receiving the first corresponding `channel_update`.
   - If a `channel_announcement` is sent:
-	  - MUST send the `channel_announcement` prior to any corresponding `channel_update`s and `node_announcement`s.
+    - MUST send the `channel_announcement` prior to any corresponding `channel_update`s and `node_announcement`s.
 
 #### Rationale
 
@@ -868,7 +869,7 @@ interactions with them.
 
 A node:
   - if the `gossip_queries` feature is negotiated:
-	- MUST NOT relay any gossip messages unless explicitly requested.
+    - MUST NOT relay any gossip messages unless explicitly requested.
   - otherwise:
     - if it requires a full copy of the peer's routing state:
       - SHOULD set the `initial_routing_sync` flag to 1.
@@ -900,7 +901,7 @@ A receiving node:
 
 A node:
   - if the `gossip_queries` feature is negotiated:
-	- MUST not send gossip until it receives `gossip_timestamp_filter`.
+    - MUST not send gossip until it receives `gossip_timestamp_filter`.
   - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
   the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not
@@ -1065,7 +1066,7 @@ per [HTLC Fees](#htlc-fees):
 
         fee_base_msat + ( amount_to_forward * fee_proportional_millionths / 1000000 )
 
-	200 + ( 4999999 * 2000 / 1000000 ) = 10199
+        200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
 Similarly, it would need to add B->C's `channel_update` `cltv_expiry` (20), C's
 requested `min_final_cltv_expiry` (9), and the cost for the _shadow route_ (42).
@@ -1085,7 +1086,7 @@ A->D's `update_add_htlc` message would be:
    * `amount_msat`: 5020398
    * `cltv_expiry`: current-block-height + 40 + 9 + 42
    * `onion_routing_packet`:
-	 * `amt_to_forward` = 4999999
+     * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
 And D->C's `update_add_htlc` would again be the same as B->C's direct payment

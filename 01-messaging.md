@@ -108,7 +108,11 @@ messages, a `tlv_stream` is typically placed after all currently defined fields.
 
 The `type` is a varint encoded using the BigSize format. It functions as a
 message-specific, 64-bit identifier for the `tlv_record` determining how the
-contents of `value` should be decoded.
+contents of `value` should be decoded. `type` identifiers below 2^16 are
+reserved for use in this specification. `type` identifiers greater than or equal
+to 2^16 are available for custom records. Any record not defined in this
+specification is considered a custom record. This includes experimental and
+application-specific messages.
 
 The `length` is a varint encoded using the BigSize format signaling the size of
 `value` in bytes.
@@ -121,6 +125,13 @@ according to the message-specific format determined by `type`.
 The sending node:
  - MUST order `tlv_record`s in a `tlv_stream` by monotonically-increasing `type`.
  - MUST minimally encode `type` and `length`.
+ - When defining custom record `type` identifiers:
+   - SHOULD pick random `type` identifiers to avoid collision with other
+     custom types.
+   - SHOULD pick odd `type` identifiers when regular nodes should ignore the
+     additional data.
+   - SHOULD pick even `type` identifiers when regular nodes should reject the
+     full tlv stream containing the custom record.
  - SHOULD NOT use redundant, variable-length encodings in a `tlv_record`.
 
 The receiving node:
@@ -158,7 +169,7 @@ structs, should do so by defining the encoding such that the object is
 serialized within a single `tlv_record`. The uniqueness constraint, among other
 things, enables the following optimizations:
  - canonical ordering is defined independent of the encoded `value`s.
- - canonical ordering can be known at compile-time, rather that being determined
+ - canonical ordering can be known at compile-time, rather than being determined
    dynamically at the time of encoding.
  - verifying canonical ordering requires less state and is less-expensive.
  - variable-size fields can reserve their expected size up front, rather than
@@ -215,14 +226,14 @@ The following convenience types are also defined:
 
 Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
 
-[BOLT #9](09-features.md) specifies lists of features. Each feature is generally represented by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.
+[BOLT #9](09-features.md) specifies lists of features. Each feature is generally represented by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.  For historical reasons, features are divided into global and local feature bitmasks.
 
 The `features` field MUST be padded to bytes with 0s.
 
 1. type: 16 (`init`)
 2. data:
-   * [`u16`:`ignorelen`]
-   * [`ignorelen*byte`:`ignore`]
+   * [`u16`:`gflen`]
+   * [`gflen*byte`:`globalfeatures`]
    * [`u16`:`flen`]
    * [`flen*byte`:`features`]
 
@@ -231,13 +242,14 @@ The `features` field MUST be padded to bytes with 0s.
 
 The sending node:
   - MUST send `init` as the first Lightning message for any connection.
-  - MUST set `ignorelen` to zero.
   - MUST set feature bits as defined in [BOLT #9](09-features.md).
   - MUST set any undefined feature bits to 0.
+  - SHOULD NOT set features greater than 13 in `globalfeatures`.
   - SHOULD use the minimum length required to represent the `features` field.
 
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
+  - MUST combine (logical OR) the two feature bitmaps into one logical `features` map.
   - MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
   - upon receiving unknown _odd_ feature bits that are non-zero:
     - MUST ignore the bit.
@@ -246,7 +258,8 @@ The receiving node:
 
 #### Rationale
 
-There used to be two feature bitfields here, but the first is now ignored.
+There used to be two feature bitfields here, but for backwards compatibility they're now
+combined into one.
 
 This semantic allows both future incompatible changes and future backward compatible changes. Bits should generally be assigned in pairs, in order that optional features may later become compulsory.
 
@@ -416,8 +429,8 @@ function that takes a `uint64` value `x` and produces:
 Here `+` denotes concatenation and `be16`, `be32`, and `be64` produce a
 big-endian encoding of the input for 16, 32, and 64-bit integers, respectively.
 
-A value is said to be _minimally encoded_ if it could have been encoded using a
-smaller representation. For example, a BigSize encoding that occupies 5 bytes
+A value is said to be _minimally encoded_ if it could not be encoded using
+fewer bytes. For example, a BigSize encoding that occupies 5 bytes
 but whose value is less than 0x10000 is not minimally encoded. All values
 decoded with BigSize should be checked to ensure they are minimally encoded.
 
@@ -862,7 +875,7 @@ failure:
 
 ## References
 
-1. <a id="reference-2">http://www.unicode.org/charts/PDF/U2600.pdf</a>
+1. <a id="reference-1">http://www.unicode.org/charts/PDF/U2600.pdf</a>
 
 ## Authors
 

@@ -358,6 +358,7 @@ optimizations
 structs
 CompactSize
 encodings
+remotekey
 bigsize
 BigSize
 namespaces
@@ -370,3 +371,4 @@ tlvs
 snprintf
 GitHub
 IRC
+bitmasks

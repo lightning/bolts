@@ -6,7 +6,7 @@ operation, and closing.
 # Table of Contents
 
   * [Channel](#channel)
-    * [Definition of `channel_id`](#definition-of-channel-id)
+    * [Definition of `channel_id`](#definition-of-channel_id)
     * [Channel Establishment](#channel-establishment)
       * [The `open_channel` Message](#the-open_channel-message)
       * [The `accept_channel` Message](#the-accept_channel-message)
@@ -365,6 +365,12 @@ This message introduces the `channel_id` to identify the channel. It's derived f
 
 #### Requirements
 
+Both peers:
+  - if `option_static_remotekey` was negotiated:
+    - `option_static_remotekey` applies to all commitment transactions
+  - otherwise:
+    - `option_static_remotekey` does not apply to any commitment transactions
+
 The sender MUST set:
   - `channel_id` by exclusive-OR of the `funding_txid` and the `funding_output_index` from the `funding_created` message.
   - `signature` to the valid signature, using its `funding_pubkey` for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#commitment-transaction).
@@ -375,6 +381,12 @@ The recipient:
   - MUST NOT broadcast the funding transaction before receipt of a valid `funding_signed`.
   - on receipt of a valid `funding_signed`:
     - SHOULD broadcast the funding transaction.
+
+#### Rationale
+
+We decide on `option_static_remotekey` at this point when we first have to generate the commitment
+transaction.  Even if a later reconnection does not negotiate this parameter, this channel will continue to use `option_static_remotekey`; we don't support "downgrading".
+This simplifies channel state, particularly penalty transaction handling.
 
 ### The `funding_locked` Message
 
@@ -388,6 +400,8 @@ This message indicates that the funding transaction has reached the `minimum_dep
 #### Requirements
 
 The sender MUST:
+  - NOT send `funding_locked` unless outpoint of given by `funding_txid` and
+   `funding_output_index` in the `funding_created` message pays exactly `funding_satoshis` to the scriptpubkey specified in [BOLT #3](03-transactions.md#funding-transaction-output).
   - wait until the funding transaction has reached
 `minimum_depth` before sending this message.
   - set `next_per_commitment_point` to the
@@ -396,7 +410,7 @@ transaction, derived as specified in
 [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
 A non-funding node (fundee):
-  - SHOULD forget the channel if it does not see the
+  - SHOULD forget the channel if it does not see the correct
 funding transaction after a reasonable timeout.
 
 From the point of waiting for `funding_locked` onward, either node MAY
@@ -409,11 +423,6 @@ The non-funder can simply forget the channel ever existed, since no
 funds are at risk. If the fundee were to remember the channel forever, this
 would create a Denial of Service risk; therefore, forgetting it is recommended
 (even if the promise of `push_msat` is significant).
-
-#### Future
-
-An SPV proof could be added and block hashes could be routed in separate
-messages.
 
 ## Channel Close
 
@@ -835,7 +844,7 @@ Invalid amounts are a clear protocol violation and indicate a breakdown.
 If a node did not accept multiple HTLCs with the same payment hash, an
 attacker could probe to see if a node had an existing HTLC. This
 requirement, to deal with duplicates, leads to the use of a separate
-identifier; its assumed a 64-bit counter never wraps.
+identifier; it's assumed a 64-bit counter never wraps.
 
 Retransmissions of unacknowledged updates are explicitly allowed for
 reconnection purposes; allowing them at other times simplifies the
@@ -1118,8 +1127,8 @@ messages are), they are independent of requirements here.
    * [`channel_id`:`channel_id`]
    * [`u64`:`next_commitment_number`]
    * [`u64`:`next_revocation_number`]
-   * [`32*byte`:`your_last_per_commitment_secret`] (option_data_loss_protect)
-   * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect)
+   * [`32*byte`:`your_last_per_commitment_secret`] (option_data_loss_protect,option_static_remotekey)
+   * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect,option_static_remotekey)
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
@@ -1167,10 +1176,13 @@ The sending node:
   next `commitment_signed` it expects to receive.
   - MUST set `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
-  - if it supports `option_data_loss_protect`:
+  - if `option_static_remotekey` applies to the commitment transaction:
+    - MUST set `my_current_per_commitment_point` to a valid point.
+  - otherwise, if it supports `option_data_loss_protect`:
     - MUST set `my_current_per_commitment_point` to its commitment point for
       the last signed commitment it received from its channel peer (i.e. the commitment_point 
       corresponding to the commitment transaction the sender would use to unilaterally close).
+  - if `option_static_remotekey` applies to the commitment transaction, or the sending node supports `option_data_loss_protect`:
     - if `next_revocation_number` equals 0:
       - MUST set `your_last_per_commitment_secret` to all zeroes
     - otherwise:
@@ -1209,7 +1221,16 @@ A node:
       - SHOULD fail the channel.
 
  A receiving node:
-  - if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
+  - if `option_static_remotekey` applies to the commitment transaction:
+    - if `next_revocation_number` is greater than expected above, AND
+    `your_last_per_commitment_secret` is correct for that
+    `next_revocation_number` minus 1:
+      - MUST NOT broadcast its commitment transaction.
+      - SHOULD fail the channel.
+    - otherwise:
+	  - if `your_last_per_commitment_secret` does not match the expected values:
+        - SHOULD fail the channel.
+  - otherwise, if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
   fields are present:
     - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
@@ -1301,6 +1322,14 @@ non-HTLC funds, if the `my_current_per_commitment_point`
 is valid. However, this also means the fallen-behind node has revealed this
 fact (though not provably: it could be lying), and the other node could use this to
 broadcast a previous state.
+
+`option_static_remotekey` removes the changing `to_remote` key,
+so the `my_current_per_commitment_point` is unnecessary and thus
+ignored (for parsing simplicity, it remains and must be a valid point,
+however), but the disclosure of previous secret still allows
+fall-behind detection.  An implementation can offer both, however, and
+fall back to the `option_data_loss_protect` behavior if
+`option_static_remotekey` is not negotiated.
 
 # Authors
 

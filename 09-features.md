@@ -12,9 +12,6 @@ can be introduced as optional (_odd_ bits) and later upgraded to be compulsory
 (_even_ bits), which will be refused by outdated nodes:
 see [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 
-
-## Assigned `features` flags
-
 Some features don't make sense on a per-channels or per-node basis, so
 each feature defines how it is presented in those contexts.  Some
 features may be required for opening a channel, but not a requirement
@@ -27,6 +24,7 @@ The Context column decodes as follows:
 * `C`: presented in the `channel_announcement` message.
 * `C-`: presented in the `channel_announcement` message, but always odd (optional).
 * `C+`: presented in the `channel_announcement` message, but always even (required).
+* `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
 
 | Bits  | Name                             | Description                                               | Context  | Link                                  |
 |-------|----------------------------------|-----------------------------------------------------------|----------|---------------------------------------|
@@ -36,6 +34,7 @@ The Context column decodes as follows:
 | 6/7   | `gossip_queries`                 | More sophisticated gossip control                         | IN       | [BOLT #7][bolt07-query]               |
 | 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN       | [Routing Onion Specification][bolt04] |
 | 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | [BOLT #7][bolt07-query]               |
+| 12/13 | `option_static_remotekey`        | Static key for remote output                              | IN       | [BOLT #3](03-transactions.md)         |
 | 14/15 | `option_support_large_channel`   | Can create large channels                                 | INC+     | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 
 ## Requirements
