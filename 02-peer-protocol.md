@@ -605,9 +605,6 @@ This message contains information for inputs to a funding transaction.
 
 ##### Requirements
 
-The `accepter` node:
-  - MAY omit this message
-
 The sending node:
   - MUST NOT send `funding_add_input` if it has already transmitted `funding_add_complete`
   - MUST send this after `accept_channel2` has been exchanged, but before `funding_add_complete`
