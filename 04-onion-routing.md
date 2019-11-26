@@ -250,18 +250,111 @@ This is a more flexible format, which avoids the redundant `short_channel_id` fi
     1. type: 6 (`short_channel_id`)
     2. data:
         * [`short_channel_id`:`short_channel_id`]
+    1. type: 8 (`payment_data`)
+    2. data:
+        * [`32*byte`:`payment_secret`]
+        * [`tu64`:`total_msat`]
 
 ### Requirements
 
 The writer:
-  - MUST include `amt_to_forward` and `outgoing_cltv_value` for every node.
-  - MUST include `short_channel_id` for every non-final node.
-  - MUST NOT include `short_channel_id` for the final node.
+  - Unless `node_announcement`, `init` message or the [BOLT #11](11-payment-encoding.md#tagged-fields) offers feature `var_onion_optin`:
+    - MUST use the legacy payload format instead.
+  - For every node:
+    - MUST include `amt_to_forward` and `outgoing_cltv_value`.
+  - For every non-final node:
+    - MUST include `short_channel_id`
+	- MUST NOT include `payment_data`
+  - For the final node:
+    - MUST NOT include `short_channel_id`
+    - if the recipient provided `payment_secret`:
+      - MUST include `payment_data`
+	  - MUST set `payment_secret` to the one provided
+	  - MUST set `total_msat` to the total amount it will send
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
+  - if it is the final node:
+    - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it
+	  is not present.
 
-The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format).
+The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format)
+and [below](#basic-multi-part-payments).
+
+### Basic Multi-Part Payments
+
+An HTLC may be part of a larger "multi-part" payment: such
+"base" atomic multipath payments will use the same `payment_hash` for
+all paths.
+
+Note that `amt_to_forward` is the amount for this HTLC only: a
+`total_msat` field containing a greater value is a promise by the
+ultimate sender that the rest of the payment will follow in succeeding
+HTLCs; we call these outstanding HTLCs which have the same preimage,
+an "HTLC set".
+
+#### Requirements
+
+The writer:
+  - if the invoice offers the `basic_mpp` feature:
+    - MAY send more than one HTLC to pay the invoice.
+    - MUST use the same `payment_hash` on all HTLCs in the set.
+    - SHOULD send all payments at approximately the same time.
+    - SHOULD try to use diverse paths to the recipient for each HTLC.
+    - SHOULD retry and/or re-divide HTLCs which fail.
+    - if the invoice specifies an `amount`:
+       - MUST set `total_msat` to at least that `amount`, and less
+         than or equal to twice `amount`.
+    - otherwise:
+      - MUST set `total_msat` to the amount it wishes to pay.
+    - MUST ensure that the total `amount_msat` of the HTLC set which arrives at the payee
+      is equal to `total_msat`.
+    - MUST NOT send another HTLC if the total `amount_msat` of the HTLC set is already greater or equal to `total_msat`.
+  - otherwise:
+    - MUST set `total_msat` equal to `amt_to_forward`.
+
+The final node:
+  - MUST fail the HTLC if dictated by Requirements under [Failure Messages](#failure-messages)
+    - Note: "amount paid" specified there is the `total_msat` field.
+  - if it does not support `basic_mpp`:
+    - MUST fail the HTLC if `total_msat` is not exactly equal to `amt_to_forward`.
+  - otherwise, if it supports `basic_mpp`:
+    - MUST add it to the HTLC set corresponding to that `payment_hash`.
+    - SHOULD fail the entire HTLC set if `total_msat` is not the same for
+      all HTLCs in the set.
+    - if the total `amount_msat` of this HTLC set equals `total_msat`:
+      - SHOULD fulfill all HTLCs in the HTLC set
+    - otherwise, if the total `amount_msat` of this HTLC set is less than
+	  `total_msat`:
+      - MUST NOT fulfill any HTLCs in the HTLC set
+      - MUST fail all HTLCs in the HTLC set after some reasonable timeout.
+        - SHOULD wait for at least 60 seconds after the initial HTLC.
+        - SHOULD use `mpp_timeout` for the failure message.
+    - if it fulfills any HTLCs in the HTLC set:
+       - MUST fulfill the entire HTLC set.
+
+#### Rationale
+
+If `basic_mpp` is present it causes a delay to allow other partial
+payments to combine.  The total amount must be sufficient for the
+desired payment, just as it must be for single payments.  But this must
+be reasonably bounded to avoid a denial-of-service.
+
+Because invoices do not necessarily specify an amount, and because
+payers can add noise to the final amount, the total amount must be
+sent explicitly.  The requirements allow exceeding this slightly, as
+it simplifies adding noise to the amount when splitting, as well as
+scenarios in which the senders are genuinely independent (friends
+splitting a bill, for example).
+
+The restriction on sending an HTLC once the set is over the agreed total prevents the preimage being released before all
+the partial payments have arrived: that would allow any intermediate
+node to immediately claim any outstanding partial payments.
+
+An implementation may choose not to fulfill an HTLC set which
+otherwise meets the amount criterion (eg. some other failure, or
+invoice timeout), however if it were to fulfill only some of them,
+intermediary nodes could simply claim the remaining ones.
 
 # Accepting and Forwarding a Payment
 
@@ -315,6 +408,8 @@ using an alternate channel.
 When building the route, the origin node MUST use a payload for
 the final node with the following values:
 
+* `payment_secret`: set to the payment secret specified by the recipient (e.g.
+  `payment_secret` from a [BOLT #11](11-payment-encoding.md) payment invoice)
 * `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
   `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
 * `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
@@ -829,9 +924,10 @@ handling by the processing node.
    * [`u64`:`htlc_msat`]
    * [`u32`:`height`]
 
-The `payment_hash` is unknown to the final node, the amount for that
-`payment_hash` is incorrect or the CLTV expiry of the htlc is too close to the
-current block height for safe handling.
+The `payment_hash` is unknown to the final node, the `payment_secret` doesn't
+match the `payment_hash`, the amount for that `payment_hash` is incorrect or
+the CLTV expiry of the htlc is too close to the current block height for safe
+handling.
 
 The `htlc_msat` parameter is superfluous, but left in for backwards
 compatibility. The value of `htlc_msat` always matches the amount specified in
@@ -886,6 +982,11 @@ The decrypted onion per-hop payload was not understood by the processing node
 or is incomplete. If the failure can be narrowed down to a specific tlv type in
 the payload, the erring node may include that `type` and its byte `offset` in
 the decrypted byte stream.
+
+1. type: 23 (`mpp_timeout`)
+
+The complete amount of the multi-part payment was not received within a
+reasonable time.
 
 ### Requirements
 
@@ -954,6 +1055,10 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the payment hash has already been paid:
     - MAY treat the payment hash as unknown.
     - MAY succeed in accepting the HTLC.
+  - if the `payment_secret` doesn't match the expected value for that `payment_hash`,
+    or the `payment_secret` is required and is not present:
+    - MUST fail the HTLC.
+    - MUST return an `incorrect_or_unknown_payment_details` error.
   - if the amount paid is less than the amount expected:
     - MUST fail the HTLC.
     - MUST return an `incorrect_or_unknown_payment_details` error.

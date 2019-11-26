@@ -282,7 +282,7 @@ The field is big-endian.  The least-significant bit is numbered 0,
 which is _even_, and the next most significant bit is numbered 1,
 which is _odd_.
 
-Note that the `payment_secret` feature probing attacks from nodes
+Note that the `payment_secret` feature prevents probing attacks from nodes
 along the path, but only if made compulsory: yet doing so will break
 older clients which do not understand the feature.
 
