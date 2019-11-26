@@ -849,7 +849,6 @@ The sending node:
 The receiving node:
   - if the `witness_stack` length exceeds `max_witness_len`:
     - MUST error.
-  - MUST verify it has received valid commitment signatures
   - SHOULD apply `witness`es to the funding transaction and
     broadcast it.
   - if has already sent or received a `funding_locked` message
