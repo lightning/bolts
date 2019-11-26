@@ -129,6 +129,7 @@ Each Tagged Field is of the form:
 Currently defined tagged fields are:
 
 * `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment.
+* `s` (16): `data_length` 52. This 256-bit secret prevents forwarding nodes from probing the payment recipient.
 * `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8), e.g. '1 cup of coffee' or 'ナンセンス 1杯'
 * `n` (19): `data_length` 53. 33-byte public key of the payee node
 * `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is over 639 bytes, but the transport mechanism for the description in that case is transport specific and not defined here.
@@ -148,7 +149,7 @@ Currently defined tagged fields are:
 ### Requirements
 
 A writer:
-  - MUST include exactly one `p` field.
+  - MUST include exactly one `p` and `s` fields.
   - MUST set `payment_hash` to the SHA2 256-bit hash of the `payment_preimage`
   that will be given in return for payment.
   - MUST include either exactly one `d` or exactly one `h` field.
@@ -191,8 +192,8 @@ A writer:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
 
 A reader:
-  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, or
-  `n` fields that do NOT have `data_length`s of 52, 52, or 53, respectively.
+  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, `s` or
+  `n` fields that do NOT have `data_length`s of 52, 52, 52 or 53, respectively.
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
@@ -202,6 +203,8 @@ A reader:
   description.
   - if a valid `n` field is provided:
     - MUST use the `n` field to validate the signature instead of performing signature recovery.
+  - if there is a valid `s` field:
+    - MUST use that as [`payment_secret`](04-onion-routing.md#tlv_payload-payload-format)
 
 ### Rationale
 
@@ -279,6 +282,34 @@ The field is big-endian.  The least-significant bit is numbered 0,
 which is _even_, and the next most significant bit is numbered 1,
 which is _odd_.
 
+Note that the `payment_secret` feature probing attacks from nodes
+along the path, but only if made compulsory: yet doing so will break
+older clients which do not understand the feature.
+
+### Requirements
+
+A writer:
+  - if `payment_secret` feature is set:
+    - MUST include an `s` field.
+  - otherwise:
+    - MUST NOT include an `s` field.
+  - if the `payment_secret` field is required in the onion:
+    - MUST set the even feature `payment_secret`.
+  - If the final node supports [Basic multi-part payments](04-onion-routing.md#basic-multi-part-payments):
+    - MUST set the `basic_mpp` feature.
+  - Otherwise:
+    - MUST NOT set the `basic_mpp` feature.
+  - if it sets either `payment_secret` or `basic_mpp` features:
+    - MUST set the `var_onion_optin` feature.
+  - MUST set `var_onion_optin` if and only if it supports that feature.
+
+A reader:
+  - if the `basic_mpp` feature is offered in the invoice:
+    - MAY pay using [Basic multi-part payments](04-onion-routing.md#basic-multi-part-payments).
+  - otherwise:
+    - MUST NOT use [Basic multi-part payments](04-onion-routing.md#basic-multi-part-payments).
+
+
 # Payer / Payee Interactions
 
 These are generally defined by the rest of the Lightning BOLT series,
@@ -318,7 +349,7 @@ https://github.com/rustyrussell/lightning-payencode
 
 # Examples
 
-NB: all the following examples are signed with `priv_key`=`e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734`.
+NB: all the following examples are signed with `priv_key`=`e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734`.  Also, the first 9 examples are legacy: modern invoices have an `s` field. 
 
 > ### Please make a donation of any amount using payment_hash 0001020304050607080900010203040506070809000102030405060708090102 to me @03e7156ae33b0a208d0744199163177e909e80176e55d97a2f221ede0f934dd9ad
 > lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq8rkx3yf5tcsyz3d73gafnh3cax9rn449d9p5uxz9ezhhypd0elx87sjle52x86fux2ypatgddc6k63n7erqz25le42c4u4ecky03ylcqca784w
@@ -535,8 +566,8 @@ Breakdown:
   * `6c6e626332306d0b25fe64570d0e496dbd9f8b0d000dbb44824f751380da37c6dba89b14f6f92047d63f576e304021a00008101820283038404800081018202830384048000810182028303840480810243500c318a1e0a628b34025e8c9019ab6d09b64c2b3c66a693d0dc63194b02481931000` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `399a8b167029fda8564fd2e99912236b0b8017e7d17e416ae17307812c92cf42` hex of SHA256 of the preimage
 
-> ### Please send $30 for coffee beans to the same peer, which supports features 1 and 9
-> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdees9qzsze992adudgku8p05pstl6zh7av6rx2f297pv89gu5q93a0hf3g7lynl3xq56t23dpvah6u7y9qey9lccrdml3gaqwc6nxsl5ktzm464sq73t7cl
+> ### Please send $30 for coffee beans to the same peer, which supports features 15 and 99, using secret 0x1111111111111111111111111111111111111111111111111111111111111111
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqpqqq4u9s93jtgysm3mrwll70zr697y3mf902hvxwej0v7c62rsltw83ng0pu8w3j230sluc5gxkdmm9dvpy9y6ggtjd2w544mzdrcs42t7sqdkcy8h
 
 Breakdown:
 
@@ -548,14 +579,17 @@ Breakdown:
 * `d`: short description
   * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
   * `vdhkven9v5sxyetpdees`: 'coffee beans'
+* `s`: payment secret
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: 0x1111111111111111111111111111111111111111111111111111111111111111
 * `9`: features
-  * `qz`: `data_length` (`q` = 0, `z` = 2; 0 * 32 + 2 == 2)
-  * `sz`: b1000000010
-* `e992adudgku8p05pstl6zh7av6rx2f297pv89gu5q93a0hf3g7lynl3xq56t23dpvah6u7y9qey9lccrdml3gaqwc6nxsl5ktzm464sq`: signature
-* `73t7cl`: Bech32 checksum
+  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20) 4
+  * `sqqqqqqqqqqqqqqqpqqq`: b1000....00001000000000000000
+* `pqqq4u9s93jtgysm3mrwll70zr697y3mf902hvxwej0v7c62rsltw83ng0pu8w3j230sluc5gxkdmm9dvpy9y6ggtjd2w544mzdrcs42t7sq`: signature
+* `dkcy8h`: Bech32 checksum
 
-> # Same, but using invalid unknown feature 100
-> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdees9q4pqqqqqqqqqqqqqqqqqqszk3ed62snp73037h4py4gry05eltlp0uezm2w9ajnerhmxzhzhsu40g9mgyx5v3ad4aqwkmvyftzk4k9zenz90mhjcy9hcevc7r3lx2sphzfxz7
+> # Same, but adding invalid unknown feature 100
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q4psqqqqqqqqqqqqqqqpqqqqu7fz6pjqczdm3jp3qps7xntj2w2mm70e0ckhw3c5xk9p36pvk3sewn7ncaex6uzfq0vtqzy28se6pcwn790vxex7xystzumhg55p6qq9wq7td
 
 Breakdown:
 
@@ -567,11 +601,14 @@ Breakdown:
 * `d`: short description
   * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
   * `vdhkven9v5sxyetpdees`: 'coffee beans'
+* `s`: payment secret
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: 0x1111111111111111111111111111111111111111111111111111111111111111
 * `9`: features
   * `q4`: `data_length` (`q` = 0, `4` = 21; 0 * 32 + 21 == 21)
-  * `pqqqqqqqqqqqqqqqqqqsz`: b00001...(90 zeroes)...1000000010
-* `k3ed62snp73037h4py4gry05eltlp0uezm2w9ajnerhmxzhzhsu40g9mgyx5v3ad4aqwkmvyftzk4k9zenz90mhjcy9hcevc7r3lx2sp`: signature
-* `hzfxz7`: Bech32 checksum
+  * `psqqqqqqqqqqqqqqqpqqqq`: b000011000....00001000000000000000
+* `u7fz6pjqczdm3jp3qps7xntj2w2mm70e0ckhw3c5xk9p36pvk3sewn7ncaex6uzfq0vtqzy28se6pcwn790vxex7xystzumhg55p6qq`: signature
+* `9wq7td`: Bech32 checksum
 
 # Authors
 
