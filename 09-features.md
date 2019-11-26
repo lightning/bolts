@@ -35,6 +35,8 @@ The Context column decodes as follows:
 | 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN       | [Routing Onion Specification][bolt04] |
 | 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | [BOLT #7][bolt07-query]               |
 | 12/13| `option_static_remotekey`         | Static key for remote output                              | IN       | [BOLT #3](03-transactions.md)         |
+| 14/15 | `payment_secret`                 | Node supports `payment_secret` field                      | IN9      | [Routing Onion Specification][bolt04]   |
+| 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | [BOLT #3][bolt04-mpp]                 |
 
 ## Requirements
 
@@ -67,3 +69,4 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt04]: 04-onion-routing.md
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
+[bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
