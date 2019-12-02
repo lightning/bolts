@@ -1,6 +1,6 @@
 # BOLT #0: Introduction and Index
 
-Welcome, friend! These Basis of Lightning Technology (BOLT) documents
+Welcome, friend! These Bases of Lightning Technology (BOLT) documents
 describe a layer-2 protocol for off-chain bitcoin transfer by mutual
 cooperation, relying on on-chain transactions for enforcement if
 necessary.
@@ -46,7 +46,7 @@ channel establishment and [BOLT #3: Funding Transaction Output](03-transactions.
 
 ### Conditional Payments
 
-A Lightning channel only allows payment between two participants, but channels can be connected together to form a network that allows payments between all members of the network. This requires the technology of a conditional payment, which can be added to a channel,
+A Lightning channel only allows payment between two participants, but channels can be connected together to form a network that allows payments among all members of the network. This requires the technology of a conditional payment, which can be added to a channel,
 e.g. "you get 0.01 bitcoin if you reveal the secret within 6 hours".
 Once the recipient presents the secret, that bitcoin transaction is
 replaced with one lacking the conditional payment and adding the funds
@@ -156,9 +156,9 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See parts: [Payment hash](#Payment-hash), [Payment preimage](#Payment-preimage)_
 
 * #### *Invoice*: A request for funds on the Lightning Network, possibly
-    including payment type, payment amount, expiry, and other
-    information. This is how payments are made on the Lightning
-    Network, rather than using Bitcoin-style addresses.
+    * including payment type, payment amount, expiry, and other
+      information. This is how payments are made on the Lightning
+      Network, rather than using Bitcoin-style addresses.
 
 * #### *It's ok to be odd*:
    * A rule applied to some numeric fields that indicates either optional or
@@ -269,7 +269,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * An uncooperative close of a *[channel](#channel)*, accomplished by broadcasting a
     *[commitment transaction](#commitment-transaction)*. This transaction is larger (i.e. less
     efficient) than a *[closing transaction](#closing-transaction)*, and the *[peer](#peers)* whose
-    commitment is broadcast cannot access its own outputs for some
+    commitment is broadcasted cannot access its own outputs for some
     previously-negotiated duration.
    * _See related: [mutual close](#mutual-close), [revoked transaction close](#revoked-transaction-close)_
 
