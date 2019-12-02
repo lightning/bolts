@@ -154,7 +154,7 @@ class CLightningRunner(object):
                                       '--log-level=debug',
                                       '--log-file=log']
                                       + self.startup_flags)
-        self.rpc = lightning.LightningRpc(os.path.join(self.lightning_dir, "lightning-rpc"))
+        self.rpc = lightning.LightningRpc(os.path.join(self.lightning_dir, "regtest", "lightning-rpc"))
 
         def node_ready(rpc):
             try:
@@ -209,9 +209,9 @@ class CLightningRunner(object):
             c.proc.kill()
 
         # Make a clean start
-        os.remove(os.path.join(self.lightning_dir, "gossip_store"))
-        os.remove(os.path.join(self.lightning_dir, "lightningd.sqlite3"))
-        os.remove(os.path.join(self.lightning_dir, "log"))
+        os.remove(os.path.join(self.lightning_dir, "regtest", "gossip_store"))
+        os.remove(os.path.join(self.lightning_dir, "regtest", "lightningd.sqlite3"))
+        os.remove(os.path.join(self.lightning_dir, "regtest", "log"))
         self.start()
 
     def connect(self, conn, line):
