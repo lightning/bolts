@@ -314,7 +314,7 @@ class CLightningRunner(object):
                 raise test.InternalError(line,
                         "Unable to find txout for {} (tx:{})".format(funding_addr, decode))
 
-            self.rpc.fundchannel_complete(peers[0]['id'], tx['txid'], txout)
+            self.rpc.fundchannel_complete(peer_id, tx['txid'], txout)
             self.rpc.txsend(tx['txid'])
             return True
 
