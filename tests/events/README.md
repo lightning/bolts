@@ -2,12 +2,12 @@
 
 This directory contains conversation-style tests for Lightning
 implementations.  The format is documented in
-[tests/events/test-spec.md](events/test-spec.md), and the base driver for an
-implementation is in the [tools/test-events.py](../tools/test-events.py).
+[tests/events/test-spec.md](test-spec.md), and the base driver for an
+implementation is in the [tools/test-events.py](../../tools/test-events.py).
 
 To run the tests, you need to write a driver for your particular
 implementation, like the one for
-[c-lightning](../tools/test-events-clightning.py).  Then extract the
+[c-lightning](../../tools/test-events-clightning.py).  Then extract the
 format of all messages into a file, like so:
 
 	$ python3 tools/extract-formats.py 0*.md > format.csv
