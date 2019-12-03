@@ -198,7 +198,7 @@ Field descriptions:
    * `amt_to_forward`: The amount, in millisatoshis, to forward to the next
      receiving peer specified within the routing information.
 
-     This value amount MUST include the origin node's computed _fee_ for the
+     For non-final nodes, this value amount MUST include the origin node's computed _fee_ for the
      receiving peer. When processing an incoming Sphinx packet and the HTLC
      message that it is encapsulated within, if the following inequality doesn't hold,
      then the HTLC should be rejected as it would indicate that a prior hop has
@@ -206,9 +206,11 @@ Field descriptions:
 
           incoming_htlc_amt - fee >= amt_to_forward
 
-     Where `fee` is either calculated according to the receiving peer's advertised fee
-     schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
-     or is 0, if the processing node is the final node.
+     Where `fee` is calculated according to the receiving peer's advertised fee
+     schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees).
+
+     For the final node, this value MUST be exactly equal to the incoming htlc
+	 amount, otherwise the HTLC should be rejected.
 
    * `outgoing_cltv_value`: The CLTV value that the _outgoing_ HTLC carrying
      the packet should have.
