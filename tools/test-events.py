@@ -239,6 +239,11 @@ class DummyRunner(object):
             print("[INVOICE for {} with PREIMAGE {} {}]"
                   .format(amount, preimage, line))
 
+    def addhtlc(self, conn, amount, preimage, line):
+        if self.verbose:
+            print("[ADDHTLC TO {} for {} with PREIMAGE {} {}]"
+                  .format(conn, amount, preimage, line))
+
     def expect_send(self, conn, line):
         if self.verbose:
             print("[EXPECT-SEND {}]".format(line))
@@ -1150,6 +1155,19 @@ class InvoiceEvent(object):
         runner.invoice(self.amount, self.preimage, line)
 
 
+class AddHtlcEvent(object):
+    def __init__(self, line, parts):
+        d = parse_params(line, parts, ['amount', 'preimage'], ['conn'])
+        self.connkey = optional_connection(line, d)
+        self.preimage = d['preimage']
+        check_hex(line, self.preimage, 64)
+        self.amount = int(d['amount'])
+
+    def action(self, runner, line):
+        runner.addhtlc(which_connection(line, runner, self.connkey),
+                       self.amount, self.preimage, line)
+
+
 class ExpectErrorEvent(object):
     def __init__(self, line, parts):
         d = parse_params(line, parts, [], ['conn'])
@@ -1188,6 +1206,8 @@ class Event(object):
             self.actor = FundChannelEvent(line, parts[1:])
         elif parts[0] == 'invoice:':
             self.actor = InvoiceEvent(line, parts[1:])
+        elif parts[0] == 'addhtlc:':
+            self.actor = AddHtlcEvent(line, parts[1:])
         elif parts[0] == 'expect-error:':
             self.actor = ExpectErrorEvent(line, parts[1:])
         elif parts[0] == 'nothing':

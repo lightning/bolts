@@ -99,7 +99,7 @@ compulsory (`even`).
 
 ## Input Events
 
-INPUT_EVENT := CONNECT | RECV | BLOCK | DISCONNECT | OPENCMD
+INPUT_EVENT := CONNECT | RECV | BLOCK | DISCONNECT | FUNDCHANCMD | INVOICECMD | ADDHTLCCMD
 
 CONNECT := `connect:` SPACE+ CONNECT_OPTS
 CONNECT_OPTS := `privkey=` HEX64
@@ -117,6 +117,8 @@ DISCONNECT := `disconnect:` SPACE+ CONNSPEC
 FUNDCHANCMD := `fundchannel:` [CONNSPEC] SPACE+ `amount=`NUMBER SPACE+ `utxo=`HEX`/`NUMBER
 
 INVOICECMD := `invoice:` SPACE+ `amount=`NUMBER SPACE+ `preimage=`HEX64
+
+ADDHTLCCMD := `addhtlc:` [CONNSPEC] SPACE+ `amount=`NUMBER SPACE+ `preimage=`HEX64
 
 CONNSPEC := SPACE+ `conn=`HEX64
 
@@ -137,6 +139,7 @@ Input events are:
 * `disconnect`: a connection closed by a peer.
 * `fundchannel`: tell the implementation to initiate the opening of a channel of the given `amount` of satoshis with the specific peer identified by `conn` (default, last `connect`).  The funding comes from a single `utxo`, as specified by txid and output number.
 * `invoice`: tell the implementation to accept a payment of `amount` msatoshis, with payment_preimage `preimage`.
+* `addhtlc`: tell the implementation to add (and commit) a simple htlc directly to the test peer, with CLTV 5 past the current block.
 
 ## Output Events
 
