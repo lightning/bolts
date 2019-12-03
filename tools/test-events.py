@@ -1590,6 +1590,13 @@ def indentation(s):
     return s[consumed:], level
 
 
+class SkipParsingException(Exception):
+    """Exception raised when skipif is found during parsing"""
+    def __init__(self, reason):
+        super().__init__()
+        self.reason = reason
+
+
 def parse_file(args, f, filename, variables):
     """Get non-comment lines, as [(linenums,indentlevel,line)], grab vars"""
     content = []
@@ -1654,7 +1661,7 @@ def parse_file(args, f, filename, variables):
                                      indentlevel, lines[i]),
                                 "Re-setting var {}".format(parts[0]))
             variables[parts[0]] = parts[2]
-        # Similarly, do include directives immediately.
+        # Similarly, do include/skipif directives immediately.
         elif line.startswith('include '):
             # Filenames are assumed to be relative.
             subfilename = path.join(path.dirname(filename), line[8:])
@@ -1665,6 +1672,8 @@ def parse_file(args, f, filename, variables):
             for l in sublines:
                 l.indentlevel += indentlevel
             content += sublines
+        elif line.startswith('skipif '):
+            raise SkipParsingException(line[7:])
         else:
             content.append(Line(filename, line_start, line_end, indentlevel,
                                 line))
@@ -1685,7 +1694,13 @@ def main(args, runner):
         else:
             f = open(filename)
 
-        lines, _ = parse_file(args, f, filename, {})
+        try:
+            lines, _ = parse_file(args, f, filename, {})
+        except SkipParsingException as e:
+            print("{}: skipped: {}".format(filename, e.reason))
+            f.close()
+            continue
+
         f.close()
 
         graph = nx.DiGraph()

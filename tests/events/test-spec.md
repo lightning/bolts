@@ -18,11 +18,12 @@ SEQUENCE_STEP := INDENT4* NUMBER `.` SPACE+ EVENT_OR_SERIES OPTION_SPEC*
 EVENT_OR_SERIES := EVENT | `One of:` | `Any order:`
 EVENT := INPUT_EVENT | OUTPUT_EVENT | `nothing`
 
-META_LINE := COMMENT | SPACE* | VARSET | INCLUDE
+META_LINE := COMMENT | SPACE* | VARSET | INCLUDE | SKIPIF
 
 COMMENT := `#` [SPACE|STRING]*
 VARSET := IDENTIFIER`=`[SPACE|STRING]* OPTION_SPEC*
 INCLUDE := `include` SPACE STRING OPTION_SPEC*
+SKIPIF := `skipif` SPACE STRING OPTION_SPEC*
 
 Comment and blank lines are ignored.
 
@@ -30,6 +31,9 @@ Variable lines set variables which can be expanded in any position with
 a `$` prefix.  There's currently no scope to variables.
 
 Include lines pull in other files, which is helpful for complex tests.
+
+Skipif lines cause immediate passing if the OPTION_SPECs match (and
+print out the string); helpful for tests which require specific features.
 
 Other lines are indented by multiples of 4 spaces; a line not indented
 by a multiple of 4 is be joined to the previous line (this allows
