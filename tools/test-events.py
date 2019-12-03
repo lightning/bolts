@@ -268,8 +268,8 @@ class Field(object):
         self.options = options
         self.islenvar = False
         # This contains all the integer types: otherwise it's a hexstring,
-        self.isinteger = (typename in name2structfmt and
-            not (typename == 'byte' and count))
+        self.isinteger = (typename in name2structfmt
+                          and not (typename == 'byte' and count))
 
         # This is set for static-sized array.
         self.arraylen = None
@@ -864,6 +864,7 @@ class RecvEvent(object):
         runner.recv(which_connection(line, runner, self.connkey),
                     self.b, line)
 
+
 def compare_results(msgname, f, v, exp):
     """ f -> field; v -> value; exp -> expected value """
 
@@ -879,24 +880,25 @@ def compare_results(msgname, f, v, exp):
                 .format(f.name))
 
     # Do signature verification, if necessary
-    if (f.typename == 'signature' and isinstance(exp,tuple)) or (f.typename == 'signature'
-            and (f.arrayvar or f.arraylen) and isinstance(exp,list)):
-            if f.arrayvar or f.arraylen:
-                for (e, val) in list(map(lambda x,y: (x,y), exp, v)):
-                    if isinstance(e, tuple):
-                        if not Sigs.verify_sig(e[0], e[1], val):
-                            return "Invalid signature ({}) for privkey {}, hash {}".format(
-                                    val.hex(), e[0], e[1])
-                    elif e != val:
-                        return ("Expected {}.{}(type:{}) {} but got {}"
-                                .format(msgname,
-                                        f.name, f.typename, e.hex(), val.hex()))
-            else:
-                # v should be a valid signature, a byte-array r||s
-                if not Sigs.verify_sig(exp[0], exp[1], v):
-                    return "Invalid signature ({}) for privkey {}, hash {}".format(v.hex(), exp[0], exp[1])
-            # Successfully matched all sigs!!
-            return None
+    if ((f.typename == 'signature' and isinstance(exp, tuple))
+        or (f.typename == 'signature'
+            and (f.arrayvar or f.arraylen) and isinstance(exp, list))):
+        if f.arrayvar or f.arraylen:
+            for (e, val) in list(map(lambda x, y: (x, y), exp, v)):
+                if isinstance(e, tuple):
+                    if not Sigs.verify_sig(e[0], e[1], val):
+                        return "Invalid signature ({}) for privkey {}, hash {}".format(
+                            val.hex(), e[0], e[1])
+                elif e != val:
+                    return ("Expected {}.{}(type:{}) {} but got {}"
+                            .format(msgname,
+                                    f.name, f.typename, e.hex(), val.hex()))
+        else:
+            # v should be a valid signature, a byte-array r||s
+            if not Sigs.verify_sig(exp[0], exp[1], v):
+                return "Invalid signature ({}) for privkey {}, hash {}".format(v.hex(), exp[0], exp[1])
+        # Successfully matched all sigs!!
+        return None
 
     if isinstance(exp, tuple):
         # Out-of-range bitmaps are considered 0 (eg. feature tests)
@@ -933,7 +935,7 @@ def compare_results(msgname, f, v, exp):
             valstr = str(v)
             expectstr = str(exp)
         # Same as above note about a range of length
-        elif isinstance(exp,str) and exp.startswith('*'):
+        elif isinstance(exp, str) and exp.startswith('*'):
             if check_range(exp[1:], len(v.hex()) // 2):
                 return None
             expectstr = "result of bytelen {}".format(exp[1:])
@@ -956,6 +958,7 @@ def check_range(exp, val_len):
         return int(len_range[0]) == val_len
 
     return int(len_range[0]) <= val_len and int(len_range[1]) >= val_len
+
 
 def message_match(expectmsg, expectfields, b):
     """Internal helper to see if b matches expectmsg & expectfields.
@@ -1524,31 +1527,31 @@ def line_minus_comments(verbose, line, linenum):
 
 
 def filter_out(args, line, filename, linenum):
-        """Trim options: we discard the line if it doesn't qualify."""
-        while True:
-            m = re.search("(?P<invert>!?)"
-                          "(?P<optname>opt[A-Za-z_]*)"
-                          r"(?P<oddoreven>(/(odd|even))?)\s*$", line)
-            if m is None:
-                return line
+    """Trim options: we discard the line if it doesn't qualify."""
+    while True:
+        m = re.search("(?P<invert>!?)"
+                      "(?P<optname>opt[A-Za-z_]*)"
+                      r"(?P<oddoreven>(/(odd|even))?)\s*$", line)
+        if m is None:
+            return line
 
-            if m.group('oddoreven') != '':
-                present = m.group('optname') + m.group('oddoreven') in args.option
-            else:
-                present = (m.group('optname') + '/odd' in args.option
-                           or m.group('optname') + '/even' in args.option)
+        if m.group('oddoreven') != '':
+            present = m.group('optname') + m.group('oddoreven') in args.option
+        else:
+            present = (m.group('optname') + '/odd' in args.option
+                       or m.group('optname') + '/even' in args.option)
 
-            # If option was specified as --option, invert must be set.
-            wanted = m.group('invert') != '!'
-            if present != wanted:
-                if args.verbose:
-                    print("# Removing line {}: requires {}{}{}"
-                          .format(Line(filename, linenum, linenum, 0, line),
-                                  m.group('invert'),
-                                  m.group('optname'),
-                                  m.group('oddoreven')))
-                return ''
-            line = line[:m.start()]
+        # If option was specified as --option, invert must be set.
+        wanted = m.group('invert') != '!'
+        if present != wanted:
+            if args.verbose:
+                print("# Removing line {}: requires {}{}{}"
+                      .format(Line(filename, linenum, linenum, 0, line),
+                              m.group('invert'),
+                              m.group('optname'),
+                              m.group('oddoreven')))
+            return ''
+        line = line[:m.start()]
 
 
 def indentation(s):
