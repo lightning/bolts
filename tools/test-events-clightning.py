@@ -148,6 +148,7 @@ class CLightningRunner(object):
                                       '--dev-bitcoind-poll=1',
                                       '--dev-fast-gossip',
                                       '--dev-gossip-time=1565587763',
+                                      '--dev-no-htlc-timeout',
                                       '--bind-addr=127.0.0.1:{}'.format(self.lightning_port),
                                       '--network=regtest',
                                       '--bitcoin-rpcuser=rpcuser',
