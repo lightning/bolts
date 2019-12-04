@@ -310,6 +310,7 @@ The writer:
     - MUST ensure that the total `amount_msat` of the HTLC set which arrives at the payee
       is equal to `total_msat`.
     - MUST NOT send another HTLC if the total `amount_msat` of the HTLC set is already greater or equal to `total_msat`.
+    - MUST include `payment_secret`.
   - otherwise:
     - MUST set `total_msat` equal to `amt_to_forward`.
 
@@ -330,6 +331,7 @@ The final node:
       - MUST fail all HTLCs in the HTLC set after some reasonable timeout.
         - SHOULD wait for at least 60 seconds after the initial HTLC.
         - SHOULD use `mpp_timeout` for the failure message.
+      - MUST require `payment_secret` for all HTLCs in the set.
     - if it fulfills any HTLCs in the HTLC set:
        - MUST fulfill the entire HTLC set.
 
