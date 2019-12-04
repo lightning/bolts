@@ -1,124 +1,124 @@
 # Tests for query_short_channel_ids.
 
 include setup.incl
-1. block: $BLOCK_102
+* block: $BLOCK_102
 
 # Our three channels, and four nodes.
-2. block: $BLOCK_103
-3. block: $BLOCK_109
-4. block: $BLOCK_115
++ block: $BLOCK_103
++ block: $BLOCK_109
++ block: $BLOCK_115
 
-5. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
-6. expect-send: type=init
-7. recv: type=init localfeatures= globalfeatures=
++ connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
++ expect-send: type=init
++ recv: type=init localfeatures= globalfeatures=
 # They can send this, we'll ignore it.
-8. maybe-send: type=gossip_timestamp_filter
++ maybe-send: type=gossip_timestamp_filter
 
 # Channel 103x1x0 (between 002 and 003), only one update, both node_announce
-9. recv: $CHAN_ANN_103x1x0
-10. recv: $CHAN_UPDATE_103x1x0_002
-11. recv: $NODE_ANN_002
-12. recv: $NODE_ANN_003
++ recv: $CHAN_ANN_103x1x0
++ recv: $CHAN_UPDATE_103x1x0_002
++ recv: $NODE_ANN_002
++ recv: $NODE_ANN_003
 
 # Channel 109x1x0 (between 004 and 005): both updates, only one node_announce
-13. recv: $CHAN_ANN_109x1x0
++ recv: $CHAN_ANN_109x1x0
 # Node-announce first is legal
-14. recv: $NODE_ANN_004
-15. recv: $CHAN_UPDATE_109x1x0_004
-16. recv: $CHAN_UPDATE_109x1x0_005
++ recv: $NODE_ANN_004
++ recv: $CHAN_UPDATE_109x1x0_004
++ recv: $CHAN_UPDATE_109x1x0_005
 
 # Channel 115x1x0 (between 003 and 004): no updates.
-17. recv: $CHAN_ANN_115x1x0
++ recv: $CHAN_ANN_115x1x0
 
 # New peer connects, with gossip_query option.
-18. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
-19. expect-send: type=init
-20. recv: type=init localfeatures=80 globalfeatures=
-21. maybe-send: type=gossip_timestamp_filter
++ connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
++ expect-send: type=init
++ recv: type=init localfeatures=80 globalfeatures=
++ maybe-send: type=gossip_timestamp_filter
 
 # Query for non-existent channels (104x1x0 105x1x0 106x1x0 107x1x0)
-22. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=000000680000010000000069000001000000006a000001000000006b0000010000
-23. expect-send: type=reply_short_channel_ids_end
++ recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=000000680000010000000069000001000000006a000001000000006b0000010000
++ expect-send: type=reply_short_channel_ids_end
 
 # zlib version
-24. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=01789c6360c86060606400824c289d05a5b3c134001de001ab
-25. expect-send: type=reply_short_channel_ids_end
++ recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=01789c6360c86060606400824c289d05a5b3c134001de001ab
++ expect-send: type=reply_short_channel_ids_end
 
 # Query for one channel (103x1x0)
-26. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=000000670000010000
-27. expect-send: $CHAN_ANN_103x1x0
-28. Any order:
-    1. expect-send: $CHAN_UPDATE_103x1x0_002
-    1. expect-send: $NODE_ANN_002
-    1. expect-send: $NODE_ANN_003
-29. expect-send: type=reply_short_channel_ids_end
++ recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=000000670000010000
++ expect-send: $CHAN_ANN_103x1x0
++ Any order:
+    * expect-send: $CHAN_UPDATE_103x1x0_002
+    * expect-send: $NODE_ANN_002
+    * expect-send: $NODE_ANN_003
++ expect-send: type=reply_short_channel_ids_end
 
 # Query for two channels (103x1x0 109x1x0)
-30. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000
-31. One of: # the channel_announcements must lead, then it gets messy.
-    1. expect-send: $CHAN_ANN_103x1x0
-    2. Any order: # Not really *any* order, since ann must predate update.
-        1. expect-send: $CHAN_UPDATE_103x1x0_002
-        1. expect-send: $NODE_ANN_002
-        1. expect-send: $NODE_ANN_003
-        1. expect-send: $CHAN_ANN_109x1x0
-        1. expect-send: $CHAN_UPDATE_109x1x0_004
-        1. expect-send: $CHAN_UPDATE_109x1x0_005
-        1. expect-send: $NODE_ANN_004
-    1. expect-send: $CHAN_ANN_109x1x0
-    2. Any order:
-        1. expect-send: $CHAN_ANN_103x1x0
-        1. expect-send: $CHAN_UPDATE_103x1x0_002
-        1. expect-send: $NODE_ANN_002
-        1. expect-send: $NODE_ANN_003
-        1. expect-send: $CHAN_UPDATE_109x1x0_004
-        1. expect-send: $CHAN_UPDATE_109x1x0_005
-        1. expect-send: $NODE_ANN_004
-32. expect-send: type=reply_short_channel_ids_end
++ recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000
++ One of: # the channel_announcements must lead, then it gets messy.
+    * expect-send: $CHAN_ANN_103x1x0
+    + Any order: # Not really *any* order, since ann must predate update.
+        * expect-send: $CHAN_UPDATE_103x1x0_002
+        * expect-send: $NODE_ANN_002
+        * expect-send: $NODE_ANN_003
+        * expect-send: $CHAN_ANN_109x1x0
+        * expect-send: $CHAN_UPDATE_109x1x0_004
+        * expect-send: $CHAN_UPDATE_109x1x0_005
+        * expect-send: $NODE_ANN_004
+    * expect-send: $CHAN_ANN_109x1x0
+    + Any order:
+        * expect-send: $CHAN_ANN_103x1x0
+        * expect-send: $CHAN_UPDATE_103x1x0_002
+        * expect-send: $NODE_ANN_002
+        * expect-send: $NODE_ANN_003
+        * expect-send: $CHAN_UPDATE_109x1x0_004
+        * expect-send: $CHAN_UPDATE_109x1x0_005
+        * expect-send: $NODE_ANN_004
++ expect-send: type=reply_short_channel_ids_end
 
 # Query for specific things only, if supported.
 
 # Announce messages only.
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000101 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000101 option_gossip_queries_ex
     # zlib-encoded variant
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c6364040000050003 option_gossip_queries_ex
-33. Any order: option_gossip_queries_ex
-    1. expect-send: $CHAN_ANN_103x1x0 option_gossip_queries_ex
-    1. expect-send: $CHAN_ANN_109x1x0 option_gossip_queries_ex
-34. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c6364040000050003 option_gossip_queries_ex
++ Any order: option_gossip_queries_ex
+    * expect-send: $CHAN_ANN_103x1x0 option_gossip_queries_ex
+    * expect-send: $CHAN_ANN_109x1x0 option_gossip_queries_ex
++ expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
 
 # Node 1 channel_update messages only.
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000202 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000202 option_gossip_queries_ex
     # zlib-encoded variant
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c6362020000080005 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c6362020000080005 option_gossip_queries_ex
 
-35. Any order: option_gossip_queries_ex
-    1. expect-send: $CHAN_UPDATE_103x1x0_002 option_gossip_queries_ex
-    1. expect-send: $CHAN_UPDATE_109x1x0_005 option_gossip_queries_ex
-36. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
++ Any order: option_gossip_queries_ex
+    * expect-send: $CHAN_UPDATE_103x1x0_002 option_gossip_queries_ex
+    * expect-send: $CHAN_UPDATE_109x1x0_005 option_gossip_queries_ex
++ expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
 
 # Node 2 channel_update messages only.
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000404 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000404 option_gossip_queries_ex
     # zlib-encoded variant
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c63610100000e0009 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c63610100000e0009 option_gossip_queries_ex
 
-37. expect-send: $CHAN_UPDATE_109x1x0_004 option_gossip_queries_ex
-38. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
++ expect-send: $CHAN_UPDATE_109x1x0_004 option_gossip_queries_ex
++ expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
 
 # Node 1 announcements only.
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000808 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103000808 option_gossip_queries_ex
     # zlib-encoded variant
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789ce3e00000001a0011 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789ce3e00000001a0011 option_gossip_queries_ex
 
-39. expect-send: $NODE_ANN_002 option_gossip_queries_ex
-40. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
++ expect-send: $NODE_ANN_002 option_gossip_queries_ex
++ expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
 
 # Node 2 announcements only.
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103001010 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=0103001010 option_gossip_queries_ex
     # zlib-encoded variant
-    1. recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c1310000000320021 option_gossip_queries_ex
+    * recv: type=query_short_channel_ids chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f encoded_short_ids=00000067000001000000006d0000010000 tlvs=010b01789c1310000000320021 option_gossip_queries_ex
 
-41. Any order: option_gossip_queries_ex
-    1. expect-send: $NODE_ANN_003 option_gossip_queries_ex
-    1. expect-send: $NODE_ANN_004 option_gossip_queries_ex
-42. expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex
++ Any order: option_gossip_queries_ex
+    * expect-send: $NODE_ANN_003 option_gossip_queries_ex
+    * expect-send: $NODE_ANN_004 option_gossip_queries_ex
++ expect-send: type=reply_short_channel_ids_end option_gossip_queries_ex

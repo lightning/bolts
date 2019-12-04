@@ -2,16 +2,16 @@
 #
 include setup.incl
 
-1. block: $BLOCK_102
+* block: $BLOCK_102
 
-2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
-3. expect-send: type=init
-4. recv: type=init globalfeatures= localfeatures=
++ connect: privkey=0000000000000000000000000000000000000000000000000000000000000002
++ expect-send: type=init
++ recv: type=init globalfeatures= localfeatures=
 
     # Start with the 'accepter' side of an open_channel (test runner initiates)
     # We assume a funding_per_kw=253 Satoshi/kSipa.
     # This gives a channel of 999878sat
-    1. recv: type=open_channel
+    * recv: type=open_channel
        chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
        temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
        funding_satoshis=999878
@@ -39,10 +39,10 @@ include setup.incl
        channel_flags=01
 
         # Ignore unknown odd messages
-        1. nothing
-        1. recv: type=9999
+        * nothing
+        * recv: type=9999
 
-    2. expect-send: type=accept_channel
+    + expect-send: type=accept_channel
        temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
        # funding_privkey=0000000000000000000000000000000000000000000000000000000000000010
        funding_pubkey=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
@@ -63,10 +63,10 @@ include setup.incl
        channel_reserve_satoshis=9998
 
         # Ignore unknown messages
-        1. nothing
-        1. recv: type=9999
+        * nothing
+        * recv: type=9999
 
-    3. recv: type=funding_created
+    + recv: type=funding_created
        temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
        # Funding tx is 020000000001016b85f654d8186f4d5dd32a977b2cf8c4b01ff4634152acba16b654c1c85a83160100000000ffffffff01c6410f0000000000220020c46bf3d1686d6dbb2d9244f8f67b90370c5aa2747045f1aeccb77d818711738202473044022047e9e6e798ba9adb6c84bdcd6230a96fb6de9dcca84d81103fb2bc08906cb884022027599b1e80289eaf238e9a00119a79a0ccceab7d83d54719e10bd0c3300a0d34012102d6a3c2d0cf7904ab6af54d7c959435a452b24a63194e1c4e7c337d3ebbb3017b00000000
        # txid=41085b995c1f591cfc3ae79ccde012bf0b37c7bde23d80a61c9732bdd6210b2f
@@ -75,32 +75,32 @@ include setup.incl
        # node's commitment tx is 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a980010f410f0000000000160014749af8703f0d1fd8890a553bd62e9caf15f7bad44cff0020
        signature=SIG(0000000000000000000000000000000000000000000000000000000000000020:97b9f4b67c7d404c82f97d86d7e5b2689e366abf1609abd889143a5999c6df47)
 
-    4. expect-send: type=funding_signed
+    + expect-send: type=funding_signed
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        # test's commitment tx is 02000000012f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b08410000000000f436a980010f410f0000000000220020233d69d88092351875ce0b9fd5ea576b2307c539eaed7abdf97fbb26720f01ac4cff0020
        signature=SIG(0000000000000000000000000000000000000000000000000000000000000010:49fcc656b58e78f639b8af4bca65fe1ee948ea36eb7629222320518e33a42f29)
 
-    5. block: height=103 n=3 tx=020000000001016b85f654d8186f4d5dd32a977b2cf8c4b01ff4634152acba16b654c1c85a83160100000000ffffffff01c6410f0000000000220020c46bf3d1686d6dbb2d9244f8f67b90370c5aa2747045f1aeccb77d818711738202473044022047e9e6e798ba9adb6c84bdcd6230a96fb6de9dcca84d81103fb2bc08906cb884022027599b1e80289eaf238e9a00119a79a0ccceab7d83d54719e10bd0c3300a0d34012102d6a3c2d0cf7904ab6af54d7c959435a452b24a63194e1c4e7c337d3ebbb3017b00000000
+    + block: height=103 n=3 tx=020000000001016b85f654d8186f4d5dd32a977b2cf8c4b01ff4634152acba16b654c1c85a83160100000000ffffffff01c6410f0000000000220020c46bf3d1686d6dbb2d9244f8f67b90370c5aa2747045f1aeccb77d818711738202473044022047e9e6e798ba9adb6c84bdcd6230a96fb6de9dcca84d81103fb2bc08906cb884022027599b1e80289eaf238e9a00119a79a0ccceab7d83d54719e10bd0c3300a0d34012102d6a3c2d0cf7904ab6af54d7c959435a452b24a63194e1c4e7c337d3ebbb3017b00000000
 
-    6. expect-send: type=funding_locked
+    + expect-send: type=funding_locked
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        next_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206
 
-    7. recv: type=funding_locked
+    + recv: type=funding_locked
        channel_id=2f0b21d6bd32971ca6803de2bdc7370bbf12e0cd9ce73afc1c591f5c995b0841
        next_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d
 
         # Ignore unknown odd messages
-        1. nothing
-        1. recv: type=9999
+        * nothing
+        * recv: type=9999
 
 
     # Now we test the 'opener' side of an open_channel (node initiates)
     # We set funding_per_kw=253 Satoshi/kSipa.
-    1. fundchannel: amount=999877 utxo=16835ac8c154b616baac524163f41fb0c4f82c7b972ad35d4d6f18d854f6856b/1 feerate=253perkw
+    * fundchannel: amount=999877 utxo=16835ac8c154b616baac524163f41fb0c4f82c7b972ad35d4d6f18d854f6856b/1 feerate=253perkw
 
         # This gives a channel of 999877sat
-        1. expect-send: type=open_channel
+        * expect-send: type=open_channel
            chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
            temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
            funding_satoshis=999877
@@ -128,10 +128,10 @@ include setup.incl
            channel_flags=01
     
             # Ignore unknown odd messages
-            1. nothing
-            1. recv: type=9999
+            * nothing
+            * recv: type=9999
     
-        2. recv: type=accept_channel
+        + recv: type=accept_channel
            temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
            dust_limit_satoshis=546
            max_htlc_value_in_flight_msat=4294967295
@@ -156,10 +156,10 @@ include setup.incl
            first_per_commitment_point=02037803a3228ec3a517835480ffac64c0557d9d75e0fe85861ab0be9eb224e6f8
     
             # Ignore unknown messages
-            1. nothing
-            1. recv: type=9999
+            * nothing
+            * recv: type=9999
     
-        3. expect-send: type=funding_created
+        + expect-send: type=funding_created
            temporary_channel_id=0000000000000000000000000000000000000000000000000000000000000000
            # Funding tx is 
            # txid=189c40b0728f382fe91c87270926584e48e0af3a6789f37454afee6c7560311d
@@ -168,22 +168,22 @@ include setup.incl
            # opener's commitment tx is 02000000011d3160756ceeaf5474f389673aafe0484e58260927871ce92f388f72b0409c1800000000006d669280010e410f000000000022002002ea9a3a14d15893571391cb43308d0cf2c873025a7ee3e1c59fc94e7d0b820750e05c20 
            signature=SIG(0000000000000000000000000000000000000000000000000000000000000010:b5f455ab7e6dc6cbdd0e4f5ff9623091f5e2317d90215734f0b7b468b2de4d9f)
     
-        4. recv: type=funding_signed
+        + recv: type=funding_signed
            channel_id=1d3160756ceeaf5474f389673aafe0484e58260927871ce92f388f72b0409c18
            # accepter's commitment tx is 02000000011d3160756ceeaf5474f389673aafe0484e58260927871ce92f388f72b0409c1800000000006d669280010e410f000000000016001413619a3971c150996e7d1f391d9ade1405df87ec50e05c20
            signature=SIG(0000000000000000000000000000000000000000000000000000000000000020:9afc89f545df32a456355a74f435d9f40bdb0b255f38af3d19ff344ab3ea0ea1)
     
-        5. block: height=103 n=3
+        + block: height=103 n=3
     
-        6. recv: type=funding_locked
+        + recv: type=funding_locked
            channel_id=1d3160756ceeaf5474f389673aafe0484e58260927871ce92f388f72b0409c18
            next_per_commitment_point=027eed8389cf8eb715d73111b73d94d2c2d04bf96dc43dfd5b0970d80b3617009d
     
-        7. expect-send: type=funding_locked
+        + expect-send: type=funding_locked
            channel_id=1d3160756ceeaf5474f389673aafe0484e58260927871ce92f388f72b0409c18
            next_per_commitment_point=032405cbd0f41225d5f203fe4adac8401321a9e05767c5f8af97d51d2e81fbb206
     
             # Ignore unknown odd messages
-            1. nothing
-            1. recv: type=9999
+            * nothing
+            * recv: type=9999
 

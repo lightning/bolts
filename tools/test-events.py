@@ -1409,11 +1409,11 @@ class AnyOrderEvent(object):
 # it, if allow_children).  Returns the initial Sequence, a list of
 # Sequence leaves, and the next linenum.
 def load_sequence(args, lines, linenum, indentlevel, graph):
-    count = 1
     init_seq = Sequence(args)
 
     seq = init_seq
     terminals = [seq]
+    expect = '*'
 
     if graph is not None:
         graph.add_node(seq)
@@ -1421,8 +1421,8 @@ def load_sequence(args, lines, linenum, indentlevel, graph):
     # We always parse one child.
     if lines[linenum].indentlevel != indentlevel:
         raise LineError(lines[linenum], "Expected {} indents.", indentlevel)
-    if not lines[linenum].line.startswith('1.'):
-        raise LineError(lines[linenum], "Expected 1.")
+    if not lines[linenum].line.startswith('*'):
+        raise LineError(lines[linenum], "Expected *")
 
     while linenum < len(lines):
         # Unindent?  We're done.
@@ -1454,17 +1454,17 @@ def load_sequence(args, lines, linenum, indentlevel, graph):
         elif lines[linenum].indentlevel != indentlevel:
             raise LineError(lines[linenum], "Unexpected indent.")
 
-        # Same level.
-        parts = lines[linenum].line.partition('.')
-        if parts[1] != '.':
-            raise LineError(lines[linenum],
-                            "Expected '{}.' or '1.'".format(count))
+        # First time around, we expect '*', then '+'.
+        if lines[linenum].line[0] != expect:
+            # Unexpected * means a new start.
+            if lines[linenum].line[0] == '*':
+                return init_seq, terminals, linenum
 
-        # Unexpected 1. means a new start.
-        if parts[0] != str(count):
-            return init_seq, terminals, linenum
+            raise LineError(lines[linenum], "Expected '*' or '+'")
 
-        if parts[2].split() == ['One', 'of:']:
+        expect = '+'
+        part = lines[linenum].line[1:]
+        if part.split() == ['One', 'of:']:
             event = OneOfEvent(args, lines[linenum])
 
             # We expect indented sequences
@@ -1479,7 +1479,7 @@ def load_sequence(args, lines, linenum, indentlevel, graph):
             if event.sequences == []:
                 raise LineError(lines[linenum],
                                 "Expected indented sequences after 'One of:'")
-        elif parts[2].split() == ['Any', 'order:']:
+        elif part.split() == ['Any', 'order:']:
             event = AnyOrderEvent(args, lines[linenum])
 
             # We expect indented sequences
@@ -1495,7 +1495,7 @@ def load_sequence(args, lines, linenum, indentlevel, graph):
                 raise LineError(lines[linenum],
                                 "Expected indented sequences after 'Any order:'")
         else:
-            event = Event(args, parts[2], lines[linenum])
+            event = Event(args, part, lines[linenum])
             linenum += 1
 
         # Any children from last step, start new Sequence for them to connect.
@@ -1510,7 +1510,6 @@ def load_sequence(args, lines, linenum, indentlevel, graph):
             terminals = [seq]
         else:
             seq.add_event(event)
-        count += 1
 
     # Any children will continue from our last event(s).
     return init_seq, terminals, linenum

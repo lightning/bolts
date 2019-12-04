@@ -8,15 +8,15 @@
 #   - upon receiving unknown _even_ feature bits that are non-zero:
 #     - MUST fail the connection.
 
-1. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
-2. expect-send: type=init
-3. recv: type=init globalfeatures= localfeatures=
+* connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
++ expect-send: type=init
++ recv: type=init globalfeatures= localfeatures=
 
-    1. nothing
+    * nothing
 
     # Unknown odd is OK.
-    1. recv: type=9999
+    * recv: type=9999
 
     # Unknown even causes error.
-    1. recv: type=10000
-    2. expect-error:
+    * recv: type=10000
+    + expect-error:

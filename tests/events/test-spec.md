@@ -13,7 +13,7 @@ FILE := SEQUENCE*
 
 SEQUENCE := SEQUENCE_LINE+
 SEQUENCE_LINE := SEQUENCE_STEP OPTION_SPEC* | META_LINE
-SEQUENCE_STEP := INDENT4* NUMBER `.` SPACE+ EVENT_OR_SERIES OPTION_SPEC*
+SEQUENCE_STEP := INDENT4* MARKER SPACE+ EVENT_OR_SERIES OPTION_SPEC*
 
 EVENT_OR_SERIES := EVENT | `One of:` | `Any order:`
 EVENT := INPUT_EVENT | OUTPUT_EVENT | `nothing`
@@ -45,27 +45,26 @@ Each non-comment line indicates something to do to the implementation
 Indentation indicates alternative sequences, eg. this reflects two tests,
 STEP1->STEP2a->STEP3 and STEP1->STEP2b->STEP3:
 
-    1. STEP1
-        1. STEP2a
-        1. STEP2b
-    2. STEP3
+    * STEP1
+        * STEP2a
+        * STEP2b
+    + STEP3
 
-An step must either have NUMBER 1, in which case it follows directly
-from the parent, or NUMBER one greater than the previous step at the
-same level, in which case it follows the previous.
+An step must either have `*`, in which case it follows directly
+from the parent, or `+` in which case it follows the previous.
 
-There must be exactly one top-level `1.` step.
+There must be exactly one top-level `*` step.
 
 The special marker `Any order:` indicates that the following sequences
 starting with distinct output events will occur, but might happen in
 any order.  This is useful for gossip messages which can be ordered in
 multiple ways:
 
-    1. STEP1
-	2. Any order:
-	    1. STEP2a
-	    1. STEP2b
-	    1. STEP2c
+    * STEP1
+	+ Any order:
+	    * STEP2a
+	    * STEP2b
+	    * STEP2c
 
 This means the test will accept STEP1->STEP2a->STEP2b->STEP2c,
 STEP1->STEP2a->STEP2c->STEP2b, STEP1->STEP2b->STEP2a->STEP2c, 
@@ -76,12 +75,12 @@ The special marker `One of:` indicate sequences starting with distinct
 output events, only one of which could occur.  This is useful for optional
 outputs which are more constrained, eg:
 
-    1. STEP1
-	2. One of:
-		1. STEP2a
-		2. STEP2b
-		1. STEP2c
-    2. STEP3
+    * STEP1
+	+ One of:
+		* STEP2a
+		+ STEP2b
+		* STEP2c
+    + STEP3
 
 This means the test will accept STEP1->STEP2a->STEP2b->STEP3, or
 STEP1->STEP2c->STEP3.
