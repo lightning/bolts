@@ -20,7 +20,7 @@ multiple `node_announcement` messages, in order to update the node information.
 
 # Table of Contents
 
-  * [Definition of `short_channel_id`](#definition-of-short-channel-id)
+  * [Definition of `short_channel_id`](#definition-of-short_channel_id)
   * [The `announcement_signatures` Message](#the-announcement_signatures-message)
   * [The `channel_announcement` Message](#the-channel_announcement-message)
   * [The `node_announcement` Message](#the-node_announcement-message)
