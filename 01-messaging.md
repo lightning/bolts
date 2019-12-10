@@ -69,7 +69,6 @@ The messages are grouped logically into five groups, ordered by the most signifi
 The size of the message is required by the transport layer to fit into a 2-byte unsigned int; therefore, the maximum possible size is 65535 bytes.
 
 A node:
-  - MUST ignore any additional data within a message beyond the `extension`.
   - upon receiving a known message with insufficient length for the contents:
     - MUST fail the channels.
   - upon receiving an invalid `extension`:
@@ -94,11 +93,9 @@ Length is limited to 65535 bytes by the cryptographic wrapping, and
 messages in the protocol are never more than that length anyway.
 
 The _it's ok to be odd_ rule allows for future optional extensions
-without negotiation or special coding in clients. The "ignore
-additional data" rule similarly allows for future expansion.
-
-The _extension_ field lets senders include additional TLV data by leveraging
-the "ignore additional data" rule.
+without negotiation or special coding in clients. The _extension_ field
+similarly allows for future expansion by letting senders include additional
+TLV data.
 
 Implementations may prefer to have message data aligned on an 8-byte
 boundary (the largest natural alignment requirement of any type here);
@@ -900,15 +897,17 @@ message. The base `init` message (without extensions) for these examples is
 The following `init` messages are valid:
 
 - `0x001000000000`: no extension provided
-- `0x0010000000000601012a030104`: the extension contains two _odd_ TLV records (with types `0x01` and `0x03`)
-- `0x0010000000000601012a03010400000000`: the extension contains two _odd_ TLV records (with types `0x01` and `0x03`) and additional bytes that must be ignored
+- `0x00100000000001012a030104`: the extension contains two _odd_ TLV records (with types `0x01` and `0x03`)
 
 The following `init` messages are invalid:
 
-- `0x00100000000000`: the extension contains 0 records (this is invalid because it would break the canonical encoding of the message)
-- `0x0010000000002a`: the extension is present but truncated
-- `0x0010000000000302012a`: the extension contains unknown _even_ TLV records
-- `0x00100000000006010101010102`: the extension TLV stream is invalid (duplicate TLV record type `0x01`)
+- `0x00100000000001`: the extension is present but truncated
+- `0x00100000000002012a`: the extension contains unknown _even_ TLV records (assuming that TLV type `0x02` is unknown)
+- `0x001000000000010101010102`: the extension TLV stream is invalid (duplicate TLV record type `0x01`)
+
+Note that when messages are signed, the _extension_ is part of the signed bytes.
+Nodes should store the _extension_ bytes even if they don't understand them to
+be able to correctly verify signatures.
 
 ## Acknowledgments
 
