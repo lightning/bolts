@@ -284,7 +284,10 @@ which is _odd_.
 
 Note that the `payment_secret` feature prevents probing attacks from nodes
 along the path, but only if made compulsory: yet doing so will break
-older clients which do not understand the feature.
+older clients which do not understand the feature.  It is compulsory
+for `basic_mpp` however, as that is also a recent feature, and makes
+nodes more vulnerable to probing attacks as there is no lower-bound
+on the amount sent.
 
 ### Requirements
 
@@ -297,9 +300,10 @@ A writer:
     - MUST set the even feature `payment_secret`.
   - If the final node supports [Basic multi-part payments](04-onion-routing.md#basic-multi-part-payments):
     - MUST set the `basic_mpp` feature.
+    - MUST set the `payment_secret` feature.
   - Otherwise:
     - MUST NOT set the `basic_mpp` feature.
-  - if it sets either `payment_secret` or `basic_mpp` features:
+  - if it sets the `payment_secret` feature:
     - MUST set the `var_onion_optin` feature.
   - MUST set `var_onion_optin` if and only if it supports that feature.
 
