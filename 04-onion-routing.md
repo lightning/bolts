@@ -1076,7 +1076,7 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
   the final node's HTLC:
     - MUST return `final_incorrect_cltv_expiry` error.
-  - if the `amt_to_forward` is greater than the `incoming_htlc_amt` from the
+  - if the `amt_to_forward` does NOT correspond with the `incoming_htlc_amt` from the
   final node's HTLC:
     - MUST return a `final_incorrect_htlc_amount` error.
 
