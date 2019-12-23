@@ -944,12 +944,15 @@ between sending a payment with the wrong final CLTV expiry and an intermediate
 hop delaying the payment so that the receiver's invoice CLTV delta requirement
 is no longer met.
 
-Note: Originally PERM|16 (`incorrect_payment_amount`) and PERM|17
+Note: Originally PERM|16 (`incorrect_payment_amount`) and 17
 (`final_expiry_too_soon`) were used to differentiate incorrect htlc parameters
 from unknown payment hash. Sadly, sending this response allows for probing
 attacks whereby a node which receives an HTLC for forwarding can check guesses
 as to its final destination by sending payments with the same hash but much
 lower values or expiry heights to potential destinations and check the response.
+Care must be taken by implementations to differentiate the previously
+non-permanent case for `final_expiry_too_soon` (17) from the other, permanent
+failures now represented by `incorrect_or_unknown_payment_details` (PERM|15).
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
