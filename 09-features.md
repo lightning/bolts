@@ -60,6 +60,12 @@ There is no _even_ bit for `initial_routing_sync`, as there would be little
 point: a local node can't determine if a remote node complies, and it must
 interpret the flag, as defined in the initial spec.
 
+Note that for feature flags which are available in both the `node_announcement`
+and [BOLT 11](11-payment-encoding.md) invoice contexts, the features as set in
+the [BOLT 11](11-payment-encoding.md) invoice should override those set in the
+`node_announcement`. This keeps things consistent with the unknown features
+behavior as specified in [BOLT 7](07-routing-gossip.md#the-node_announcement-message).
+
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
