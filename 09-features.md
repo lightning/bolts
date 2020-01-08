@@ -32,7 +32,7 @@ The Context column decodes as follows:
 | 3     | `initial_routing_sync`           | Sending node needs a complete routing information dump    | I        | [BOLT #7][bolt07-sync]                |
 | 4/5   | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel   | IN       | [BOLT #2][bolt02-open]                |
 | 6/7   | `gossip_queries`                 | More sophisticated gossip control                         | IN       | [BOLT #7][bolt07-query]               |
-| 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN       | [Routing Onion Specification][bolt04] |
+| 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN9      | [Routing Onion Specification][bolt04] |
 | 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | [BOLT #7][bolt07-query]               |
 | 12/13| `option_static_remotekey`         | Static key for remote output                              | IN       | [BOLT #3](03-transactions.md)         |
 | 14/15 | `payment_secret`                 | Node supports `payment_secret` field                      | IN9      | [Routing Onion Specification][bolt04]   |
@@ -59,6 +59,12 @@ above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-mes
 There is no _even_ bit for `initial_routing_sync`, as there would be little
 point: a local node can't determine if a remote node complies, and it must
 interpret the flag, as defined in the initial spec.
+
+Note that for feature flags which are available in both the `node_announcement`
+and [BOLT 11](11-payment-encoding.md) invoice contexts, the features as set in
+the [BOLT 11](11-payment-encoding.md) invoice should override those set in the
+`node_announcement`. This keeps things consistent with the unknown features
+behavior as specified in [BOLT 7](07-routing-gossip.md#the-node_announcement-message).
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
