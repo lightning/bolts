@@ -36,7 +36,7 @@ The Context column decodes as follows:
 | 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | [BOLT #7][bolt07-query]               |
 | 12/13| `option_static_remotekey`         | Static key for remote output                              | IN       | [BOLT #3](03-transactions.md)         |
 | 14/15 | `payment_secret`                 | Node supports `payment_secret` field                      | IN9      | [Routing Onion Specification][bolt04]   |
-| 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | [BOLT #3][bolt04-mpp]                 |
+| 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | [BOLT #4][bolt04-mpp]                 |
 
 ## Requirements
 
