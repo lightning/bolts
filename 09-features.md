@@ -28,7 +28,7 @@ The Context column decodes as follows:
 
 | Bits  | Name                             | Description                                               | Context  | Link                                  |
 |-------|----------------------------------|-----------------------------------------------------------|----------|---------------------------------------|
-| 0/1   | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields   | IN       | [BOLT #2][bolt02-retransmit]          |
+| 0/1   | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields   | I       | [BOLT #2][bolt02-retransmit]           |
 | 3     | `initial_routing_sync`           | Sending node needs a complete routing information dump    | I        | [BOLT #7][bolt07-sync]                |
 | 4/5   | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel   | IN       | [BOLT #2][bolt02-open]                |
 | 6/7   | `gossip_queries`                 | More sophisticated gossip control                         | IN       | [BOLT #7][bolt07-query]               |
@@ -65,6 +65,10 @@ and [BOLT 11](11-payment-encoding.md) invoice contexts, the features as set in
 the [BOLT 11](11-payment-encoding.md) invoice should override those set in the
 `node_announcement`. This keeps things consistent with the unknown features
 behavior as specified in [BOLT 7](07-routing-gossip.md#the-node_announcement-message).
+
+Note that feature which only concern connections shouldn't be part of node context.
+A sender should be able to route through a node advertising unknown init feature flags.
+Previously, `option_data_loss_protect` was wrongly in both categories.
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
