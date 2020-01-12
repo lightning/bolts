@@ -22,9 +22,10 @@ multiple `node_announcement` messages, in order to update the node information.
 
   * [Definition of `short_channel_id`](#definition-of-short_channel_id)
   * [The `announcement_signatures` Message](#the-announcement_signatures-message)
-  * [The `channel_announcement` Message](#the-channel_announcement-message)
-  * [The `node_announcement` Message](#the-node_announcement-message)
-  * [The `channel_update` Message](#the-channel_update-message)
+  * [Gossip Messages](#gossip-messages)
+    * [The `channel_announcement` Message](#the-channel_announcement-message)
+    * [The `node_announcement` Message](#the-node_announcement-message)
+    * [The `channel_update` Message](#the-channel_update-message)
   * [Query Messages](#query-messages)
   * [Initial Sync](#initial-sync)
   * [Rebroadcasting](#rebroadcasting)
@@ -33,7 +34,7 @@ multiple `node_announcement` messages, in order to update the node information.
   * [Recommendations for Routing](#recommendations-for-routing)
   * [References](#references)
 
-## Definition of `short_channel_id`
+# Definition of `short_channel_id`
 
 The `short_channel_id` is the unique description of the funding transaction.
 It is constructed as follows:
@@ -50,7 +51,7 @@ For example, a `short_channel_id` might be written as `539268x845x1`,
 indicating a channel on the output 1 of the transaction at index 845
 of the block at height 539268.
 
-### Rationale
+## Rationale
 
 The `short_channel_id` human readable format is designed
 so that double-clicking or double-tapping it will select the entire ID
@@ -61,7 +62,7 @@ The small letter `x` is used since on most fonts,
 the `x` is visibly smaller than decimal digits,
 making it easy to visibly group each component of the ID.
 
-## The `announcement_signatures` Message
+# The `announcement_signatures` Message
 
 This is a direct message between the two endpoints of a channel and serves as an opt-in mechanism to allow the announcement of the channel to the rest of the network.
 It contains the necessary signatures, by the sender, to construct the `channel_announcement` message.
@@ -75,7 +76,7 @@ It contains the necessary signatures, by the sender, to construct the `channel_a
 
 The willingness of the initiating node to announce the channel is signaled during channel opening by setting the `announce_channel` bit in `channel_flags` (see [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
 
-### Requirements
+## Requirements
 
 The `announcement_signatures` message is created by constructing a `channel_announcement` message, corresponding to the newly established channel, and signing it with the secrets matching an endpoint's `node_id` and `bitcoin_key`. After it's signed, the
 `announcement_signatures` message may be sent.
@@ -106,12 +107,19 @@ A recipient node:
       - MUST ignore it.
 
 
-### Rationale
+## Rationale
 
 The reason for allowing deferring of a premature announcement_signatures is
 that an earlier version of the spec did not require waiting for receipt of
 funding locked: deferring rather than ignoring it allows compatibility with
 this behavior.
+
+
+# Gossip Messages
+
+Certain messages are used to relay information about the state of the
+network, and are not merely generated to send to direct peers.  We
+refer to these as "gossip messages".
 
 ## The `channel_announcement` Message
 
@@ -558,7 +566,7 @@ the channel when the peer reestablishes contact.  Because gossip
 messages are batched and replace previous ones, the result may be a
 single seemingly-redundant update.
 
-## Query Messages
+# Query Messages
 
 Negotiating the `gossip_queries` option via `init` enables a number
 of extended queries for gossip synchronization.  These explicitly
@@ -588,7 +596,7 @@ Query messages can be extended with optional fields that can help reduce the num
 
 Nodes can signal that they support extended gossip queries with the `gossip_queries_ex` feature bit.
 
-### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
+## The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
 2. data:
@@ -628,7 +636,7 @@ a node sees a `channel_update` for which it has no `channel_announcement` or
 because it has obtained previously unknown `short_channel_id`s
 from `reply_channel_range`.
 
-#### Requirements
+### Requirements
 
 The sender:
   - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
@@ -682,7 +690,7 @@ The receiver:
   - otherwise:
     - SHOULD set `complete` to 1.
 
-#### Rationale
+### Rationale
 
 Future nodes may not have complete information; they certainly won't have
 complete information on unknown `chain_hash` chains.  While this `complete`
@@ -693,7 +701,7 @@ The explicit `reply_short_channel_ids_end` message means that the receiver can
 indicate it doesn't know anything, and the sender doesn't need to rely on
 timeouts.  It also causes a natural ratelimiting of queries.
 
-### The `query_channel_range` and `reply_channel_range` Messages
+## The `query_channel_range` and `reply_channel_range` Messages
 
 1. type: 263 (`query_channel_range`) (`gossip_queries`)
 2. data:
@@ -763,7 +771,7 @@ The checksum of a `channel_update` is the CRC32C checksum as specified in [RFC37
 
 This allows to query for channels within specific blocks. 
 
-#### Requirements
+### Requirements
 
 The sender of `query_channel_range`:
   - MUST NOT send this if it has sent a previous `query_channel_range` to this peer and not received all `reply_channel_range` replies.
@@ -793,7 +801,7 @@ If the incoming message includes `query_option`, the receiver MAY append additio
 - if bit 1 in `query_option_flags` is set, the receiver MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
 
 
-#### Rationale
+### Rationale
 
 A single response might be too large for a single packet, and also a peer can
 store canned results for (say) 1000-block ranges, and simply offer each reply
@@ -801,7 +809,7 @@ which overlaps the ranges of the request.
 
 The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
 
-### The `gossip_timestamp_filter` Message
+## The `gossip_timestamp_filter` Message
 
 1. type: 265 (`gossip_timestamp_filter`) (`gossip_queries`)
 2. data:
@@ -817,7 +825,7 @@ messages would be received.
 Note that this filter replaces any previous one, so it can be used
 multiple times to change the gossip from a peer.
 
-#### Requirements
+### Requirements
 
 The sender:
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
@@ -839,7 +847,7 @@ The receiver:
   - If a `channel_announcement` is sent:
     - MUST send the `channel_announcement` prior to any corresponding `channel_update`s and `node_announcement`s.
 
-#### Rationale
+### Rationale
 
 Since `channel_announcement` doesn't have a timestamp, we generate a likely
 one.  If there's no `channel_update` then it is not sent at all, which is most
@@ -855,7 +863,7 @@ is simple to implement.
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
 
-## Initial Sync
+# Initial Sync
 
 If a node requires an initial sync of gossip messages, it will be flagged
 in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
@@ -868,7 +876,7 @@ Note that `gossip_queries` does not work with older nodes, so the
 value of `initial_routing_sync` is still important to control
 interactions with them.
 
-### Requirements
+## Requirements
 
 A node:
   - if the `gossip_queries` feature is negotiated:
@@ -885,9 +893,9 @@ A node:
       - SHOULD resume normal operation, as specified in the following
       [Rebroadcasting](#rebroadcasting) section.
 
-## Rebroadcasting
+# Rebroadcasting
 
-### Requirements
+## Requirements
 
 A receiving node:
   - upon receiving a new `channel_announcement` or a `channel_update` or
@@ -915,7 +923,7 @@ A node:
     - SHOULD send all `channel_announcement` messages, followed by the latest
     `node_announcement` AND `channel_update` messages.
 
-### Rationale
+## Rationale
 
 Once the gossip message has been processed, it's added to a list of outgoing
 messages, destined for the processing node's peers, replacing any older
@@ -929,9 +937,9 @@ and allows bootstrapping for new nodes as well as updating for nodes that
 have been offline for some time.  The `gossip_queries` option
 allows for more refined synchronization.
 
-## HTLC Fees
+# HTLC Fees
 
-### Requirements
+## Requirements
 
 The origin node:
   - SHOULD accept HTLCs that pay a fee equal to or greater than:
@@ -940,9 +948,9 @@ The origin node:
   sending `channel_update`.
     - Note: this allows for any propagation delay.
 
-## Pruning the Network View
+# Pruning the Network View
 
-### Requirements
+## Requirements
 
 A node:
   - SHOULD monitor the funding transactions in the blockchain, to identify
@@ -955,9 +963,9 @@ A node:
       - Note: this is a direct result of the dependency of a `node_announcement`
       being preceded by a `channel_announcement`.
 
-### Recommendation on Pruning Stale Entries
+## Recommendation on Pruning Stale Entries
 
-#### Requirements
+### Requirements
 
 A node:
   - if a channel's latest `channel_update`s `timestamp` is older than two weeks
@@ -968,7 +976,7 @@ A node:
     forwarding peers, e.g. by closing channels when receiving outdated gossip
     messages.
 
-#### Rationale
+### Rationale
 
 Several scenarios may result in channels becoming unusable and its endpoints
 becoming unable to send updates for these channels. For example, this occurs if
@@ -978,7 +986,7 @@ unlikely to be part of a computed route, since they would be partitioned off
 from the rest of the network; however, they would remain in the local network
 view would be forwarded to other peers indefinitely.
 
-## Recommendations for Routing
+# Recommendations for Routing
 
 When calculating a route for an HTLC, both the `cltv_expiry_delta` and the fee
 need to be considered: the `cltv_expiry_delta` contributes to the time that
@@ -1005,7 +1013,7 @@ Other more advanced considerations involve diversification of route selection,
 to avoid single points of failure and detection, and balancing of local
 channels.
 
-### Routing Example
+## Routing Example
 
 Consider four nodes:
 
@@ -1095,7 +1103,7 @@ A->D's `update_add_htlc` message would be:
 And D->C's `update_add_htlc` would again be the same as B->C's direct payment
 above.
 
-## References
+# References
 
 1. <a id="reference-1">[RFC 1950 "ZLIB Compressed Data Format Specification version 3.3](https://www.ietf.org/rfc/rfc1950.txt)</a>
 2. <a id="reference-2">[Maximum Compression Factor](https://zlib.net/zlib_tech.html)</a>
