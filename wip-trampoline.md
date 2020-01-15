@@ -25,7 +25,6 @@ trampoline node. This is optional and payers aren't required to use this routing
 * [Packet Structure](#packet-structure)
   * [Trampoline Onion](#trampoline-onion)
   * [Paying via trampoline nodes](#paying-via-trampoline-nodes)
-  * [Paying to non-trampoline nodes](#paying-to-non-trampoline-nodes)
   * [Failure messages](#failure-messages)
 * [Multi-Part Trampoline](#multi-part-trampoline)
 * [Routing Gossip](#routing-gossip)
@@ -35,7 +34,6 @@ trampoline node. This is optional and payers aren't required to use this routing
 * [Fees and CLTV requirements](#fees-and-cltv-requirements)
 * [Appendix A: Examples](#appendix-a-examples)
   * [Merchant supporting trampoline payments](#merchant-supporting-trampoline-payments)
-  * [Merchant without trampoline support](#merchant-without-trampoline-support)
 
 ## Features
 
@@ -80,14 +78,12 @@ Trampoline `hop_payload`s may contain the following fields:
     * type: 10 (`outgoing_node_id`)
     * data:
         * [`point`:`outgoing_node_id`]
-    * type: 11 (`outgoing_node_features`)
-    * data:
-        * [`length*byte`:`outgoing_node_features`]
 
 ### Paying via trampoline nodes
 
-A node that wants to rely on trampoline nodes to relay payments should use a `trampoline_onion_packet` in the
-`hop_payload` of the _last_ hop of a normal `onion_packet`:
+A recipient can signal support for receiving trampoline payments by setting the `trampoline_routing` feature bit in
+invoices. A sender that wants to pay that invoice may then rely on trampoline nodes to relay the payment by adding a
+`trampoline_onion_packet` in the `hop_payload` of the _last_ hop of a normal `onion_packet`:
 
 1. type: `onion_packet`
 2. data:
@@ -99,20 +95,6 @@ A node that wants to rely on trampoline nodes to relay payments should use a `tr
    * [`nn*byte`:`hop_payload`] (hop payload containing a `trampoline_onion_packet`)
    * `filler`
    * [`32*byte`:`hmac`]
-
-### Paying to non-trampoline nodes
-
-If the recipient of the payment doesn't support trampoline routing, the last trampoline node must convert the last hop
-to a standard onion payment. The `outgoing_node_features` field is used to detect that the next node doesn't support
-trampoline.
-
-Note that this reveals the identity of the recipient and the amount paid to the last trampoline node (but it doesn't
-reveal the identity of the payer). It also means that we'll need to add the invoice routing hints to the payload for
-the last trampoline node, otherwise it's likely that it won't be able to find a route to the recipient.
-
-Recipients should support `trampoline_routing` to properly preserve their anonymity.
-
-Question: should we even allow sending to non-trampoline-aware nodes? Maybe it's best to disallow it entirely.
 
 ### Failure messages
 
@@ -139,8 +121,9 @@ Or extend the `UPDATE` flag?
 
 A sending node:
 
+* If the invoice doesn't support the `trampoline_routing` feature:
+  * MUST NOT use trampoline routing to pay that invoice
 * MUST verify that each hop in the `trampoline_onion_packet` supports `trampoline_routing`
-* MUST include the invoice features in `outgoing_node_features` if the recipient doesn't support `trampoline_routing`
 * MUST encrypt the `trampoline_onion_packet` with the same construction as `onion_packet`
 * MUST use a different `session_key` for the `trampoline_onion_packet` and the `onion_packet`
 * MAY include additional tlv types in `trampoline_payload`s
@@ -160,8 +143,6 @@ When processing a `trampoline_onion_packet`, a receiving node:
     * MUST report a route failure to the origin node using the `trampoline_expiry_too_soon` error
   * If it cannot find a route that satisfies `fees` requirements:
     * MUST report a route failure to the origin node using the `trampoline_fee_insufficient` error
-  * If `outgoing_node_features` is provided and the `trampoline_routing` flags are set to `0`:
-    * MUST convert the peeled `trampoline_onion_packet` to an `onion_packet`
   * Otherwise:
     * MUST include the peeled `trampoline_onion_packet` in the last `hop_payload`
 * MUST return errors as specified in Bolt 4's [error handling section](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#returning-errors)
@@ -744,99 +725,4 @@ The effective payment route is:
         |                |          |                |                  |         |
         |                |          |                |                  |         |
 Alice --+                +--> TA1 --+                +--> TA2 --> TB3 --+         +--> Bob
-```
-
-### Merchant without trampoline support
-
-Bob is a merchant that doesn't support trampoline payments. Bob creates an invoice for `5000` satoshis without any
-routing hint.
-
-Alice wants to pay this invoice using trampoline routing. To make the example short Alice will select a single
-trampoline hop T.
-
-The trampoline route is:
-
-```text
-Alice -> T -> Bob
-```
-
-T's latest `node_update` advertised `cltv_expiry_delta=20` and `fee=3000` msat.
-
-Note: for simplicity we act as if the fee was a single fixed value. We also assume that all intermediate nodes `Hi`
-advertise a `500` msat `fee` and `cltv_expiry_delta=5`.
-
-Alice creates the following `trampoline_onion_packet` (encryption omitted for clarity):
-
-* [`1`:`0x0e`] (`type`)
-* [`3`:`0xfd01d2`] (`length`)
-* [`1`:`version`]
-* [`33`:`public_key`]
-* [`81`:`hop_payload`] (payload for T)
-  * [`1`:`0x4f`] (`length`)
-  * [`1`:`0x02`] (`type`)
-  * [`1`:`0x03`] (`length`)
-  * [`3`:`5000000`] (`amt_to_forward`)
-  * [`1`:`0x04`] (`type`)
-  * [`1`:`0x01`] (`length`)
-  * [`1`:`25`] (`outoing_cltv_value`)
-  * [`1`:`0x0a`] (`type`)
-  * [`1`:`0x21`] (`length`)
-  * [`33`:`Bob_node_id`]
-  * [`1`:`0x0b`] (`type`)
-  * [`1`:`0x03`] (`length`)
-  * [`3`:`0x014000`] (`basic_mpp` and `payment_secret` but not `trampoline_routing`)
-  * [`32`:`hmac`] (`0x00...00`)
-* [`319`:`filler`]
-* [`32`:`hmac`]
-
-Alice finds a route to T and sends the `trampoline_onion_packet` wrapped inside an `onion_packet` (see previous
-example).
-
-T receives the `trampoline_onion_packet` and discovers that Bob is the payment recipient and doesn't support the
-`trampoline_routing` feature.
-
-T finds a route to Bob:
-
-```text
-T -> H1 -> H2 -> Bob
-```
-
-T creates the following `onion_packet` (encryption omitted for clarity):
-
-* [`1`:`0x00`] (`version`)
-* [`33`:`public_key`]
-* [`65`:`hop_payload`] (payload for H1)
-  * [`1`:`0x00`] (`realm`)
-  * [`8`:`channel_from_H1_to_H2`] (`short_channel_id`)
-  * [`8`:`5000500`] (`amt_to_forward`)
-  * [`4`:`30`] (`outgoing_cltv_value`)
-  * [`12`:`padding`]
-  * [`32`:`hmac`]
-* [`65`:`hop_payload`] (payload for H2)
-  * [`1`:`0x00`] (`realm`)
-  * [`8`:`channel_from_H2_to_Bob`] (`short_channel_id`)
-  * [`8`:`5000000`] (`amt_to_forward`)
-  * [`4`:`25`] (`outgoing_cltv_value`)
-  * [`12`:`padding`]
-  * [`32`:`hmac`]
-* [`65`:`hop_payload`] (payload for Bob)
-  * [`1`:`0x00`] (`realm`)
-  * [`8`:`0x0000000000000000`] (`short_channel_id`)
-  * [`8`:`5000000`] (`payment_amt`)
-  * [`4`:`25`] (`final_cltv_expiry`)
-  * [`12`:`padding`]
-  * [`32`:`hmac`] (`0x00...00`)
-* [`1105`:`filler`]
-* [`32`:`hmac`]
-
-Bob receives the `onion_packet` and discovers that he is the recipient of the payment (because the hmac is `0x00...00`).
-Bob can process the payment and doesn't know trampoline routing was used.
-
-The effective payment route is:
-
-```text
-              +--> H1 --> H2 --+
-              |                |
-              |                |
-Alice --> T --+                +--> Bob
 ```
