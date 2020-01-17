@@ -294,17 +294,7 @@ on the amount sent.
 A writer:
   - MUST set the `9` field to a feature vector compliant with the
     [BOLT 9 origin node requirements](09-features.md#requirements).
-  - if `payment_secret` feature is set:
-    - MUST include an `s` field.
-  - otherwise:
-    - MUST NOT include an `s` field.
-  - if the `payment_secret` field is required in the onion:
-    - MUST set the even feature `payment_secret`.
-  - If the final node supports [Basic multi-part payments](04-onion-routing.md#basic-multi-part-payments):
-    - MUST set the `basic_mpp` feature.
-  - Otherwise:
-    - MUST NOT set the `basic_mpp` feature.
-  - MUST set `var_onion_optin` if and only if it supports that feature.
+  - MUST set an `s` field if and only if the `payment_secret` feature is set.
 
 A reader:
   - if the feature vector does not set all known, transitive feature dependencies:
