@@ -48,7 +48,12 @@ A node:
   * [Key Generation](#key-generation)
   * [Pseudo Random Byte Stream](#pseudo-random-byte-stream)
   * [Packet Structure](#packet-structure)
+    * [Legacy HopData Payload Format](#legacy-hop_data-payload-format)
+    * [TLV Payload Format](#tlv_payload-format)
+    * [Basic Multi-Part Payments](#basic-multi-part-payments)
+  * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
     * [Payload for the Last Node](#payload-for-the-last-node)
+    * [Non-strict Forwarding](#non-strict-forwarding)
   * [Shared Secret](#shared-secret)
   * [Blinding Ephemeral Keys](#blinding-ephemeral-keys)
   * [Packet Construction](#packet-construction)
@@ -235,7 +240,7 @@ When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified
 within `hop_data` above; otherwise, deviation from the specified HTLC
 parameters may lead to extraneous routing failure.
 
-### `tlv_payload` payload format
+### `tlv_payload` format
 
 This is a more flexible format, which avoids the redundant `short_channel_id` field for the final node. 
 
