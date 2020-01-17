@@ -255,6 +255,8 @@ The receiving node:
     - MUST ignore the bit.
   - upon receiving unknown _even_ feature bits that are non-zero:
     - MUST fail the connection.
+  - if the feature vector does not set all known, transitive dependencies:
+    - MUST fail the connection.
 
 #### Rationale
 
