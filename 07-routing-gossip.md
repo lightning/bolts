@@ -575,6 +575,8 @@ Encoding types:
 
 This encoding is also used for arrays of other types (timestamps, flags, ...), and specified with an `encoded_` prefix. For example, `encoded_timestamps` is an array of timestamps than can be either compressed (with a `1` prefix) or uncompressed (with a `0` prefix).
 
+An empty encoded data buffer always decodes to an empty array, no matter what the encoding type is set to.
+
 Note that a 65535-byte zlib message can decompress into 67632120
 bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
 are unique 8-byte values, no more than 14 bytes can be duplicated
