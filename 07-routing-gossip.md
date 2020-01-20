@@ -783,6 +783,7 @@ The receiver of `query_channel_range`:
     - MUST encode a `short_channel_id` for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
     - MUST limit `number_of_blocks` to the maximum number of blocks whose
       results could fit in `encoded_short_ids`
+    - MUST set `first_blocknum` to the previous `reply_channel_range`'s `first_blocknum` plus `number_of_blocks` when sending back multiple replies for the same `query_channel_range` request.
     - if does not maintain up-to-date channel information for `chain_hash`:
       - MUST set `complete` to 0.
     - otherwise:
