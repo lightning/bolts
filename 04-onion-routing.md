@@ -504,11 +504,11 @@ The construction returns a single 1366-byte packet along with the first receivin
 The packet construction is performed in the reverse order of the route, i.e.
 the last hop's operations are applied first.
 
-The packet is initialized with 1366 _random_ bytes derived from a CSPRNG
+The packet is initialized with 1300 _random_ bytes derived from a CSPRNG
 (ChaCha20). The _pad_ key referenced above is used to extract additional random
 bytes from a ChaCha20 stream, using it as a CSPRNG for this purpose.  Once the
 `paddingKey` has been obtained, ChaCha20 is used with an all zero nonce, to
-generate 1366 random bytes. Those random bytes are then used as the starting
+generate 1300 random bytes. Those random bytes are then used as the starting
 state of the mix-header to be created.
 
 A filler is generated (see [Filler Generation](#filler-generation)) using the
