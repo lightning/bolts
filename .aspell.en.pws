@@ -367,8 +367,11 @@ fips
 rfc
 varint
 CompactSize
+multipath
+mpp
 tlvs
 snprintf
 GitHub
 IRC
 bitmasks
+CSPRNG

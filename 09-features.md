@@ -26,16 +26,18 @@ The Context column decodes as follows:
 * `C+`: presented in the `channel_announcement` message, but always even (required).
 * `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
 
-| Bits  | Name                             | Description                                               | Context  | Link                                  |
-|-------|----------------------------------|-----------------------------------------------------------|----------|---------------------------------------|
-| 0/1   | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields   | IN       | [BOLT #2][bolt02-retransmit]          |
-| 3     | `initial_routing_sync`           | Sending node needs a complete routing information dump    | I        | [BOLT #7][bolt07-sync]                |
-| 4/5   | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel   | IN       | [BOLT #2][bolt02-open]                |
-| 6/7   | `gossip_queries`                 | More sophisticated gossip control                         | IN       | [BOLT #7][bolt07-query]               |
-| 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN       | [Routing Onion Specification][bolt04] |
-| 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | [BOLT #7][bolt07-query]               |
-| 12/13 | `option_static_remotekey`        | Static key for remote output                              | IN       | [BOLT #3](03-transactions.md)         |
-| 14/15 | `option_support_large_channel`   | Can create large channels                                 | INC+     | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
+| Bits  | Name                             | Description                                               | Context  | Dependencies      | Link                                  |
+|-------|----------------------------------|-----------------------------------------------------------|----------|-------------------|---------------------------------------|
+| 0/1   | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields   | IN       |                   | [BOLT #2][bolt02-retransmit]          |
+| 3     | `initial_routing_sync`           | Sending node needs a complete routing information dump    | I        |                   | [BOLT #7][bolt07-sync]                |
+| 4/5   | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel   | IN       |                   | [BOLT #2][bolt02-open]                |
+| 6/7   | `gossip_queries`                 | More sophisticated gossip control                         | IN       |                   | [BOLT #7][bolt07-query]               |
+| 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN9      |                   | [Routing Onion Specification][bolt04] |
+| 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | `gossip_queries`  | [BOLT #7][bolt07-query]               |
+| 12/13 | `option_static_remotekey`        | Static key for remote output                              | IN       |                   | [BOLT #3](03-transactions.md)         |
+| 14/15 | `payment_secret`                 | Node supports `payment_secret` field                      | IN9      | `var_onion_optin` | [Routing Onion Specification][bolt04] |
+| 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | `payment_secret`  | [BOLT #4][bolt04-mpp]                 |
+| 48/49 | `option_support_large_channel`   | Can create large channels                                 | INC+     | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 
 ## Requirements
 
@@ -48,6 +50,7 @@ The origin node:
     unless indicated that it must set the odd feature bit instead.
   * MUST NOT set feature bits it does not support.
   * MUST NOT set feature bits in fields not specified by the table above.
+  * MUST set all transitive feature dependencies.
 
 The requirements for receiving specific bits are defined in the linked sections in the table above.
 The requirements for feature bits that are not defined
@@ -59,6 +62,17 @@ There is no _even_ bit for `initial_routing_sync`, as there would be little
 point: a local node can't determine if a remote node complies, and it must
 interpret the flag, as defined in the initial spec.
 
+Note that for feature flags which are available in both the `node_announcement`
+and [BOLT 11](11-payment-encoding.md) invoice contexts, the features as set in
+the [BOLT 11](11-payment-encoding.md) invoice should override those set in the
+`node_announcement`. This keeps things consistent with the unknown features
+behavior as specified in [BOLT 7](07-routing-gossip.md#the-node_announcement-message).
+
+The origin must set all transitive feature dependencies in order to create a
+well-formed feature vector. By validating all known dependencies up front, this
+simplifies logic gated on a single feature bit; the feature's dependencies are
+known to be set, and do not need to be validated at every feature gate.
+
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
@@ -68,3 +82,4 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt04]: 04-onion-routing.md
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
+[bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments

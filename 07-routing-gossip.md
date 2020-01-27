@@ -20,7 +20,7 @@ multiple `node_announcement` messages, in order to update the node information.
 
 # Table of Contents
 
-  * [Definition of `short_channel_id`](#definition-of-short-channel-id)
+  * [Definition of `short_channel_id`](#definition-of-short_channel_id)
   * [The `announcement_signatures` Message](#the-announcement_signatures-message)
   * [The `channel_announcement` Message](#the-channel_announcement-message)
   * [The `node_announcement` Message](#the-node_announcement-message)
@@ -323,6 +323,9 @@ any future fields appended to the end):
     - MUST NOT process the message further.
   - if `features` field contains _unknown even bits_:
     - SHOULD NOT connect to the node.
+    - Unless paying a [BOLT #11](11-payment-encoding.md) invoice which does not
+      have the same bit(s) set, MUST NOT attempt to send payments _to_ the node.
+    - MUST NOT route a payment _through_ the node.
   - SHOULD ignore the first `address descriptor` that does NOT match the types
   defined above.
   - if `addrlen` is insufficient to hold the address descriptors of the
