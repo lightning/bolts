@@ -607,7 +607,6 @@ This message contains information for inputs to a funding transaction.
 
 The sending node:
   - MUST NOT send `funding_add_input` if it has already transmitted `funding_add_complete`
-  - MUST send this after `accept_channel2` has been exchanged, but before `funding_add_complete`
   - MUST add all sent inputs to the funding transaction
   - MUST NOT re-transmit inputs it has already received from the peer
   - MUST ensure each `input_info` refers to a non-malleable (segwit) UTXO.
@@ -673,7 +672,6 @@ Either node:
 
 The sending node:
   - MUST NOT send `funding_add_output` if it has already transmitted `funding_add_complete`
-  - MUST send this after `accept_channel2` has been exchanged, but before `funding_add_complete`
   - MUST add all sent outputs to the funding transaction
   - MUST ensure the `output_info`.`script` is a standard script
   - MUST NOT include the channel funding output.
