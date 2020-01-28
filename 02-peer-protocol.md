@@ -622,7 +622,8 @@ The receiving node:
   - MUST fail the channel if:
     - it receives a duplicate input to one it sent previously
     - it receives this message after `funding_add_complete` is received.
-    - it receives an input that is malleable (P2SH/P2PKH)
+    - it receives an input that would create a malleable transaction id (e.g. pre-Segwit)
+    - it receives an unconfirmed input
   - if is the `opener`:
     - MUST fail the channel if:
       - the total count of `input_info`s is greater than 6
