@@ -64,6 +64,7 @@ A writer:
   - if a specific minimum `amount` is required for successful payment:
 	  - MUST include that `amount`.
 	- MUST encode `amount` as a positive decimal integer with no leading 0s.
+	- If the `p` multiplier is used the `amount` the last decimal MUST be `0`.
 	- SHOULD use the shortest representation possible, by using the largest
 	  multiplier or omitting the multiplier.
 
@@ -88,6 +89,9 @@ readable and a useful indicator of how much is being requested.
 Donation addresses often don't have an associated amount, so `amount`
 is optional in that case. Usually a minimum payment is required for
 whatever is being offered in return.
+
+The `p` multiplier would allow to specify sub-millisatoshi amounts, which cannot be transferred on the network, since HTLCs are denominated in millisatoshis.
+Requiring a trailing `0` decimal ensures that the `amount` represents an integer number of millisatoshis.
 
 # Data Part
 
