@@ -222,7 +222,7 @@ integers can be omitted:
 The following convenience types are also defined:
 
 * `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
-* `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id)
+* `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id))
 * `sha256`: a 32-byte SHA2-256 hash
 * `signature`: a 64-byte bitcoin Elliptic Curve signature
 * `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
