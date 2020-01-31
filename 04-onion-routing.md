@@ -272,13 +272,13 @@ The writer:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
   - For every non-final node:
     - MUST include `short_channel_id`
-	- MUST NOT include `payment_data`
+    - MUST NOT include `payment_data`
   - For the final node:
     - MUST NOT include `short_channel_id`
+    - MUST set `total_msat` to the total amount it will send
     - if the recipient provided `payment_secret`:
       - MUST include `payment_data`
-	  - MUST set `payment_secret` to the one provided
-	  - MUST set `total_msat` to the total amount it will send
+      - MUST set `payment_secret` to the one provided
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
