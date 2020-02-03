@@ -619,7 +619,7 @@ Query flags must be minimally encoded, which means that one flag will be encoded
 1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
 2. data:
     * [`chain_hash`:`chain_hash`]
-    * [`byte`:`complete`]
+    * [`byte`:`full_information`]
 
 This is a general mechanism which lets a node query for the
 `channel_announcement` and `channel_update` messages for specific channels
@@ -678,15 +678,15 @@ The receiver:
   - SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
   - MUST follow these responses with `reply_short_channel_ids_end`.
   - if does not maintain up-to-date channel information for `chain_hash`:
-    - MUST set `complete` to 0.
+    - MUST set `full_information` to 0.
   - otherwise:
-    - SHOULD set `complete` to 1.
+    - SHOULD set `full_information` to 1.
 
 #### Rationale
 
 Future nodes may not have complete information; they certainly won't have
-complete information on unknown `chain_hash` chains.  While this `complete`
-field cannot be trusted, a 0 does indicate that the sender should search
+complete information on unknown `chain_hash` chains.  While this `full_information`
+field (previously and confusingly called `complete`) cannot be trusted, a 0 does indicate that the sender should search
 elsewhere for additional data.
 
 The explicit `reply_short_channel_ids_end` message means that the receiver can
@@ -722,7 +722,7 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
     * [`u32`:`number_of_blocks`]
-    * [`byte`:`complete`]
+    * [`byte`:`full_information`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
     * [`reply_channel_range_tlvs`:`tlvs`]
@@ -784,9 +784,9 @@ The receiver of `query_channel_range`:
     - MUST limit `number_of_blocks` to the maximum number of blocks whose
       results could fit in `encoded_short_ids`
     - if does not maintain up-to-date channel information for `chain_hash`:
-      - MUST set `complete` to 0.
+      - MUST set `full_information` to 0.
     - otherwise:
-      - SHOULD set `complete` to 1.
+      - SHOULD set `full_information` to 1.
 
 If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
 - if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
