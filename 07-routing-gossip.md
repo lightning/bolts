@@ -446,8 +446,8 @@ The origin node:
   `announce_channel` bit was not set).
     - MUST NOT forward such a `channel_update` to other peers, for privacy
     reasons.
-	- MUST use the funding-transaction-derived `short_channel_id` even if
-	  `assign_scid` has been used.
+    - MUST use the funding-transaction-derived `short_channel_id` even if
+      `assign_scids` has been used.
     - Note: such a `channel_update`, one not preceded by a
     `channel_announcement`, is invalid to any other peer and would be discarded.
   - MUST set `signature` to the signature of the double-SHA256 of the entire

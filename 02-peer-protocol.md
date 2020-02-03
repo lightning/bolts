@@ -1118,59 +1118,78 @@ it's simplest to only allow it to set fee levels; however, as the same
 fee rate applies to HTLC transactions, the receiving node must also
 care about the reasonableness of the fee.
 
-### Assigning Random `short_channel_id`
+### Assigning Random `short_channel_id`s
 
-To facilitate privacy of unannounced channels, peers can request a random
-short_channel_id to use which does not have any relationship to the actual
+To facilitate privacy of unannounced channels, peers can request random
+short_channel_ids to use which does not have any relationship to the actual
 channel funding transaction.  Note that these messages are all even, so it
 is illegal to send them to peers which do not offer `option_scid_assign`.
 
-1. type: 260 (`assign_scid`) (`option_scid_assign`)
+1. type: 260 (`assign_scids`) (`option_scid_assign`)
 2. data:
    * [`channel_id`:`channel_id`]
+   * [`u16`:`num`]
 
-1. type: 266 (`assign_scid_reply`) (`option_scid_assign`)
+1. type: 266 (`assign_scids_reply`) (`option_scid_assign`)
    * [`channel_id`:`channel_id`]
-   * [`short_channel_id`:`short_channel_id`]
+   * [`u16`:`num`]
+   * [`num*short_channel_id`:`scid_series`]
 
-1. type: 268 (`unassign_scid`) (`option_scid_assign`)
+1. type: 268 (`unassign_scids`) (`option_scid_assign`)
 2. data:
    * [`channel_id`:`channel_id`]
-
-1. type: 270 (`unassign_scid_reply`) (`option_scid_assign`)
-   * [`channel_id`:`channel_id`]
+   * [`u16`:`num`]
+   * [`num*short_channel_id`:`short_channel_ids`]
 
 #### Requirements
 
 A sending node:
   - if it did not offer `option_scid_assign`:
-    - MUST NOT send `assign_scid` or `unassign_scid`
-  - SHOULD remember the last `assign_scid_reply` `short_channel_id` for use in
-    receiving payments.
-  - MAY send `unassign_scid` when no invoices are pending, and send `assign_scid` when
+    - MUST NOT send `assign_scids` or `unassign_scids`
+  - MUST NOT set `assign_scids` `num` to more than 256.
+  - MUST NOT set `assign_scids` `num` to less than the previous number of assigned short_channel_ids.
+  - SHOULD use a unique node_id in invoices for each of the `short_channel_ids`
+    in `assign_scids_reply`.
+  - MAY send `unassign_scids` to remove some or all ids if no invoices are pending, and send `assign_scids` when
     it wants to create a new invoice and none are pending.
 
 A receiving node:
-  - on receiving `assign_scid`:
-    - MUST assign an unpredictable unique 64-bit number to this channel
-      (see [Assigned `short_channel_id` Forwarding](04-onion-routing.md#assigned-short_channel_id-forwarding)).
-	  and return it in an `assign_scid_reply` message.
-	  - SHOULD ensure this does not conflict with future `short_channel_id`s.
-    - MUST discard any previous assigned `short_channel_id` for this channel
-  - on receiving `unassign_scid`:
-    - MUST discard any previous assigned `short_channel_id` for this channel
-	  - Note: it's not an error if there are no previous assignments.
-	- MUST reply with `unassign_scid_reply`.
+  - if it offers `option_scid_assign`:
+    - MUST keep an `scid_series` of up to 256 short_channel_ids for each peer.
+    - if either peer opened the channel with `disable_funding_scid`:
+      - `scid_series` begins empty
+    - otherwise:
+	  - `scid_series` begins with the funding-transaction-based `short_channel_id`
+    - on receiving `assign_scids`:
+      - if `num` is greater than 256, or `num` is less than the size of `scid_series`:
+        - MAY fail the connection with an error.
+      - MUST append additional new unpredictable unique 64-bit numbers to `scid_series` for this channel
+        (see [Assigned `short_channel_id` Forwarding](04-onion-routing.md#assigned-short_channel_id-forwarding)).
+        until it contains `num` short_channel_ids, and return the `scid_series` in an `assign_scids_reply` message.
+        - SHOULD ensure these do not conflict with future `short_channel_id`s.
+    - on receiving `unassign_scids`:
+      - MUST discard any `short_channel_id`s from `scid_series` for this channel.
+        - Note: it's not an error if the short_channel_ids are not assigned to this channel.
+      - MUST return `scid_series` series in an `assign_scids_reply` message.
+  - otherwise:
+    - `scid_series` is an alias for the funding-transaction-based `short_channel_id`
 
 #### Rationale
 
-There are two ways of hiding a private channel's funding-transaction-derived
-`short_channel_id`.  The most thorough is `disable_funding_scid` which ensures
-that the original private `short_channel_id` is never used for forwarding.  However,
-since channels may have been opened before `option_scid_assign` was
-implemented, assigning or unassigning a random short_channel_id has the same
-effect of disabling the original `short_channel_id`.  See [Assigned
-`short_channel_id` Forwarding](04-onion-routing.md#assigned-short_channel_id-forwarding).
+A private channel's funding-transaction-derived `short_channel_id`
+reveals the size, timing and payment data of the channel.  Assigning a
+"fake" short_channel_id allows this information not to be revealed.
+
+But this still means that invoices can be correlated as being from the
+same node.  So as a further step, nodes can assign a unique
+short_channel_id and node_id for each invoice: the short_channel_id
+needs to be known to the peer so it knows to forward it, but the
+node_id need only be shared between the payer and final node.
+
+For existing channels, the initial series contains the
+funding-transaction-derived `short_channel_id`, but the
+`disable_funding_scid` option removes this and means it is never
+exposed, even if the funding transaction is confirmed immediately.
 
 The space of short_channel_id is only 64 bits, so it's possible for an
 adversary to probe for them over time, using payment attempts.  Thus it's
