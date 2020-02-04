@@ -123,8 +123,13 @@ the funding transaction and both versions of the commitment transaction.
    * [`point`:`htlc_basepoint`]
    * [`point`:`first_per_commitment_point`]
    * [`byte`:`channel_flags`]
-   * [`u16`:`shutdown_len`]
-   * [`shutdown_len*byte`:`shutdown_scriptpubkey`]
+   * [`open_channel_tlvs`:`tlvs`]
+
+1. tlvs: `open_channel_tlvs`
+2. types:
+    1. type: 0 (`upfront_shutdown_script`)
+    2. data:
+        * [`...*byte`:`shutdown_scriptpubkey`]
 
 The `chain_hash` value denotes the exact blockchain that the opened channel will
 reside within. This is usually the genesis hash of the respective blockchain.
@@ -198,7 +203,12 @@ The sending node:
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
   - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
   - MUST set undefined bits in `channel_flags` to 0.
-  - MUST include either a valid `shutdown_scriptpubkey` as required by `option_upfront_shutdown_script`, or a zero-length `shutdown_scriptpubkey`.
+  - if both nodes advertised the `option_upfront_shutdown_script` feature:
+    - MUST include `upfront_shutdown_script` with either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
+  - otherwise:
+    - MAY include `upfront_shutdown_script`.
+  - if it includes `open_channel_tlvs`:
+    - MUST include `upfront_shutdown_script`.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -281,8 +291,13 @@ funding transaction and both versions of the commitment transaction.
    * [`point`:`delayed_payment_basepoint`]
    * [`point`:`htlc_basepoint`]
    * [`point`:`first_per_commitment_point`]
-   * [`u16`:`shutdown_len`]
-   * [`shutdown_len*byte`:`shutdown_scriptpubkey`]
+   * [`accept_channel_tlvs`:`tlvs`]
+
+1. tlvs: `accept_channel_tlvs`
+2. types:
+    1. type: 0 (`upfront_shutdown_script`)
+    2. data:
+        * [`...*byte`:`shutdown_scriptpubkey`]
 
 #### Requirements
 
