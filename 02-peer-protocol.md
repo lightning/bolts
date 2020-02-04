@@ -1131,6 +1131,7 @@ is illegal to send them to peers which do not offer `option_scid_assign`.
    * [`u16`:`num`]
 
 1. type: 266 (`assign_scids_reply`) (`option_scid_assign`)
+2. data:
    * [`channel_id`:`channel_id`]
    * [`u16`:`num`]
    * [`num*short_channel_id`:`scid_series`]
