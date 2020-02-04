@@ -44,20 +44,6 @@ The `type` field indicates how to interpret the `payload` field.
 The format for each individual type is defined by a specification in this repository.
 The type follows the _it's ok to be odd_ rule, so nodes MAY send _odd_-numbered types without ascertaining that the recipient understands it.
 
-A sending node:
-  - MUST NOT send an evenly-typed message not listed here without prior negotiation.
-  - MUST NOT send evenly-typed TLV records in the `extension` without prior negotiation.
-  - If it doesn't include `extension` fields:
-    - MUST omit the `extension` TLV stream entirely.
-
-A receiving node:
-  - upon receiving a message of _odd_, unknown type:
-    - MUST ignore the received message.
-  - upon receiving a message of _even_, unknown type:
-    - MUST fail the channels.
-  - upon receiving a message with an `extension` containing an _even_, unknown type:
-    - MUST fail the channels.
-
 The messages are grouped logically into five groups, ordered by the most significant bit that is set:
 
   - Setup & Control (types `0`-`31`): messages related to connection setup, control, supported features, and error reporting (described below)
@@ -68,11 +54,9 @@ The messages are grouped logically into five groups, ordered by the most signifi
 
 The size of the message is required by the transport layer to fit into a 2-byte unsigned int; therefore, the maximum possible size is 65535 bytes.
 
-A node:
-  - upon receiving a known message with insufficient length for the contents:
-    - MUST fail the channels.
-  - upon receiving an invalid `extension`:
-    - MUST fail the channels.
+A sending node:
+  - MUST NOT send an evenly-typed message not listed here without prior negotiation.
+  - MUST NOT send evenly-typed TLV records in the `extension` without prior negotiation.
   - that negotiates an option in this specification:
     - MUST include all the fields annotated with that option.
   - When defining custom messages:
@@ -82,6 +66,18 @@ A node:
       additional data.
     - SHOULD pick an even `type` identifiers when regular nodes should reject
       the message and close the connection.
+
+A receiving node:
+  - upon receiving a message of _odd_, unknown type:
+    - MUST ignore the received message.
+  - upon receiving a message of _even_, unknown type:
+    - MUST fail the channels.
+  - upon receiving a known message with insufficient length for the contents:
+    - MUST fail the channels.
+  - upon receiving a message with an `extension`:
+    - MAY ignore the `extension`.
+    - Otherwise, if the `extension` is invalid:
+      - MUST fail the channels.
 
 ### Rationale
 
