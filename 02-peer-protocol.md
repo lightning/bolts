@@ -1146,6 +1146,8 @@ is illegal to send them to peers which do not offer `option_scid_assign`.
 A sending node:
   - if it did not offer `option_scid_assign`:
     - MUST NOT send `assign_scids` or `unassign_scids`
+  - if the channel has not exchanged `funding_locked`:
+    - MUST NOT send `assign_scids` or `unassign_scids`
   - MUST NOT set `assign_scids` `num` to more than 256.
   - MUST NOT set `assign_scids` `num` to less than the previous number of assigned short_channel_ids.
   - SHOULD use a unique node_id in invoices for each of the `short_channel_ids`
