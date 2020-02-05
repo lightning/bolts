@@ -192,6 +192,10 @@ know this node will accept `funding_satoshis` greater than or equal to 2^24.
 Since it's broadcast in the `node_announcement` message other nodes can use it to identify peers 
 willing to accept large channel even before exchanging the `init` message with them. 
 
+Implementors are advised to provide the means to scale the number of confirmations, tweaking 
+`accept_channel.minimum_depth`, with the size of the funding amount. A rule of thumb is to 
+wait enough blocks until the cumulative block reward exceeds the size of the channel.
+
 #### Requirements
 
 The sending node:
