@@ -808,6 +808,13 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
    * [`sha256`:`payment_hash`]
    * [`u32`:`cltv_expiry`]
    * [`1366*byte`:`onion_routing_packet`]
+   * [`update_add_htlc_tlvs`:`tlvs`]
+
+1. tlvs: `update_add_htlc_tlvs`
+2. types:
+   1. type: 1 (`forwarding`)
+   2. data:
+      * [`short_channel_id`:`via`]
 
 #### Requirements
 
@@ -829,6 +836,13 @@ Fees") while maintaining its channel reserve.
   - for the first HTLC it offers:
     - MUST set `id` to 0.
   - MUST increase the value of `id` by 1 for each successive offer.
+  - if there is more than one entry in the `scid_series` for the recipient:
+    - MUST include `via`
+  - otherwise:
+    - MAY include `via`
+  - if `via` is included, and the `update_add_htlc` was caused
+    by an incoming HTLC:
+    - `via` must match that incoming HTLC onion `short_channel_id`.
 
 `id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
 been received). It MUST continue incrementing instead.
