@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Hello Friend!](README.md)
+* [Welcome to BOLT, Friend!](README.md)
 
 ## Read
 
@@ -21,3 +21,6 @@
 
 * [Contribution Guide](CONTRIBUTING.md)
 
+## Proposals
+
+* [Proposal States](https://github.com/lightningnetwork/lightning-rfc/wiki/Lightning-Specification-1.1-Proposal-States)
