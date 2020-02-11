@@ -790,7 +790,6 @@ A sending node:
   - MUST NOT offer `amount_msat` it cannot pay for in the
 remote commitment transaction at the current `feerate_per_kw` (see "Updating
 Fees") while maintaining its channel reserve.
-  - MUST offer `amount_msat` greater than 0.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
   - for channels with `chain_hash` identifying the Bitcoin blockchain:
@@ -804,9 +803,10 @@ Fees") while maintaining its channel reserve.
   - for the first HTLC it offers:
     - MUST set `id` to 0.
   - MUST increase the value of `id` by 1 for each successive offer.
-
-`id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
-been received). It MUST continue incrementing instead.
+  - after the update is complete (i.e. after `revoke_and_ack` has
+been received):
+    - MUST NOT reset `id` to 0.
+    - MUST continue incrementing `id` instead.
 
 A receiving node:
   - receiving an `amount_msat` equal to 0, OR less than its own `htlc_minimum_msat`:
