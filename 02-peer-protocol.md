@@ -194,7 +194,7 @@ The sending node:
   - MUST ensure `temporary_channel_id` is unique from any other channel ID with the same peer.
   - MUST set `funding_satoshis` to less than 2^24 satoshi.
   - MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.
-  - MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid DER-encoded, compressed, secp256k1 pubkeys.
+  - MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid secp256k1 pubkeys in compressed format.
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
   - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
   - MUST set undefined bits in `channel_flags` to 0.
@@ -232,7 +232,7 @@ The receiving node MUST fail the channel if:
   - `max_accepted_htlcs` is greater than 483.
   - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
-are not valid DER-encoded compressed secp256k1 pubkeys.
+are not valid secp256k1 pubkeys in compressed format.
   - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
   - the funder's amount for the initial commitment transaction is not sufficient for full [fee payment](03-transactions.md#fee-payment).
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
