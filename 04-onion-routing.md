@@ -441,7 +441,7 @@ simply discard its payload.
 The origin node establishes a shared secret with each hop along the route using
 Elliptic-curve Diffie-Hellman between the sender's ephemeral key at that hop and
 the hop's node ID key. The resulting curve point is serialized to the
-DER-compressed representation and hashed using `SHA256`. The hash output is used
+compressed format and hashed using `SHA256`. The hash output is used
 as the 32-byte shared secret.
 
 Elliptic-curve Diffie-Hellman (ECDH) is an operation on an EC private key and

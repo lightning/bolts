@@ -154,7 +154,7 @@ The following functions will also be referenced:
 
   * `ECDH(k, rk)`: performs an Elliptic-Curve Diffie-Hellman operation using
     `k`, which is a valid `secp256k1` private key, and `rk`, which is a valid public key
-      * The returned value is the SHA256 of the DER-compressed format of the
+      * The returned value is the SHA256 of the compressed format of the
 	    generated point.
 
   * `HKDF(salt,ikm)`: a function defined in `RFC 5869`<sup>[3](#reference-3)</sup>,
@@ -202,11 +202,11 @@ As a concluding step, both sides mix the responder's public key into the
 handshake digest:
 
  * The initiating node mixes in the responding node's static public key
-   serialized in Bitcoin's DER-compressed format:
+   serialized in Bitcoin's compressed format:
    * `h = SHA-256(h || rs.pub.serializeCompressed())`
 
  * The responding node mixes in their local static public key serialized in
-   Bitcoin's DER-compressed format:
+   Bitcoin's compressed format:
    * `h = SHA-256(h || ls.pub.serializeCompressed())`
 
 ### Handshake Exchange
