@@ -166,8 +166,8 @@ The origin node:
   as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).
     - Note: the corresponding output MUST be a P2WSH, as described in [BOLT #3](03-transactions.md#funding-transaction-output).
   - MUST set `node_id_1` and `node_id_2` to the public keys of the two nodes
-  operating the channel, such that `node_id_1` is the numerically-lesser of the
-  two DER-encoded keys sorted in ascending numerical order.
+  operating the channel, such that `node_id_1` is the lexicographically-lesser of the
+  two compressed keys sorted in ascending lexicographic order.
   - MUST set `bitcoin_key_1` and `bitcoin_key_2` to `node_id_1` and `node_id_2`'s
   respective `funding_pubkey`s.
   - MUST compute the double-SHA256 hash `h` of the message, beginning at offset
