@@ -187,12 +187,20 @@ The `shutdown_scriptpubkey` allows the sending node to commit to where
 funds will go on mutual close, which the remote node should enforce
 even if a node is compromised later.
 
+The `option_support_large_channel` is a feature used to let everyone 
+know this node will accept `funding_satoshis` greater than or equal to 2^24.
+Since it's broadcast in the `node_announcement` message other nodes can use it to identify peers 
+willing to accept large channel even before exchanging the `init` message with them. 
+
 #### Requirements
 
 The sending node:
   - MUST ensure the `chain_hash` value identifies the chain it wishes to open the channel within.
   - MUST ensure `temporary_channel_id` is unique from any other channel ID with the same peer.
-  - MUST set `funding_satoshis` to less than 2^24 satoshi.
+  - if both nodes advertised `option_support_large_channel`:
+    - MAY set `funding_satoshis` greater than or equal to 2^24 satoshi.
+  - otherwise:
+    - MUST set `funding_satoshis` to less than 2^24 satoshi.
   - MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.
   - MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid secp256k1 pubkeys in compressed format.
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
@@ -236,15 +244,14 @@ are not valid secp256k1 pubkeys in compressed format.
   - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
   - the funder's amount for the initial commitment transaction is not sufficient for full [fee payment](03-transactions.md#fee-payment).
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
+  - `funding_satoshis` is greater than or equal to 2^24 and the receiver does not support `option_support_large_channel`. 
 
 The receiving node MUST NOT:
   - consider funds received, using `push_msat`, to be received until the funding transaction has reached sufficient depth.
 
 #### Rationale
 
-The requirement for `funding_satoshi` to be less than 2^24 satoshi is a temporary self-imposed limit while implementations are not yet considered stable.
-It can be lifted at any point in time, or adjusted for other currencies, since it is solely enforced by the endpoints of a channel.
-Specifically, [the routing gossip protocol](07-routing-gossip.md) does not discard channels that have a larger capacity.
+The requirement for `funding_satoshis` to be less than 2^24 satoshi was a temporary self-imposed limit while implementations were not yet considered stable, it can be lifted by advertising `option_support_large_channel`. 
 
 The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% of the channel total is suggested. Each side of a channel maintains this reserve so it always has something to lose if it were to try to broadcast an old, revoked commitment transaction. Initially, this reserve may not be met, as only one side has funds; but the protocol ensures that there is always progress toward meeting this reserve, and once met, it is maintained.
 
