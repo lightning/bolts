@@ -62,7 +62,7 @@ Most transaction outputs used here are pay-to-witness-script-hash<sup>[BIP141](h
 
 `2 <pubkey1> <pubkey2> 2 OP_CHECKMULTISIG`
 
-* Where `pubkey1` is the numerically lesser of the two DER-encoded `funding_pubkey` and where `pubkey2` is the numerically greater of the two.
+* Where `pubkey1` is the numerically lesser of the two `funding_pubkey` in compressed format, and where `pubkey2` is the numerically greater of the two.
 
 ## Commitment Transaction
 
@@ -575,7 +575,7 @@ A double-check, that all previous secrets derive correctly, is needed;
 if this check fails, the secrets were not generated from the same seed:
 
     insert_secret(secret, I):
-        B = where_to_put_secret(secret, I)
+        B = where_to_put_secret(I)
 
         # This tracks the index of the secret in each bucket across the traversal.
         for b in 0 to B:

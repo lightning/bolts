@@ -51,12 +51,13 @@ A receiving node:
   - upon receiving a message of _even_, unknown type:
     - MUST fail the channels.
 
-The messages are grouped logically into four groups, ordered by the most significant bit that is set:
+The messages are grouped logically into five groups, ordered by the most significant bit that is set:
 
   - Setup & Control (types `0`-`31`): messages related to connection setup, control, supported features, and error reporting (described below)
   - Channel (types `32`-`127`): messages used to setup and tear down micropayment channels (described in [BOLT #2](02-peer-protocol.md))
   - Commitment (types `128`-`255`): messages related to updating the current commitment transaction, which includes adding, revoking, and settling HTLCs as well as updating fees and exchanging signatures (described in [BOLT #2](02-peer-protocol.md))
   - Routing (types `256`-`511`): messages containing node and channel announcements, as well as any active route exploration (described in [BOLT #7](07-routing-gossip.md))
+  - Custom (types `32768`-`65535`): experimental and application-specific messages
 
 The size of the message is required by the transport layer to fit into a 2-byte unsigned int; therefore, the maximum possible size is 65535 bytes.
 
@@ -66,6 +67,13 @@ A node:
     - MUST fail the channels.
   - that negotiates an option in this specification:
     - MUST include all the fields annotated with that option.
+  - When defining custom messages:
+    - SHOULD pick a random `type` to avoid collision with other custom types.
+    - SHOULD pick a `type` that doesn't conflict with other experiments listed in [this issue](https://github.com/lightningnetwork/lightning-rfc/issues/716).
+    - SHOULD pick an odd `type` identifiers when regular nodes should ignore the
+      additional data.
+    - SHOULD pick an even `type` identifiers when regular nodes should reject
+      the message and close the connection.
 
 ### Rationale
 
@@ -100,7 +108,7 @@ A `tlv_record` represents a single field, encoded in the form:
 A `varint` is a variable-length, unsigned integer encoding using the
 [BigSize](#appendix-a-bigsize-test-vectors) format, which resembles the bitcoin
 CompactSize encoding but uses big-endian for multi-byte values rather than
-little-endian. 
+little-endian.
 
 A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
 concatenation of the encoded `tlv_record`s. When used to extend existing
@@ -214,7 +222,7 @@ integers can be omitted:
 The following convenience types are also defined:
 
 * `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
-* `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id)
+* `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id))
 * `sha256`: a 32-byte SHA2-256 hash
 * `signature`: a 64-byte bitcoin Elliptic Curve signature
 * `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
@@ -267,6 +275,8 @@ The receiving node:
     - MUST fail the connection.
   - upon receiving `networks` containing no common chains
     - MAY fail the connection.
+  - if the feature vector does not set all known, transitive dependencies:
+    - MUST fail the connection.
 
 #### Rationale
 

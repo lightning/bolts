@@ -323,6 +323,9 @@ any future fields appended to the end):
     - MUST NOT process the message further.
   - if `features` field contains _unknown even bits_:
     - SHOULD NOT connect to the node.
+    - Unless paying a [BOLT #11](11-payment-encoding.md) invoice which does not
+      have the same bit(s) set, MUST NOT attempt to send payments _to_ the node.
+    - MUST NOT route a payment _through_ the node.
   - SHOULD ignore the first `address descriptor` that does NOT match the types
   defined above.
   - if `addrlen` is insufficient to hold the address descriptors of the
@@ -825,9 +828,11 @@ The receiver:
     equal to `first_timestamp`, and less than `first_timestamp` plus
     `timestamp_range`.
     - MAY wait for the next outgoing gossip flush to send these.
-  - SHOULD restrict future gossip messages to those whose `timestamp`
-    is greater or equal to `first_timestamp`, and less than
-    `first_timestamp` plus `timestamp_range`.
+  - SHOULD send gossip messages as it generates them regardless of `timestamp`.
+  - Otherwise (relayed gossip):
+    - SHOULD restrict future gossip messages to those whose `timestamp`
+      is greater or equal to `first_timestamp`, and less than
+      `first_timestamp` plus `timestamp_range`.
   - If a `channel_announcement` has no corresponding `channel_update`s:
     - MUST NOT send the `channel_announcement`.
   - Otherwise:
@@ -852,6 +857,12 @@ is simple to implement.
 In the case where the `channel_announcement` is nonetheless missed,
 `query_short_channel_ids` can be used to retrieve it.
 
+Nodes can use `timestamp_filter` to reduce their gossip load when they
+have many peers (eg. setting `first_timestamp` to `0xFFFFFFFF` after the
+first few peers, in the assumption that propagation is adequate).
+This assumption of adequate propagation does not apply for gossip messages
+generated directly by the node itself, so they should ignore filters.
+
 ## Initial Sync
 
 If a node requires an initial sync of gossip messages, it will be flagged
@@ -869,7 +880,7 @@ interactions with them.
 
 A node:
   - if the `gossip_queries` feature is negotiated:
-    - MUST NOT relay any gossip messages unless explicitly requested.
+    - MUST NOT relay any gossip messages it did not generate itself, unless explicitly requested.
   - otherwise:
     - if it requires a full copy of the peer's routing state:
       - SHOULD set the `initial_routing_sync` flag to 1.
@@ -901,7 +912,7 @@ A receiving node:
 
 A node:
   - if the `gossip_queries` feature is negotiated:
-    - MUST not send gossip until it receives `gossip_timestamp_filter`.
+    - MUST not send gossip it did not generate itself, until it receives `gossip_timestamp_filter`.
   - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
   the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not

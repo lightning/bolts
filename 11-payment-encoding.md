@@ -64,6 +64,7 @@ A writer:
   - if a specific minimum `amount` is required for successful payment:
 	  - MUST include that `amount`.
 	- MUST encode `amount` as a positive decimal integer with no leading 0s.
+	- If the `p` multiplier is used the last decimal of `amount` MUST be `0`.
 	- SHOULD use the shortest representation possible, by using the largest
 	  multiplier or omitting the multiplier.
 
@@ -88,6 +89,9 @@ readable and a useful indicator of how much is being requested.
 Donation addresses often don't have an associated amount, so `amount`
 is optional in that case. Usually a minimum payment is required for
 whatever is being offered in return.
+
+The `p` multiplier would allow to specify sub-millisatoshi amounts, which cannot be transferred on the network, since HTLCs are denominated in millisatoshis.
+Requiring a trailing `0` decimal ensures that the `amount` represents an integer number of millisatoshis.
 
 # Data Part
 
@@ -284,26 +288,21 @@ which is _odd_.
 
 Note that the `payment_secret` feature prevents probing attacks from nodes
 along the path, but only if made compulsory: yet doing so will break
-older clients which do not understand the feature.
+older clients which do not understand the feature.  It is compulsory
+for `basic_mpp` however, as that is also a recent feature, and makes
+nodes more vulnerable to probing attacks as there is no lower-bound
+on the amount sent.
 
 ### Requirements
 
 A writer:
-  - if `payment_secret` feature is set:
-    - MUST include an `s` field.
-  - otherwise:
-    - MUST NOT include an `s` field.
-  - if the `payment_secret` field is required in the onion:
-    - MUST set the even feature `payment_secret`.
-  - If the final node supports [Basic multi-part payments](04-onion-routing.md#basic-multi-part-payments):
-    - MUST set the `basic_mpp` feature.
-  - Otherwise:
-    - MUST NOT set the `basic_mpp` feature.
-  - if it sets either `payment_secret` or `basic_mpp` features:
-    - MUST set the `var_onion_optin` feature.
-  - MUST set `var_onion_optin` if and only if it supports that feature.
+  - MUST set the `9` field to a feature vector compliant with the
+    [BOLT 9 origin node requirements](09-features.md#requirements).
+  - MUST set an `s` field if and only if the `payment_secret` feature is set.
 
 A reader:
+  - if the feature vector does not set all known, transitive feature dependencies:
+    - MUST NOT attempt the payment.
   - if the `basic_mpp` feature is offered in the invoice:
     - MAY pay using [Basic multi-part payments](04-onion-routing.md#basic-multi-part-payments).
   - otherwise:
@@ -566,8 +565,8 @@ Breakdown:
   * `6c6e626332306d0b25fe64570d0e496dbd9f8b0d000dbb44824f751380da37c6dba89b14f6f92047d63f576e304021a00008101820283038404800081018202830384048000810182028303840480810243500c318a1e0a628b34025e8c9019ab6d09b64c2b3c66a693d0dc63194b02481931000` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `399a8b167029fda8564fd2e99912236b0b8017e7d17e416ae17307812c92cf42` hex of SHA256 of the preimage
 
-> ### Please send $30 for coffee beans to the same peer, which supports features 15 and 99, using secret 0x1111111111111111111111111111111111111111111111111111111111111111
-> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqpqqq4u9s93jtgysm3mrwll70zr697y3mf902hvxwej0v7c62rsltw83ng0pu8w3j230sluc5gxkdmm9dvpy9y6ggtjd2w544mzdrcs42t7sqdkcy8h
+> ### Please send $30 for coffee beans to the same peer, which supports features 9, 15 and 99, using secret 0x1111111111111111111111111111111111111111111111111111111111111111
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqpqsq67gye39hfg3zd8rgc80k32tvy9xk2xunwm5lzexnvpx6fd77en8qaq424dxgt56cag2dpt359k3ssyhetktkpqh24jqnjyw6uqd08sgptq44qu
 
 Breakdown:
 
@@ -583,13 +582,13 @@ Breakdown:
   * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
   * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: 0x1111111111111111111111111111111111111111111111111111111111111111
 * `9`: features
-  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20) 4
-  * `sqqqqqqqqqqqqqqqpqqq`: b1000....00001000000000000000
-* `pqqq4u9s93jtgysm3mrwll70zr697y3mf902hvxwej0v7c62rsltw83ng0pu8w3j230sluc5gxkdmm9dvpy9y6ggtjd2w544mzdrcs42t7sq`: signature
-* `dkcy8h`: Bech32 checksum
+  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
+  * `sqqqqqqqqqqqqqqqpqsq`: b1000....00001000001000000000
+* `67gye39hfg3zd8rgc8032tvy9xk2xunwm5lzexnvpx6fd77en8qaq424dxgt56cag2dpt359k3ssyhetktkpqh24jqnjyw6uqd08sgp`: signature
+* `tq44qu`: Bech32 checksum
 
 > # Same, but adding invalid unknown feature 100
-> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q4psqqqqqqqqqqqqqqqpqqqqu7fz6pjqczdm3jp3qps7xntj2w2mm70e0ckhw3c5xk9p36pvk3sewn7ncaex6uzfq0vtqzy28se6pcwn790vxex7xystzumhg55p6qq9wq7td
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q4psqqqqqqqqqqqqqqqpqsqq40wa3khl49yue3zsgm26jrepqr2eghqlx86rttutve3ugd05em86nsefzh4pfurpd9ek9w2vp95zxqnfe2u7ckudyahsa52q66tgzcp6t2dyk
 
 Breakdown:
 
@@ -606,9 +605,9 @@ Breakdown:
   * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: 0x1111111111111111111111111111111111111111111111111111111111111111
 * `9`: features
   * `q4`: `data_length` (`q` = 0, `4` = 21; 0 * 32 + 21 == 21)
-  * `psqqqqqqqqqqqqqqqpqqqq`: b000011000....00001000000000000000
-* `u7fz6pjqczdm3jp3qps7xntj2w2mm70e0ckhw3c5xk9p36pvk3sewn7ncaex6uzfq0vtqzy28se6pcwn790vxex7xystzumhg55p6qq`: signature
-* `9wq7td`: Bech32 checksum
+  * `psqqqqqqqqqqqqqqqpqsqq`: b000011000....00001000001000000000
+* `40wa3khl49yue3zsgm26jrepqr2eghqlx86rttutve3ugd05em86nsefzh4pfurpd9ek9w2vp95zxqnfe2u7ckudyahsa52q66tgzcp`: signature
+* `6t2dyk`: Bech32 checksum
 
 # Authors
 
