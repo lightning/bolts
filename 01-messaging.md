@@ -244,7 +244,16 @@ The `features` field MUST be padded to bytes with 0s.
    * [`gflen*byte`:`globalfeatures`]
    * [`u16`:`flen`]
    * [`flen*byte`:`features`]
+   * [`init_tlvs`:`tlvs`]
 
+1. tlvs: `init_tlvs`
+2. types:
+    1. type: 1 (`networks`)
+    2. data:
+        * [`...*chain_hash`:`chains`]
+
+
+The optional `networks` indicates the chains the node is interested in.
 
 #### Requirements
 
@@ -254,6 +263,7 @@ The sending node:
   - MUST set any undefined feature bits to 0.
   - SHOULD NOT set features greater than 13 in `globalfeatures`.
   - SHOULD use the minimum length required to represent the `features` field.
+  - SHOULD set `networks` to all chains it will gossip or open channels for.
 
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
@@ -263,6 +273,8 @@ The receiving node:
     - MUST ignore the bit.
   - upon receiving unknown _even_ feature bits that are non-zero:
     - MUST fail the connection.
+  - upon receiving `networks` containing no common chains
+    - MAY fail the connection.
   - if the feature vector does not set all known, transitive dependencies:
     - MUST fail the connection.
 
@@ -275,6 +287,11 @@ This semantic allows both future incompatible changes and future backward compat
 
 Nodes wait for receipt of the other's features to simplify error
 diagnosis when features are incompatible.
+
+Since all networks share the same port, but most implementations only
+support a single network, the `networks` fields avoids nodes
+erroneously believing they will receive updates about their preferred
+network, or that they can open channels.
 
 ### The `error` Message
 
