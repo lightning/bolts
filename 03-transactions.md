@@ -62,7 +62,7 @@ Most transaction outputs used here are pay-to-witness-script-hash<sup>[BIP141](h
 
 `2 <pubkey1> <pubkey2> 2 OP_CHECKMULTISIG`
 
-* Where `pubkey1` is the numerically lesser of the two `funding_pubkey` in compressed format, and where `pubkey2` is the numerically greater of the two.
+* Where `pubkey1` is the lexicographically lesser of the two `funding_pubkey` in compressed format, and where `pubkey2` is the lexicographically greater of the two.
 
 ## Commitment Transaction
 
