@@ -153,7 +153,7 @@ Currently defined tagged fields are:
 ### Requirements
 
 A writer:
-  - MUST include exactly one `p` and `s` fields.
+  - MUST include exactly one `p`, `9` (with at least the `payment_secret` support bit set), and `s` fields.
   - MUST set `payment_hash` to the SHA2 256-bit hash of the `payment_preimage`
   that will be given in return for payment.
   - MUST include either exactly one `d` or exactly one `h` field.
@@ -190,7 +190,7 @@ A writer:
   - if `9` contains non-zero bits:
     - SHOULD use the minimum `data_length` possible.
   - otherwise:
-    - MUST omit the `9` field altogether.
+    - MUST omit the `9` and `s` field altogether and follow the old BOLT11 protocol.
   - MUST pad field data to a multiple of 5 bits, using 0s.
   - if a writer offers more than one of any field type, it:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
