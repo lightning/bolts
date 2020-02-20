@@ -51,6 +51,7 @@ A node:
     * [Legacy HopData Payload Format](#legacy-hop_data-payload-format)
     * [TLV Payload Format](#tlv_payload-format)
     * [Basic Multi-Part Payments](#basic-multi-part-payments)
+    * [Directed Messages](#directed-messages)
   * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
     * [Payload for the Last Node](#payload-for-the-last-node)
     * [Non-strict Forwarding](#non-strict-forwarding)
@@ -62,6 +63,7 @@ A node:
   * [Returning Errors](#returning-errors)
     * [Failure Messages](#failure-messages)
     * [Receiving Failure Codes](#receiving-failure-codes)
+  * [Directed Message Replies](#directed-message-replies)
   * [Test Vector](#test-vector)
     * [Returning Errors](#returning-errors)
   * [References](#references)
@@ -365,6 +367,13 @@ An implementation may choose not to fulfill an HTLC set which
 otherwise meets the amount criterion (eg. some other failure, or
 invoice timeout), however if it were to fulfill only some of them,
 intermediary nodes could simply claim the remaining ones.
+
+### Directed Messages
+
+Directed messages have an onion with an alternate `hop_payload`
+format.  If this node is not the intended recipient, the payload is
+simply a 33-byte pubkey indicating the next recipient.  Otherwise, the
+payload is the message for this node.
 
 # Accepting and Forwarding a Payment
 
@@ -1141,6 +1150,11 @@ The _origin node_:
     - SHOULD then retry routing and sending the payment.
   - MAY use the data specified in the various failure types for debugging
   purposes.
+
+## Directed Message Replies
+
+Directed message replies are encoded the same way as failure messages,
+except the contents is a directed message for the originator.
 
 # Test Vector
 

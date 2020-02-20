@@ -1,4 +1,4 @@
-# BOLT #7: P2P Node and Channel Discovery
+# BOLT #7: P2P Node and Channel Discovery and Directed Messages
 
 This specification describes simple node discovery, channel discovery, and channel update mechanisms that do not rely on a third-party to disseminate the information.
 
@@ -31,6 +31,7 @@ multiple `node_announcement` messages, in order to update the node information.
   * [HTLC Fees](#htlc-fees)
   * [Pruning the Network View](#pruning-the-network-view)
   * [Recommendations for Routing](#recommendations-for-routing)
+  * [Directed Messages](#directed-messages)
   * [References](#references)
 
 ## Definition of `short_channel_id`
@@ -1102,6 +1103,37 @@ A->D's `update_add_htlc` message would be:
 
 And D->C's `update_add_htlc` would again be the same as B->C's direct payment
 above.
+
+# Directed Messages
+
+Directed messages allow peers to use existing connections to query for
+invoices (see [BOLT 12](12-offer-encoding.md)).  Like gossip messages,
+they are not associated with a particular local channel.  Like HTLCs,
+they use [BOLT 4](04-onion-routing.md#directed-messages) protocol for
+end-to-end encryption.
+
+Directed messages are unreliable: in particular, they are designed to
+be cheap and not to need to be committed to a database (though an
+implementation may choose to).  Each one has an optional reply, which
+is [onion encoded](04-onion-routing.md#directed-message-replies) 0just
+like HTLC errors.
+
+## The `directed` and `directed_reply` Messages
+
+1. type: 385 (`directed`) (`option_directed_messages`)
+2. data:
+    * [`1366*byte`:`onion_routing_packet`]
+
+1. type: 386 (`directed_reply`) (`option_directed_messages`)
+2. data:
+    * [`sha256`:`onion_routing_packet_hash`]
+    * [`u16`:`len`]
+    * [`len*byte`:`reply`]
+
+## Requirements
+
+FIXME: similar to update_add_htlc and update_fail_htlc.
+FIXME: define reasonable timeout after which you can forget if not replied?
 
 ## References
 
