@@ -21,10 +21,6 @@
 
 * [Contribution Guide](CONTRIBUTING.md)
 
-## Proposals
-
-* [Proposal States](https://github.com/lightningnetwork/lightning-rfc/wiki/Lightning-Specification-1.1-Proposal-States)
-
 ## More
 
 * [Tools](https://github.com/lightningnetwork/lightning-rfc/tree/master/tools)
