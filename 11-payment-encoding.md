@@ -153,7 +153,8 @@ Currently defined tagged fields are:
 ### Requirements
 
 A writer:
-  - MUST include exactly one `p` and `s` fields.
+  - MUST include exactly one `p` field.
+  - If the `payment_secret` feature is set, MUST include exactly one `s` field.
   - MUST set `payment_hash` to the SHA2 256-bit hash of the `payment_preimage`
   that will be given in return for payment.
   - MUST include either exactly one `d` or exactly one `h` field.
