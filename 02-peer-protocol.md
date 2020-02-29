@@ -123,13 +123,8 @@ the funding transaction and both versions of the commitment transaction.
    * [`point`:`htlc_basepoint`]
    * [`point`:`first_per_commitment_point`]
    * [`byte`:`channel_flags`]
-   * [`open_channel_tlvs`:`tlvs`]
-
-1. tlvs: `open_channel_tlvs`
-2. types:
-    1. type: 0 (`upfront_shutdown_script`)
-    2. data:
-        * [`...*byte`:`shutdown_scriptpubkey`]
+   * [`u16`:`shutdown_len`] (`option_upfront_shutdown_script`)
+   * [`shutdown_len*byte`:`shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
 The `chain_hash` value denotes the exact blockchain that the opened channel will
 reside within. This is usually the genesis hash of the respective blockchain.
@@ -212,11 +207,9 @@ The sending node:
   - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
   - MUST set undefined bits in `channel_flags` to 0.
   - if both nodes advertised the `option_upfront_shutdown_script` feature:
-    - MUST include `upfront_shutdown_script` with either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
+    - MUST include either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey`.
   - otherwise:
-    - MAY include `upfront_shutdown_script`.
-  - if it includes `open_channel_tlvs`:
-    - MUST include `upfront_shutdown_script`.
+    - MAY include a`shutdown_scriptpubkey`.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -298,13 +291,8 @@ funding transaction and both versions of the commitment transaction.
    * [`point`:`delayed_payment_basepoint`]
    * [`point`:`htlc_basepoint`]
    * [`point`:`first_per_commitment_point`]
-   * [`accept_channel_tlvs`:`tlvs`]
-
-1. tlvs: `accept_channel_tlvs`
-2. types:
-    1. type: 0 (`upfront_shutdown_script`)
-    2. data:
-        * [`...*byte`:`shutdown_scriptpubkey`]
+   * [`u16`:`shutdown_len`] (`option_upfront_shutdown_script`)
+   * [`shutdown_len*byte`:`shutdown_scriptpubkey`] (`option_upfront_shutdown_script`)
 
 #### Requirements
 
@@ -1139,14 +1127,15 @@ messages are), they are independent of requirements here.
    * [`channel_id`:`channel_id`]
    * [`u64`:`next_commitment_number`]
    * [`u64`:`next_revocation_number`]
-   * [`32*byte`:`your_last_per_commitment_secret`]
-   * [`point`:`my_current_per_commitment_point`]
+   * [`32*byte`:`your_last_per_commitment_secret`] (option_data_loss_protect,option_static_remotekey)
+   * [`point`:`my_current_per_commitment_point`] (option_data_loss_protect,option_static_remotekey)
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
 are independent for each peer in the channel and start at 0.
 They're only explicitly relayed to the other node in the case of
 re-establishment, otherwise they are implicit.
+
 
 ### Requirements
 
@@ -1189,14 +1178,16 @@ The sending node:
   next `revoke_and_ack` message it expects to receive.
   - if `option_static_remotekey` applies to the commitment transaction:
     - MUST set `my_current_per_commitment_point` to a valid point.
-  - otherwise:
+  - otherwise, if it supports `option_data_loss_protect`:
     - MUST set `my_current_per_commitment_point` to its commitment point for
-      the last signed commitment it received from its channel peer (i.e. the commitment_point
+      the last signed commitment it received from its channel peer (i.e. the commitment_point 
       corresponding to the commitment transaction the sender would use to unilaterally close).
-  - if `next_revocation_number` equals 0:
-    - MUST set `your_last_per_commitment_secret` to all zeroes
-  - otherwise:
-    - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret` it received
+  - if `option_static_remotekey` applies to the commitment transaction, or the sending node supports `option_data_loss_protect`:
+    - if `next_revocation_number` equals 0:
+      - MUST set `your_last_per_commitment_secret` to all zeroes
+    - otherwise:
+      - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret`
+    it received
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
@@ -1237,9 +1228,10 @@ A node:
       - MUST NOT broadcast its commitment transaction.
       - SHOULD fail the channel.
     - otherwise:
-      - if `your_last_per_commitment_secret` does not match the expected values:
+	  - if `your_last_per_commitment_secret` does not match the expected values:
         - SHOULD fail the channel.
-  - otherwise, if it supports `option_data_loss_protect`:
+  - otherwise, if it supports `option_data_loss_protect`, AND the `option_data_loss_protect`
+  fields are present:
     - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
     `next_revocation_number` minus 1:
