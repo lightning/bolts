@@ -22,7 +22,6 @@ All data fields are unsigned big-endian unless otherwise specified.
     * [The `ping` and `pong` Messages](#the-ping-and-pong-messages)
   * [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
   * [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
-  * [Appendix C: Message Extension](#appendix-c-message-extension)
   * [Acknowledgments](#acknowledgments)
   * [References](#references)
   * [Authors](#authors)
@@ -38,11 +37,19 @@ After decryption, all Lightning messages are of the form:
 1. `type`: a 2-byte big-endian field indicating the type of message
 2. `payload`: a variable-length payload that comprises the remainder of
    the message and that conforms to a format matching the `type`
-3. `extension`: an optional [TLV stream](#type-length-value-format)
 
 The `type` field indicates how to interpret the `payload` field.
 The format for each individual type is defined by a specification in this repository.
 The type follows the _it's ok to be odd_ rule, so nodes MAY send _odd_-numbered types without ascertaining that the recipient understands it.
+
+A sending node:
+  - MUST NOT send an evenly-typed message not listed here without prior negotiation.
+
+A receiving node:
+  - upon receiving a message of _odd_, unknown type:
+    - MUST ignore the received message.
+  - upon receiving a message of _even_, unknown type:
+    - MUST fail the channels.
 
 The messages are grouped logically into five groups, ordered by the most significant bit that is set:
 
@@ -54,9 +61,10 @@ The messages are grouped logically into five groups, ordered by the most signifi
 
 The size of the message is required by the transport layer to fit into a 2-byte unsigned int; therefore, the maximum possible size is 65535 bytes.
 
-A sending node:
-  - MUST NOT send an evenly-typed message not listed here without prior negotiation.
-  - MUST NOT send evenly-typed TLV records in the `extension` without prior negotiation.
+A node:
+  - MUST ignore any additional data within a message beyond the length that it expects for that type.
+  - upon receiving a known message with insufficient length for the contents:
+    - MUST fail the channels.
   - that negotiates an option in this specification:
     - MUST include all the fields annotated with that option.
   - When defining custom messages:
@@ -66,18 +74,6 @@ A sending node:
       additional data.
     - SHOULD pick an even `type` identifiers when regular nodes should reject
       the message and close the connection.
-
-A receiving node:
-  - upon receiving a message of _odd_, unknown type:
-    - MUST ignore the received message.
-  - upon receiving a message of _even_, unknown type:
-    - MUST fail the channels.
-  - upon receiving a known message with insufficient length for the contents:
-    - MUST fail the channels.
-  - upon receiving a message with an `extension`:
-    - MAY ignore the `extension`.
-    - Otherwise, if the `extension` is invalid:
-      - MUST fail the channels.
 
 ### Rationale
 
@@ -89,9 +85,8 @@ Length is limited to 65535 bytes by the cryptographic wrapping, and
 messages in the protocol are never more than that length anyway.
 
 The _it's ok to be odd_ rule allows for future optional extensions
-without negotiation or special coding in clients. The _extension_ field
-similarly allows for future expansion by letting senders include additional
-TLV data.
+without negotiation or special coding in clients. The "ignore
+additional data" rule similarly allows for future expansion.
 
 Implementations may prefer to have message data aligned on an 8-byte
 boundary (the largest natural alignment requirement of any type here);
@@ -900,27 +895,6 @@ failure:
 
 1. Invalid stream: 0xffffffffffffffffff 00 00 00
 2. Reason: valid TLV records but invalid ordering
-
-## Appendix C: Message Extension
-
-This section contains examples of valid and invalid extensions on the `init`
-message. The base `init` message (without extensions) for these examples is
-`0x001000000000` (all features turned off).
-
-The following `init` messages are valid:
-
-- `0x001000000000`: no extension provided
-- `0x00100000000001012a030104`: the extension contains two _odd_ TLV records (with types `0x01` and `0x03`)
-
-The following `init` messages are invalid:
-
-- `0x00100000000001`: the extension is present but truncated
-- `0x00100000000002012a`: the extension contains unknown _even_ TLV records (assuming that TLV type `0x02` is unknown)
-- `0x001000000000010101010102`: the extension TLV stream is invalid (duplicate TLV record type `0x01`)
-
-Note that when messages are signed, the _extension_ is part of the signed bytes.
-Nodes should store the _extension_ bytes even if they don't understand them to
-be able to correctly verify signatures.
 
 ## Acknowledgments
 
