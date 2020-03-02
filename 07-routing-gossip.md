@@ -788,7 +788,7 @@ The receiver of `query_channel_range`:
 	  - MUST set `first_blocknum` less than or equal to the `first_blocknum` in `query_channel_range`
 	  - MUST set `first_blocknum` plus `number_of_blocks` greater than `first_blocknum` in `query_channel_range`.
 	- successive `reply_channel_range` message:
-	  - MUST set `first_blocknum` to the previous `first_blocknum` plus `number_of_blocks` minus one.
+	  - MUST set `first_blocknum` to the previous `first_blocknum` plus `number_of_blocks`.
 	- the final `reply_channel_range` message:
 	  - MUST have `first_blocknum` plus `number_of_blocks` equal or greater than the `query_channel_range` `first_blocknum` plus `number_of_blocks`.
 
