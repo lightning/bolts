@@ -787,9 +787,20 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 #### Requirements
 
 A sending node:
-  - MUST NOT offer `amount_msat` it cannot pay for in the
-remote commitment transaction at the current `feerate_per_kw` (see "Updating
-Fees") while maintaining its channel reserve.
+  - if it is _responsible_ for paying the Bitcoin fee:
+    - MUST NOT offer `amount_msat` if, after adding that HTLC to its commitment
+    transaction, it cannot pay the fee for either the local or remote commitment
+    transaction at the current `feerate_per_kw` while maintaining its channel
+    reserve (see "Updating Fees").
+    - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
+    transaction, its remaining balance doesn't allow it to pay the fee for a
+    future additional non-dust HTLC at `2*feerate_per_kw` while maintaining its
+    channel reserve ("fee spike buffer").
+  - if it is _not responsible_ for paying the Bitcoin fee:
+    - SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to
+    its commitment transaction, it cannot pay the fee for the updated local or
+    remote transaction at the current `feerate_per_kw` while maintaining its
+    channel reserve.
   - MUST offer `amount_msat` greater than 0.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
@@ -855,6 +866,15 @@ seconds, and the protocol only supports an expiry in blocks.
 `amount_msat` is deliberately limited for this version of the
 specification; larger amounts are not necessary, nor wise, during the
 bootstrap phase of the network.
+
+The node _responsible_ for paying the Bitcoin fee has to maintain a small "fee
+spike buffer" on top of its reserve to accommodate a future fee increase.
+Without this buffer, the node _responsible_ for paying the Bitcoin fee may
+reach a state where it is unable to receive any HTLC while maintaining its
+channel reserve (because of the increased weight of the commitment transaction),
+resulting in an unusable channel.
+See [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728) for
+more details.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
 
