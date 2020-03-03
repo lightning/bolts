@@ -194,7 +194,7 @@ willing to accept large channel even before exchanging the `init` message with t
 
 Implementers are advised to provide the means to scale the number of confirmations, tweaking 
 `accept_channel.minimum_depth`, with the size of the funding amount. A rule of thumb is to 
-wait enough blocks until the cumulative block reward exceeds the size of the channel.
+wait enough blocks until the cumulative block reward largely exceeds the size of the channel.
 
 #### Requirements
 
