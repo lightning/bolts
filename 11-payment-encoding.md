@@ -610,6 +610,38 @@ Breakdown:
 * `40wa3khl49yue3zsgm26jrepqr2eghqlx86rttutve3ugd05em86nsefzh4pfurpd9ek9w2vp95zxqnfe2u7ckudyahsa52q66tgzcp`: signature
 * `6t2dyk`: Bech32 checksum
 
+> ### Please send 0.00967878534 BTC for a list of items within one week, amount in pico-BTC
+> lnbc9678785340p1pwmna7lpp5gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0sd8dgfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khxxqyjw5qcqp2rzjq0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9qn07ytgrxxzad9hc4xt3mawjjt8znfv8xzscs7007v9gh9j569lencxa8xeujzkxs0uamak9aln6ez02uunw6rd2ht2sqe4hz8thcdagpleym0j
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on bitcoin mainnet
+* `9678785340p`: amount (9678785340 pico-bitcoin = 967878534 milli satoshi)
+* `1`: Bech32 separator
+* `pwmna7l`: timestamp (1572468703)
+* `p`: payment hash.
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0s`: payment hash 462264ede7e14047e9b249da94fefc47f41f7d02ee9b091815a5506bc8abf75f
+* `d`: short description
+  * `8d`: `data_length` (`8` = 7, `d` = 13; 7 * 32 + 13 == 237)
+  * `gfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khx`: 'Blockstream Store: 88.85 USD for Blockstream Ledger Nano S x 1, \"Back In My Day\" Sticker x 2, \"I Got Lightning Working\" Sticker x 2 and 1 more items'
+* `x`: expiry time
+  * `qy`: `data_length` (`q` = 0, `y` = 2; 0 * 32 + 4 == 4)
+  * `jw5q`: 604800 seconds (`j` = 18, `w` = 14, `5` = 20, `q` = 0; 18 * 32^3 + 14 * 32^2 + 20 * 32 + 0 == 604800)
+* `c`: `min_final_cltv_expiry`
+  * `qp`: `data_length` (`q` = 0, `p` = 1; 0 * 32 + 1 == 1)
+  * `2`: min_final_cltv_expiry = 10
+* `r`: tagged field: route information
+  * `zj`: `data_length` (`z` = 2, `j` = 18; 2 * 32 + 18 == 82)
+  * `q0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9q`:
+    * pubkey: 03d06758583bb5154774a6eb221b1276c9e82d65bbaceca806d90e20c108f4b1c7
+    * short_channel_id: 589390x3312x1
+    * fee_base_msat = 1000
+    * fee_proportional_millionths = 2500
+    * cltv_expiry_delta = 40
+* `n07ytgrxxzad9hc4xt3mawjjt8znfv8xzscs7007v9gh9j569lencxa8xeujzkxs0uamak9aln6ez02uunw6rd2ht2sqe4hz8thcdagp`: signature
+* `leym0j`: Bech32 checksum
+
 # Authors
 
 [ FIXME: ]
