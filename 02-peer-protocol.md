@@ -872,9 +872,8 @@ spike buffer" on top of its reserve to accommodate a future fee increase.
 Without this buffer, the node _responsible_ for paying the Bitcoin fee may
 reach a state where it is unable to receive any HTLC while maintaining its
 channel reserve (because of the increased weight of the commitment transaction),
-resulting in an unusable channel.
-See [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728) for
-more details.
+resulting in an unusable channel. See [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728)
+for more details.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
 
