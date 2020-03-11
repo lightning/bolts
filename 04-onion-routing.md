@@ -95,7 +95,7 @@ There are a number of conventions adhered to throughout this document:
  - Each hop in the route has a variable length `hop_payload`, or a fixed-size
    legacy `hop_data` payload.
     - The legacy `hop_data` is identified by a single `0x00`-byte prefix
-	- The variable length `hop_payload` is prefixed with a `varint` encoding
+    - The variable length `hop_payload` is prefixed with a `varint` encoding
       the length in bytes, excluding the prefix and the trailing HMAC.
 
 # Key Generation
@@ -215,10 +215,10 @@ Field descriptions:
           incoming_htlc_amt - fee >= amt_to_forward
 
      Where `fee` is calculated according to the receiving peer's advertised fee
-     schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees).
+     schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees)).
 
      For the final node, this value MUST be exactly equal to the incoming htlc
-	 amount, otherwise the HTLC should be rejected.
+     amount, otherwise the HTLC should be rejected.
 
    * `outgoing_cltv_value`: The CLTV value that the _outgoing_ HTLC carrying
      the packet should have.
@@ -227,7 +227,7 @@ Field descriptions:
 
      Inclusion of this field allows a hop to both authenticate the information
      specified by the origin node, and the parameters of the HTLC forwarded,
-	 and ensure the origin node is using the current `cltv_expiry_delta` value.
+     and ensure the origin node is using the current `cltv_expiry_delta` value.
      If there is no next hop, `cltv_expiry_delta` is 0.
      If the values don't correspond, then the HTLC should be failed and rejected, as
      this indicates that either a forwarding node has tampered with the intended HTLC
@@ -272,19 +272,19 @@ The writer:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
   - For every non-final node:
     - MUST include `short_channel_id`
-	- MUST NOT include `payment_data`
+    - MUST NOT include `payment_data`
   - For the final node:
     - MUST NOT include `short_channel_id`
     - if the recipient provided `payment_secret`:
       - MUST include `payment_data`
-	  - MUST set `payment_secret` to the one provided
-	  - MUST set `total_msat` to the total amount it will send
+      - MUST set `payment_secret` to the one provided
+      - MUST set `total_msat` to the total amount it will send
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
   - if it is the final node:
     - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it
-	  is not present.
+      is not present.
 
 The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format)
 and [below](#basic-multi-part-payments).
@@ -334,7 +334,7 @@ The final node:
     - if the total `amount_msat` of this HTLC set equals `total_msat`:
       - SHOULD fulfill all HTLCs in the HTLC set
     - otherwise, if the total `amount_msat` of this HTLC set is less than
-	  `total_msat`:
+      `total_msat`:
       - MUST NOT fulfill any HTLCs in the HTLC set
       - MUST fail all HTLCs in the HTLC set after some reasonable timeout.
         - SHOULD wait for at least 60 seconds after the initial HTLC.
