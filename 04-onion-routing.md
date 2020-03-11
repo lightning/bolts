@@ -51,6 +51,7 @@ A node:
     * [Legacy HopData Payload Format](#legacy-hop_data-payload-format)
     * [TLV Payload Format](#tlv_payload-format)
     * [Basic Multi-Part Payments](#basic-multi-part-payments)
+    * [Route Blinding](#route-blinding)
   * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
     * [Payload for the Last Node](#payload-for-the-last-node)
     * [Non-strict Forwarding](#non-strict-forwarding)
@@ -63,7 +64,7 @@ A node:
     * [Failure Messages](#failure-messages)
     * [Receiving Failure Codes](#receiving-failure-codes)
   * [Test Vector](#test-vector)
-    * [Returning Errors](#returning-errors)
+    * [Returning Errors Tests](#returning-errors-tests)
   * [References](#references)
   * [Authors](#authors)
 
@@ -263,6 +264,12 @@ It is formatted according to the Type-Length-Value format defined in [BOLT #1](0
     2. data:
         * [`32*byte`:`payment_secret`]
         * [`tu64`:`total_msat`]
+    1. type: 10 (`encrypted_recipient_data`)
+    2. data:
+        * [`...*byte`:`encrypted_data`]
+    1. type: 12 (`blinding_point`)
+    2. data:
+        * [`point`:`blinding`]
 
 ### Requirements
 
@@ -272,7 +279,8 @@ The writer:
   - For every node:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
   - For every non-final node:
-    - MUST include `short_channel_id`
+    - MUST include `short_channel_id`, unless it's using route blinding and
+      has included it inside `encrypted_recipient_data`
     - MUST NOT include `payment_data`
   - For the final node:
     - MUST NOT include `short_channel_id`
@@ -289,6 +297,10 @@ The reader:
 
 The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format)
 and [below](#basic-multi-part-payments).
+
+The requirements for the fields related to route blinding
+(`encrypted_recipient_data` and `blinding_point`) are also specified
+[below](#route-blinding).
 
 ### Basic Multi-Part Payments
 
@@ -366,6 +378,155 @@ An implementation may choose not to fulfill an HTLC set which
 otherwise meets the amount criterion (eg. some other failure, or
 invoice timeout), however if it were to fulfill only some of them,
 intermediary nodes could simply claim the remaining ones.
+
+### Route Blinding
+
+Nodes receiving onion packets may hide their identity from senders by
+"blinding" an arbitrary amount of hops at the end of an onion path.
+
+When using route blinding, nodes find a route to themselves from a given
+"introduction node". They then use ECDH with each node in that route to create
+a "blinded" node ID and an encrypted blob (`encrypted_data`) for each one of
+the blinded nodes.
+
+They communicate this blinded route and the encrypted blobs to the sender.
+The sender finds a route to the introduction node and extends it with the
+blinded route provided by the recipient. The sender includes the encrypted
+blobs in the corresponding onion payloads: they allow nodes in the blinded
+part of the route to "unblind" the next node and correctly forward the packet.
+
+The `encrypted_data` is a TLV stream, encrypted for a given blinded node, that
+may contain the following TLV fields:
+
+1. `tlv_stream`: `encrypted_data_tlv`
+2. types:
+    1. type: 1 (`padding`)
+    2. data:
+        * [`...*byte`:`padding`]
+    1. type: 2 (`short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`short_channel_id`]
+    1. type: 4 (`next_node_id`)
+    2. data:
+        * [`point`:`node_id`]
+    1. type: 6 (`path_id`)
+    2. data:
+        * [`...*byte`:`data`]
+    1. type: 8 (`next_blinding_override`)
+    2. data:
+        * [`point`:`blinding`]
+
+#### Requirements
+
+A recipient N(r) creating a blinded route `N(0) -> N(1) -> ... -> N(r)` to itself:
+
+- MUST create a blinded node ID `B(i)` for each node using the following algorithm:
+  - `e(0) <- {0;1}^256`
+  - `E(0) = e(0) * G`
+  - For every node `N(i)` in the route:
+    - let `P(i) = k(i) * G` be `N(i)`'s `node_id` (`k(i)` is `N(i)`'s private key)
+    - `ss(i) = SHA256(e(i) * P(i)) = SHA256(k(i) * E(i))` (ECDH shared secret known only by `N(r)` and `N(i)`)
+    - `B(i) = HMAC256("blinded_node_id", ss(i)) * P(i)` (blinded `node_id` for `N(i)`, private key known only by `N(i)`)
+    - `rho(i) = HMAC256("rho", ss(i))`
+    - `e(i+1) = SHA256(E(i) || ss(i)) * e(i)` (ephemeral private key, only known by `N(r)`)
+    - `E(i+1) = SHA256(E(i) || ss(i)) * E(i)` (NB: `N(i)` MUST NOT learn `e(i)`)
+- SHOULD create an `encrypted_data` for each blinded node `B(i)`
+- If it creates `encrypted_data`:
+  - MUST encrypt it with ChaCha20-Poly1305 using the `rho(i)` key and an all-zero nonce
+  - MAY store data in the `path_id` of the payload to itself to verify that
+    the route is used in the right context
+  - MAY add padding data to ensure all `encrypted_data` have the same length
+- MUST communicate the blinded node IDs `B(i)` and `encrypted_data(i)` to the sender
+- MUST communicate the real node ID of the introduction point `N(0)` to the sender
+- MUST communicate the first ephemeral key `E(0)` to the sender
+
+The sender:
+
+- MUST provide the `encrypted_data` field for each node in the blinded route
+  in their respective onion payloads
+- MUST communicate `E(0)` to the introduction point
+
+The introduction point:
+
+- MUST compute:
+  - `ss(0) = SHA256(k(0) * E(0))` (standard ECDH)
+  - `rho(0) = HMAC256("rho", ss(0))`
+  - `E(1) = SHA256(E(0) || ss(0)) * E(0)`
+- If an `encrypted_data` field is provided:
+  - MUST decrypt it using `rho(0)` and `E(0)`
+  - MUST use the decrypted fields to locate the next node
+- If `encrypted_data` contains a `next_blinding_override`:
+  - MUST use it as the next blinding point
+- Otherise:
+  - MUST use `E(1)` as the next blinding point
+- MUST forward the onion and communicate the next blinding point to the next node
+
+An intermediate node in the blinded route:
+
+- MUST compute:
+  - `ss(i) = SHA256(k(i) * E(i))` (standard ECDH)
+  - `b(i) = HMAC256("blinded_node_id", ss(i)) * k(i)`
+  - `rho(i) = HMAC256("rho", ss(i))`
+  - `E(i+1) = SHA256(E(i) || ss(i)) * E(i)`
+- MUST use `b(i)` instead of its private key `k(i)` to decrypt the onion. Note
+  that the node may instead tweak the onion ephemeral key with
+  `HMAC256("blinded_node_id", ss(i))` which achieves the same result.
+- If an `encrypted_data` field is provided:
+  - MUST decrypt it using `rho(i)` and `E(i)`
+  - MUST use the decrypted fields to locate the next node
+- If `encrypted_data` contains a `next_blinding_override`:
+  - MUST use it as the next blinding point
+- Otherise:
+  - MUST use `E(i+1)` as the next blinding point
+- MUST forward the onion and communicate the next blinding point to the next node
+
+The final recipient:
+
+- MUST compute:
+  - `ss(r) = SHA256(k(r) * E(r))` (standard ECDH)
+  - `b(r) = HMAC256("blinded_node_id", ss(r)) * k(r)`
+  - `rho(r) = HMAC256("rho", ss(r))`
+- If an `encrypted_data` field is provided:
+  - MUST decrypt it using `rho(r)` and `E(r)`
+- MUST ignore the message if `E(r)` or `path_id` does not match the
+  blinded route it created
+
+#### Rationale
+
+Route blinding is a lightweight technique to provide recipient anonymity.
+It's more flexible than rendezvous because it lets senders choose what data
+they include in each node's onion payload and retry with updated values if
+the route fails.
+
+Use-cases where route blinding is useful include:
+
+- Recipient anonymity when receiving payments
+- Using unannounced channels in invoices without revealing them
+- Forcing a message to go through a specific set of intermediaries that can witness it
+- Providing anonymous reply paths for onion messages (offers, stuckless payments, etc)
+
+Each node in the blinded route needs to receive `E(i)` to be able to decrypt
+the onion and the `encrypted_data`. Protocols that use route blinding must
+specify how this value is propagated between nodes.
+
+When concatenating two blinded routes generated by different nodes, the
+last node of the first route needs to know the first `blinding` of the second
+route: the `next_blinding_override` field must be used to transmit this data.
+
+The final recipient must verify that the blinded route is used in the right
+context (e.g. for a specific payment). It can do so by storing `E(r)` and the
+context (e.g. a `payment_hash`), and verifying that they match when receiving
+the onion. Otherwise, to avoid additional storage cost, it can put some context
+information in the `path_id` field (e.g. a `payment_hash`), hash it with a
+local secret and verify that when receiving the onion. A local secret must be
+used when relying on this, otherwise malicious senders would be able to create
+the same `path_id` and trick the recipient into accepting the route outside of
+its intended context.
+
+The `padding` field can be used to ensure that all `encrypted_data` have the
+same length. It's particularly useful when adding dummy hops at the end of a
+blinded route, to prevent the sender from figuring out which node is the final
+recipient.
 
 # Accepting and Forwarding a Payment
 
@@ -1145,7 +1306,7 @@ The _origin node_:
 
 # Test Vector
 
-## Returning Errors
+## Returning Errors Tests
 
 The test vectors use the following parameters:
 
