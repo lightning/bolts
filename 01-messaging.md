@@ -71,13 +71,16 @@ A receiving node:
   - upon receiving a message of _odd_, unknown type:
     - MUST ignore the received message.
   - upon receiving a message of _even_, unknown type:
-    - MUST fail the channels.
+    - MUST close the connection.
+    - MAY fail the channels.
   - upon receiving a known message with insufficient length for the contents:
-    - MUST fail the channels.
+    - MUST close the connection.
+    - MAY fail the channels.
   - upon receiving a message with an `extension`:
     - MAY ignore the `extension`.
     - Otherwise, if the `extension` is invalid:
-      - MUST fail the channels.
+      - MUST close the connection.
+      - MAY fail the channels.
 
 ### Rationale
 
