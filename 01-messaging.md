@@ -94,7 +94,8 @@ messages in the protocol are never more than that length anyway.
 The _it's ok to be odd_ rule allows for future optional extensions
 without negotiation or special coding in clients. The _extension_ field
 similarly allows for future expansion by letting senders include additional
-TLV data.
+TLV data. Note that an _extension_ field can only be added when the message
+`payload` doesn't already fill the 65535 bytes maximum length.
 
 Implementations may prefer to have message data aligned on an 8-byte
 boundary (the largest natural alignment requirement of any type here);
