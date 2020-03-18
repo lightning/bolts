@@ -193,8 +193,7 @@ Since it's broadcast in the `node_announcement` message other nodes can use it t
 willing to accept large channel even before exchanging the `init` message with them. 
 
 Implementers are advised to provide the means to scale the number of confirmations, tweaking 
-`accept_channel.minimum_depth`, with the size of the funding amount. A rule of thumb is to 
-wait enough blocks until the cumulative block reward largely exceeds the size of the channel.
+`accept_channel.minimum_depth` and `accept_channel.to_self_delay`, with the size of the funding amount.
 
 #### Requirements
 
