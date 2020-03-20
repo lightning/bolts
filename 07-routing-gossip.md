@@ -307,7 +307,6 @@ The origin node:
   - MUST NOT create a `type 1` OR `type 2` address descriptor with `port` equal
   to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
-  - MUST NOT include more than one `address descriptor` of the same type.
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
