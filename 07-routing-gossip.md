@@ -1,4 +1,4 @@
-# BOLT #7: P2P Node and Channel Discovery
+# BOLT #7: P2P Node and Channel Discovery and Onion Messages
 
 This specification describes simple node discovery, channel discovery, and channel update mechanisms that do not rely on a third-party to disseminate the information.
 
@@ -31,6 +31,7 @@ multiple `node_announcement` messages, in order to update the node information.
   * [HTLC Fees](#htlc-fees)
   * [Pruning the Network View](#pruning-the-network-view)
   * [Recommendations for Routing](#recommendations-for-routing)
+  * [Onion Messages](#onion-messages)
   * [References](#references)
 
 ## Definition of `short_channel_id`
@@ -1104,6 +1105,47 @@ A->D's `update_add_htlc` message would be:
 
 And D->C's `update_add_htlc` would again be the same as B->C's direct payment
 above.
+
+# Onion Messages
+
+Onion messages allow peers to use existing connections to query for
+invoices (see [BOLT 12](12-offer-encoding.md)).  Like gossip messages,
+they are not associated with a particular local channel.  Like HTLCs,
+they use [BOLT 4](04-onion-routing.md#onion-messages) protocol for
+end-to-end encryption.
+
+Onion messages are unreliable: in particular, they are designed to
+be cheap to process and require no storage to forward.  As a result,
+there is no error return from intermediary nodes.
+
+To enable messaging via blinded paths, there is an optional `blinding`
+parameter which allows decryption of the `enctlv` field inside the
+`onionmsg`'s `onionmsg_payload`.
+
+## The `onion_message` Message
+
+1. type: 385 (`onion_message`) (`option_onion_messages`)
+2. data:
+    * [`1366*byte`:`onionmsg`]
+	* [`onion_message_tlvs`:`onion_message_tlvs`]
+
+1. tlvs: `onion_message_tlvs`
+2. types:
+    1. type: 2 (`blinding`)
+    2. data:
+        * [`point`:`blinding`]
+
+## Requirements
+
+The writer:
+- MUST populate the per-hop payloads as described in [BOLT 4](04-onion-routing.md#onion-messages).
+- SHOULD retry via a different route if it expects a response and
+  doesn't receive one after a reasonable period.
+
+The reader:
+- MUST handle the per-hop payloads as described in [BOLT 4](04-onion-routing.md#onion-messages).
+- SHOULD accept onion messages from peers without an established channel.
+- MAY rate-limit messages by dropping them.
 
 ## References
 

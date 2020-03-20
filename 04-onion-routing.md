@@ -51,6 +51,7 @@ A node:
     * [Legacy HopData Payload Format](#legacy-hop_data-payload-format)
     * [TLV Payload Format](#tlv_payload-format)
     * [Basic Multi-Part Payments](#basic-multi-part-payments)
+    * [Onion Messages](#onion-messages)
   * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
     * [Payload for the Last Node](#payload-for-the-last-node)
     * [Non-strict Forwarding](#non-strict-forwarding)
@@ -365,6 +366,84 @@ An implementation may choose not to fulfill an HTLC set which
 otherwise meets the amount criterion (eg. some other failure, or
 invoice timeout), however if it were to fulfill only some of them,
 intermediary nodes could simply claim the remaining ones.
+
+### Onion Messages
+
+Onion messages have an onion with an alternate `hop_payload`
+format: a `bigsize` followed by a `onionmsg_payload`.  Note that there
+is no legacy format, thus a `bigsize` of 0 means no payload.
+
+1. tlvs: `onionmsg_payload`
+2. types:
+    1. type: 2 (`next_short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`short_channel_id`]
+    1. type: 4 (`next_node_id`)
+    2. data:
+        * [`point`:`node_id`]
+    1. type: 6 (`enctlv`)
+    2. data:
+        * [`...*byte`:`enctlv`]
+    1. type: 8 (`reply_path`)
+    2. data:
+        * [`point`:`blinding`]
+        * [`...*onionmsg_path`:`path`]
+    1. type: 10 (`blinding`)
+    2. data:
+        * [`point`:`blinding`]
+
+1. tlvs: `encmsg_tlvs`
+2. types:
+    1. type: 2 (`next_short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`short_channel_id`]
+    1. type: 4 (`next_node_id`)
+    2. data:
+        * [`point`:`node_id`]
+
+1. subtype: `onionmsg_path`
+2. data:
+    * [`point`:`node_id`]
+    * [`u16`:`enclen`]
+    * [`enclen*byte`:`enctlv`]
+
+#### Requirements
+
+The writer:
+- For the non-final nodes' `onionmsg_payload`:
+  - MUST include exactly one of `next_short_channel_id`, `next_node_id`
+    or `enctlv` indicating the next node.
+- For the the final node's `onionmsg_payload`:
+  - if the final node is permitted to reply:
+	- MUST set `reply_path` `blinding` to the initial blinding factor for the `next_node_id`
+    - For the first `reply_path` `path`:
+	  - MUST set `node_id` to the first node in the reply path.
+	- For the remaining `reply_path` `path`:
+	  - MUST set `node_id` to the blinded node id to encrypt the onion hop for.
+    - Within `reply_path` `path`:
+      - MUST set `enctlv` to the ChaCha20 encryption of a valid `encmsg_tlvs` containing exactly
+	    one of either `next_node_id` or `next_short_channel_id`.
+  - otherwise:
+    - MUST not set `reply_path`.
+
+The reader:
+- if `enctlv` is present:
+  - MUST extract the shared secret from the given `blinding` parameter and decrypt `enctlv`.
+  - MUST drop the message if `enctlv` is not a valid TLV.
+  - MUST use `next_short_channel_id` or `next_node_id` from `enctlv`.
+- Otherwise:
+  - MUST use `next_short_channel_id` or `next_node_id` from  `onionmsg_payload`.
+
+- if it is not the final node according to the onion encryption:
+  - if `next_short_channel_id` or `next_node_id` is found:
+    - SHOULD forward the message using `onion_message` to the indicated peer if possible.
+
+- otherwise:
+  - if it wants to send a reply:
+    - MUST create an onion encoding using `reply_path`.
+    - MUST send the reply via `onion_message` to the node indicated by
+        the first element of `reply_path` `path` using `reply_path` `blinding`.
+
 
 # Accepting and Forwarding a Payment
 
