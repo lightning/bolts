@@ -7,16 +7,18 @@ Node and channel discovery serve two different purposes:
  - Channel discovery allows the creation and maintenance of a local view of the network's topology, so that a node can discover routes to desired destinations.
  - Node discovery allows nodes to broadcast their ID, host, and port, so that other nodes can open connections and establish payment channels with them.
 
-To support channel discovery, three *gossip messages* are supported.   Peers in the network exchange
-`channel_announcement` messages containing information regarding new
-channels between the two nodes. They can also exchange `channel_update`
-messages, which update information about a channel. There can only be
-one valid `channel_announcement` for any channel, but at least two
-`channel_update` messages are expected.
+To support channel and node discovery, three *gossip messages* are supported:
 
-To support node discovery, peers exchange `node_announcement`
-messages, which supply additional information about the nodes. There may be
-multiple `node_announcement` messages, in order to update the node information.
+ - For channel discovery, peers in the network exchange
+   `channel_announcement` messages containing information regarding new
+   channels between the two nodes. They can also exchange `channel_update`
+   messages, which update information about a channel. There can only be
+   one valid `channel_announcement` for any channel, but at least two
+   `channel_update` messages are expected.
+
+- For node discovery, peers exchange `node_announcement`
+  messages, which supply additional information about the nodes. There may be
+  multiple `node_announcement` messages, in order to update the node information.
 
 # Table of Contents
 
