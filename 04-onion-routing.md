@@ -375,31 +375,31 @@ is no legacy format, thus a `bigsize` of 0 means no payload.
 
 1. tlvs: `onionmsg_payload`
 2. types:
-    1. type: 2 (`next_short_channel_id`)
-    2. data:
-        * [`short_channel_id`:`short_channel_id`]
     1. type: 4 (`next_node_id`)
     2. data:
         * [`point`:`node_id`]
-    1. type: 6 (`enctlv`)
+    1. type: 6 (`next_short_channel_id`)
     2. data:
-        * [`...*byte`:`enctlv`]
+        * [`short_channel_id`:`short_channel_id`]
     1. type: 8 (`reply_path`)
     2. data:
         * [`point`:`blinding`]
         * [`...*onionmsg_path`:`path`]
-    1. type: 10 (`blinding`)
+    1. type: 10 (`enctlv`)
+    2. data:
+        * [`...*byte`:`enctlv`]
+    1. type: 12 (`blinding`)
     2. data:
         * [`point`:`blinding`]
 
 1. tlvs: `encmsg_tlvs`
 2. types:
-    1. type: 2 (`next_short_channel_id`)
-    2. data:
-        * [`short_channel_id`:`short_channel_id`]
     1. type: 4 (`next_node_id`)
     2. data:
         * [`point`:`node_id`]
+    1. type: 6 (`next_short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`short_channel_id`]
 
 1. subtype: `onionmsg_path`
 2. data:
