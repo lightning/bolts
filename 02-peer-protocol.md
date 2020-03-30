@@ -793,10 +793,11 @@ A sending node:
     transaction at the current `feerate_per_kw` while maintaining its channel
     reserve (see [Updating Fees](#updating-fees-update_fee)).
     - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
-    transaction, its remaining balance doesn't allow it to pay the fee to receive a
-    future additional non-dust HTLC while maintaining its channel reserve ("fee
-    spike buffer"). A buffer that expects the current `feerate_per_kw` to potentially
-    double is recommended to ensure predictability between implementations.
+    transaction, its remaining balance doesn't allow it to pay the commitment
+    transaction fee when receiving a future additional non-dust HTLC while maintaining
+    its channel reserve ("fee spike buffer"). A buffer that expects the current
+    `feerate_per_kw` to potentially double is recommended to ensure predictability
+    between implementations.
   - if it is _not responsible_ for paying the Bitcoin fee:
     - MUST NOT offer `amount_msat` if, once the remote node adds that HTLC to
     its commitment transaction, it cannot pay the fee for the updated local or
