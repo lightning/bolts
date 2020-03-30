@@ -795,9 +795,8 @@ A sending node:
     - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
     transaction, its remaining balance doesn't allow it to pay the commitment
     transaction fee when receiving a future additional non-dust HTLC while maintaining
-    its channel reserve ("fee spike buffer"). A buffer that expects the current
-    `feerate_per_kw` to potentially double is recommended to ensure predictability
-    between implementations.
+    its channel reserve. It is recommended that this "fee spike buffer" can handle
+    twice the current `feerate_per_kw` to ensure predictability between implementations.
   - if it is _not responsible_ for paying the Bitcoin fee:
     - MUST NOT offer `amount_msat` if, once the remote node adds that HTLC to
     its commitment transaction, it cannot pay the fee for the updated local or
@@ -872,9 +871,9 @@ bootstrap phase of the network.
 The node _responsible_ for paying the Bitcoin fee should maintain a "fee
 spike buffer" on top of its reserve to accommodate a future fee increase.
 Without this buffer, the node _responsible_ for paying the Bitcoin fee may
-reach a state where it is unable to receive any HTLC while maintaining its
-channel reserve (because of the increased weight of the commitment transaction),
-resulting in an unusable channel. See [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728)
+reach a state where it is unable to receive any non-dust HTLC while maintaining
+its channel reserve (because of the increased weight of the commitment transaction),
+resulting in a degraded channel. See [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728)
 for more details.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
