@@ -618,7 +618,7 @@ Query flags must be minimally encoded, which means that one flag will be encoded
 1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
 2. data:
     * [`chain_hash`:`chain_hash`]
-    * [`byte`:`complete`]
+    * [`byte`:`full_information`]
 
 This is a general mechanism which lets a node query for the
 `channel_announcement` and `channel_update` messages for specific channels
@@ -677,15 +677,15 @@ The receiver:
   - SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
   - MUST follow these responses with `reply_short_channel_ids_end`.
   - if does not maintain up-to-date channel information for `chain_hash`:
-    - MUST set `complete` to 0.
+    - MUST set `full_information` to 0.
   - otherwise:
-    - SHOULD set `complete` to 1.
+    - SHOULD set `full_information` to 1.
 
 #### Rationale
 
 Future nodes may not have complete information; they certainly won't have
-complete information on unknown `chain_hash` chains.  While this `complete`
-field cannot be trusted, a 0 does indicate that the sender should search
+complete information on unknown `chain_hash` chains.  While this `full_information`
+field (previously and confusingly called `complete`) cannot be trusted, a 0 does indicate that the sender should search
 elsewhere for additional data.
 
 The explicit `reply_short_channel_ids_end` message means that the receiver can
@@ -721,7 +721,7 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
     * [`u32`:`number_of_blocks`]
-    * [`byte`:`complete`]
+    * [`byte`:`full_information`]
     * [`u16`:`len`]
     * [`len*byte`:`encoded_short_ids`]
     * [`reply_channel_range_tlvs`:`tlvs`]
@@ -775,17 +775,21 @@ The sender of `query_channel_range`:
 The receiver of `query_channel_range`:
   - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
     - MAY fail the connection.
-  - MUST respond with one or more `reply_channel_range` whose combined range
-  cover the requested `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
-  - For each `reply_channel_range`:
+  - MUST respond with one or more `reply_channel_range`:
     - MUST set with `chain_hash` equal to that of `query_channel_range`,
-    - MUST encode a `short_channel_id` for every open channel it knows in blocks `first_blocknum` to `first_blocknum` plus `number_of_blocks` minus one.
     - MUST limit `number_of_blocks` to the maximum number of blocks whose
       results could fit in `encoded_short_ids`
     - if does not maintain up-to-date channel information for `chain_hash`:
-      - MUST set `complete` to 0.
+      - MUST set `full_information` to 0.
     - otherwise:
-      - SHOULD set `complete` to 1.
+      - SHOULD set `full_information` to 1.
+    - the first `reply_channel_range` message:
+	  - MUST set `first_blocknum` less than or equal to the `first_blocknum` in `query_channel_range`
+	  - MUST set `first_blocknum` plus `number_of_blocks` greater than `first_blocknum` in `query_channel_range`.
+	- successive `reply_channel_range` message:
+	  - MUST set `first_blocknum` to the previous `first_blocknum` plus `number_of_blocks`.
+	- the final `reply_channel_range` message:
+	  - MUST have `first_blocknum` plus `number_of_blocks` equal or greater than the `query_channel_range` `first_blocknum` plus `number_of_blocks`.
 
 If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
 - if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
@@ -794,9 +798,15 @@ If the incoming message includes `query_option`, the receiver MAY append additio
 
 #### Rationale
 
-A single response might be too large for a single packet, and also a peer can
-store canned results for (say) 1000-block ranges, and simply offer each reply
-which overlaps the ranges of the request.
+A single response might be too large for a single packet, so multiple replies
+may be required.  We want to allow a peer to store canned results for (say)
+1000-block ranges, so replies can exceed the requested range.  However, we
+require that each reply be relevant (overlapping the requested range).
+
+By insisting that replies be in increasing order, the receiver can easily
+determine if replies are done: simply check if `first_blocknum` plus
+`number_of_blocks` equals or exceeds the `first_blocknum` plus
+`number_of_blocks` it asked for.
 
 The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
 
