@@ -77,7 +77,7 @@ There are a number of conventions adhered to throughout this document:
    algorithm.
  - Elliptic curve: for all computations involving elliptic curves, the Bitcoin
    curve is used, as specified in [`secp256k1`][sec2]
- - Pseudo-random stream: [`ChaCha20`][rfc7539] is used to generate a
+ - Pseudo-random stream: [`ChaCha20`][rfc8439] is used to generate a
    pseudo-random byte stream. For its generation, a fixed null-nonce
    (`0x0000000000000000`) is used, along with a key derived from a shared
    secret and with a `0x00`-byte stream of the desired output size as the
@@ -1199,7 +1199,7 @@ The following is an in-depth trace of an example of error message creation:
 [RFC2104]: https://tools.ietf.org/html/rfc2104
 [fips198]: http://csrc.nist.gov/publications/fips/fips198-1/FIPS-198-1_final.pdf
 [sec2]: http://www.secg.org/sec2-v2.pdf
-[rfc7539]: https://tools.ietf.org/html/rfc7539
+[rfc8439]: https://tools.ietf.org/html/rfc8439
 
 # Authors
 
