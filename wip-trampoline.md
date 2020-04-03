@@ -1,23 +1,8 @@
 # Trampoline Onion Routing
 
-This document describes the additions we make to the existing onion routing to enable the use of trampoline nodes.
-
-As the network grows, more bandwidth and storage will be required to keep an up-to-date view of the whole network.
-Finding a payment path will also require more computing power, making it unsustainable for constrained devices.
-
-Constrained devices should only keep a view of a small part of the network and leverage trampoline nodes to route
-payments. This proposal still uses an onion created by the payer so it doesn't sacrifice privacy (in most cases it
-will even provide a bigger anonymity set).
-
-Nodes that are able to calculate routes on behalf of other nodes should advertise support for `trampoline_routing`.
-This is an opportunity for them to earn more fees than with the default onion routing.
-
-A payer selects a few trampoline nodes and builds a corresponding trampoline onion. It then embeds that trampoline
-onion in the last `hop_payload` of an `onion_packet` destined to the first trampoline node. Computing routes between
-trampoline nodes is deferred to the trampoline nodes themselves.
-
-Merchants may include a few trampoline nodes that are close to them in their invoice to help payers select a good last
-trampoline node. This is optional and payers aren't required to use this routing hint.
+This file contains the whole proposal to simplify reviewers life.
+Once we make progress towards standardization, we may move these sections and
+include them in the existing bolts.
 
 ## Table of Contents
 
@@ -28,7 +13,6 @@ trampoline node. This is optional and payers aren't required to use this routing
   * [Failure messages](#failure-messages)
 * [Multi-Part Trampoline](#multi-part-trampoline)
 * [Routing Gossip](#routing-gossip)
-  * [Fees and CLTV estimation](#fees-and-cltv-estimation)
   * [The `node_update` Message](#the-node_update-message)
   * [Filtering gossip messages](#filtering-gossip-messages)
 * [Fees and CLTV requirements](#fees-and-cltv-requirements)
@@ -174,64 +158,6 @@ Trampoline routing combines nicely with multi-part payments. When multi-part pay
 nodes combine all the incoming partial payments before forwarding. Once the totality of the payment is received, the
 trampoline node can choose the most efficient way to re-split it to reach the next trampoline node.
 
-For example, Alice could split a payment in 3 parts to reach a trampoline node, which would then split it in only 2
-parts to reach the destination (we use a single hop between trampoline nodes for simplicity, but any number of
-intermediate nodes could be used):
-
-```text
-                                                     HTLC(1500 msat, 600112 cltv)
-                                                    +---------------------------+
-                                                    | amount_fwd: 1500 msat     |
-                                                    | expiry: 600112            |
-            HTLC(1560 msat, 600124 cltv)            | payment_secret: aaaaa     |
-             +-----------------------+              | total_amount: 2800 msat   |
-             | amount_fwd: 1500 msat |              | trampoline_onion:         |                                                                  HTLC(1100 msat, 600000 cltv)
-             | expiry: 600112        |              | +-----------------------+ |                                                                 +-----------------------------+
-        +--> | channel_id: 3         | ---> I1 ---> | | amount_fwd: 2500 msat | | --+                                                             | amount_fwd: 1100 msat       |
-        |    |-----------------------|              | | expiry: 600000        | |   |                                                             | expiry: 600000              |
-        |    |     (encrypted)       |              | | node_id: Bob          | |   |                                                             | payment_secret: xxxxx       |
-        |    +-----------------------+              | +-----------------------+ |   |                     HTLC(1150 msat, 600080 cltv)            | total_amount: 2500 msat     |
-        |                                           | |      (encrypted)      | |   |                      +-----------------------+              | trampoline_onion:           |
-        |                                           | +-----------------------+ |   |                      | amount_fwd: 1100 msat |              | +-------------------------+ |
-        |                                           +---------------------------+   |                      | expiry: 600000        |              | | amount_fwd: 2500 msat   | |
-        |                                           |             EOF           |   |                 +--> | channel_id: 561       | ---> I4 ---> | | expiry: 600000          | | --+
-        |                                           +---------------------------+   |                 |    |-----------------------|              | | total_amount: 2500 msat | |   |
-        |                                            HTLC(800 msat, 600112 cltv)    |                 |    |     (encrypted)       |              | | payment_secret: yyyyy   | |   |
-        |                                           +---------------------------+   |                 |    +-----------------------+              | +-------------------------+ |   |
-        |                                           | amount_fwd: 800 msat      |   |                 |                                           | |         EOF             | |   |
-        |                                           | expiry: 600112            |   |                 |                                           | +-------------------------+ |   |
-        |   HTLC(820 msat, 600130 cltv)             | payment_secret: aaaaa     |   |                 |                                           +-----------------------------+   |
-        |    +-----------------------+              | total_amount: 2800 msat   |   |                 |                                           |             EOF             |   |
-        |    | amount_fwd: 800 msat  |              | trampoline_onion:         |   |                 |                                           +-----------------------------+   |
-        |    | expiry: 600112        |              | +-----------------------+ |   |                 |                                                                             |
-Alice --+--> | channel_id: 5         | ---> I2 ---> | | amount_fwd: 2500 msat | | --+--> Trampoline --+                                                                             +--> Bob
-        |    |-----------------------|              | | expiry: 600000        | |   |  (fee 170 msat) |                                            HTLC(1400 msat, 600000 cltv)     |
-        |    |     (encrypted)       |              | | node_id: Bob          | |   |    (delta 32)   |                                           +-----------------------------+   |
-        |    +-----------------------+              | +-----------------------+ |   |                 |                                           | amount_fwd: 1400 msat       |   |
-        |                                           | |      (encrypted)      | |   |                 |                                           | expiry: 600000              |   |
-        |                                           | +-----------------------+ |   |                 |                                           | payment_secret: xxxxx       |   |
-        |                                           +---------------------------+   |                 |   HTLC(1480 msat, 600065 cltv)            | total_amount: 2500 msat     |   |
-        |                                           |             EOF           |   |                 |    +-----------------------+              | trampoline_onion:           |   |
-        |                                           +---------------------------+   |                 |    | amount_fwd: 1400 msat |              | +-------------------------+ |   |
-        |                                            HTLC(500 msat, 600112 cltv)    |                 |    | expiry: 600000        |              | | amount_fwd: 2500 msat   | |   |
-        |                                           +---------------------------+   |                 +--> | channel_id: 1105      | ---> I5 ---> | | expiry: 600000          | | --+
-        |                                           | amount_fwd: 500 msat      |   |                      |-----------------------|              | | total_amount: 2500 msat | |
-        |                                           | expiry: 600112            |   |                      |     (encrypted)       |              | | payment_secret: yyyyy   | |
-        |   HTLC(510 msat, 600120 cltv)             | payment_secret: aaaaa     |   |                      +-----------------------+              | +-------------------------+ |
-        |    +-----------------------+              | total_amount: 2800 msat   |   |                                                             | |         EOF             | |
-        |    | amount_fwd: 500 msat  |              | trampoline_onion:         |   |                                                             | +-------------------------+ |
-        |    | expiry: 600112        |              | +-----------------------+ |   |                                                             +-----------------------------+
-        +--> | channel_id: 7         | ---> I3 ---> | | amount_fwd: 2500 msat | | --+                                                             |             EOF             |
-             |-----------------------|              | | expiry: 600000        | |                                                                 +-----------------------------+
-             |     (encrypted)       |              | | node_id: Bob          | |
-             +-----------------------+              | +-----------------------+ |
-                                                    | |      (encrypted)      | |
-                                                    | +-----------------------+ |
-                                                    +---------------------------+
-                                                    |             EOF           |
-                                                    +---------------------------+
-```
-
 ### Requirements
 
 A sending node:
@@ -247,44 +173,8 @@ A processing node:
 
 ## Routing Gossip
 
-Nodes running on constrained devices (phones, IoT, etc) should only keep track of nearby channels (with an `N`-radius
-heuristic for example). These nearby channels will be used to build an onion route to a first trampoline node.
-
-Constrained nodes may also choose to ignore channels with a capacity lower than `min_chan_capacity`.
-`N` and `min_chan_capacity` are configured by the node and not advertised to the network.
-
-Constrained nodes may simply ignore `channel_announcement`s that don't meet those requirements.
-
-Constrained nodes must store information about nodes that are outside of their network view to use as trampoline hops.
-The `node_update` gossip message contains the information needed to use nodes as trampoline hops.
-
-### Fees and CLTV estimation
-
-Trampoline nodes need to estimate a `cltv_expiry_delta` and `fee` that allows them to route to any other trampoline
-node while being competitive with other nodes. This is a great opportunity to incentivize nodes to open channels
-between each other to minimize the cost of trampoline hops. This is also a great opportunity for nodes to implement
-smart fee estimation algorithms as a competitive advantage.
-
-Nodes may be very conservative and advertise their worst case `fee` and `cltv_expiry_delta`, corresponding to the
-furthest node they can reach.
-
-On the contrary, nodes may apply statistical analysis of the network to find a lower `fee` and `cltv_expiry_delta`
-that would not allow them to reach all other trampoline nodes but would work for most cases. Such nodes may choose
-to route some payments at a loss to keep reliability high, attract more payments by building a good reliability
-reputation and benefit from an overall gain.
-
-Nodes may include some of their preferred neighbors in `node_update`, implying that they're able to route cheaply to
-these nodes. Payers may or may not use that information when building a trampoline route.
-
-Trampoline nodes may accept payments with a fee lower than what they advertised if they're still able to route the
-payment in an economically viable way (because they have a direct channel or a low-cost route to the next trampoline
-hop for example).
-
-That means that payers may choose to ignore advertised fees entirely if they think the fee/cltv they're using will
-still be able to route properly. Payers can rely on a first failure to learn the `fee` and `cltv_expiry_delta` that
-would allow the payment to succeed (by decoding the `node_update` enclosed in the failure message).
-
-See the [Fees and CLTV requirements](#fees-and-cltv-requirements) section for a detailed example of fees calculation.
+Trampoline nodes advertise the `fee` and `cltv_expiry_delta` that would allow
+them to route to other trampoline nodes via a `node_update` message.
 
 ### The `node_update` Message
 
@@ -311,67 +201,13 @@ The `node_update` message has the following structure:
 It has a structure similar to the `channel_update` message but is channel agnostic.
 `Node_update`s should be relayed the same way `channel_update`s are relayed (staggered broadcast).
 
-If a node is not willing to relay trampoline payments, it will simply never send a `node_update`. This lets the network
-discriminate nodes that are able to relay trampoline payments from nodes that understand the format but use it only
-as senders or recipients. Note that when you are receiving a payment, this allows the next-to-last trampoline node to
-identify that you're likely the final recipient.
-
 ### Filtering gossip messages
 
-Constrained nodes should listen to `node_update` messages and store some of them to be used as trampolines.
-Nodes are free to choose their own heuristics for trampoline node selection (some randomness is desired for anonymity).
+In order to reduce bandwidth consumption, nodes negotiate gossip filters during
+`init`. These filters are applied before forwarding gossip messages (announcements
+and updates).
 
-While this reduces storage requirements on constrained nodes, it doesn't reduce their bandwidth requirements:
-constrained nodes still need to listen to `node_update` and `channel_update` messages (even though they will ignore
-most of them).
-
-Nodes can reduce bandwidth usage by applying gossip filters before forwarding gossip messages.
-Constrained nodes may require their peers to support the `gossip_filters` feature.
-Per-connection filters are negotiated with each peer after `init`.
-When receiving gossip messages, the remote node must apply the negotiated filters and only forward to the local node
-the messages that match the filter.
-
-Note that the remote node can decide to ignore the filters entirely and forward every gossip to the local node: in that
-case the local node may close all channels with that remote node, fail the connection and open channels to more
-cooperative nodes.
-
-TODO: detail `init` phase and filter negotiation requirements if we have a concept ack.
-
-#### The `channel_update_filter`
-
-The local node may send a `channel_update_filter` to the remote node. The remote node must apply this filter before
-forwarding `channel_update`s. This allows the local node to keep an up-to-date view of only a small portion of the
-network.
-
-The filter could simply be a `distance` integer. The remote node should only forward `channel_update`s of nodes that
-are at most `distance` hops away from the remote node itself.
-
-Computing this filter is inexpensive for small `distance`s. The remote node should reject `distance`s that would be
-too costly to evaluate.
-
-TODO: detail message format and requirements if we have a concept ack.
-
-#### The `node_update_filter`
-
-The local node may send a `node_update_filter` to the remote node. The remote node should apply this filter before
-forwarding `node_update`s. This allows the local node to only receive `node_update`s it cares about to periodically
-refresh its list of trampoline nodes and stay up-to-date with their fee rate and cltv requirements.
-
-The local node may choose to keep the same set of trampoline nodes if they are reliable enough. Or the local node may
-choose to rotate its set of trampoline nodes regularly to improve anonymity and test new payment paths. This decision
-should be configurable by the user/implementation.
-
-A simple heuristic to frequently rotate the set of trampoline nodes would be to compare their `node_id` to
-`sha256(local_node_id || latest_block_hash)` and update this every `N` blocks. The `node_update_filter` could be based
-on the distance between these two values. Then the local node chooses which trampoline nodes to keep depending on their
-advertised fees/cltv and reliability reputation (based on historical data if it's possible to collect such data).
-
-A filter on `node_id` ranges may also be useful: this would incentivize trampoline nodes to connect to other trampoline
-nodes whose `node_id`s are in the same range. As this is a mechanism to influence the network's topology, it may be
-gamed (new routing nodes may grind a `node_id` that's very close to a known, reliable trampoline node): can this lead
-to attacks?
-
-TODO: detail message format and requirements if we have a concept ack.
+TODO: detail `init` phase, filter negotiation and message format if we have a concept ack.
 
 ## Fees and CLTV requirements
 
