@@ -981,7 +981,7 @@ A node:
 #### Requirements
 
 A node:
-  - if a channel's latest `channel_update`s `timestamp` is older than two weeks
+  - if a channel's oldest `channel_update`s `timestamp` is older than two weeks
   (1209600 seconds):
     - MAY prune the channel.
     - MAY ignore the channel.
@@ -998,6 +998,11 @@ both endpoints lose access to their private keys and can neither sign
 unlikely to be part of a computed route, since they would be partitioned off
 from the rest of the network; however, they would remain in the local network
 view would be forwarded to other peers indefinitely.
+
+The oldest `channel_update` is used to prune the channel since both sides need
+to be active in order for the channel to be usable. Doing so prunes channels
+even if one side continues to send fresh `channel_update`s but the other node
+has disappeared.
 
 ## Recommendations for Routing
 
