@@ -56,6 +56,8 @@ thus the two peers must agree on the canonical ordering for this case.
 
 Most transaction outputs used here are pay-to-witness-script-hash<sup>[BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#witness-program)</sup> (P2WSH) outputs: the Segwit version of P2SH. To spend such outputs, the last item on the witness stack must be the actual script that was used to generate the P2WSH output that is being spent. This last item has been omitted for brevity in the rest of this document.
 
+A `<>` designates an empty vector as required for compliance with MINIMALIF-standard rule.<sup>[MINIMALIF](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2016-August/013014.html)</sup>
+
 ## Funding Transaction Output
 
 * The funding output script is a P2WSH to:
@@ -109,7 +111,7 @@ This output sends funds back to the owner of this commitment transaction and thu
 
 The output is spent by a transaction with `nSequence` field set to `to_self_delay` (which can only be valid after that duration has passed) and witness:
 
-    <local_delayedsig> 0
+    <local_delayedsig> <>
 
 If a revoked commitment transaction is published, the other party can spend this output immediately with the following witness:
 
@@ -172,7 +174,7 @@ This output sends funds to either the remote node after the HTLC-timeout or usin
 
 To timeout the HTLC, the remote node spends it with the witness:
 
-    <remotehtlcsig> 0
+    <remotehtlcsig> <>
 
 If a revoked commitment transaction is published, the remote node can spend this output immediately with the following witness:
 
@@ -232,7 +234,7 @@ These HTLC transactions are almost identical, except the HTLC-timeout transactio
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction
    * `txin[0]` sequence: `0`
    * `txin[0]` script bytes: `0`
-   * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-success, `0 <remotehtlcsig> <localhtlcsig> 0` for HTLC-timeout
+   * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-success, `0 <remotehtlcsig> <localhtlcsig> <>` for HTLC-timeout
 * txout count: 1
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation))
    * `txout[0]` script: version-0 P2WSH with witness script as shown below
