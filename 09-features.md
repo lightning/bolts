@@ -37,7 +37,7 @@ The Context column decodes as follows:
 | 12/13 | `option_static_remotekey`        | Static key for remote output                              | IN       |                   | [BOLT #3](03-transactions.md)         |
 | 14/15 | `payment_secret`                 | Node supports `payment_secret` field                      | IN9      | `var_onion_optin` | [Routing Onion Specification][bolt04] |
 | 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | `payment_secret`  | [BOLT #4][bolt04-mpp]                 |
-| 18/19 | `option_support_large_channel`   | Can create large channels                                 | INC+     |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
+| 18/19 | `option_support_large_channel`   | Can create large channels                                 | INC-     |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 
 ## Requirements
 
