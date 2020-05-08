@@ -415,14 +415,16 @@ The writer:
     or `enctlv` indicating the next node.
 - For the the final node's `onionmsg_payload`:
   - if the final node is permitted to reply:
-	- MUST set `reply_path` `blinding` to the initial blinding factor for the `next_node_id`
+    - MUST set `reply_path` `blinding` to the initial blinding factor for the `next_node_id`
     - For the first `reply_path` `path`:
-	  - MUST set `node_id` to the first node in the reply path.
-	- For the remaining `reply_path` `path`:
-	  - MUST set `node_id` to the blinded node id to encrypt the onion hop for.
+      - MUST set `node_id` to the first node in the reply path.
+    - For the remaining `reply_path` `path`:
+      - MUST set `node_id` to the blinded node id to encrypt the onion hop for.
     - Within `reply_path` `path`:
-      - MUST set `enctlv` to the ChaCha20 encryption of a valid `encmsg_tlvs` containing exactly
-	    one of either `next_node_id` or `next_short_channel_id`.
+      - MUST encrypt `enctlv` as detailed in (FIXME: reference to t-bast's blinded path section:
+        `ChaChaPoly-1305` encryption using an all-zero nonce).
+      - MUST set `enctlv` to a valid `encmsg_tlvs` containing exactly one of either
+	    `next_node_id` or `next_short_channel_id`.
   - otherwise:
     - MUST not set `reply_path`.
 
