@@ -78,8 +78,10 @@ A reader:
     a `multiplier` (see table above):
   	  - MUST fail the payment.
     - if the `multiplier` is present:
-	    - MUST multiply `amount` by the `multiplier` value to derive the
+	  - MUST multiply `amount` by the `multiplier` value to derive the
       amount required for payment.
+      - if multiplier is `p` and the last decimal of `amount` is not 0:
+	    - MUST fail the payment.
 
 ## Rationale
 
@@ -716,6 +718,9 @@ Breakdown:
 
 > ### Invalid multiplier
 > lnbc2500x1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpujr6jxr9gq9pv6g46y7d20jfkegkg4gljz2ea2a3m9lmvvr95tq2s0kvu70u3axgelz3kyvtp2ywwt0y8hkx2869zq5dll9nelr83zzqqpgl2zg
+
+> ### Invalid sub-millisatoshi precision.
+> lnbc2500000001p1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpu7hqtk93pkf7sw55rdv4k9z2vj050rxdr6za9ekfs3nlt5lr89jqpdmxsmlj9urqumg0h9wzpqecw7th56tdms40p2ny9q4ddvjsedzcplva53s
 
 # Authors
 
