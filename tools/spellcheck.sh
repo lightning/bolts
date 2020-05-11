@@ -60,16 +60,17 @@ do
 	# Short hex strings, eg '0x2bb038521914 12'
 	# long hex strings
 	# long base58 strings
-	WORDS=$(sed -e 's/\]([-#a-zA-Z0-9_.]*)//g' \
+	WORDS=$(sed -e 's/ [lL][nN]\([bB][cC]\|[tT][bB]\)[0-9munpxMUNP]*1[qpzry9x8gf2tvdw0s3jn54khce6mua7lQPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]\+//g' \
+            -e 's/\]([-#a-zA-Z0-9_.]*)//g' \
 	    -e '/^```/,/^```/d' \
 	    -e 's/`[a-zA-Z0-9_]*`//g' \
 	    -e 's/\* \[`[_a-z0-9*]\+`://g' \
 	    -e 's/0x[a-fA-F0-9 ]\+//g' \
 	    -e 's/[a-fA-F0-9]\{20,\}//g' \
 	    -e 's/^    .*_htlcs//g' \
-	    -e 's/ ln\(bc\|tb\)[0-9munp]*1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]\+//g' \
 	    -e 's/ \(bc\|tb\)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]\+//g' \
-	    -e 's/[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]\{20,\}//g' < $f | aspell -l en_US --home-dir ${homedir} list)
+	    -e 's/pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuyk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esqchsrny//' \
+	    -e 's/[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]\{20,\}//g' < $f | tee /tmp/`basename $f`.aspell | aspell -l en_US --home-dir ${homedir} list)
 	if [ -n "$WORDS" ]; then
 	    echo Misspelled words in $f: $WORDS >&2
 	    exit 1
