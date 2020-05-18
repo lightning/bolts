@@ -114,9 +114,6 @@ A `tlv_record` represents a single field, encoded in the form:
 * [`bigsize`: `length`]
 * [`length`: `value`]
 
-A `bigsize` is a variable-length, unsigned integer encoding described in 
-[BigSize](#appendix-a-bigsize-test-vectors).
-
 A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
 concatenation of the encoded `tlv_record`s. When used to extend existing
 messages, a `tlv_stream` is typically placed after all currently defined fields.
@@ -234,6 +231,7 @@ The following convenience types are also defined:
 * `signature`: a 64-byte bitcoin Elliptic Curve signature
 * `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
 * `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
+* `bigsize`: a variable-length, unsigned integer similar to Bitcoin's CompactSize encoding, but big-endian.  Described in [BigSize](#appendix-a-bigsize-test-vectors).
 
 ## Setup Messages
 
