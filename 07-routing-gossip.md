@@ -605,7 +605,7 @@ Nodes can signal that they support extended gossip queries with the `gossip_quer
         * [`u8`:`encoding_type`]
         * [`...*byte`:`encoded_query_flags`]
 
-`encoded_query_flags` is an array of bitfields, one varint per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
+`encoded_query_flags` is an array of bitfields, one bigsize per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
 
 | Bit Position  | Meaning                                  |
 | ------------- | ---------------------------------------- |
@@ -642,7 +642,7 @@ The sender:
   - SHOULD NOT send this if the channel referred to is not an unspent output.
   - MAY include an optional `query_flags`. If so:
     - MUST set `encoding_type`, as for `encoded_short_ids`.
-    - Each query flag is a minimally-encoded varint.
+    - Each query flag is a minimally-encoded bigsize.
     - MUST encode one query flag per `short_channel_id`.
 
 The receiver:
@@ -663,7 +663,7 @@ The receiver:
       - MUST follow with any `node_announcement`s for each `channel_announcement`
     - otherwise:
       - We define `query_flag` for the Nth `short_channel_id` in
-        `encoded_short_ids` to be the Nth varint of the decoded
+        `encoded_short_ids` to be the Nth bigsize of the decoded
         `encoded_query_flags`.
       - if bit 0 of `query_flag` is set:
         - MUST reply with a `channel_announcement`
@@ -707,9 +707,9 @@ timeouts.  It also causes a natural ratelimiting of queries.
 2. types:
     1. type: 1 (`query_option`)
     2. data:
-        * [`varint`:`query_option_flags`]
+        * [`bigsize`:`query_option_flags`]
 
-`query_option_flags` is a bitfield represented as a minimally-encoded varint. Bits have the following meaning:
+`query_option_flags` is a bitfield represented as a minimally-encoded bigsize. Bits have the following meaning:
 
 | Bit Position  | Meaning                 |
 | ------------- | ----------------------- |

@@ -95,7 +95,7 @@ There are a number of conventions adhered to throughout this document:
  - Each hop in the route has a variable length `hop_payload`, or a fixed-size
    legacy `hop_data` payload.
     - The legacy `hop_data` is identified by a single `0x00`-byte prefix
-    - The variable length `hop_payload` is prefixed with a `varint` encoding
+    - The variable length `hop_payload` is prefixed with a `bigsize` encoding
       the length in bytes, excluding the prefix and the trailing HMAC.
 
 # Key Generation
@@ -163,7 +163,7 @@ It is 1300 bytes long and has the following structure:
 
 1. type: `hop_payloads`
 2. data:
-   * [`varint`:`length`]
+   * [`bigsize`:`length`]
    * [`hop_payload_length`:`hop_payload`]
    * [`32*byte`:`hmac`]
    * ...
@@ -523,10 +523,10 @@ For each hop in the route, in reverse order, the sender applies the
 following operations:
 
  - The _rho_-key and _mu_-key are generated using the hop's shared secret.
- - `shift_size` is defined as the length of the `hop_payload` plus the varint encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the varint encoding of `l`.
+ - `shift_size` is defined as the length of the `hop_payload` plus the bigsize encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the bigsize encoding of `l`.
  - The `hop_payload` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
  bytes that exceed its 1300-byte size.
- - The varint-serialized length, serialized `hop_payload` and `hmac` are copied into the following `shift_size` bytes.
+ - The bigsize-serialized length, serialized `hop_payload` and `hmac` are copied into the following `shift_size` bytes.
  - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
  which is then applied, with `XOR`, to the `hop_payloads` field.
  - If this is the last hop, i.e. the first iteration, then the tail of the
@@ -662,7 +662,7 @@ The routing information is then deobfuscated, and the information about the
 next hop is extracted.
 To do so, the processing node copies the `hop_payloads` field, appends 1300 `0x00`-bytes,
 generates `2*1300` pseudo-random bytes (using the _rho_-key), and applies the result, using `XOR`, to the copy of the `hop_payloads`.
-The first few bytes correspond to the varint-encoded length `l` of the `hop_payload`, followed by `l` bytes of the resulting routing information become the `hop_payload`, and the 32 byte HMAC.
+The first few bytes correspond to the bigsize-encoded length `l` of the `hop_payload`, followed by `l` bytes of the resulting routing information become the `hop_payload`, and the 32 byte HMAC.
 The next 1300 bytes are the `hop_payloads` for the outgoing packet.
 
 A special `hmac` value of 32 `0x00`-bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
@@ -1000,7 +1000,7 @@ The CLTV expiry in the HTLC is too far in the future.
 
 1. type: PERM|22 (`invalid_onion_payload`)
 2. data:
-   * [`varint`:`type`]
+   * [`bigsize`:`type`]
    * [`u16`:`offset`]
 
 The decrypted onion per-hop payload was not understood by the processing node
