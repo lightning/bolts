@@ -110,20 +110,15 @@ the backwards-compatible addition of new fields to existing message types.
 
 A `tlv_record` represents a single field, encoded in the form:
 
-* [`varint`: `type`]
-* [`varint`: `length`]
+* [`bigsize`: `type`]
+* [`bigsize`: `length`]
 * [`length`: `value`]
-
-A `varint` is a variable-length, unsigned integer encoding using the
-[BigSize](#appendix-a-bigsize-test-vectors) format, which resembles the bitcoin
-CompactSize encoding but uses big-endian for multi-byte values rather than
-little-endian.
 
 A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
 concatenation of the encoded `tlv_record`s. When used to extend existing
 messages, a `tlv_stream` is typically placed after all currently defined fields.
 
-The `type` is a varint encoded using the BigSize format. It functions as a
+The `type` is encoded using the BigSize format. It functions as a
 message-specific, 64-bit identifier for the `tlv_record` determining how the
 contents of `value` should be decoded. `type` identifiers below 2^16 are
 reserved for use in this specification. `type` identifiers greater than or equal
@@ -131,7 +126,7 @@ to 2^16 are available for custom records. Any record not defined in this
 specification is considered a custom record. This includes experimental and
 application-specific messages.
 
-The `length` is a varint encoded using the BigSize format signaling the size of
+The `length` is encoded using the BigSize format signaling the size of
 `value` in bytes.
 
 The `value` depends entirely on the `type`, and should be encoded or decoded
@@ -192,7 +187,7 @@ things, enables the following optimizations:
  - variable-size fields can reserve their expected size up front, rather than
    appending elements sequentially and incurring double-and-copy overhead.
 
-The use of a varint for `type` and `length` permits a space savings for small
+The use of a bigsize for `type` and `length` permits a space savings for small
 `type`s or short `value`s. This potentially leaves more space for application
 data over the wire or in an onion payload.
 
@@ -236,6 +231,7 @@ The following convenience types are also defined:
 * `signature`: a 64-byte bitcoin Elliptic Curve signature
 * `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
 * `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
+* `bigsize`: a variable-length, unsigned integer similar to Bitcoin's CompactSize encoding, but big-endian.  Described in [BigSize](#appendix-a-bigsize-test-vectors).
 
 ## Setup Messages
 
@@ -474,10 +470,10 @@ decoded with BigSize should be checked to ensure they are minimally encoded.
 
 The following is an example of how to execute the BigSize decoding tests.
 ```golang
-func testReadVarInt(t *testing.T, test varIntTest) {
+func testReadBigSize(t *testing.T, test bigSizeTest) {
         var buf [8]byte 
         r := bytes.NewReader(test.Bytes)
-        val, err := tlv.ReadVarInt(r, &buf)
+        val, err := tlv.ReadBigSize(r, &buf)
         if err != nil && err.Error() != test.ExpErr {
                 t.Fatalf("expected decoding error: %v, got: %v",
                         test.ExpErr, err)
@@ -541,19 +537,19 @@ A correct implementation should pass against these test vectors:
         "name": "two byte not canonical",
         "value": 0,
         "bytes": "fd00fc",
-        "exp_error": "decoded varint is not canonical"
+        "exp_error": "decoded bigsize is not canonical"
     },
     {
         "name": "four byte not canonical",
         "value": 0,
         "bytes": "fe0000ffff",
-        "exp_error": "decoded varint is not canonical"
+        "exp_error": "decoded bigsize is not canonical"
     },
     {
         "name": "eight byte not canonical",
         "value": 0,
         "bytes": "ff00000000ffffffff",
-        "exp_error": "decoded varint is not canonical"
+        "exp_error": "decoded bigsize is not canonical"
     },
     {
         "name": "two byte short read",
@@ -604,14 +600,14 @@ A correct implementation should pass against these test vectors:
 
 The following is an example of how to execute the BigSize encoding tests.
 ```golang
-func testWriteVarInt(t *testing.T, test varIntTest) {
+func testWriteBigSize(t *testing.T, test bigSizeTest) {
         var (
                 w   bytes.Buffer
                 buf [8]byte
         )
-        err := tlv.WriteVarInt(&w, test.Value, &buf)
+        err := tlv.WriteBigSize(&w, test.Value, &buf)
         if err != nil {
-                t.Fatalf("unable to encode %d as varint: %v",
+                t.Fatalf("unable to encode %d as bigsize: %v",
                         test.Value, err)
         }
 

@@ -355,7 +355,6 @@ verifier
 verifiers
 EOF
 monotonicity
-varint
 optimizations
 structs
 CompactSize
@@ -367,8 +366,6 @@ namespaces
 tlvs
 fips
 rfc
-varint
-CompactSize
 multipath
 mpp
 tlvs
