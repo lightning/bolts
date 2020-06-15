@@ -382,6 +382,8 @@ construction, and 16 bytes for a final authenticating tag.
 4. `rs = decryptWithAD(temp_k2, 1, h, c)`
      * At this point, the responder has recovered the static public key of the
        initiator.
+     * If the MAC check in this operation fails, then the responder MUST
+       terminate the connection without any further messages.
 5. `h = SHA-256(h || c)`
 6. `se = ECDH(e.priv, rs)`
      * where `e` is the responder's original ephemeral key
