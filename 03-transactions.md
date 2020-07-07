@@ -527,7 +527,9 @@ generate_from_seed(seed, I):
     return P
 ```
 
-Where "flip(B)" alternates the B'th least significant bit in the value P.
+Where "flip(B)" alternates the (B mod 8) bit of the (B div 8)
+byte of the value.  So, "flip(0) in e3b0..." is "e2b0...", and
+"flip(10) in "e3b0..." is "e3b4...".
 
 The receiving node:
   - MAY store all previous per-commitment secrets.
