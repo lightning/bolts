@@ -744,7 +744,7 @@ almost arbitrary fees), `S` should be small during normal operation; although,
 given that block times are irregular, empty blocks still occur, fees may vary
 greatly, and the fees cannot be bumped on HTLC transactions, `S=12` should be
 considered a minimum. `S` is also the parameter that may vary the most under
-attack, so a higher value may be desirable when non negligible amounts are at
+attack, so a higher value may be desirable when non-negligible amounts are at
 risk. The grace period `G` can be low (1 or 2), as nodes are required to timeout
 or fulfill as soon as possible; but if `G` is too low it increases the risk of
 unnecessary channel closure due to networking delays.
@@ -766,7 +766,7 @@ There are four values that need be derived:
 4. the minimum `cltv_expiry` accepted for terminal payments: the
    worst case for the terminal node C is `2R+G+S` blocks (as, again, steps
    1-3 above don't apply). The default in [BOLT #11](11-payment-encoding.md) is
-   9, which is less conservative than the 18 that this calculation suggests.
+   18, which matches this calculation.
 
 #### Requirements
 
