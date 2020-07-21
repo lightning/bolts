@@ -170,11 +170,10 @@ A writer:
   - MAY include one `x` field.
     - if `x` is included:
       - SHOULD use the minimum `data_length` possible.
-  - MAY include one `c` field.
+  - MUST include one `c` field (`min_final_cltv_expiry`).
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
-    - if `c` is included:
-      - SHOULD use the minimum `data_length` possible.
+    - SHOULD use the minimum `data_length` possible.
   - MAY include one `n` field. (Otherwise performing signature recovery is required)
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
@@ -212,6 +211,8 @@ A reader:
     - MUST use the `n` field to validate the signature instead of performing signature recovery.
   - if there is a valid `s` field:
     - MUST use that as [`payment_secret`](04-onion-routing.md#tlv_payload-payload-format)
+  - if the `c` field (`min_final_cltv_expiry`) is not provided:
+    - MUST use an expiry delta of at least 18 when making the payment
 
 ### Rationale
 
