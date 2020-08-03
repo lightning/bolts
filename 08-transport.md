@@ -111,7 +111,7 @@ chosen as the hash function, `secp256k1` as the elliptic curve, and
 `ChaChaPoly-1305` as the AEAD construction.
 
 The composition of `ChaCha20` and `Poly1305` that are used MUST conform to
-`RFC 7539`<sup>[1](#reference-1)</sup>.
+`RFC 8439`<sup>[1](#reference-1)</sup>.
 
 The official protocol name for the Lightning variant of Noise is
 `Noise_XK_secp256k1_ChaChaPoly_SHA256`. The ASCII string representation of
@@ -776,7 +776,7 @@ two key rotations:
 TODO(roasbeef); fin
 
 # References
-1. <a id="reference-1">https://tools.ietf.org/html/rfc7539</a>
+1. <a id="reference-1">https://tools.ietf.org/html/rfc8439</a>
 2. <a id="reference-2">http://noiseprotocol.org/noise.html</a>
 3. <a id="reference-3">https://tools.ietf.org/html/rfc5869</a>
 
