@@ -359,6 +359,16 @@ to be ordered in ascending order, unknown ones can be safely ignored.
 Additional fields beyond `addresses` may also be added in the future—with
 optional padding within `addresses`, if they require certain alignment.
 
+### `node_annoucement` for private channels
+
+while other routing messages (`announcement_signatures`, `channel_announcement` and `channel_update` ) are
+for announcing public channels, `node_announcement` can be used for communication between private channels.
+
+This is useful when a peer wants to accept incoming connection only for a reconnection from the same peer.
+And they want to tell other peer about `addresses` for the reconnection.
+
+NOTE: In this case, since `announcement_signatures` is not exchanged, another peer cannot advertise the channel.
+
 ### Security Considerations for Node Aliases
 
 Node aliases are user-defined and provide a potential avenue for injection
