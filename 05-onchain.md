@@ -39,6 +39,7 @@ encounters any of the above situations, on-chain.
       * [HTLC Output Handling: Remote Commitment, Remote Offers](#htlc-output-handling-remote-commitment-remote-offers)
   * [Revoked Transaction Close Handling](#revoked-transaction-close-handling)
 	  * [Penalty Transactions Weight Calculation](#penalty-transactions-weight-calculation)
+  * [Generation of HTLC Transactions](#generation-of-htlc-transactions)
   * [General Requirements](#general-requirements)
   * [Appendix A: Expected Weights](#appendix-a-expected-weights)
 	* [Expected Weight of the `to_local` Penalty Transaction Witness](#expected-weight-of-the-to-local-penalty-transaction-witness)
@@ -89,15 +90,19 @@ trigger any action.
 # Commitment Transaction
 
 The local and remote nodes each hold a *commitment transaction*. Each of these
-commitment transactions has four types of outputs:
+commitment transactions has up to six types of outputs:
 
 1. _local node's main output_: Zero or one output, to pay to the *local node's*
-commitment pubkey.
+delayed_pubkey.
 2. _remote node's main output_: Zero or one output, to pay to the *remote node's*
-commitment pubkey.
-3. _local node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to pay
+delayed_pubkey.
+3. _local node's anchor output_: one output paying to the *local node's*
+funding_pubkey.
+4. _remote node's anchor output_: one output paying to the *remote node's*
+funding_pubkey.
+5. _local node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to pay
 the *remote node* in return for a payment preimage.
-4. _remote node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to
+6. _remote node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to
 pay the *local node* in return for a payment preimage.
 
 To incentivize the local and remote nodes to cooperate, an `OP_CHECKSEQUENCEVERIFY`
@@ -140,6 +145,10 @@ A node:
       - otherwise:
         - MUST use the *last commitment transaction*, for which it has a
         signature, to perform a *unilateral close*.
+      - MUST spend any `to_local_anchor` output, providing sufficient fees as incentive to include the commitment transaction in a block
+        Special care must be taken when spending to a third-party, because this re-introduces the vulnerability that was
+        addressed by adding the CSV delay to the non-anchor outputs.
+	    - SHOULD use [replace-by-fee](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki) or other mechanism on the spending transaction if it proves insufficient for timely inclusion in a block.
 
 ## Rationale
 
@@ -154,7 +163,8 @@ need not consume resources monitoring the channel state.
 There exists a bias towards preferring mutual closes over unilateral closes,
 because outputs of the former are unencumbered by a delay and are directly
 spendable by wallets. In addition, mutual close fees tend to be less exaggerated
-than those of commitment transactions. So, the only reason not to use the
+than those of commitment transactions (or in the case of `option_anchor_outputs`,
+the commitment transaction may require a child transaction to cause it to be mined). So, the only reason not to use the
 signature from `closing_signed` would be if the fee offered was too small for
 it to be processed.
 
@@ -556,6 +566,19 @@ Thus, 483 bidirectional HTLCs (containing both `to_local` and
 `to_remote` outputs) can be resolved in a single penalty transaction.
 Note: even if the `to_remote` output is not swept, the resulting
 `max_num_htlcs` is 967; which yields the same unidirectional limit of 483 HTLCs.
+
+# Generation of HTLC Transactions
+
+If `option_anchor_outputs` does not apply to the commitment transaction, then HTLC-timeout and HTLC-success transactions are complete transactions with (hopefully!) reasonable fees and must be used directly.
+
+Otherwise, the use of `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` on the HTLC signatures received from the peer allows HTLC transactions to be combined with other transactions.
+The local signature MUST use `SIGHASH_ALL`, otherwise anyone can attach additional inputs and outputs to the tx.
+
+## Requirements
+
+A node which broadcasts an HTLC-success or HTLC-timeout transaction for a commitment transaction for which `option_anchor_outputs` applies:
+  - MUST contribute sufficient fee to ensure timely inclusion in a block.
+  - MAY combine it with other transactions.
 
 # General Requirements
 

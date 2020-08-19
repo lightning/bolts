@@ -376,3 +376,12 @@ bitmasks
 CSPRNG
 lexicographically
 MINIMALIF
+SIGHASH
+ANYONECANPAY
+cpfp
+utxo
+txes
+csv
+CHECKSIGVERIFY
+IFDUP
+sats
