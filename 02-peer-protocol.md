@@ -137,6 +137,10 @@ The existence of the `chain_hash` allows nodes to open channels
 across many distinct blockchains as well as have channels within multiple
 blockchains opened to the same peer (if it supports the target chains).
 
+> NOTE: `chain_hash` is serialized in the same way that bitcoin does in the p2p network.
+> i.e. the byte array output from the double sha256 proof of work hash.
+> Sometimes this format is referred as "little-endian" representation of the proof of work 256 bit unsigned integer for the block.
+
 The `temporary_channel_id` is used to identify this channel on a per-peer basis until the
 funding transaction is established, at which point it is replaced
 by the `channel_id`, which is derived from the funding transaction.
