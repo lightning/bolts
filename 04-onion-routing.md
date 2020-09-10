@@ -246,8 +246,9 @@ parameters may lead to extraneous routing failure.
 ### `tlv_payload` format
 
 This is a more flexible format, which avoids the redundant `short_channel_id` field for the final node. 
+It is formatted according to the Type-Length-Value format defined in [BOLT #1](01-messaging.md#type-length-value-format).
 
-1. tlvs: `tlv_payload`
+1. `tlv_stream`: `tlv_payload`
 2. types:
     1. type: 2 (`amt_to_forward`)
     2. data:
