@@ -353,7 +353,7 @@ The sender:
     - SHOULD use only BIP141 (Segregated Witness) inputs.
 
 The recipient:
-  - if `signature` is incorrect:
+  - if `signature` is incorrect OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST fail the channel.
 
 #### Rationale
@@ -388,7 +388,7 @@ The sender MUST set:
   - `signature` to the valid signature, using its `funding_pubkey` for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
 The recipient:
-  - if `signature` is incorrect:
+  - if `signature` is incorrect OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST fail the channel.
   - MUST NOT broadcast the funding transaction before receipt of a valid `funding_signed`.
   - on receipt of a valid `funding_signed`:
@@ -564,7 +564,7 @@ The sending node:
 
 The receiving node:
   - if the `signature` is not valid for either variant of closing transaction
-  specified in [BOLT #3](03-transactions.md#closing-transaction):
+  specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST fail the connection.
   - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
     - SHOULD sign and broadcast the final closing transaction.
@@ -1017,12 +1017,12 @@ fee changes).
 
 A receiving node:
   - once all pending updates are applied:
-    - if `signature` is not valid for its local commitment transaction:
+    - if `signature` is not valid for its local commitment transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
       - MUST fail the channel.
     - if `num_htlcs` is not equal to the number of HTLC outputs in the local
     commitment transaction:
       - MUST fail the channel.
-  - if any `htlc_signature` is not valid for the corresponding HTLC transaction:
+  - if any `htlc_signature` is not valid for the corresponding HTLC transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST fail the channel.
   - MUST respond with a `revoke_and_ack` message.
 
