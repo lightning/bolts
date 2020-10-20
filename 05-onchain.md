@@ -314,6 +314,7 @@ A local node:
   outgoing HTLC:
     - MUST *resolve* the output by spending it, using the HTLC-success
     transaction.
+    - MUST NOT reveal its own preimage when it's not the final recipient.<sup>[Preimage-Extraction](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-October/002857.html)</sup>
     - MUST resolve the output of that HTLC-success transaction.
   - otherwise:
     - if the *remote node* is NOT irrevocably committed to the HTLC:
