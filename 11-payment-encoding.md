@@ -187,8 +187,10 @@ A writer:
     - MUST include at least one `r` field.
       - `r` field MUST contain one or more ordered entries, indicating the forward route from
       a public node to the final destination.
-        - Note: for each entry, the `pubkey` is the node ID of the start of the channel;
-        `short_channel_id` is the short channel ID field to identify the channel; and
+        - Note: for each entry, the `pubkey` is the node ID of the start of the channel.
+        `short_channel_id` is the short channel ID field to identify the channel. If the routing node
+        supports `option_pubkey_routing`, `short_channel_id` may be set to all zeroes to
+        keep the channel point information private.
         `fee_base_msat`, `fee_proportional_millionths`, and `cltv_expiry_delta` are as
         specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message).
     - MAY include more than one `r` field to provide multiple routing options.
