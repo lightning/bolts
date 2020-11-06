@@ -26,7 +26,7 @@ import fileinput
 typeline = re.compile(
     '(1\.|\*) type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z0-9_]+)`\)( \(`?(?P<option>[^)`]*)`\))?')
 tlvline = re.compile(
-    '(1\.|\*) tlvs: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
+    '(1\.|\*) `tlv_stream`: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
 subtypeline = re.compile(
     '(1\.|\*) subtype: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
 dataline = re.compile(
