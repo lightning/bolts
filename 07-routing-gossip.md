@@ -598,7 +598,7 @@ Nodes can signal that they support extended gossip queries with the `gossip_quer
     * [`len*byte`:`encoded_short_ids`]
     * [`query_short_channel_ids_tlvs`:`tlvs`]
 
-1. tlvs: `query_short_channel_ids_tlvs`
+1. `tlv_stream`: `query_short_channel_ids_tlvs`
 2. types:
     1. type: 1 (`query_flags`)
     2. data:
@@ -703,7 +703,7 @@ timeouts.  It also causes a natural ratelimiting of queries.
     * [`u32`:`number_of_blocks`]
     * [`query_channel_range_tlvs`:`tlvs`]
 
-1. tlvs: `query_channel_range_tlvs`
+1. `tlv_stream`: `query_channel_range_tlvs`
 2. types:
     1. type: 1 (`query_option`)
     2. data:
@@ -728,7 +728,7 @@ Though it is possible, it would not be very useful to ask for checksums without 
     * [`len*byte`:`encoded_short_ids`]
     * [`reply_channel_range_tlvs`:`tlvs`]
 
-1. tlvs: `reply_channel_range_tlvs`
+1. `tlv_stream`: `reply_channel_range_tlvs`
 2. types:
     1. type: 1 (`timestamps_tlv`)
     2. data:

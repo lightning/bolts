@@ -253,7 +253,7 @@ The `features` field MUST be padded to bytes with 0s.
    * [`flen*byte`:`features`]
    * [`init_tlvs`:`tlvs`]
 
-1. tlvs: `init_tlvs`
+1. `tlv_stream`: `init_tlvs`
 2. types:
     1. type: 1 (`networks`)
     2. data:
@@ -672,7 +672,7 @@ The following tests assume that two separate TLV namespaces exist: n1 and n2.
 
 The n1 namespace supports the following TLV types:
 
-1. tlvs: `n1`
+1. `tlv_stream`: `n1`
 2. types:
    1. type: 1 (`tlv1`)
    2. data:
@@ -691,7 +691,7 @@ The n1 namespace supports the following TLV types:
 
 The n2 namespace supports the following TLV types:
 
-1. tlvs: `n2`
+1. `tlv_stream`: `n2`
 2. types:
    1. type: 0 (`tlv1`)
    2. data:

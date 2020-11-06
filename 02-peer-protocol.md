@@ -125,7 +125,7 @@ the funding transaction and both versions of the commitment transaction.
    * [`byte`:`channel_flags`]
    * [`open_channel_tlvs`:`tlvs`]
 
-1. tlvs: `open_channel_tlvs`
+1. `tlv_stream`: `open_channel_tlvs`
 2. types:
     1. type: 0 (`upfront_shutdown_script`)
     2. data:
@@ -300,7 +300,7 @@ funding transaction and both versions of the commitment transaction.
    * [`point`:`first_per_commitment_point`]
    * [`accept_channel_tlvs`:`tlvs`]
 
-1. tlvs: `accept_channel_tlvs`
+1. `tlv_stream`: `accept_channel_tlvs`
 2. types:
     1. type: 0 (`upfront_shutdown_script`)
     2. data:
