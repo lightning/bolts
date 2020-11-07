@@ -225,7 +225,7 @@ There can be HTLCs which are not represented by any outputs: either
 because they were trimmed as dust, or because the transaction has only been
 partially committed.
 
-The HTLC output has *timed out* once the depth of the latest block is equal to
+The HTLC output has *timed out* once the height of the latest block is equal to
 or greater than the HTLC `cltv_expiry`.
 
 ### Requirements
