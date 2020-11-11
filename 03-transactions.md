@@ -954,11 +954,12 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- lock_time: 4 bytes
 
 Multiplying non-witness data by 4 results in a weight of 376. Adding
-the witness data for each case (285 or 288 + 2 for HTLC-timeout, 325 or 328 + 2 for
+the witness data for each case (285 or 288 + 2 for HTLC-timeout, 324 or 327 + 2 for
 HTLC-success) results in weights of:
 
 	663 (HTLC-timeout) (666 with with option_anchor_outputs))
-	703 (HTLC-success) (706 with with option_anchor_outputs))
+	703 (HTLC-success) (706 with with option_anchor_outputs)) 
+                - (really 702 and 705, but we use these numbers for historical reasons)
 
 # Appendix B: Funding Transaction Test Vectors
 
