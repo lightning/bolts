@@ -829,7 +829,7 @@ Multiplying non-witness data by 4 results in a weight of:
 
 The *expected weight* of an HTLC transaction is calculated as follows:
 
-    accepted_htlc_script: 139 bytes (142 bytes with option_anchor_outputs)
+    accepted_htlc_script: 140 bytes (143 bytes with option_anchor_outputs)
         - OP_DUP: 1 byte
         - OP_HASH160: 1 byte
         - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationpubkey)) length)
@@ -859,7 +859,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_ELSE: 1 byte
         - OP_DROP: 1 byte
 		- OP_DATA: 1 byte (cltv_expiry length)
-		- cltv_expiry: 3 bytes
+		- cltv_expiry: 4 bytes
         - OP_CHECKLOCKTIMEVERIFY: 1 byte
         - OP_DROP: 1 byte
         - OP_CHECKSIG: 1 byte
