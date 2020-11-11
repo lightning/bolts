@@ -916,7 +916,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- witness_script_length: 1 byte
 		- witness_script (offered_htlc_script)
 
-    success_witness: 325 bytes (328 bytes with option_anchor_outputs)
+    success_witness: 324 bytes (327 bytes with option_anchor_outputs)
 		- number_of_witness_elements: 1 byte
 		- nil_length: 1 byte
 		- sig_alice_length: 1 byte
