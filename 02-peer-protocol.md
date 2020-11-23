@@ -1256,6 +1256,10 @@ A node:
   the last `revoke_and_ack` the receiving node sent, AND the receiving node
   hasn't already received a `closing_signed`:
     - MUST re-send the `revoke_and_ack`.
+    - if it has previously sent a `commitment_signed` that needs to be
+    retransmitted:
+      - MUST retransmit `revoke_and_ack` and `commitment_signed` in the same
+      relative order as initially transmitted.
   - otherwise:
     - if `next_revocation_number` is not equal to 1 greater than the
     commitment number of the last `revoke_and_ack` the receiving node has sent:
@@ -1325,7 +1329,9 @@ involve different fees, or even be missing HTLCs which are now too old
 to be added. Requiring they be identical would effectively mean a
 write to disk by the sender upon each transmission, whereas the scheme
 here encourages a single persistent write to disk for each
-`commitment_signed` sent or received.
+`commitment_signed` sent or received. But if you need to retransmit both a
+`commitment_signed` and a `revoke_and_ack`, the relative order of these two
+must be preserved, otherwise it will lead to a channel closure.
 
 A re-transmittal of `revoke_and_ack` should never be asked for after a
 `closing_signed` has been received, since that would imply a shutdown has been
