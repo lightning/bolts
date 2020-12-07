@@ -829,7 +829,7 @@ Multiplying non-witness data by 4 results in a weight of:
 
 The *expected weight* of an HTLC transaction is calculated as follows:
 
-    accepted_htlc_script: 139 bytes (142 bytes with option_anchor_outputs)
+    accepted_htlc_script: 140 bytes (143 bytes with option_anchor_outputs)
         - OP_DUP: 1 byte
         - OP_HASH160: 1 byte
         - OP_DATA: 1 byte (RIPEMD160(SHA256(revocationpubkey)) length)
@@ -859,7 +859,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_ELSE: 1 byte
         - OP_DROP: 1 byte
 		- OP_DATA: 1 byte (cltv_expiry length)
-		- cltv_expiry: 3 bytes
+		- cltv_expiry: 4 bytes
         - OP_CHECKLOCKTIMEVERIFY: 1 byte
         - OP_DROP: 1 byte
         - OP_CHECKSIG: 1 byte
@@ -916,7 +916,7 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- witness_script_length: 1 byte
 		- witness_script (offered_htlc_script)
 
-    success_witness: 325 bytes (328 bytes with option_anchor_outputs)
+    success_witness: 324 bytes (327 bytes with option_anchor_outputs)
 		- number_of_witness_elements: 1 byte
 		- nil_length: 1 byte
 		- sig_alice_length: 1 byte
@@ -954,11 +954,12 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- lock_time: 4 bytes
 
 Multiplying non-witness data by 4 results in a weight of 376. Adding
-the witness data for each case (285 or 288 + 2 for HTLC-timeout, 325 or 328 + 2 for
+the witness data for each case (285 or 288 + 2 for HTLC-timeout, 324 or 327 + 2 for
 HTLC-success) results in weights of:
 
-	663 (HTLC-timeout) (666 with with option_anchor_outputs))
-	703 (HTLC-success) (706 with with option_anchor_outputs))
+	663 (HTLC-timeout) (666 with option_anchor_outputs))
+	703 (HTLC-success) (706 with option_anchor_outputs))
+                - (really 702 and 705, but we use these numbers for historical reasons)
 
 # Appendix B: Funding Transaction Test Vectors
 
