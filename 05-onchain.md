@@ -514,7 +514,15 @@ A local node:
   using the revocation private key.
   - SHOULD extract the payment preimage from the transaction input witness, if
   it's not already known.
-  - MAY use a single transaction to *resolve* all the outputs.
+  - if `option_anchor_outputs` applies:
+    - MAY use a single transaction to *resolve* all the outputs.
+    - if confirmation doesn't happen before reaching `security_delay` blocks from
+  expiry:
+      - SHOULD *resolve* revoked outputs in their own, separate penalty transactions. A previous
+  penalty transaction claiming multiple revoked outputs at once may be blocked from confirming
+  because of a transaction pinning attack.
+  - otherwise:
+    - MAY use a single transaction to *resolve* all the outputs.
   - MUST handle its transactions being invalidated by HTLC transactions.
 
 ## Rationale
@@ -523,10 +531,19 @@ A single transaction that resolves all the outputs will be under the
 standard size limit because of the 483 HTLC-per-party limit (see
 [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
 
-Note: if a single transaction is used, it may be invalidated if the remote node
-refuses to broadcast the HTLC-timeout and HTLC-success transactions in a timely
-manner. Although, the requirement of persistence until all outputs are
-irrevocably resolved, should still protect against this happening. [ FIXME: May have to divide and conquer here, since the remote node may be able to delay the local node long enough to avoid a successful penalty spend? ]
+Note: if `option_anchor_outputs` applies, the cheating node can pin spends of its
+HTLC-timeout/HTLC-success outputs thanks to SIGHASH_SINGLE malleability.
+Using a single penalty transaction for all revoked outputs is thus unsafe as it
+could be blocked to propagate long enough for the _local node's `to_local` output_ 's
+relative locktime to expire and the cheating party escaping the penalty on this
+output. Though this situation doesn't prevent faithful punishment of the second-level
+revoked output if the pinning transaction confirms.
+
+The `security_delay` is a fixed-point relative to the absolute expiration of
+the revoked output at which the punishing node must broadcast a single-spend
+transaction for the revoked output and actively fee-bump it until its confirmation.
+The exact value of `security_delay` is left as a matter of node policy, though we
+recommend 18 blocks (similar to incoming HTLC deadline).
 
 ## Penalty Transactions Weight Calculation
 
