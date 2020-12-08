@@ -378,10 +378,14 @@ This message introduces the `channel_id` to identify the channel. It's derived f
 #### Requirements
 
 Both peers:
-  - if `option_static_remotekey` or `option_anchor_outputs` was negotiated:
-    - `option_static_remotekey` or `option_anchor_outputs` applies to all commitment transactions
+  - if `option_static_remotekey`, `option_anchor_outputs` or
+    `option_anchors_zero_fee_htlc_tx` was negotiated:
+    - `option_static_remotekey`, `option_anchor_outputs` or
+      `option_anchors_zero_fee_htlc_tx` applies to all commitment transactions
   - otherwise:
-    - `option_static_remotekey` or `option_anchor_outputs` does not apply to any commitment transactions
+    - `option_static_remotekey`, `option_anchor_outputs` or
+      `option_anchors_zero_fee_htlc_tx` does not apply to any commitment
+      transactions
 
 The sender MUST set:
   - `channel_id` by exclusive-OR of the `funding_txid` and the `funding_output_index` from the `funding_created` message.
@@ -396,10 +400,14 @@ The recipient:
 
 #### Rationale
 
-We decide on `option_static_remotekey` or `option_anchor_outputs` at this point when we first have to generate the commitment
-transaction. The feature bits that were communicated in the `init` message exchange for the current connection determine
-the channel commitment format for the total lifetime of the channel. Even if a later reconnection does not negotiate this parameter,
-this channel will continue to use `option_static_remotekey` or `option_anchor_outputs`; we don't support "downgrading".
+We decide on `option_static_remotekey`, `option_anchor_outputs` or
+`option_anchors_zero_fee_htlc_tx` at this point when we first have to generate
+the commitment transaction. The feature bits that were communicated in the
+`init` message exchange for the current connection determine the channel
+commitment format for the total lifetime of the channel. Even if a later
+reconnection does not negotiate this parameter, this channel will continue to
+use `option_static_remotekey`, `option_anchor_outputs` or
+`option_anchors_zero_fee_htlc_tx`; we don't support "downgrading".
 
 ### The `funding_locked` Message
 
@@ -814,7 +822,7 @@ A sending node:
     transaction, it cannot pay the fee for either the local or remote commitment
     transaction at the current `feerate_per_kw` while maintaining its channel
     reserve (see [Updating Fees](#updating-fees-update_fee)).
-    - if `option_anchor_outputs` applies to this commitment transaction and the sending
+    - if `option_anchors` applies to this commitment transaction and the sending
     node is the funder:
       - MUST be able to additionally pay for `to_local_anchor` and 
       `to_remote_anchor` above its reserve.
@@ -1041,7 +1049,7 @@ output HTLCs are fully resolved.
 
 Note that the `htlc_signature` implicitly enforces the time-lock mechanism in the case of offered HTLCs being timed out or received HTLCs being spent. This is done to reduce fees by creating smaller scripts compared to explicitly stating time-locks on HTLC outputs.
 
-The `option_anchor_outputs` allows HTLC transactions to "bring their own fees" by attaching other inputs and outputs, hence the modified signature flags.
+The `option_anchors` allows HTLC transactions to "bring their own fees" by attaching other inputs and outputs, hence the modified signature flags.
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
@@ -1128,10 +1136,10 @@ A receiving node:
 #### Rationale
 
 Bitcoin fees are required for unilateral closes to be effective.
-With `option_anchor_outputs`, `feerate_per_kw` is not as critical anymore to
-guarantee confirmation as it was in the legacy commitment format, but it still
-needs to be enough to be able to enter the mempool (satisfy min relay fee and
-mempool min fee).
+With `option_anchors`, `feerate_per_kw` is not as critical anymore to guarantee
+confirmation as it was in the legacy commitment format, but it still needs to
+be enough to be able to enter the mempool (satisfy min relay fee and mempool
+min fee).
 
 For the legacy commitment format, there is no general method for the
 broadcasting node to use child-pays-for-parent to increase its effective fee.
