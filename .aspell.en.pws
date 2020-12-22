@@ -377,6 +377,7 @@ CSPRNG
 lexicographically
 MINIMALIF
 SIGHASH
+sighash
 ANYONECANPAY
 cpfp
 utxo
