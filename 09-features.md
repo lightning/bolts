@@ -39,6 +39,7 @@ The Context column decodes as follows:
 | 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | `payment_secret`  | [BOLT #4][bolt04-mpp]                 |
 | 18/19 | `option_support_large_channel`   | Can create large channels                                 | IN       |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 | 20/21 | `option_anchor_outputs`          | Anchor outputs                                            | IN       | `option_static_remotekey` | [BOLT #3](03-transactions.md)         |
+| 22/23 | `option_anchors_zero_fee_htlc_tx` | Anchor commitment type with zero fee HTLC transactions   | IN       |                   | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful]|
 
 ## Requirements
 
@@ -80,7 +81,9 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 
 [bolt02-retransmit]: 02-peer-protocol.md#message-retransmission
 [bolt02-open]: 02-peer-protocol.md#the-open_channel-message
+[bolt03-htlc-tx]: 03-transactions.md#htlc-timeout-and-htlc-success-transactions
 [bolt04]: 04-onion-routing.md
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
 [bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
+[ml-sighash-single-harmful]: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-September/002796.html
