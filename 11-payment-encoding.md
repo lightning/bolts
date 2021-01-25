@@ -150,9 +150,27 @@ Currently defined tagged fields are:
    * `fee_base_msat` (32 bits, big-endian)
    * `fee_proportional_millionths` (32 bits, big-endian)
    * `cltv_expiry_delta` (16 bits, big-endian)
+* `t` (11): `data_length` variable. An `invoice_tlvs` TLV stream.
 * `9` (5): `data_length` variable. One or more 5-bit values containing features
   supported or required for receiving this payment.
   See [Feature Bits](#feature-bits).
+
+The `t` field is formatted according to the Type-Length-Value format defined
+in [BOLT #1](01-messaging.md#type-length-value-format). It uses the following
+types:
+
+1. type: `trampoline_hint`
+2. data:
+   * [`point`:`trampoline_node_id`]
+   * [`bigsize`:`fee_base_msat`]
+   * [`bigsize`:`fee_proportional_millionths`]
+   * [`u16`:`cltv_expiry_delta`]
+
+1. `tlv_stream`: `invoice_tlvs`
+2. types:
+    1. type: 1 (`trampoline_hints`)
+    2. data:
+        * [`...*trampoline_hint`:`trampoline_hints`]
 
 ### Requirements
 
