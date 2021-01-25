@@ -5,6 +5,7 @@
 * [Introduction](#introduction)
 * [Overview](#overview)
 * [Trampoline onion](#trampoline-onion)
+* [Returning errors](#returning-errors)
 * [Invoice flow](#invoice-flow)
 * [Privacy](#privacy)
 * [Trampoline MPP](#trampoline-mpp)
@@ -165,6 +166,83 @@ Alice ------------------> Irvin -------------------------------------> Iris ----
                                                                                                      +-----------------------------------+                                                                                                | +-------------------------------+ |
                                                                                                                                                                                                                                           +-----------------------------------+
 ```
+
+## Returning errors
+
+Trampoline nodes apply the same error-wrapping mechanism used for normal onions
+at the trampoline onion level. This results in two layers of error wrapping
+that let the origin node get actionable data for potential retries.
+
+### Notations
+
+We note `ss(Alice, Bob)` the shared secret between Alice and Bob for the outer
+onion encryption, and `tss(Alice, Bob)` the shared secret between Alice and Bob
+for the trampoline onion encryption.
+
+### Error before the first trampoline
+
+```text
+    +---> N1 ---> N2 (error)
+    |
+    |
++-------+                          +----+
+| Alice |                          | T1 |
++-------+                          +----+
+```
+
+* Alice receives `wrap(ss(Alice,N1), wrap(ss(Alice,N2), error))`
+* She discovers N2 is the failing node by unwrapping with outer onion shared secrets
+
+### Error between trampoline nodes
+
+```text
+    +---> N1 ---> N2 ---+  +---> M1 ---+  +---> E1 ---> E2 (error)
+    |                   |  |           |  |
+    |                   v  |           v  |
++-------+              +----+         +----+
+| Alice |              | T1 |         | T2 |
++-------+              +----+         +----+
+```
+
+* T2 receives `wrap(ss(T2,E1),wrap(ss(T2,E2), error))`
+* T2 discovers E2 is the failing node by unwrapping with outer onion shared
+  secrets, and can transform this error to the error that makes the most sense
+  to return to the payer, and wraps it with the trampoline shared secret and
+  then the outer onion shared secret: `wrap(ss(T1,T2), wrap(tss(Alice,T2), error))`
+* T1 receives `wrap(ss(T1, M1), wrap(ss(T1,T2), wrap(tss(Alice,T2), error)))`
+* After unwrapping with the outer onion shared secrets T1 obtains: `wrap(tss(Alice,T2), error)`
+  T1 cannot decrypt further, so it adds its own two layers of wrapping and
+  forwards upstream `wrap(ss(Alice,T1), wrap(tss(Alice,T1), wrap(tss(Alice,T2), error)))`
+* Alice receives `wrap(ss(Alice,N1), wrap(ss(Alice,N2), wrap(ss(Alice,T1), wrap(tss(Alice,T1), wrap(tss(Alice,T2), error)))))`
+* She unwraps with the outer onion secrets and obtains: `wrap(tss(Alice,T1), wrap(tss(Alice,T2), error))`
+* Since this is still not a plaintext error, she unwraps with the trampoline
+  onion secrets, recovers `error` and knows that T2 sent it.
+
+### Error at a trampoline node
+
+```text
+    +---> N1 ---> N2 ---+  +---> M1 ----+
+    |                   |  |            |
+    |                   v  |            v
++-------+              +----+         +----+
+| Alice |              | T1 |         | T2 | (error)
++-------+              +----+         +----+
+```
+
+* T2 creates a local error and wraps it: `wrap(ss(T1,T2), wrap(tss(Alice,T2), error))`
+* T1 receives `wrap(ss(T1, M1), wrap(ss(T1,T2), wrap(tss(Alice,T2), error)))`
+* After unwrapping with the outer onion shared secrets T1 obtains: `wrap(tss(Alice,T2), error)`
+  It cannot decrypt further, so it adds its own two layers of wrapping and
+  forwards upstream `wrap(ss(Alice,T1), wrap(tss(Alice,T1), wrap(tss(Alice,T2), error)))`
+* Alice receives `wrap(ss(Alice,N1), wrap(ss(Alice,N2), wrap(ss(Alice,T1), wrap(tss(Alice,T1), wrap(tss(Alice,T2), error)))))`
+* She unwraps with the outer onion secrets and obtains: `wrap(tss(Alice,T1), wrap(tss(Alice,T2), error))`
+* Since this is still not a plaintext error, she unwraps with the trampoline
+  onion secrets, recovers `error` and knowns that T2 sent it.
+
+### Unparsable error somewhere in the route
+
+This works the same, each trampoline unwraps as much as it can then re-wraps.
+It will result in an unparsable error at Alice (as expected).
 
 ## Invoice flow
 
