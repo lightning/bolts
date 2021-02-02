@@ -19,6 +19,7 @@ for use of the channel, so the presentation of those features depends
 on the feature itself.
 
 The Context column decodes as follows:
+
 * `I`: presented in the `init` message.
 * `N`: presented in the `node_announcement` messages
 * `C`: presented in the `channel_announcement` message.
@@ -41,6 +42,7 @@ The Context column decodes as follows:
 | 20/21 | `option_anchor_outputs`          | Anchor outputs                                            | IN       | `option_static_remotekey` | [BOLT #3](03-transactions.md)         |
 | 22/23 | `option_anchors_zero_fee_htlc_tx` | Anchor commitment type with zero fee HTLC transactions   | IN       |                   | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful]|
 | 26/27 | `option_shutdown_anysegwit`         | Future segwit versions allowed in `shutdown`              | IN       |                   | [BOLT #2][bolt02-shutdown]   |
+| 32/33 | `option_compression`              | Compression algorithms advertised in `init`               | IN       |                           | [BOLT #1](01-messaging.md#the-init-message)                           |
 | 44/45 | `option_channel_type`            | Node supports the `channel_type` field in open/accept     | IN       |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
 
 ## Definitions
@@ -50,15 +52,16 @@ We define `option_anchors` as `option_anchor_outputs || option_anchors_zero_fee_
 ## Requirements
 
 The origin node:
-  * If it supports a feature above, SHOULD set the corresponding odd
-    bit in all feature fields indicated by the Context column unless
-	indicated that it must set the even feature bit instead.
-  * If it requires a feature above, MUST set the corresponding even
-    feature bit in all feature fields indicated by the Context column,
-    unless indicated that it must set the odd feature bit instead.
-  * MUST NOT set feature bits it does not support.
-  * MUST NOT set feature bits in fields not specified by the table above.
-  * MUST set all transitive feature dependencies.
+
+* If it supports a feature above, SHOULD set the corresponding odd
+  bit in all feature fields indicated by the Context column unless
+  indicated that it must set the even feature bit instead.
+* If it requires a feature above, MUST set the corresponding even
+  feature bit in all feature fields indicated by the Context column,
+  unless indicated that it must set the odd feature bit instead.
+* MUST NOT set feature bits it does not support.
+* MUST NOT set feature bits in fields not specified by the table above.
+* MUST set all transitive feature dependencies.
 
 The requirements for receiving specific bits are defined in the linked sections in the table above.
 The requirements for feature bits that are not defined

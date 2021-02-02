@@ -565,9 +565,12 @@ request what gossip should be received.
 There are several messages which contain a long array of
 `short_channel_id`s (called `encoded_short_ids`) so we utilize a
 simple compression scheme: the first byte indicates the encoding, the
-rest contains the data.
+rest contains the data. The compression algorithms supported by each
+node are advertised in the `init` message's `compression_algorithms`
+tlv field.
 
 Encoding types:
+
 * `0`: uncompressed array of `short_channel_id` types, in ascending order.
 * `1`: array of `short_channel_id` types, in ascending order, compressed with zlib deflate<sup>[1](#reference-1)</sup>
 
@@ -633,6 +636,7 @@ The sender:
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that the `short_channel_id`s refer to.
   - MUST set the first byte of `encoded_short_ids` to the encoding type.
+  - MUST NOT use an encoding not supported by the remote peer.
   - MUST encode a whole number of `short_channel_id`s to `encoded_short_ids`
   - MAY send this if it receives a `channel_update` for a
    `short_channel_id` for which it has no `channel_announcement`.
