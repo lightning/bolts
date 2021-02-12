@@ -301,13 +301,11 @@ The origin node:
   - SHOULD fill `addresses` with an address descriptor for each public network
   address that expects incoming connections.
   - MUST set `addrlen` to the number of bytes in `addresses`.
-  - MUST place address descriptors in ascending order.
   - SHOULD NOT place any zero-typed address descriptors anywhere.
   - SHOULD use placement only for aligning fields that follow `addresses`.
   - MUST NOT create a `type 1` OR `type 2` address descriptor with `port` equal
   to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
-  - MUST NOT include more than one `address descriptor` of the same type.
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
@@ -353,10 +351,12 @@ _even_ `feature` _bits_. These will be propagated normally; incompatible
 feature bits here refer to the nodes, not the `node_announcement` message
 itself.
 
-New address types may be added in the future; as address descriptors have
-to be ordered in ascending order, unknown ones can be safely ignored.
-Additional fields beyond `addresses` may also be added in the future—with
-optional padding within `addresses`, if they require certain alignment.
+New address types may be added in the future; any new address descriptors have
+to be ordered after the currently-defined four and in ascending order, allowing
+unknown ones to be safely ignored. However, due to compatibility issues, there
+is no ordering requirement on the existing four address descriptors. Additional
+fields beyond `addresses` may also be added in the future—with optional padding
+within `addresses`, if they require certain alignment.
 
 ### Security Considerations for Node Aliases
 
