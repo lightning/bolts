@@ -263,6 +263,10 @@ It is formatted according to the Type-Length-Value format defined in [BOLT #1](0
     2. data:
         * [`32*byte`:`payment_secret`]
         * [`tu64`:`total_msat`]
+    1. type: 10 (`hold_fee`)
+    2. data:
+        * [`u64`:`hold_fee_rate_day`]
+        * [`u64`:`hold_fee_discount`]
 
 ### Requirements
 
@@ -271,16 +275,19 @@ The writer:
     - MUST use the legacy payload format instead.
   - For every node:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
+    - MUST include `hold_fee`
   - For every non-final node:
     - MUST include `short_channel_id`
     - MUST NOT include `payment_data`
+    - MUST set `hold_fee_rate_day` so that difference between incoming and outgoing `hold_fee_rate_day` for the receiving node is at least the expected value based on the receiving node's channel policy.
+    - MUST set `hold_fee_discount` to the amount that the reading node would owe its predecessor if the htlc would remain locked for `hold_grace_period_sec` (as advertised by the reading node), plus all amounts owed by nodes further downstream to their predecessors if they'd all hold the htlc for their `hold_grace_period_sec`.
   - For the final node:
     - MUST NOT include `short_channel_id`
     - if the recipient provided `payment_secret`:
       - MUST include `payment_data`
       - MUST set `payment_secret` to the one provided
       - MUST set `total_msat` to the total amount it will send
-
+      - MUST set `hold_fee_discount` to the amount that the reading node would owe its predecessor if the htlc would remain locked for `hold_grace_period_sec` (as advertised by the reading node).
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
   - if it is the final node:

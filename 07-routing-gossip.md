@@ -408,6 +408,9 @@ of *relaying* payments, not *sending* payments. When making a payment
     * [`u32`:`fee_base_msat`]
     * [`u32`:`fee_proportional_millionths`]
     * [`u64`:`htlc_maximum_msat`] (option_channel_htlc_max)
+    * [`u64`:`hold_fee_rate_base_day`]
+    * [`u64`:`hold_fee_rate_ppm_day`]
+    * [`u64`:`hold_grace_period_sec`]
 
 The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
@@ -485,6 +488,9 @@ The origin node:
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
   satoshi) it will charge per transferred satoshi.
   - SHOULD NOT create redundant `channel_update`s
+  - SHOULD set `hold_grace_period_sec` to the total processing time that it needs for forwarding an htlc over this channel. This includes both the forward (`update_add_htlc`) and the backward pass (`update_fulfill_htlc` / `update_fail_htlc`). As long as this node's delay stays within the grace period, there won't be any hold fee to pay.
+  - MUST set `hold_fee_rate_base_day` to the base fee per day that it expects to get paid via its outgoing link for having the htlc in flight.
+  - MUST set `hold_fee_rate_ppm_day` to the proportional fee (in parts per million) per day that is expects to get paid back via its outgoing link for having the htlc in flight. Example: `hold_fee_rate_base_day` = 10, `hold_fee_rate_ppm_day` = 1000, htlc amount = 2000000 sat, hold duration = 1 hour. The node will then expect to get paid (10 + 2000000 * 1000000 / 1000) / 24 = 83.75 sat in hold fees.
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,

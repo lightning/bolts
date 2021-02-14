@@ -786,6 +786,14 @@ A fulfilling node:
   transaction, AND is past this fulfillment deadline:
     - MUST fail the channel.
 
+### Hold fees
+
+To prevent abuse of the network, nodes will charge a fee for the time that their money is locked up in htlcs. The general direction of this fee stream is backwards. Every node along the route that receives an htlc will pay a time-dependent hold fee rate to its predecessor when the htlc resolves, regardless of whether the htlc was fulfilled or failed. The hold fee rate increases with every hop downstream, because more and more money gets locked up. An intermediary or final node that holds on to the htlc for an unreasonably long period of time will need to pay for that (indirectly) to every node upstream.
+
+Forwarding an htlc will always add some delay. To prevent senders from collecting 'free' hold fees, routing nodes will demand a discount on the hold fee. If the routing node forwards swiftly, this discount will turn the hold fee negative and require the sender to pay. Ultimately the sum of all these discounts is paid by the original sender of the payment. This is a protection against spam.
+
+Hold fees only exist in the off-chain domain and don't materialize for pending htlcs on the commitment transaction when a channel is force-closed. There is no way to negotiate the correct hold fee based on the actual hold time when the commitment goes to chain. The assumption is that this is acceptable because the chain fees for the commitment and 2nd level transactions act as an anti-DoS measure already.
+
 ### Adding an HTLC: `update_add_htlc`
 
 Either node can send `update_add_htlc` to offer an HTLC to the other,
@@ -805,6 +813,8 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
    * [`sha256`:`payment_hash`]
    * [`u32`:`cltv_expiry`]
    * [`1366*byte`:`onion_routing_packet`]
+   * [`u64`:`hold_fee_rate_day`]
+   * [`u64`:`hold_fee_discount`]
 
 #### Requirements
 
@@ -829,6 +839,8 @@ A sending node:
     its commitment transaction, it cannot pay the fee for the updated local or
     remote transaction at the current `feerate_per_kw` while maintaining its
     channel reserve.
+  - SHOULD NOT offer a combination of `amount_msat`, `cltv_expiry`, `hold_fee_rate_day` and `hold_fee_discount` such that the remote node cannot pay the hold fee for the longest possible hold duration. The longest possible hold duration is the `cltv_expiry` delta in blocks multiplied by ten minutes. This must also take into account all currently outstanding htlcs.
+  - SHOULD NOT offer a `hold_fee_discount` that it cannot pay for. This must also take into account all currently outstanding htlcs.
   - MUST offer `amount_msat` greater than 0.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
@@ -916,6 +928,7 @@ To supply the preimage:
    * [`channel_id`:`channel_id`]
    * [`u64`:`id`]
    * [`32*byte`:`payment_preimage`]
+   * [`u64:hold fee`]
 
 For a timed out or route-failed HTLC:
 
@@ -925,6 +938,7 @@ For a timed out or route-failed HTLC:
    * [`u64`:`id`]
    * [`u16`:`len`]
    * [`len*byte`:`reason`]
+   * [`u64:hold fee`]
 
 The `reason` field is an opaque encrypted blob for the benefit of the
 original HTLC initiator, as defined in [BOLT #4](04-onion-routing.md);
@@ -940,6 +954,7 @@ For an unparsable HTLC:
    * [`u64`:`id`]
    * [`sha256`:`sha256_of_onion`]
    * [`u16`:`failure_code`]
+   * [`u64:hold fee`]
 
 #### Requirements
 
@@ -950,6 +965,7 @@ A node:
   commitment transactions:
     - MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc`, or
 `update_fail_malformed_htlc`.
+  - MUST set `hold_fee` to the hold fees that it owes the sending node. Let `hold_duration_days` be the actual time that the htlc was held, expressed in days. This value is calculated as `hold_fee_rate_day` (from `update_add_htlc`) * `hold_duration_days` - `hold_fee_discount` (also from `update_add_htlc`). Example: `hold_fee_rate_day`=200, `hold_fee_discount`=3, `hold_duration_days`=0.02 (30 minutes). Then `hold_fee` is 200 * 0.02 - 3 = 1 sat. `hold_fee` can be negative in which case the sending node owes the receiving node.
 
 A receiving node:
   - if the `id` does not correspond to an HTLC in its current commitment transaction:
@@ -967,6 +983,8 @@ A receiving node:
     - MUST return an error in the `update_fail_htlc` sent to the link which
       originally sent the HTLC, using the `failure_code` given and setting the
       data to `sha256_of_onion`.
+  - MUST fail the channel if `hold_fee` is more than 1% below the expected value. This tolerance exists to accommodate for clock skew.
+  - MUST account for the `hold_fee` internally by adding the value to its balance and subtracting the value from the remote balance.
 
 #### Rationale
 
