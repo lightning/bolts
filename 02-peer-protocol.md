@@ -816,7 +816,7 @@ A sending node:
     reserve (see [Updating Fees](#updating-fees-update_fee)).
     - if `option_anchor_outputs` applies to this commitment transaction and the sending
     node is the funder:
-    - MUST be able to additionally pay for `to_local_anchor` and 
+      - MUST be able to additionally pay for `to_local_anchor` and 
       `to_remote_anchor` above its reserve.
     - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
     transaction, its remaining balance doesn't allow it to pay the commitment
