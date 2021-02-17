@@ -351,6 +351,7 @@ The sender MUST set:
 The sender:
   - when creating the funding transaction:
     - SHOULD use only BIP141 (Segregated Witness) inputs.
+    - SHOULD ensure the funding transaction confirms in the next 2016 blocks.
 
 The recipient:
   - if `signature` is incorrect OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
@@ -361,6 +362,9 @@ The recipient:
 The `funding_output_index` can only be 2 bytes, since that's how it's packed into the `channel_id` and used throughout the gossip protocol. The limit of 65535 outputs should not be overly burdensome.
 
 A transaction with all Segregated Witness inputs is not malleable, hence the funding transaction recommendation.
+
+The funder may use CPFP on a change output to ensure that the funding transaction confirms before 2016 blocks,
+otherwise the fundee may forget that channel.
 
 ### The `funding_signed` Message
 
@@ -415,16 +419,15 @@ This message indicates that the funding transaction has reached the `minimum_dep
 The sender MUST:
   - NOT send `funding_locked` unless outpoint of given by `funding_txid` and
    `funding_output_index` in the `funding_created` message pays exactly `funding_satoshis` to the scriptpubkey specified in [BOLT #3](03-transactions.md#funding-transaction-output).
-  - wait until the funding transaction has reached
-`minimum_depth` before sending this message.
-  - set `next_per_commitment_point` to the
-per-commitment point to be used for the following commitment
-transaction, derived as specified in
-[BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+  - wait until the funding transaction has reached `minimum_depth` before
+  sending this message.
+  - set `next_per_commitment_point` to the per-commitment point to be used
+  for the following commitment transaction, derived as specified in
+  [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
 
 A non-funding node (fundee):
-  - SHOULD forget the channel if it does not see the correct
-funding transaction after a reasonable timeout.
+  - SHOULD forget the channel if it does not see the correct funding
+  transaction after a timeout of 2016 blocks.
 
 From the point of waiting for `funding_locked` onward, either node MAY
 fail the channel if it does not receive a required response from the
@@ -436,6 +439,11 @@ The non-funder can simply forget the channel ever existed, since no
 funds are at risk. If the fundee were to remember the channel forever, this
 would create a Denial of Service risk; therefore, forgetting it is recommended
 (even if the promise of `push_msat` is significant).
+
+If the fundee forgets the channel before it was confirmed, the funder will need
+to broadcast the commitment transaction to get his funds back and open a new
+channel. To avoid this, the funder should ensure the funding transaction
+confirms in the next 2016 blocks.
 
 ## Channel Close
 
