@@ -409,6 +409,11 @@ reconnection does not negotiate this parameter, this channel will continue to
 use `option_static_remotekey`, `option_anchor_outputs` or
 `option_anchors_zero_fee_htlc_tx`; we don't support "downgrading".
 
+`option_anchors_zero_fee_htlc_tx` is considered superior to
+`option_anchor_outputs`, which again is considered superior to
+`option_static_remotekey`, and the superior one is is favored if more than one
+is negotiated.
+
 ### The `funding_locked` Message
 
 This message indicates that the funding transaction has reached the `minimum_depth` asked for in `accept_channel`. Once both nodes have sent this, the channel enters normal operating mode.
@@ -1047,9 +1052,13 @@ offline until after sending `commitment_signed`.  Once
 those HTLCs, and cannot fail the related incoming HTLCs until the
 output HTLCs are fully resolved.
 
-Note that the `htlc_signature` implicitly enforces the time-lock mechanism in the case of offered HTLCs being timed out or received HTLCs being spent. This is done to reduce fees by creating smaller scripts compared to explicitly stating time-locks on HTLC outputs.
+Note that the `htlc_signature` implicitly enforces the time-lock mechanism in
+the case of offered HTLCs being timed out or received HTLCs being spent. This
+is done to reduce fees by creating smaller scripts compared to explicitly
+stating time-locks on HTLC outputs.
 
-The `option_anchors` allows HTLC transactions to "bring their own fees" by attaching other inputs and outputs, hence the modified signature flags.
+The `option_anchors` allows HTLC transactions to "bring their own fees" by
+attaching other inputs and outputs, hence the modified signature flags.
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
@@ -1230,7 +1239,8 @@ The sending node:
   next `commitment_signed` it expects to receive.
   - MUST set `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
-  - if `option_static_remotekey` applies to the commitment transaction:
+  - if `option_static_remotekey` or `option_anchors` applies to the commitment
+    transaction:
     - MUST set `my_current_per_commitment_point` to a valid point.
   - otherwise:
     - MUST set `my_current_per_commitment_point` to its commitment point for
@@ -1277,7 +1287,8 @@ A node:
       - SHOULD fail the channel.
 
  A receiving node:
-  - if `option_static_remotekey` applies to the commitment transaction:
+  - if `option_static_remotekey` or `option_anchors` applies to the commitment
+    transaction:
     - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
     `next_revocation_number` minus 1:
