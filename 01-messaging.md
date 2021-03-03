@@ -344,12 +344,20 @@ For simplicity of diagnosis, it's often useful to tell a peer that something is 
 
 The channel is referred to by `channel_id`, unless `channel_id` is 0 (i.e. all bytes are 0), in which case it refers to all channels.
 
-The funding node:
+The funding node using channel establishment v1 (`open_channel`):
   - for all error messages sent before (and including) the `funding_created` message:
     - MUST use `temporary_channel_id` in lieu of `channel_id`.
 
-The fundee node:
+The fundee node using channel establishment v1 (`accept_channel`):
   - for all error messages sent before (and not including) the `funding_signed` message:
+    - MUST use `temporary_channel_id` in lieu of `channel_id`.
+
+The opener node using channel establishment v2 (`open_channel2`):
+  - for all error messages sent before the `accept_channel2` message is received:
+    - MUST use `temporary_channel_id` in lieu of `channel_id`.
+
+The accepter node using channel establishment v2 (`open_channel2`):
+  - for all error messages sent before (and including) the `accept_channel2` message:
     - MUST use `temporary_channel_id` in lieu of `channel_id`.
 
 A sending node:
