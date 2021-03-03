@@ -316,11 +316,11 @@ The 2-byte `len` field indicates the number of bytes in the immediately followin
 
 The channel is referred to by `channel_id`, unless `channel_id` is 0 (i.e. all bytes are 0), in which case it refers to all channels.
 
-The funding node:
+The funding node using channel establishment `open_channel`:
   - for all error messages sent before (and including) the `funding_created` message:
     - MUST use `temporary_channel_id` in lieu of `channel_id`.
 
-The fundee node:
+The fundee node using channel establishment v1 (`accept_channel`):
   - for all error messages sent before (and not including) the `funding_signed` message:
     - MUST use `temporary_channel_id` in lieu of `channel_id`.
 
