@@ -566,12 +566,13 @@ The funding node:
     - SHOULD send a `closing_signed` message.
 
 The sending node:
-  - MUST set `fee_satoshis` less than or equal to the
- base fee of the final commitment transaction, as calculated in [BOLT #3](03-transactions.md#fee-calculation).
-  - SHOULD set the initial `fee_satoshis` according to its
- estimate of cost of inclusion in a block.
-  - MUST set `signature` to the Bitcoin signature of the close
- transaction, as specified in [BOLT #3](03-transactions.md#closing-transaction).
+  - If the channel does not use `option_anchor_outputs`:
+    - MUST set `fee_satoshis` less than or equal to the base fee of the final
+    commitment transaction, as calculated in [BOLT #3](03-transactions.md#fee-calculation).
+  - SHOULD set the initial `fee_satoshis` according to its estimate of cost of
+  inclusion in a block.
+  - MUST set `signature` to the Bitcoin signature of the close transaction,
+  as specified in [BOLT #3](03-transactions.md#closing-transaction).
 
 The receiving node:
   - if the `signature` is not valid for either variant of closing transaction
@@ -580,9 +581,9 @@ The receiving node:
   - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
     - SHOULD sign and broadcast the final closing transaction.
     - MAY close the connection.
-  - otherwise, if `fee_satoshis` is greater than
-the base fee of the final commitment transaction as calculated in
-[BOLT #3](03-transactions.md#fee-calculation):
+  - otherwise, if `fee_satoshis` is greater than the base fee of the final
+  commitment transaction as calculated in [BOLT #3](03-transactions.md#fee-calculation)
+  and the channel does not use `option_anchor_outputs`:
     - MUST fail the connection.
   - if `fee_satoshis` is not strictly
 between its last-sent `fee_satoshis` and its previously-received
