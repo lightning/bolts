@@ -15,7 +15,7 @@ thus allows the fundee to forget the channel after 2016 blocks:
 >  - SHOULD forget the channel if it does not see the correct funding
 >    transaction after a timeout of 2016 blocks.
 
-Since this leads the __funder__ in a situation where they are forced
+Since this leaves the funder in a situation where they are forced
 to use the commitment transaction, and since the commitment
 transaction is using an overestimated feerate, this could end up
 costing the funder more than strictly necessary, and the specification
