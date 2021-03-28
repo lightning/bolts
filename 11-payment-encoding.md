@@ -7,6 +7,7 @@ over Lightning.
 
   * [Encoding Overview](#encoding-overview)
   * [Human-Readable Part](#human-readable-part)
+  * [Keysend Invoice Overview](#keysend-invoice-overview)
   * [Data Part](#data-part)
     * [Tagged Fields](#tagged-fields)
     * [Feature Bits](#feature-bits)
@@ -59,6 +60,15 @@ The following `multiplier` letters are defined:
 * `u` (micro): multiply by 0.000001
 * `n` (nano): multiply by 0.000000001
 * `p` (pico): multiply by 0.000000000001
+
+# Keysend Invoice Overview
+
+Keysend invoice is a subset of standard invoice with the following differences: 
+- prefix is set to `lnks` + BIP-0173 currency prefix (e.g. `lnksbc` for Bitcoin mainnet,
+   `lnkstb` for Bitcoin testnet, `lnkstbs` for Bitcoin signet, and `lnksbcrt` for
+   Bitcoin regtest).
+- `p` tagged field MUST NOT be included.
+- `amount` and `multiplier` MUST NOT be included.
 
 ## Requirements
 
