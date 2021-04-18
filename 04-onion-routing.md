@@ -263,6 +263,9 @@ It is formatted according to the Type-Length-Value format defined in [BOLT #1](0
     2. data:
         * [`32*byte`:`payment_secret`]
         * [`tu64`:`total_msat`]
+    1. type: 10 (`pub_key`)
+    2. data:
+        * [`33*byte`:`pub_key`]
 
 ### Requirements
 
@@ -272,10 +275,16 @@ The writer:
   - For every node:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
   - For every non-final node:
-    - MUST include `short_channel_id`
+    - If `option_pubkey_routing`:
+      - MUST NOT include `short_channel_id`
+      - MUST include `pub_key`
+    - If not `option_pubkey_routing`:
+      - MUST include `short_channel_id`
+      - MUST NOT include `pub_key`
     - MUST NOT include `payment_data`
   - For the final node:
     - MUST NOT include `short_channel_id`
+    - MUST NOT include `pub_key`
     - if the recipient provided `payment_secret`:
       - MUST include `payment_data`
       - MUST set `payment_secret` to the one provided
@@ -380,6 +389,8 @@ nodes A and B, the HTLC can be forwarded across any channel connecting A and B.
 Failure to adhere will result in the receiver being unable to decrypt the next
 hop in the onion packet.
 
+If `pub_key` is specified, forwarding can only be non-strict.
+
 ### Rationale
 
 In the event that two peers have multiple channels, the downstream node will be
@@ -399,7 +410,8 @@ A and B.
 
 Non-strict forwarding allows nodes to make use of private channels connecting
 them to the receiving node, even if the channel is not known in the public
-channel graph.
+channel graph. When `option_pubkey_routing` is used, no channel point information
+needs to be leaked through invoice route hints at all.
 
 ### Recommendation
 
