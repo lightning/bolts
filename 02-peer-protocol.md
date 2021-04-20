@@ -867,11 +867,9 @@ This message initiates the v2 channel establishment workflow.
    * [`u16`:`to_self_delay`]
    * [`u16`:`max_accepted_htlcs`]
    * [`u32`:`locktime`]
-   * [`point`:`funding_pubkey`]
+   * [`u64`:`generation`]
    * [`point`:`revocation_basepoint`]
    * [`point`:`payment_basepoint`]
-   * [`point`:`delayed_payment_basepoint`]
-   * [`point`:`htlc_basepoint`]
    * [`point`:`first_per_commitment_point`]
    * [`byte`:`channel_flags`]
    * [`opening_tlvs`:`tlvs`]
@@ -895,13 +893,16 @@ If nodes have negotiated `option_dual_fund`:
 
 The sending node:
   - MUST set `funding_feerate_perkw` to the feerate for this transaction
-  - MUST ensure `temporary_channel_id` is unique from any
-    other channel ID with the same peer.
+  - MUST set `generation` to a number greater than any previous
+    `generation` it has sent to this receiving node which has reached
+    `commitment_signed`.
+  - SHOULD set `generation` to the lowest number which meets this requirement.
 
 The receiving node:
   - MAY fail the negotiation if:
     - the `locktime` is unacceptable
     - the `funding_feerate_per_kw` is unacceptable
+    - the `generation` exceeds expectation by more than the maximum it would scan for recovery.
 
 #### Rationale
 `channel_id` for the `open_channel2` MUST be derived using a zero-d out
@@ -926,6 +927,13 @@ Instead, the channel reserve is fixed at 1% of the total channel balance
 rounded down to the nearest whole satoshi or the `dust_limit_satoshis`,
 whichever is greater.
 
+`generation` is a number which is used to generate the points used for
+this pair of peers, with the aim of allowing automatic onchain
+scanning for channels if all other information is lost.  Since this
+scan would presumably only try a limited number of generations, it is
+best if this number is low, but it also needs to change for each
+successive channel between the peers, to avoid obvious fingerprinting.
+
 Note that `push_msat` has been omitted.
 
 ### The `accept_channel2` Message
@@ -943,11 +951,9 @@ acceptance of the new channel.
     * [`u32`:`minimum_depth`]
     * [`u16`:`to_self_delay`]
     * [`u16`:`max_accepted_htlcs`]
-    * [`point`:`funding_pubkey`]
+    * [`u64`:`generation`]
     * [`point`:`revocation_basepoint`]
     * [`point`:`payment_basepoint`]
-    * [`point`:`delayed_payment_basepoint`]
-    * [`point`:`htlc_basepoint`]
     * [`point`:`first_per_commitment_point`]
     * [`accept_tlvs`:`tlvs`]
 
@@ -967,6 +973,10 @@ additions.
 
 The accepting node:
     - MAY respond with a `funding_satoshis` value of zero.
+    - MUST set `generation` to a number greater than any previous
+      `generation` it has sent to this receiving node which has reached
+      `commitment_signed`.
+    - SHOULD set `generation` to the lowest number which meets this requirement.
 
 #### Rationale
 
@@ -985,6 +995,31 @@ Funding composition for channel establishment v2 makes use of the
 [Interactive Transaction Construction](#interactive-transaction-construction)
 protocol, with the following additional caveats.
 
+#### Point Derivation
+
+The `funding_pubkey` and basepoints are derived from the two
+`node_id`s and the higher of the two `generation` values; the
+`payment_basepoint` is supplied directly.
+
+Derivation is done as follows:
+
+1. Start with two node ids, `N1` and `N2` (`N1` is the lesser of the
+   two SEC1-encoded compressed public keys, `N2` the greater).
+2. Derive a shared secret, `SS`, using ECDH on `N1` and `N2`.
+3. Define tweaks `T` for each peer, using `SHA256(SS || generation || node_id || name)`, where:
+   1. `generation` is the `u64` larger of the two `generation` fields from `open_channel2` and `accept_channel2`.
+   2. `node_id` is the SEC1-encoded compressed public key of the peer.
+   3. `name` is a non-terminated ASCII string, e.g. `htlc` is the four bytes
+   `0x68 0x74 0x6C 0x63`
+4. The `funding_pubkey` is defined as the `node_id` + G*T(`funding`).
+5. The `delayed_payment_basepoint` is defined as `node_id` + G*T(`delayed_payment`).
+6. The `htlc_basepoint` is defined as the `node_id` + G*T(`htlc`).
+
+If the secret for `payment_basepoint` is derived in a similar manner,
+it too can be easily recovered from just the `generation`, node key
+and peer `node_id`.  However, it may also point to an address for a
+completely separate system (e.g. cold storage), so it is specified
+explicitly in the protocol.
 
 #### The `tx_add_input` Message
 
