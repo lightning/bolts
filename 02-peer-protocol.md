@@ -74,8 +74,9 @@ SHA256(lesser-revocation-basepoint || greater-revocation-basepoint),
 where the lesser and greater is based off the order of the basepoint.
 The basepoints are compact DER-encoded public keys.
 
-If the peer's revocation basepoint is unknown (e.g. `open_channel2`),
-a temporary `channel_id` should be found by using a zeroed out basepoint for the unknown peer.
+If the peer's revocation basepoint is unknown (e.g. `open_channel2`
+and `accept_channel2`), a temporary `channel_id` should be found by
+using a zeroed out basepoint for the unknown peer.
 
 #### Rationale
 These values must be remembered by both peers for correct operation anyway.
@@ -979,6 +980,10 @@ Instead, the channel reserve is fixed at 1% of the total channel balance
 rounded down to the nearest whole satoshi or the `dust_limit_satoshis`,
 whichever is greater.
 
+`channel_id` for the `accept_channel2` MUST be derived using a zero-d out
+basepoint for the peer's revocation basepoint.  This allows the peer to
+return channel-assignable errors before the *accepter*'s revocation
+basepoint is known.
 
 ### Funding Composition
 Funding composition for channel establishment v2 makes use of the
