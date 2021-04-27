@@ -17,6 +17,7 @@ operation, and closing.
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
     * [Normal Operation](#normal-operation)
+      * [Simplified Operation](#simplified-operation)
       * [Forwarding HTLCs](#forwarding-htlcs)
       * [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
       * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
@@ -644,6 +645,102 @@ transactions may be out of sync indefinitely. This is not concerning:
 what matters is whether both sides have irrevocably committed to a
 particular update or not (the final state, above).
 
+### Simplified Operation
+
+If `option_simplified_update` is negotiated, a subset of the previous
+protocol is used, where each side takes turns to propose updates,
+which are synchronized before the other side has a turn:
+
+        +-------+                               +-------+
+        |       |--(1)---- update_add_htlc ---->|       |
+        |       |--(2)---- update_add_htlc ---->|       |
+        |       |--(3)--- commitment_signed --->|       |
+        |   A   |<-(4)---- revoke_and_ack ------|   B   |
+        |       |<-(5)--- commitment_signed ----|       |
+        |       |--(6)---- revoke_and_ack ----->|       |
+        |       |                               |       |
+        |       |<-(7)---- update_add_htlc -----|       |
+        |       |<-(8)--- commitment_signed ----|       |
+        |       |--(9)---- revoke_and_ack ----->|       |
+        |       |--(10)-- commitment_signed --->|       |
+        |       |<-(11)--- revoke_and_ack ------|       |
+        +-------+                               +-------+
+
+If one side sends an update when it is not its turn, the other side
+can either ignore it (in favor of its own update), or reply with a
+`yield` message to hand the turn over.
+
+#### Swapping turns: `yield`
+
+1. type: 138 (`yield`)
+2. data:
+   * [`channel_id`:`channel_id`]
+
+#### Requirements
+
+A node:
+  - MUST NOT send `yield` unless `option_simplified_update` is negotiated.
+  - MUST track whose turn it is, starting with the peer with the lesser SEC1-encoded node_id.
+  - MUST give up its turn when:
+    - sending `revoke_and_ack`
+    - sending a `yield`
+  - MUST accept its turn when:
+    - receiving `revoke_and_ack`
+    - receiving a `yield`
+  - During this node's turn:
+    - if it receives an update message or `commitment_signed`:
+      - if it has sent its own update or `commitment_signed`:
+        - MUST ignore the message
+      - otherwise:
+        - MUST reply with `yield` and process the message.
+  - During the other node's turn:
+    - if it has not received an update message or `commitment_signed`:
+      - MAY send one or more update message or `commitment_signed`:
+	    - MUST NOT include those changes if it receives an update message or `commitment_signed` in reply.
+		- MUST include those changes if it receives a `yield` in reply.
+
+Upon reconnection when `channel_reestablish` is exchanged and
+`option_simplified_update` is negotiated:
+  - If a node sent `next_commitment_number` which exceeds its received
+    `next_revocation_number`, that node's turn is unfinished.
+  - If exactly one node's turn is unfinished, it is their turn,
+    otherwise the turn starts with the peer with the lesser
+    SEC1-encoded node_id.
+  - If a node's turn was unfinished:
+    - That node MUST retransmit the same updates as their previous turn, except
+      omitting `update_fee` if their previous turn mixed `update_fee` and other updates.
+    - The receiving node MAY close the channel if it receives different updates
+	  to the previously unfinished turn (except `update_fee` as above).
+
+#### Rationale
+
+A simple implementation can send an update message out-of-turn and
+wait for a `yield` before sending `commitment_signed`: this ensures
+that there only ever one commitment state at any time, at cost of
+round-trip latency for any out-of-turn changes.
+
+A more complex implementation can optimistically send a complete set
+of updates and `commitment_signed`, but must handle the possibility of
+that commitment being spent on-chain even if the peer does not yield.
+
+Note that the reconnection logic is similarly simplified for an
+implementation which always waits for `yield`: both nodes cannot have
+a commitment in flight simultanously, so if messages are lost due to
+disconnection that is detectable and it simply replays its turn.  The
+requirement for exact replay again means that commitments at the same
+height will always match.
+
+Note that if a channel always uses `option_simplified_update` then the
+revocation and commitment numbers will be equal on both sides (except
+when an update is in progress), but this is not true if a channel
+previously operated without this option.  However, the "more
+commitments sent than revocations received" test will still indicate
+which side has uncommitted changes.  Similarly, simplified peers will
+never mix non-fee updates and HTLC updates, but on the first complete
+reestablishment after enabling `option_simplified_update` this is
+possible and thus is handled.
+
+
 ### Forwarding HTLCs
 
 In general, a node offers HTLCs for two reasons: to initiate a payment of its own,
@@ -1119,6 +1216,8 @@ given in [BOLT #3](03-transactions.md#fee-calculation).
 The node _responsible_ for paying the Bitcoin fee:
   - SHOULD send `update_fee` to ensure the current fee rate is sufficient (by a
       significant margin) for timely processing of the commitment transaction.
+  - if `option_simplified_update` is negotiated:
+    - MUST NOT mix `update_fee` with other updates in the same commitment.
 
 The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
@@ -1154,6 +1253,11 @@ channel creation always pays the fees for the commitment transaction),
 it's simplest to only allow it to set fee levels; however, as the same
 fee rate applies to HTLC transactions, the receiving node must also
 care about the reasonableness of the fee.
+
+With `option_simplified_update` the fee logic is again simplified for
+implementations, such that there is no question of the HTLC state when
+the fee change is proposed.
+
 
 ## Message Retransmission
 
