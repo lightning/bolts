@@ -128,6 +128,32 @@ If a revoked commitment transaction is published, the other party can spend this
 
     <revocation_sig> 1
 
+##### Leased channel (`option_will_fund`)
+
+If a `lease` applies to the channel, the `to_local` output of the `accepter`
+ensures the `leasor` funds are not spendable until the lease expires.
+
+In a leased channel, the `to_local` output that pays the `accepter` node
+is modified so that its CSV is equal to the greater of the
+`to_self_delay` or the `lease_end` - `blockheight`.
+
+    OP_IF
+        # Penalty transaction
+        <revocationpubkey>
+    OP_ELSE
+        MAX(`to_self_delay`, `lease_end` - `blockheight`)
+        OP_CHECKSEQUENCEVERIFY
+        OP_DROP
+        <local_delayedpubkey>
+    OP_ENDIF
+    OP_CHECKSIG
+
+The output is spent by an input with `nSequence` field set to
+MAX(`to_self_delay`, `lease_end` - `blockheight`)
+(which can only be valid after that duration has passed) and witness:
+
+    <local_delayedsig> <>
+
 #### `to_remote` Output
 
 If `option_anchors` applies to the commitment transaction, the `to_remote` output is encumbered by a one block csv lock.
@@ -140,6 +166,20 @@ The output is spent by an input with `nSequence` field set to `1` and witness:
 
 Otherwise, this output is a simple P2WPKH to `remotepubkey`. Note: the remote's commitment transaction uses your `localpubkey` for their
 `to_remote` output to yourself.
+
+##### Leased channel (`option_will_fund`)
+
+FIXME: convert from CSV to CLTV!
+
+If a `lease` applies to the channel, the `to_remote` output of the `initiator`
+ensures the `leasor` funds are not spendable until the lease expires.
+
+    <remote_pubkey> OP_CHECKSIGVERIFY MAX(1, lease_end - blockheight) OP_CHECKSEQUENCEVERIFY
+
+The output is spent by an input with `nSequence` field set to
+MAX(`1`, `lease_end` - `blockheight`) and witness:
+
+    <remote_sig>
 
 #### `to_local_anchor` and `to_remote_anchor` Output (option_anchors)
 
@@ -206,6 +246,8 @@ Or, with `option_anchors`:
             # To remote node with preimage.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
             OP_CHECKSIG
+	    *iff `option_will_fund` and offered to lessor + has active lease (`lease_end` - `blockheight` > 1)
+            `lease_end` - `blockheight` OP_CHECKSEQUENCEVERIFY OP_DROP
         OP_ENDIF
         1 OP_CHECKSEQUENCEVERIFY OP_DROP
     OP_ENDIF
@@ -256,12 +298,12 @@ Or, with `option_anchors`:
             # To local node via HTLC-success transaction.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
             2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
+            1 OP_CHECKSEQUENCEVERIFY OP_DROP
         OP_ELSE
             # To remote node after timeout.
             OP_DROP <cltv_expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
             OP_CHECKSIG
         OP_ENDIF
-        1 OP_CHECKSEQUENCEVERIFY OP_DROP
     OP_ENDIF
 
 To timeout the HTLC, the remote node spends it with the witness:

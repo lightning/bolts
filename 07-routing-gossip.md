@@ -270,6 +270,14 @@ nodes not associated with an already known channel are ignored.
    * [`32*byte`:`alias`]
    * [`u16`:`addrlen`]
    * [`addrlen*byte`:`addresses`]
+   * [`node_ann_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `node_ann_tlvs`
+2. types:
+   1. type: 1 (`option_will_fund`)
+   2. data:
+       * [`lease_rates`:`lease_rates`]
+
 
 `timestamp` allows for the ordering of messages, in the case of multiple
 announcements. `rgb_color` and `alias` allow intelligence services to assign
@@ -323,6 +331,19 @@ The origin node:
   bits it sets.
   - SHOULD not announce a Tor v2 onion service.
   - MUST NOT announce more than one `type 5` DNS hostname.
+ - if supports `option_will_fund`:
+  - MUST include `option_will_fund` tlv type
+  - MUST set `funding_fee_base_sat` to the base fee (in satoshi) it will charge
+    for any reciprocated funding.
+  - MUST set `funding_fee_proportional_basis` to the amount (in
+    thousandths of a satoshi) it will charge per contributed satoshi.
+  - MUST set `funding_weight_max` to the maximum weight that will be charged
+    for any lease.
+  - MUST set `channel_fee_base_max_msat` to the maximum base fee
+    (in millisatoshi) it will charge for any HTLC during the funding period.
+  - MUST set `channel_fee_proportional_basis_max` to the max amount (in
+    thousandths of a satoshi) it will charge per transferred satoshi during
+    the funding period.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -376,6 +397,12 @@ New address types may be added in the future; as address descriptors have
 to be ordered in ascending order, unknown ones can be safely ignored.
 Additional fields beyond `addresses` may also be added in the future—with
 optional padding within `addresses`, if they require certain alignment.
+
+If a node signals `option_will_fund`, they are signaling that they
+will provide funding to a node at the stated terms. They also commit
+to a maximum feerate they will charge for transmitting funds over the channel
+for the duration of the funding lease.
+
 
 ### Security Considerations for Node Aliases
 
@@ -498,6 +525,13 @@ The origin node:
   - SHOULD NOT create redundant `channel_update`s
   - If it creates a new `channel_update` with updated channel parameters:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
+  - if they are the `leasor` for a currently active lease on this channel
+    (`option_will_fund`):
+    - MUST NOT set `fee_base_msat` greater than `channel_fee_max_base_msat`
+      (as committed to in the `accept_channel2`.`will_fund`.`signature`)
+    - MUST NOT set `fee_proportional_millionths` greater than
+      `channel_fee_max_proportional_thousands` * 1000
+      (as committed to in the `accept_channel2`.`will_fund`.`signature`)
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
