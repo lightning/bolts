@@ -670,9 +670,13 @@ If one side sends an update when it is not its turn, the other side
 can either ignore it (in favor of its own update), or reply with a
 `yield` message to hand the turn over.
 
-#### Swapping turns: `yield`
+#### Swapping turns: `yield` and `update_noop`
 
-1. type: 138 (`yield`)
+1. type: 129 (`update_noop`) (`option_simplified_update`)
+2. data:
+   * [`channel_id`:`channel_id`]
+
+1. type: 138 (`yield`) (`option_simplified_update`)
 2. data:
    * [`channel_id`:`channel_id`]
 
@@ -693,11 +697,13 @@ A node:
         - MUST ignore the message
       - otherwise:
         - MUST reply with `yield` and process the message.
+    - if it received `update_noop`:
+      - MUST otherwise ignore the message
   - During the other node's turn:
     - if it has not received an update message or `commitment_signed`:
       - MAY send one or more update message or `commitment_signed`:
-	    - MUST NOT include those changes if it receives an update message or `commitment_signed` in reply.
-		- MUST include those changes if it receives a `yield` in reply.
+        - MUST NOT include those changes if it receives an update message or `commitment_signed` in reply.
+        - MUST include those changes if it receives a `yield` in reply.
 
 Upon reconnection when `channel_reestablish` is exchanged and
 `option_simplified_update` is negotiated:
@@ -710,7 +716,7 @@ Upon reconnection when `channel_reestablish` is exchanged and
     - That node MUST retransmit the same updates as their previous turn, except
       omitting `update_fee` if their previous turn mixed `update_fee` and other updates.
     - The receiving node MAY close the channel if it receives different updates
-	  to the previously unfinished turn (except `update_fee` as above).
+      to the previously unfinished turn (except `update_fee` as above).
 
 #### Rationale
 
@@ -718,6 +724,9 @@ A simple implementation can send an update message out-of-turn and
 wait for a `yield` before sending `commitment_signed`: this ensures
 that there only ever one commitment state at any time, at cost of
 round-trip latency for any out-of-turn changes.
+
+For simplicity, an `update_noop` can be used to prompt a `yield` with
+no other effects.
 
 A more complex implementation can optimistically send a complete set
 of updates and `commitment_signed`, but must handle the possibility of
