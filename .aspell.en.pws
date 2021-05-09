@@ -386,3 +386,6 @@ csv
 CHECKSIGVERIFY
 IFDUP
 sats
+quiesce
+quiescing
+SomeThing

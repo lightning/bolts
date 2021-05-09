@@ -13,6 +13,7 @@ operation, and closing.
       * [The `funding_created` Message](#the-funding_created-message)
       * [The `funding_signed` Message](#the-funding_signed-message)
       * [The `funding_locked` Message](#the-funding_locked-message)
+    * [Channel Quiescence](#channel-quiescence)
     * [Channel Close](#channel-close)
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
@@ -444,6 +445,46 @@ If the fundee forgets the channel before it was confirmed, the funder will need
 to broadcast the commitment transaction to get his funds back and open a new
 channel. To avoid this, the funder should ensure the funding transaction
 confirms in the next 2016 blocks.
+
+## Channel Quiescence
+
+Various fundamental changes, in particular protocol upgrades, are
+easiest on channels where both commitment transactions match, and no
+pending updates are in flight.  We define a protocol to quiesce the
+channel by indicating that "SomeThing Fundamental is Underway".
+
+### `stfu`
+
+1. type: 2 (`stfu`)
+2. data:
+    * [`channel_id`:`channel_id`]
+
+### Requirements
+
+The sender of `stfu`:
+  - MUST NOT send `stfu` if any of the sender's htlc additions, htlc removals
+    or fee updates are pending for either peer.
+  - MUST NOT send `stfu` twice.
+  - MUST set `channel_id` to the id of the channel to quiesce.
+  - MUST now consider the channel to be quiescing.
+  - MUST NOT send an update message after `stfu`.
+
+The receiver of `stfu`:
+  - if it has sent `stfu` then:
+    - MUST now consider the channel to be quiescent
+  - otherwise:
+    - SHOULD NOT send any more update messages.
+    - MUST reply with `stfu` once it can do so.
+
+Upon disconnection:
+  - the channel is no longer considered quiescent.
+
+### Rationale
+
+The normal use would be to cease sending updates, then wait for all
+the current updates to be acknowledged by both peers, then start
+quiescence.  If both sides send `stfu` simultaneously, the result is
+exactly the same as if one had replied to the other.
 
 ## Channel Close
 
