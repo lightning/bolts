@@ -32,6 +32,8 @@ operation, and closing.
       * [The `commitment_signed` Message](#the-commitment_signed-message)
       * [Sharing funding signatures: `tx_signatures`](#sharing-funding-signatures-tx_signatures)
       * [Fee bumping: `tx_init_rbf` and `tx_ack_rbf`](#fee-bumping-tx_init_rbf-and-tx_ack_rbf)
+      * [The `funding_locked` Message](#the-funding_locked-message)
+    * [Channel Quiescence](#channel-quiescence)
     * [Channel Close](#channel-close)
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
@@ -1436,6 +1438,46 @@ It's recommended that a peer, rather than fail the RBF negotiation due to
 a large feerate change, instead sets their `sats` to zero, and decline to
 participate further in the channel funding: by not contributing, they
 may obtain incoming liquidity at no cost.
+
+## Channel Quiescence
+
+Various fundamental changes, in particular protocol upgrades, are
+easiest on channels where both commitment transactions match, and no
+pending updates are in flight.  We define a protocol to quiesce the
+channel by indicating that "SomeThing Fundamental is Underway".
+
+### `stfu`
+
+1. type: 2 (`stfu`)
+2. data:
+    * [`channel_id`:`channel_id`]
+
+### Requirements
+
+The sender of `stfu`:
+  - MUST NOT send `stfu` if any of the sender's htlc additions, htlc removals
+    or fee updates are pending for either peer.
+  - MUST NOT send `stfu` twice.
+  - MUST set `channel_id` to the id of the channel to quiesce.
+  - MUST now consider the channel to be quiescing.
+  - MUST NOT send an update message after `stfu`.
+
+The receiver of `stfu`:
+  - if it has sent `stfu` then:
+    - MUST now consider the channel to be quiescent
+  - otherwise:
+    - SHOULD NOT send any more update messages.
+    - MUST reply with `stfu` once it can do so.
+
+Upon disconnection:
+  - the channel is no longer considered quiescent.
+
+### Rationale
+
+The normal use would be to cease sending updates, then wait for all
+the current updates to be acknowledged by both peers, then start
+quiescence.  If both sides send `stfu` simultaneously, the result is
+exactly the same as if one had replied to the other.
 
 ## Channel Close
 
