@@ -44,15 +44,15 @@ This details the exact format of on-chain transactions, which both sides need to
 
 ## Transaction Input and Output Ordering
 
-Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).  In the case of identical HTLC outputs, the outputs are ordered in increasing `cltv_expiry` order.
+Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).  In the case of identical HTLC outputs (amount of satoshis as well as the script are the same), the outputs are ordered in increasing `cltv_expiry` order.
 
 ## Rationale
 
-Two offered HTLCs which have the same `amount_msat` and `payment_hash`
-will have identical outputs, even if their `cltv_expiry` differs.
-This only matters because the same ordering is used to send
-`htlc_signatures` and the HTLC transactions themselves are different,
-thus the two peers must agree on the canonical ordering for this case.
+Two offered HTLCs which have the same `amount` (rounded from `amount_msat`) and
+`payment_hash` will have identical outputs, even if their `cltv_expiry`
+differs.  This only matters because the same ordering is used to send
+`htlc_signatures` and the HTLC transactions themselves are different, thus the
+two peers must agree on the canonical ordering for this case.
 
 ## Use of Segwit
 
