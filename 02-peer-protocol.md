@@ -1490,6 +1490,114 @@ considered to be the channel funder (the sender of `open_channel`).
 The quiescence effect is exactly the same as if one had replied to the
 other.
 
+## Splicing
+
+Splicing is the term given for replacing the funding transaction with
+a new one.  For simplicity, no other changes can be made while the new
+transaction is being negotiated, but operation returns to normal once
+negotiation is done (while waiting for the splice transaction(s) to
+confirm).
+
+### The `splice` Message
+
+1. type: 74 (`splice`)
+2. data:
+   * [`chain_hash`:`chain_hash`]
+   * [`channel_id`:`channel_id`]
+   * [`u32`:`funding_feerate_perkw`]
+   * [`u64`:`generation`]
+   * [`point`:`payment_basepoint`]
+   * [`point`:`first_per_commitment_point`]
+   * [`point`:`next_per_commitment_point`]
+
+#### Requirements
+
+The sender:
+- MUST NOT send `splice` before sending and receiving `funding_locked`.
+- MUST NOT send another splice message while a splice is being negotiated.
+- MUST NOT send a splice message after sending uncommitted changes.
+- If a splice is in progress:
+  - MUST NOT send a splice message with `funding_feerate_perkw` which is less than 1.25 the previous `funding_feerate_perkw` (rounded down).
+- MUST NOT send other channel updates until splice negotiation has completed.
+
+The receiver:
+- SHOULD fail the splice if there is an ongoing splice, and the `funding_feerate_perkw` is not at least 1.25 the previous `funding_feerate_perkw` (rounded down).
+- MUST respond with a `splice` message of its own if it has not already.
+- MUST NOT reply with `splice` until all commitment updates are resolved by bother peers.
+- MAY set `funding_feerate_perkw` below the received value.
+- MUST use the higher of the two `funding_feerate_perkw` as the feerate for
+  the splice.
+- MUST NOT send other channel updates until splice negotiation has completed.
+
+
+#### Rationale
+
+Both sides agree to a splice: there is no harm in agreeing to a splice
+with a high feerate (presumably the recipient will not contribute to
+the splice which they consider to be overpaying).
+
+Any pending updates are flushed before sending, but the reply must
+wait until all changes are resolved..  So in the case where the A
+sends `splice` while B has just added an HTLC, then B will have to
+send `commitment_signed`, then A will have to reply with
+`revoke_and_ack` then `commitment_signed`, the B will have to also
+reply with `revoke_and_ack` before it can finally reply with `splice`.
+
+## Splice Negotiation
+
+The splice negotiation is very similar to the `init_rbf` negotiation:
+both sides alternate sending `tx_add_input` and `tx_add_output` until
+they both send consecutive `tx_complete`.
+
+### Requirements
+
+(Note that many of these messages have their own, additional
+requirements detailed elsewhere).
+
+The initiator is defined as the side which offered the higher
+`funding_feerate_perkw`, or if both sides are equal, the lower
+SEC1-encoded node_id.
+
+The initiator:
+- MUST `tx_add_input` an input which spends the current funding transaction output.
+- MUST `tx_add_output` a zero-value output which pays to the two funding keys using the higher of the two `generation` fields.
+- MUST pay for the common fields.
+
+Upon receipt of consecutive `tx_complete`s, each node:
+- MUST fail negotiation if there is not exactly one input spending the current funding transaction.
+- MUST fail negotiation if there is not exactly one output with zero value paying to the two funding keys (a.k.a. the new channel funding output)
+- MUST calculate the channel capacity for each side:
+  - Start with the previous balance
+  - Add that side's new inputs (excluding the one spending the current funding transaction)
+  - Subtracting each sides new outputs (except the zero-value one paying to the funding keys)
+  - Subtract the total fee that side is paying for the splice transaction.
+- MUST replace the zero-value funding output amount with the total channel capacity.
+- MUST calculate the channel balance for each side:
+  - Subtract any outstanding HTLCs offered by that side.
+- if either side has added an output other than the new channel funding output:
+  - MUST fail the negotiation if the balance for that side is less than 1% of the total channel capacity.
+- SHOULD NOT fail if the splice transaction is nonstandard.
+- MUST increment the commitment number and send `commitment_signed`, including the signatures for the splice transaction.
+
+- Upon receipt of `revoke_and_ack` for the previous commitment:
+  - MUST send `tx_signatures` for the splice transaction.
+
+- Upon receipt of `tx_signatures` for the splice transaction:
+  - MUST consider splice negotiation complete.
+
+On reconnection:
+- MUST retransmit the last splice `tx_signatures` (if any).
+- MUST ignore any redundant `tx_signatures` it receives.
+
+### Rationale
+
+If a side does not meet the reserve requirements, that's OK: but if
+they take funds out of the channel, they must ensure that they do meet
+them.  If your peer adds a massive amount to the channel, then you
+only have to add more reserve if you want to contribute to the splice
+(and you can use `tx_remove_output` and/or `tx_remove_input` part-way
+through if this happens).
+
 ## Channel Close
 
 Nodes can negotiate a mutual close of the connection, which unlike a
