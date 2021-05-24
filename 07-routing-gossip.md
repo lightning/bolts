@@ -87,6 +87,8 @@ A node:
     - MUST send the `announcement_signatures` message.
       - MUST NOT send `announcement_signatures` messages until `funding_locked`
       has been sent and received AND the funding transaction has at least six confirmations.
+    - MUST send `announcement_signatures` message after `splice_locked`
+      has been sent and received.
   - otherwise:
     - MUST NOT send the `announcement_signatures` message.
   - upon reconnection (once the above timing requirements have been met):
