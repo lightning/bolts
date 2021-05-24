@@ -2112,7 +2112,7 @@ A sending node:
     between implementations.
   - if it is _not responsible_ for paying the Bitcoin fee:
     - SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to
-    its commitment transaction, it cannot pay the fee for the updated local or
+    any of its commitment transactions, it cannot pay the fee for the updated local or
     remote transaction at the current `feerate_per_kw` while maintaining its
     channel reserve.
   - MUST offer `amount_msat` greater than 0.
@@ -2189,6 +2189,9 @@ reach a state where it is unable to send or receive any non-dust HTLC while
 maintaining its channel reserve (because of the increased weight of the
 commitment transaction), resulting in a degraded channel. See [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728)
 for more details.
+
+If splicing is supported, there can be more than one commitment transaction
+at a time: proposed changes must be valid for all of them.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
 
@@ -2449,6 +2452,8 @@ given in [BOLT #3](03-transactions.md#fee-calculation).
 The node _responsible_ for paying the Bitcoin fee:
   - SHOULD send `update_fee` to ensure the current fee rate is sufficient (by a
       significant margin) for timely processing of the commitment transaction.
+  - MUST NOT set `feerate_per_kw` in excess of what it can afford on any of the receiving node's
+    current commitment transactions.
 
 The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
@@ -2471,7 +2476,7 @@ A receiving node:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
   - if the sender cannot afford the new fee rate on the receiving node's
-  current commitment transaction:
+  current commitment transactions:
     - SHOULD send a `warning` and close the connection, or send an
       `error` and fail the channel.
       - but MAY delay this check until the `update_fee` is committed.
@@ -2508,6 +2513,9 @@ If on-chain fees increase while commitments contain many HTLCs that will
 be trimmed at the updated feerate, this could overflow the configured
 `max_dust_htlc_exposure_msat`. Whether to close the channel preemptively
 or not is left as a matter of node policy.
+
+If splicing is supported, there can be more than one commitment transaction
+at a time: proposed changes must be valid for all of them.
 
 ## Message Retransmission
 
