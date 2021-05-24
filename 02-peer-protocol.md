@@ -458,6 +458,7 @@ channel by indicating that "SomeThing Fundamental is Underway".
 1. type: 2 (`stfu`)
 2. data:
     * [`channel_id`:`channel_id`]
+    * [`u8`:`initiator`]
 
 ### Requirements
 
@@ -465,6 +466,10 @@ The sender of `stfu`:
   - MUST NOT send `stfu` if any of the sender's htlc additions, htlc removals
     or fee updates are pending for either peer.
   - MUST NOT send `stfu` twice.
+  - if it is replying to an `stfu`:
+    - MUST set `initiator` to 0
+  - otherwise:
+    - MUST set `initiator` to 1
   - MUST set `channel_id` to the id of the channel to quiesce.
   - MUST now consider the channel to be quiescing.
   - MUST NOT send an update message after `stfu`.
@@ -483,8 +488,14 @@ Upon disconnection:
 
 The normal use would be to cease sending updates, then wait for all
 the current updates to be acknowledged by both peers, then start
-quiescence.  If both sides send `stfu` simultaneously, the result is
-exactly the same as if one had replied to the other.
+quiescence.  For some protocols, choosing the initiator matters,
+so this flag is sent.
+
+If both sides send `stfu` simultaneously, they will both set
+`initiator` to `1`, in which case the "initiator" is arbitrarily
+considered to be the channel funder (the sender of `open_channel`).
+The quiescence effect is exactly the same as if one had replied to the
+other.
 
 ## Channel Close
 
