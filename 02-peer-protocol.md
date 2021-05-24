@@ -1499,6 +1499,10 @@ a new one.  For simplicity, splicing takes place once a channel is
 Operation returns to normal once negotiation is done (while waiting
 for the splice transaction(s) to confirm).
 
+The splice is finally terminated when both sides send
+`splice_complete` to indicate that one of the splice transactions
+reached acceptable depth.
+
 ### The `splice` Message
 
 1. type: 74 (`splice`)
@@ -1589,6 +1593,22 @@ them.  If your peer adds a massive amount to the channel, then you
 only have to add more reserve if you want to contribute to the splice
 (and you can use `tx_remove_output` and/or `tx_remove_input` part-way
 through if this happens).
+
+## Splice Completion
+
+Each node:
+- if any splice transaction reaches depth 6:
+  - MUST send `splice_locked`.
+
+Once a node has received and sent `splice_locked`:
+  - MUST consider the successful splice to be the new funding
+    transaction for all future `commitment_signed` and splice operations.
+  - MUST discard the previous funding transaction and other splice operations.
+  - MUST send a new `commitment_signed` (with no `splice_commitsigs`).
+
+On reconnection:
+  - MUST retransmit the last `splice_locked` if the peer did not
+    acknowledge the `commitment_signed`.
 
 ## Channel Close
 
