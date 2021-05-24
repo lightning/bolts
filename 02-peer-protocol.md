@@ -1158,12 +1158,26 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
    * [`signature`:`signature`]
    * [`u16`:`num_htlcs`]
    * [`num_htlcs*signature`:`htlc_signature`]
+   * [`commitment_signed_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `commitment_signed_tlvs`
+2. types:
+    1. type: 0 (`splice_commitsigs`)
+    2. data:
+        * [`...*commitsigs`:`sigs`]
+
+1. subtype: `commitsigs`
+2. data:
+   * [`signature`:`commit_signature`]
+   * [`u16`:`num_htlcs`]
+   * [`num_htlcs*signature`:`htlc_signature`]
+
 
 #### Requirements
 
 A sending node:
   - MUST NOT send a `commitment_signed` message that does not include any
-updates.
+updates, or add or remove splices.
   - MAY send a `commitment_signed` message that only
 alters the fee.
   - MAY send a `commitment_signed` message that doesn't
@@ -1174,6 +1188,7 @@ fee changes).
     to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
+  - MUST send a `commitsigs` for each splice in progress, in increasing feerate order.
 
 A receiving node:
   - once all pending updates are applied:
@@ -1183,6 +1198,10 @@ A receiving node:
     commitment transaction:
       - MUST fail the channel.
   - if any `htlc_signature` is not valid for the corresponding HTLC transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+    - MUST fail the channel.
+  - if there is not exactly one `commitsigs` for each splice in progress:
+    - MUST fail the channel.
+  - if `commit_signature`, `num_htlcs` or `htlc_signature` is not correct as specified above for each splice:
     - MUST fail the channel.
   - MUST respond with a `revoke_and_ack` message.
 
@@ -1202,6 +1221,11 @@ output HTLCs are fully resolved.
 Note that the `htlc_signature` implicitly enforces the time-lock mechanism in the case of offered HTLCs being timed out or received HTLCs being spent. This is done to reduce fees by creating smaller scripts compared to explicitly stating time-locks on HTLC outputs.
 
 The `option_anchor_outputs` allows HTLC transactions to "bring their own fees" by attaching other inputs and outputs, hence the modified signature flags.
+
+Splicing requires us to send and receive redundant signatures, as we
+don't know which (if any) of the splice transactions will end up being
+the new channel.  Increasing feerate order is also the order in which
+splices were negotiated (since each must increase the feerate).
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
