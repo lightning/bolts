@@ -436,6 +436,7 @@ individual bits:
 | ------------- | ----------- | -------------------------------- |
 | 0             | `direction` | Direction this update refers to. |
 | 1             | `disable`   | Disable the channel.             |
+| 2             | `splicing`  | Temporarily ignore channel spend.|
 
 The `message_flags` bitfield is used to provide additional details about the message:
 
@@ -498,6 +499,7 @@ The origin node:
   - SHOULD NOT create redundant `channel_update`s
   - If it creates a new `channel_update` with updated channel parameters:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
+  - SHOULD set `splicing` in all `channel_update` once splicing has been negotiated for a channel.
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
@@ -573,6 +575,11 @@ at least 10 minutes to improve payment latency and reliability.
 The `must_be_one` field in `message_flags` was previously used to indicate
 the presence of the `htlc_maximum_msat` field. This field must now always
 be present, so `must_be_one` is a constant value, and ignored by receivers.
+
+The simple `splicing` flag warns nodes that this channel will be
+replaced; it tells them to give a grace period for the new channel to
+appear (it can't be announced until it's 6 blocks deep) during which
+it can use the old channel id.
 
 ## Query Messages
 
@@ -984,6 +991,8 @@ A node:
   - SHOULD monitor the funding transactions in the blockchain, to identify
   channels that are being closed.
   - if the funding output of a channel is being spent:
+    - if a `channel_update` had `splicing` in the `channel_flags`:
+      - SHOULD delay 10 blocks considering the output spent.
     - SHOULD be removed from the local network view AND be considered closed.
   - if the announced node no longer has any associated open channels:
     - MAY prune nodes added through `node_announcement` messages from their
