@@ -1493,10 +1493,11 @@ other.
 ## Splicing
 
 Splicing is the term given for replacing the funding transaction with
-a new one.  For simplicity, no other changes can be made while the new
-transaction is being negotiated, but operation returns to normal once
-negotiation is done (while waiting for the splice transaction(s) to
-confirm).
+a new one.  For simplicity, splicing takes place once a channel is
+[quiescent](#channel-quiescence).
+
+Operation returns to normal once negotiation is done (while waiting
+for the splice transaction(s) to confirm).
 
 ### The `splice` Message
 
@@ -1505,43 +1506,37 @@ confirm).
    * [`chain_hash`:`chain_hash`]
    * [`channel_id`:`channel_id`]
    * [`u32`:`funding_feerate_perkw`]
-   * [`u64`:`generation`]
-   * [`point`:`payment_basepoint`]
-   * [`point`:`first_per_commitment_point`]
-   * [`point`:`next_per_commitment_point`]
+   * [`point`:`funding_pubkey`]
+
+1. type: 76 (`splice_ack`)
+2. data:
+   * [`chain_hash`:`chain_hash`]
+   * [`channel_id`:`channel_id`]
+   * [`point`:`funding_pubkey`]
 
 #### Requirements
 
-The sender:
+The sender of `splice`:
+- MUST have successfully initiated quiescence.
 - MUST NOT send `splice` before sending and receiving `funding_locked`.
-- MUST NOT send another splice message while a splice is being negotiated.
-- MUST NOT send a splice message after sending uncommitted changes.
-- If a splice is in progress:
+- MUST NOT send `splice` while a splice is being negotiated.
+- If any splice is in progress:
   - MUST NOT send a splice message with `funding_feerate_perkw` which is less than 1.25 the previous `funding_feerate_perkw` (rounded down).
-- MUST NOT send other channel updates until splice negotiation has completed.
 
-The receiver:
-- SHOULD fail the splice if there is an ongoing splice, and the `funding_feerate_perkw` is not at least 1.25 the previous `funding_feerate_perkw` (rounded down).
-- MUST respond with a `splice` message of its own if it has not already.
-- MUST NOT reply with `splice` until all commitment updates are resolved by bother peers.
-- MAY set `funding_feerate_perkw` below the received value.
-- MUST use the higher of the two `funding_feerate_perkw` as the feerate for
-  the splice.
-- MUST NOT send other channel updates until splice negotiation has completed.
+The receiver of `splice`:
+- SHOULD fail the connection if there is an ongoing splice, and the `funding_feerate_perkw` is not at least 1.25 the previous `funding_feerate_perkw` (rounded down).
+- MUST respond with `splice_ack` containing its own `funding_pubkey`.
+- MUST begin splice negotiation.
+
+The receiver of `splice_ack`:
+- MUST begin splice negotiation.
 
 
 #### Rationale
 
-Both sides agree to a splice: there is no harm in agreeing to a splice
-with a high feerate (presumably the recipient will not contribute to
-the splice which they consider to be overpaying).
-
-Any pending updates are flushed before sending, but the reply must
-wait until all changes are resolved..  So in the case where the A
-sends `splice` while B has just added an HTLC, then B will have to
-send `commitment_signed`, then A will have to reply with
-`revoke_and_ack` then `commitment_signed`, the B will have to also
-reply with `revoke_and_ack` before it can finally reply with `splice`.
+There is no harm in agreeing to a splice with a high feerate
+(presumably the recipient will not contribute to the splice which they
+consider to be overpaying).
 
 ## Splice Negotiation
 
@@ -1553,10 +1548,6 @@ they both send consecutive `tx_complete`.
 
 (Note that many of these messages have their own, additional
 requirements detailed elsewhere).
-
-The initiator is defined as the side which offered the higher
-`funding_feerate_perkw`, or if both sides are equal, the lower
-SEC1-encoded node_id.
 
 The initiator:
 - MUST `tx_add_input` an input which spends the current funding transaction output.
@@ -1584,6 +1575,7 @@ Upon receipt of consecutive `tx_complete`s, each node:
 
 - Upon receipt of `tx_signatures` for the splice transaction:
   - MUST consider splice negotiation complete.
+  - MUST consider the connection no longer quiescent.
 
 On reconnection:
 - MUST retransmit the last splice `tx_signatures` (if any).
