@@ -418,6 +418,7 @@ individual bits:
 | ------------- | ----------- | -------------------------------- |
 | 0             | `direction` | Direction this update refers to. |
 | 1             | `disable`   | Disable the channel.             |
+| 2             | `splicing`  | Temporarily ignore channel spend.|
 
 The `message_flags` bitfield is used to indicate the presence of optional
 fields in the `channel_update` message:
@@ -485,6 +486,7 @@ The origin node:
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
   satoshi) it will charge per transferred satoshi.
   - SHOULD NOT create redundant `channel_update`s
+  - SHOULD set `splicing` in all `channel_update` once splicing has been negotiated for a channel.
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
@@ -558,6 +560,11 @@ indicate that the channel is disabled, with another update re-enabling
 the channel when the peer reestablishes contact.  Because gossip
 messages are batched and replace previous ones, the result may be a
 single seemingly-redundant update.
+
+The simple `splicing` flag warns nodes that this channel will be
+replaced; it tells them to give a grace period for the new channel to
+appear (it can't be announced until it's 6 blocks deep) during which
+it can use the old channel id.
 
 ## Query Messages
 
@@ -967,6 +974,8 @@ A node:
   - SHOULD monitor the funding transactions in the blockchain, to identify
   channels that are being closed.
   - if the funding output of a channel is being spent:
+    - if a `channel_update` had `splicing` in the `channel_flags`:
+      - SHOULD delay 10 blocks considering the output spent.
     - SHOULD be removed from the local network view AND be considered closed.
   - if the announced node no longer has any associated open channels:
     - MAY prune nodes added through `node_announcement` messages from their
