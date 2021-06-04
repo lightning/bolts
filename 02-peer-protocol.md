@@ -1654,11 +1654,14 @@ A sending node:
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
   - MUST NOT send multiple `shutdown` messages.
+  - if there is an ongoing splice:
+    - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
   - if no HTLCs remain in either commitment transaction (including dust HTLCs)
     and neither side has a pending `revoke_and_ack` to send:
     - MUST NOT send any `update` message after that point.
   - SHOULD fail to route any HTLC added after it has sent `shutdown`.
+  - MUST NOT initiate a new splice if none are already in progress after a `shutdown`.
   - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
     - MUST send the same value in `scriptpubkey`.
   - MUST set `scriptpubkey` in one of the following forms:
@@ -1676,8 +1679,9 @@ A receiving node:
     - SHOULD send a `warning`.
   - if it hasn't sent a `channel_ready` yet:
     - MAY reply to a `shutdown` message with a `shutdown`
-  - once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:
+  - once there are no outstanding updates on the peer and no ongoing splice, UNLESS it has already sent a `shutdown`:
     - MUST reply to a `shutdown` message with a `shutdown`
+  - MUST NOT initiate a new splice if none are already in progress.
   - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
     - MAY send a `warning`.
     - MUST fail the connection.
@@ -1711,6 +1715,12 @@ provides an incremental improvement in security by requiring the cooperation
 of the receiving node to change the `scriptpubkey`.
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
+
+`shutdown` requires that there be no splice in progress, but if there
+is already a splice in progress, it might require another splice to
+"unstick" it (if the first splice was invalid, double-spent, or simply
+had too low a fee), so in this case initiating another splice is legal
+even after sending a shutdown.
 
 ### Closing Negotiation: `closing_signed`
 
