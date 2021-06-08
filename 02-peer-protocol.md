@@ -221,7 +221,7 @@ The receiving node:
     - `prevtx` is not a valid transaction
     - `prevtx_vout` is greater or equal to the number of outputs on `prevtx`
     - the `prevtx_out` input of `prevtx` is not an `OP_0` to `OP_16`
-      followed by a single push
+      followed by a single push of 2 to 40 bytes
     - the `serial_id` is already included in the transaction
     - the `serial_id` has the wrong parity
     - if has received 4096 `tx_add_input` messages during this negotiation
@@ -276,7 +276,8 @@ The receiving node:
     - the `serial_id` is already included in the transaction
     - the `serial_id` has the wrong parity
     - it has received 4096 `tx_add_output` messages during this negotiation
-    - the `sats` amount is less than or equal to the `dust_limit`
+    - the `sats` amount is less than the `dust_limit`
+    - the `sats` amount is greater than 21,0000,0000 (`MAX_MONEY`)
 
 
 #### Rationale
@@ -346,6 +347,7 @@ The receiving node:
       - the *initiator*'s fees do not cover the `common` fields
     - there are more than 252 inputs
     - there are more than 252 outputs
+    - the estimated weight of the tx is greater than 400,000 (`MAX_STANDARD_TX_WEIGHT`)
 
 #### Rationale
 To signal the conclusion of exchange of transaction inputs and outputs.
@@ -382,12 +384,18 @@ the byte size of the input and output counts on the transaction to one (1).
 
 #### Requirements
 The sending node:
+  - if it has the lowest total satoshis contributed, as defined
+    by total `tx_add_input` values:
+    - MUST transmit their `tx_signatures` before the peer
   - MUST order the `witness_stack`s by the `serial_id` of the input they
     correspond to
   - number of `witness_stack`s MUST equal the number of inputs they added
 
 The receiving node:
   - MUST fail the negotiation if:
+    - if they have not sent a `tx_signatures` message and they are the
+      peer with the lowest total satoshis contributed, as defined by
+      `tx_add_input` values
     - the message contains an empty `witness_stack`
     - the number of `witness_stack`s does not equal the number of inputs
       added by the sending node
@@ -400,6 +408,10 @@ The receiving node:
 
 
 #### Rationale
+The peer with the lowest total of inputs amounts must transmit its
+`tx_signatures` first. This gives in a strict ordering of transmission
+for any multiparty tx collaboration.
+
 `witness` is the data for a witness element in a witness stack.
 Witness elements should *not* include their length.
 
@@ -844,7 +856,6 @@ The protocol is also expanded to include a mechanism for initiating RBF.
     ----|       |<-(b)--- ack_rbf  ------------|       |
         |       |                              |       |
         |       |--(7)--- funding_locked ----->|       |
-n-
         |       |<-(8)--- funding_locked ------|       |
         +-------+                              +-------+
 
@@ -1139,7 +1150,9 @@ The sender:
   - MUST NOT have sent or received a `funding_locked` message
 
 The recipient:
-  - MUST either fail the negotiation or transmit a `tx_add_input` message
+  - MUST either fail the negotiation or transmit a `tx_add_input` message,
+    restarting the interactive tx collaboration protocol, and proceeding
+    the same as with `accept_channel2`.
 
 #### Rationale
 `funding_satoshis` is the amount of satoshis that this peer will
