@@ -5,7 +5,7 @@ This details the exact format of on-chain transactions, which both sides need to
 # Table of Contents
 
   * [Transactions](#transactions)
-    * [Transaction Input and Output Ordering](#transaction-input-and-output-ordering)
+    * [Transaction Output Ordering](#transaction-output-ordering)
     * [Use of Segwit](#use-of-segwit)
     * [Funding Transaction Output](#funding-transaction-output)
     * [Commitment Transaction](#commitment-transaction)
@@ -42,7 +42,7 @@ This details the exact format of on-chain transactions, which both sides need to
 
 # Transactions
 
-## Transaction Input and Output Ordering
+## Transaction Output Ordering
 
 Outputs in transactions are always sorted according to:
  * first according to their value (in whole satoshis, note that for HTLC outputs, the millisatoshi part must be ignored)
