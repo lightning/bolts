@@ -843,8 +843,6 @@ A sending node:
   - MUST offer `amount_msat` greater than 0.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
-  - for channels with `chain_hash` identifying the Bitcoin blockchain:
-    - MUST set the four most significant bytes of `amount_msat` to 0.
   - if result would be offering more than the remote's
   `max_accepted_htlcs` HTLCs, in the remote commitment transaction:
     - MUST NOT add an HTLC.
@@ -868,8 +866,6 @@ A receiving node:
     - SHOULD fail the channel.
   - if sending node sets `cltv_expiry` to greater or equal to 500000000:
     - SHOULD fail the channel.
-  - for channels with `chain_hash` identifying the Bitcoin blockchain, if the four most significant bytes of `amount_msat` are not 0:
-    - MUST fail the channel.
   - MUST allow multiple HTLCs with the same `payment_hash`.
   - if the sender did not previously acknowledge the commitment of that HTLC:
     - MUST ignore a repeated `id` value after a reconnection.
@@ -901,10 +897,6 @@ as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation)
 
 `cltv_expiry` values equal to or greater than 500000000 would indicate a time in
 seconds, and the protocol only supports an expiry in blocks.
-
-`amount_msat` is deliberately limited for this version of the
-specification; larger amounts are not necessary, nor wise, during the
-bootstrap phase of the network.
 
 The node _responsible_ for paying the Bitcoin fee should maintain a "fee
 spike buffer" on top of its reserve to accommodate a future fee increase.
