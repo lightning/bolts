@@ -5,7 +5,7 @@ This details the exact format of on-chain transactions, which both sides need to
 # Table of Contents
 
   * [Transactions](#transactions)
-    * [Transaction Input and Output Ordering](#transaction-input-and-output-ordering)
+    * [Transaction Output Ordering](#transaction-output-ordering)
     * [Use of Segwit](#use-of-segwit)
     * [Funding Transaction Output](#funding-transaction-output)
     * [Commitment Transaction](#commitment-transaction)
@@ -42,9 +42,12 @@ This details the exact format of on-chain transactions, which both sides need to
 
 # Transactions
 
-## Transaction Input and Output Ordering
+## Transaction Output Ordering
 
-Lexicographic ordering: see [BIP69](https://github.com/bitcoin/bips/blob/master/bip-0069.mediawiki).  In the case of identical HTLC outputs (amount of satoshis as well as the script are the same), the outputs are ordered in increasing `cltv_expiry` order.
+Outputs in transactions are always sorted according to:
+ * first according to their value (in whole satoshis, note that for HTLC outputs, the millisatoshi part must be ignored)
+ * followed by `scriptpubkey`, comparing the common-length prefix lexicographically as if by `memcmp`, then selecting the shorter script (if they differ in length),
+ * finally, for HTLC outputs, in increasing `cltv_expiry` order.
 
 ## Rationale
 
