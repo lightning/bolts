@@ -26,15 +26,15 @@ For Lightning developers, bLIPs are a convenient way to track the progress of th
 
 ==bLIP Types==
 
-There are three kinds of bLIP:
+There are three kinds of bLIPs:
 
-* A **Standards Track bLIP** describes any change that affects most or all Lightning implementations, such as—a change to the network protocol, a change in HTLC types or funding transaction rules, proposed application standards/conventions, or any change or addition that affects the interoperability of applications using Lightning. Standards Track bLIPs consist of three parts—a design document, an implementation, and (if warranted) an update to the Basics of Lightning Technology (BOLT) specification. Furthermore, Standards Track bLIPs can be broken down into the following categories:
-    * Core: improvements requiring changes to the BOLTs, as well as changes that are not necessarily critical but may be relevant to “protocol dev” discussions, and routing node strategy changes.
-    * Routing/Pathfinding: includes improvements around the routing protocol, as well as proposed improvements to the onion routing protocol specification ([BOLT #4](https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md)).
-    * Networking: includes improvements around the gossip protocol, as well as proposed improvements to network protocol specifications ([BOLT #7](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md)).
-    * Lightning Request for Comments (LRC): application-level standards and conventions.
-* A **Process bLIP** describes a process surrounding Lightning, or proposes a change to (or an event in) a process. Process bLIPs are like Standards Track bLIPs but apply to areas other than the Lightning protocol itself. They may propose an implementation, but not to the BOLT specification; they often require community consensus; unlike Informational bLIPs, they are more than recommendations, and users are strongly encouraged to adopt them. Examples include procedures, guidelines, changes to the decision-making process, and changes to the tools or environment used in Lightning development. Any meta-bLIP is also considered a Process bLIP.
-* An **Informational bLIP** describes a Lightning design issue, or provides general guidelines or information to the Lightning community, but does not propose a new feature. Informational bLIPs do not necessarily represent a Bitcoin community consensus or recommendation, so users and implementers are free to ignore Informational bLIPs or follow their advice.
+* A Standards Track bLIP describes any change that affects most or all Lightning implementations, such as—a change to the network protocol, a change in HTLC types or funding transaction rules, proposed application standards/conventions, or any change or addition that affects the interoperability of applications using Lightning. Standards Track bLIPs consist of three parts—a design document, an implementation, and (if warranted) an update to the Basics of Lightning Technology (BOLT) specification. Furthermore, Standards Track bLIPs can be broken down into the following categories:
+** Core: improvements requiring changes to the BOLTs, as well as changes that are not necessarily critical but may be relevant to “protocol dev” discussions, and routing node strategy changes.
+** Routing/Pathfinding: includes improvements around the routing protocol, as well as proposed improvements to the onion routing protocol specification ([https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md BOLT #4]).
+** Networking: includes improvements around the gossip protocol, as well as proposed improvements to network protocol specifications ([https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md BOLT #7]).
+** Lightning Request for Comments (LRC): application-level standards and conventions.
+* A Process bLIP describes a process surrounding Lightning, or proposes a change to (or an event in) a process. Process bLIPs are like Standards Track bLIPs but apply to areas other than the Lightning protocol itself. They may propose an implementation, but not to the BOLT specification; they often require community consensus; unlike Informational bLIPs, they are more than recommendations, and users are strongly encouraged to adopt them. Examples include procedures, guidelines, changes to the decision-making process, and changes to the tools or environment used in Lightning development. Any meta-bLIP is also considered a Process bLIP.
+* An Informational bLIP describes a Lightning design issue, or provides general guidelines or information to the Lightning community, but does not propose a new feature. Informational bLIPs do not necessarily represent a Bitcoin community consensus or recommendation, so users and implementers are free to ignore Informational bLIPs or follow their advice.
 
 It is highly recommended that a single bLIP contain a single key proposal or new idea. More focused bLIPs will tend to be more successful. If in doubt, a bLIP should be split into several well-focused ones.
 
@@ -42,9 +42,9 @@ A change that affects multiple clients, or defines a standard for multiple apps 
 
 ==bLIP Workflow==
 
-The bLIP process begins with a new idea for Lightning. Each potential bLIP must have a champion -- someone who writes the bLIP using the style and format described below, shepherds the discussions in the appropriate forums, and attempts to build community consensus around the idea. The bLIP champion (a.k.a. Author) should first attempt to ascertain whether the idea is bLIP-able. The first step should be to search past discussions to see if an idea has been considered before, and if so, what issues arose in its progression. Such discussion generally happens on the [Lightning development mailing list](https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev), or in the ##lightning-dev IRC channel.
+The bLIP process begins with a new idea for Lightning. Each potential bLIP must have a champion -- someone who writes the bLIP using the style and format described below, shepherds the discussions in the appropriate forums, and attempts to build community consensus around the idea. The bLIP champion (a.k.a. Author) should first attempt to ascertain whether the idea is bLIP-able. The first step should be to search past discussions to see if an idea has been considered before, and if so, what issues arose in its progression. Such discussion generally happens on the [https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev Lightning development mailing list], or in the ##lightning-dev IRC channel.
 
-Once the champion has asked the Lightning community as to whether an idea has any chance of acceptance, a draft bLIP should be presented to the [Lightning development mailing list](https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev). This gives the author a chance to flesh out the draft bLIP to make it properly formatted, of high quality, and to address additional concerns about the proposal. Following a discussion, the proposal should be submitted to the [bLIP folder of the lightning-rfc git repository](https://github.com/lightningnetwork/lightning-rfc) as a pull request. This draft must be written in bLIP style as described below, and its bLIP number will be the PR number automatically assigned by Github (or, if preferred by the author, the Issue # if there was discussion in the Issues section of this repository about this bLIP).
+Once the champion has asked the Lightning community as to whether an idea has any chance of acceptance, a draft bLIP should be presented to the [https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev Lightning development mailing list]. This gives the author a chance to flesh out the draft bLIP to make it properly formatted, of high quality, and to address additional concerns about the proposal. Following a discussion, the proposal should be submitted to the [https://github.com/lightningnetwork/lightning-rfc bLIP folder of the lightning-rfc repository] as a pull request. This draft must be written in bLIP style as described below, and its bLIP number will be the PR number automatically assigned by Github (or, if preferred by the author, the Issue # if there was discussion in the Issues section of this repository about this bLIP).
 
 When the bLIP draft is complete, the lightning-rfc editors will label it as Standards Track, Informational, or Process, and merge the pull request into the proposals folder in the lightning-rfc repository. The editors will not unreasonably reject a bLIP. Reasons for rejecting bLIPs include duplication of effort, disregard for formatting rules, being too unfocused or too broad, being technically unsound, not providing proper motivation or addressing backwards compatibility, or not in keeping with the Bitcoin and Lightning Network philosophy. For a bLIP to be accepted it must meet certain minimum criteria. It must be a clear and complete description of the proposed enhancement. The enhancement must represent a net improvement. The proposed implementation, if applicable, must be solid and must not complicate the protocol unduly.
 
@@ -59,7 +59,7 @@ Each bLIP should have the following parts:
 * Preamble -- Headers containing metadata about the bLIP (see below).
 * Abstract -- A short (~200 word) description of the technical issue being addressed.
 * Copyright -- The bLIP must be explicitly licensed under acceptable copyright terms (see below).
-Specification -- The technical specification should describe the syntax and semantics of any new feature. The specification should be detailed enough to allow competing, interoperable implementations for any of the current Lightning implementations.
+* Specification -- The technical specification should describe the syntax and semantics of any new feature. The specification should be detailed enough to allow competing, interoperable implementations for any of the current Lightning implementations.
 * Motivation -- The motivation is critical for bLIPs that want to change the Lightning protocol. It should clearly explain why the existing protocol is inadequate to address the problem that the bLIP solves.
 * Rationale -- The rationale fleshes out the specification by describing what motivated the design and why particular design decisions were made. It should describe alternate designs that were considered and related work. The rationale should provide evidence of consensus within the community and discuss important objections or concerns raised during discussion.
 * Backwards compatibility -- All bLIPs that introduce backwards incompatibilities must include a section describing these incompatibilities and their severity. The bLIP must explain how the author proposes to deal with these incompatibilities.
@@ -90,7 +90,7 @@ The Category header (only for Standards Track bLIPs) documents which aspect of L
 
 The Author header lists the names and email addresses of all the authors/owners of the bLIP. The format of the Author header value must be:
 
-    Random J. User <address@dom.ain>
+  Random J. User <address@dom.ain>
  
 If there are multiple authors, each should be on a separate line following RFC 2822 continuation line conventions.
 
@@ -110,19 +110,19 @@ The typical paths of the status of bLIPs are as follows:
 
 flowchart.img
 
-**Draft** - The first formally tracked stage of a bLIP in development. A bLIP is merged by a bLIP Editor into the proposals folder of the lightning-rfc repository when properly formatted.
+* Draft - The first formally tracked stage of a bLIP in development. A bLIP is merged by a bLIP Editor into the proposals folder of the lightning-rfc repository when properly formatted.
 
-**Deferred** - The bLIP editor may also change the status to Deferred when no progress is being made on the bLIP.
+* Deferred - The bLIP editor may also change the status to Deferred when no progress is being made on the bLIP.
 
-**Withdrawn** - Champions of a bLIP may decide on their own to change the status between Draft, Deferred, or Withdrawn.
+* Withdrawn - Champions of a bLIP may decide on their own to change the status between Draft, Deferred, or Withdrawn.
 
-**Rejected** - bLIPs should be changed from Draft status to Rejected status, upon request by any person, if they have not made progress in three years. Such a bLIP may be changed to Draft status if the champion provides revisions that meaningfully address public criticism of the proposal, or to Proposed status if it meets the criteria required as described in the previous paragraph.
+* Rejected - bLIPs should be changed from Draft status to Rejected status, upon request by any person, if they have not made progress in three years. Such a bLIP may be changed to Draft status if the champion provides revisions that meaningfully address public criticism of the proposal, or to Proposed status if it meets the criteria required as described in the previous paragraph.
 
-**Proposed** - a bLIP may only change status from Draft (or Rejected) to Proposed, when the author deems it is complete, has a working implementation (where applicable), and has community plans to progress it to the Final status.
+* Proposed - a bLIP may only change status from Draft (or Rejected) to Proposed, when the author deems it is complete, has a working implementation (where applicable), and has community plans to progress it to the Final status.
 
-**Final / Active** - a Proposed bLIP may progress to Final only when specific criteria reflecting real-world adoption has occurred. This is different for each bLIP depending on the nature of its proposed changes, which will be expanded on below. Evaluation of this status change should be objectively verifiable, and/or be discussed on the development mailing list. A process bLIP may change status from Draft to Active when it achieves rough consensus on the mailing list. Such a proposal is said to have rough consensus if it has been open to discussion on the development mailing list for at least one month, and no person maintains any unaddressed substantiated objections to it. Addressed or obstructive objections may be ignored/overruled by general agreement that they have been sufficiently addressed, but clear reasoning must be given in such circumstances.
+* Final / Active - a Proposed bLIP may progress to Final only when specific criteria reflecting real-world adoption has occurred. This is different for each bLIP depending on the nature of its proposed changes, which will be expanded on below. Evaluation of this status change should be objectively verifiable, and/or be discussed on the development mailing list. A process bLIP may change status from Draft to Active when it achieves rough consensus on the mailing list. Such a proposal is said to have rough consensus if it has been open to discussion on the development mailing list for at least one month, and no person maintains any unaddressed substantiated objections to it. Addressed or obstructive objections may be ignored/overruled by general agreement that they have been sufficiently addressed, but clear reasoning must be given in such circumstances.
 
-**Replaced or Obsolete** - when a Final bLIP is no longer relevant, its status may be changed to Replaced or Obsolete (which is equivalent to Replaced). This change must also be objectively verifiable and/or discussed.
+* Replaced or Obsolete - when a Final bLIP is no longer relevant, its status may be changed to Replaced or Obsolete (which is equivalent to Replaced). This change must also be objectively verifiable and/or discussed.
 
 ==Auxiliary Files==
 
@@ -168,6 +168,7 @@ The bLIP editors are intended to fulfill administrative and editorial responsibi
 New bLIPs may be accepted with the following licenses. Each new bLIP must identify at least one acceptable license in its preamble. The License header in the preamble must be placed after the Created header. Each license must be referenced by their respective abbreviation given below.
 
 For example, a preamble might include the following License header:
+
    License: BSD-2-Clause
              GNU-All-Permissive
  
@@ -176,6 +177,7 @@ In this case, the bLIP text is fully licensed under both the OSI-approved BSD 2-
 It is also possible to license source code differently from the bLIP text. An optional License-Code header is placed after the License header. Again, each license must be referenced by their respective abbreviation given below.
 
 For example, a preamble specifying the optional License-Code header might look like:
+
    License: BSD-2-Clause
              GNU-All-Permissive
     License-Code: GPL-2.0+
