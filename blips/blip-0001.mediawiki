@@ -126,8 +126,8 @@ The Category header (only for Standards Track bLIPs) documents which aspect of L
 
 The Author header lists the names and email addresses of all the authors/owners of the bLIP. The format of the Author header value must be:
 
- Random J. User <address@dom.ain>
- 
+  Random J. User <address@dom.ain>
+
 If there are multiple authors, each should be on a separate line following RFC 2822 continuation line conventions.
 
 While a bLIP is in private discussions (usually during the initial Draft phase), a Discussions-To header will indicate the mailing list or URL where the bLIP is being discussed. No Discussions-To header is necessary if the bLIP is being discussed privately with the author, or on the bitcoin email mailing lists.
