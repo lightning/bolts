@@ -169,32 +169,26 @@ bLIPs may include auxiliary files such as diagrams. Auxiliary files should be in
 New bLIPs may be accepted with the following licenses. Each new bLIP must identify at least one acceptable license in its preamble. The License header in the preamble must be placed after the Created header. Each license must be referenced by their respective abbreviation given below.
 
 For example, a preamble might include the following License header:
-
-<pre>
+ 
    License: BSD-2-Clause
              GNU-All-Permissive
-</pre>
- 
+
 In this case, the bLIP text is fully licensed under both the OSI-approved BSD 2-clause license as well as the GNU All-Permissive License, and anyone may modify and redistribute the text provided they comply with the terms of *either* license. In other words, the license list is an "OR choice", not an "AND also" requirement.
 
 It is also possible to license source code differently from the bLIP text. An optional License-Code header is placed after the License header. Again, each license must be referenced by their respective abbreviation given below.
 
 For example, a preamble specifying the optional License-Code header might look like:
-
-<pre>
+ 
    License: BSD-2-Clause
              GNU-All-Permissive
    License-Code: GPL-2.0+
-</pre>
- 
-In this case, the code in the bLIP is not available under the BSD or All-Permissive licenses, but only under the terms of the GNU General Public License (GPL), version 2 or newer. If the code were to be available under *only* version 2 exactly, the "+" symbol should be removed from the license abbreviation. For a later version (eg, GPL 3.0), you would increase the version number (and retain or remove the "+" depending on intent).
 
-<pre>
+In this case, the code in the bLIP is not available under the BSD or All-Permissive licenses, but only under the terms of the GNU General Public License (GPL), version 2 or newer. If the code were to be available under *only* version 2 exactly, the "+" symbol should be removed from the license abbreviation. For a later version (eg, GPL 3.0), you would increase the version number (and retain or remove the "+" depending on intent).
+ 
    License-Code: GPL-2.0   # This refers to GPL v2.0 *only*, no later license versions are acceptable.
    License-Code: GPL-2.0+  # This refers to GPL v2.0 *or later*.
    License-Code: GPL-3.0   # This refers to GPL v3.0 *only*, no later license versions are acceptable.
    License-Code: GPL-3.0+  # This refers to GPL v3.0 *or later*.
-</pre>
 
 In the event that the licensing for the text or code is too complicated to express with a simple list of alternatives, the list should instead be replaced with the single term "Complex". In all cases, details of the licensing terms must be provided in the Copyright section of the bLIP.
 
