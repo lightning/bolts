@@ -50,6 +50,42 @@ When the bLIP draft is complete, the lightning-rfc editors will label it as Stan
 
 The bLIP author may update the draft as necessary in the git repository. Updates to drafts should also be submitted by the author as pull requests.
 
+====Transferring bLIP Ownership====
+
+It occasionally becomes necessary to transfer ownership of bLIPs to a new champion. In general, we'd like to retain the original author as a co-author of the transferred bLIP, but that's really up to the original author. A good reason to transfer ownership is because the original author no longer has the time or interest in updating it or following through with the bLIP process, or has fallen off the face of the 'net (i.e. is unreachable or not responding to email). A bad reason to transfer ownership is because you don't agree with the direction of the bLIP. We try to build consensus around a bLIP, but if that's not possible, you can always submit a competing bLIP.
+
+If you are interested in assuming ownership of a bLIP, send a message asking to take over, addressed to both the original author and the bLIP editor. If the original author doesn't respond to email in a timely manner, the bLIP editor will make a unilateral decision (it's not like such decisions can't be reversed).
+
+====bLIP Editors====
+
+The current bLIP editors are:
+
+* Bastien Teinturier (@t-bast)
+* Laolu Osuntokun (@roasbeef)
+* Lisa Neigut (@niftynei)
+* Matt Corrallo (@TheBlueMatt)
+* *ideally plus some app layer volunteers*
+
+====bLIP Editor Responsibilities & Workflow====
+
+For each new bLIP submission, the editors do the following:
+
+* Read the bLIP to check if it is ready: sound and complete. The ideas must make technical sense, even if they don't seem likely to get to final status.
+* The title should accurately describe the content.
+* The bLIP draft must have been sent to the lightning-dev mailing list for discussion.
+* Motivation and backward compatibility (when applicable) must be addressed.
+* Licensing terms must be acceptable for bLIPs.
+
+If the bLIP isn't ready, the editor will send it back to the author for revision, with specific instructions.
+
+Once the bLIP is ready for the repository, the bLIP editor will:
+
+* Assign a bLIP number (generally the PR number or, if preferred by the author, the Issue # if there was discussion in the Issues section of this repository about this bLIP)
+* Merge the corresponding pull request
+* Send a message back to the bLIP author with the next steps.
+
+The bLIP editors are intended to fulfill administrative and editorial responsibilities. They do not pass judgement on bLIPs. The bLIP editors monitor bLIP changes, and update bLIP headers as appropriate.
+
 ==What belongs in a successful bLIP?==
 
 bLIPs should be written in mediawiki format.
@@ -65,7 +101,7 @@ Each bLIP should have the following parts:
 * Backwards compatibility -- All bLIPs that introduce backwards incompatibilities must include a section describing these incompatibilities and their severity. The bLIP must explain how the author proposes to deal with these incompatibilities.
 * Reference implementation -- The reference implementation must be completed before any bLIP is given status "Final", but it need not be completed before the bLIP is accepted. It is better to finish the specification and rationale first and reach consensus on it before writing code. The final implementation must include test code and documentation appropriate for the Lightning protocol.
 
-==bLIP Header Preamble==
+====bLIP Header Preamble====
 
 Each bLIP must begin with an RFC 822 style header preamble. The headers must appear in the following order. Headers marked with "*" are optional and are described below. All other headers are required.
 
@@ -106,7 +142,7 @@ bLIPs may have a Requires header, indicating the bLIP numbers that this bLIP dep
 
 bLIPs may also have a Superseded-By header indicating that a bLIP has been rendered obsolete by a later document; the value is the number of the bLIP that replaces the current document. The newer bLIP must have a Replaces header containing the number of the bLIP that it rendered obsolete.
 
-==bLIP status field==
+====bLIP status field====
 
 The typical paths of the status of bLIPs are as follows:
 
@@ -126,44 +162,9 @@ flowchart.img
 
 * Replaced or Obsolete - when a Final bLIP is no longer relevant, its status may be changed to Replaced or Obsolete (which is equivalent to Replaced). This change must also be objectively verifiable and/or discussed.
 
-==Auxiliary Files==
+====Auxiliary Files====
 
 bLIPs may include auxiliary files such as diagrams. Auxiliary files should be included in a subdirectory for that bLIP, or must be named bLIP-XXXX-Y.ext, where "XXXX" is the bLIP number, "Y" is a serial number (starting at 1), and "ext" is replaced by the actual file extension (e.g. "png").
-
-==Transferring bLIP Ownership==
-
-It occasionally becomes necessary to transfer ownership of bLIPs to a new champion. In general, we'd like to retain the original author as a co-author of the transferred bLIP, but that's really up to the original author. A good reason to transfer ownership is because the original author no longer has the time or interest in updating it or following through with the bLIP process, or has fallen off the face of the 'net (i.e. is unreachable or not responding to email). A bad reason to transfer ownership is because you don't agree with the direction of the bLIP. We try to build consensus around a bLIP, but if that's not possible, you can always submit a competing bLIP.
-
-If you are interested in assuming ownership of a bLIP, send a message asking to take over, addressed to both the original author and the bLIP editor. If the original author doesn't respond to email in a timely manner, the bLIP editor will make a unilateral decision (it's not like such decisions can't be reversed).
-
-==bLIP Editors==
-
-The current bLIP editors are:
-
-* Bastien Teinturier (@t-bast)
-* Laolu Osuntokun (@roasbeef)
-* Lisa Neigut (@niftynei)
-* Matt Corrallo (@TheBlueMatt)
-
-==bLIP Editor Responsibilities & Workflow==
-
-For each new bLIP submission, the editors do the following:
-
-* Read the bLIP to check if it is ready: sound and complete. The ideas must make technical sense, even if they don't seem likely to get to final status.
-* The title should accurately describe the content.
-* The bLIP draft must have been sent to the lightning-dev mailing list for discussion.
-* Motivation and backward compatibility (when applicable) must be addressed.
-* Licensing terms must be acceptable for bLIPs.
-
-If the bLIP isn't ready, the editor will send it back to the author for revision, with specific instructions.
-
-Once the bLIP is ready for the repository, the bLIP editor will:
-
-* Assign a bLIP number (generally the PR number or, if preferred by the author, the Issue # if there was discussion in the Issues section of this repository about this bLIP)
-* Merge the corresponding pull request
-* Send a message back to the bLIP author with the next steps.
-
-The bLIP editors are intended to fulfill administrative and editorial responsibilities. They do not pass judgement on bLIPs. The bLIP editors monitor bLIP changes, and update bLIP headers as appropriate.
 
 ==Licensing==
 
