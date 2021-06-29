@@ -60,11 +60,11 @@ If you are interested in assuming ownership of a bLIP, send a message asking to 
 
 The current bLIP editors are:
 
-* Bastien Teinturier (@t-bast)
-* Laolu Osuntokun (@roasbeef)
-* Lisa Neigut (@niftynei)
-* Matt Corrallo (@TheBlueMatt)
-* *these are just folks I've messaged about the idea, ideally would add some app layer volunteers too?*
+* ACINQ volunteer?
+* c-lightning volunteer?
+* lnd volunteer?
+* rust-lightning volunteer?
+* ideally would add some app layer volunteers too*
 
 ====bLIP Editor Responsibilities & Workflow====
 
