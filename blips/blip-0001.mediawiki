@@ -64,7 +64,7 @@ The current bLIP editors are:
 * Laolu Osuntokun (@roasbeef)
 * Lisa Neigut (@niftynei)
 * Matt Corrallo (@TheBlueMatt)
-* *ideally plus some app layer volunteers*
+* *these are just folks I've messaged about the idea, ideally would add some app layer volunteers too?*
 
 ====bLIP Editor Responsibilities & Workflow====
 
