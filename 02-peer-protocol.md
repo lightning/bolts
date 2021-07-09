@@ -1105,34 +1105,34 @@ This message initiates a replacement of a broadcast funding transaction.
    * [`channel_id`:`channel_id`]
    * [`u64`:`funding_satoshis`]
    * [`u32`:`locktime`]
-   * [`byte`:`fee_step`]
+   * [`u32`:`funding_feerate_perkw`]
 
 #### Requirements
 
 The sender:
   - MUST have sent `open_channel2`
-  - MUST set `fee_step` greater than zero and greater than any prior `fee_step`
+  - MUST set `funding_feerate_perkw` greater than or equal to
+    65/64 times the last sent `funding_feerate_perkw` rounded down.
   - MUST NOT have sent or received a `funding_locked` message.
 
 The recipient:
   - MUST respond with either an error or an `ack_rbf` message.
   - MUST fail the negotiation if:
-    - the `fee_step` is not greater than the last successfully negotiated
-      `init_rbf` attempt or `one` if no prior successful `init_rbf` has
-       been received
+    - the `funding_feerate_perkw` is not greater than 65/64 times
+      `funding_feerate_perkw` of the last successfully negotiated
+      open attempt
     - they have already sent or received `funding_locked`
   - MAY fail the negotiation for any reason
 
 #### Rationale
-`fee_step` is an integer value, which specifies the `feerate` for this
-funding transaction, as a rate of increase above the `open_channel2`.
-`funding_feerate_perkw`.
+`funding_feerate_perkw` is the feerate this funding transaction
+will pay. It must be at least 1/64 greater than the last
+received `funding_feerate_perkw`, rounded down to the nearest
+satoshi.
 
-The effective `funding_feerate_perkw` for this RBF attempt
-if calculated as 1.25^`fee_step` * `funding_feerate_perkw`.
-E.g. if `feerate_per_kw_funding` is 512 and the `fee_step` is 1,
-the effective `feerate` for this RBF attempt is 512 + 512 / 4 or 640 sat/kw.
-A `fee_step` 2 would be `1.25^2 * 512` (or 640 + 640 / 4), 800 sat/kw.
+E.g. if the last `feerate_per_kw_funding` was 520
+the next sent `feerate_per_kw_funding` must be 528
+(520 * 65 / 64 = 528.125, rounded down to 528).
 
 If a valid `funding_locked` message is received in the middle of an
 RBF attempt, the attempt MUST be abandoned.
