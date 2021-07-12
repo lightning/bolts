@@ -355,16 +355,21 @@ https://github.com/rustyrussell/lightning-payencode
 
 # Examples
 
-NB: all the following examples are signed with `priv_key`=`e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734`.  Also, the first 9 examples are legacy: modern invoices have an `s` field. 
+NB: all the following examples are signed with `priv_key`=`e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734`.
+Also, the first 9 examples are legacy: modern invoices have an `s` field.
+All invoices contain a `payment_secret`=`1111111111111111111111111111111111111111111111111111111111111111` unless otherwise noted.
 
 > ### Please make a donation of any amount using payment_hash 0001020304050607080900010203040506070809000102030405060708090102 to me @03e7156ae33b0a208d0744199163177e909e80176e55d97a2f221ede0f934dd9ad
-> lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq8rkx3yf5tcsyz3d73gafnh3cax9rn449d9p5uxz9ezhhypd0elx87sjle52x86fux2ypatgddc6k63n7erqz25le42c4u4ecky03ylcqca784w
+> lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq0py3tfrnxkt5xadpzangn5rry6r0kqt4f3g36lwln8wwpxtxqccn5agpyte3nx0v78uwn78zu6k30k5mgdgn50yvnd20namlmzp2ersq8065fg
 
 Breakdown:
 
 * `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
+* `s`: payment secret
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: payment secret 1111111111111111111111111111111111111111111111111111111111111111
 * `p`: payment hash
   * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
   * `qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq`: payment hash 0001020304050607080900010203040506070809000102030405060708090102
@@ -380,7 +385,7 @@ Breakdown:
   * `c3d4e83f646fa79a393d75277b1d858db1d1f7ab7137dcb7835db2ecd518e1c9` hex of SHA256 of the preimage
 
 > ### Please send $3 for a cup of coffee to the same peer, within one minute
-> lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuaztrnwngzn3kdzw5hydlzf03qdgm2hdq27cqv3agm2awhz5se903vruatfhq77w3ls4evs3ch9zw97j25emudupq63nyw24cg27h2rspfj9srp
+> lnbc2500u1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuu4tgyw2zt3v3c7eljkv2cn8a3etgn8kh8ukctqdmuxdfa7xup0w5ruwpt6eugv73pgzqczz3nc8tcqt2pcljp8ldkrnu5klff35vyscq6lp6ja
 
 Breakdown:
 
@@ -388,6 +393,7 @@ Breakdown:
 * `2500u`: amount (2500 micro-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
+* `s`: payment secret...
 * `p`: payment hash...
 * `d`: short description
   * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
@@ -404,7 +410,7 @@ Breakdown:
   * `3cd6ef07744040556e01be64f68fd9e1565fb47d78c42308b1ee005aca5a0d86` hex of SHA256 of the preimage
 
 > ### Please send 0.0025 BTC for a cup of nonsense (ナンセンス 1杯) to the same peer, within one minute
-> lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuyk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esqchsrny
+> lnbc2500u1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuy0x9mrk2a32xsyvz6lzmrs38vzemux64pv6vdtmshnr9fc8eqgt4j74fnf3s60tzgeh6dnwzyv56wftaqwyyl3xu9nccq3py2hnnvsgqu5lqmm
 
 Breakdown:
 
@@ -412,6 +418,7 @@ Breakdown:
 * `2500u`: amount (2500 micro-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
+* `s`: payment secret...
 * `p`: payment hash...
 * `d`: short description
   * `pq`: `data_length` (`p` = 1, `q` = 0; 1 * 32 + 0 == 32)
@@ -428,7 +435,7 @@ Breakdown:
   * `197a3061f4f333d86669b8054592222b488f3c657a9d3e74f34f586fb3e7931c` hex of SHA256 of the preimage
 
 > ### Now send $24 for an entire list of things (hashed)
-> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqscc6gd6ql3jrc5yzme8v4ntcewwz5cnw92tz0pc8qcuufvq7khhr8wpald05e92xw006sq94mg8v2ndf4sefvf9sygkshp5zfem29trqq2yxxz7
+> lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs6e4fy93me7wjwdf9sxgrzr8xldm570z02ur92rv6pa7wkhzpfehnecuyhp4mdhsv5t7em4jz4tjtchs8zmx3tr555yl59lk848due0gqvkanpl
 
 Breakdown:
 
@@ -436,6 +443,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
+* `s`: payment secret...
 * `p`: payment hash...
 * `h`: tagged field: hash of description
   * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
@@ -449,7 +457,7 @@ Breakdown:
   * `b6025e8a10539dddbcbe6840a9650707ae3f147b8dcfda338561ada710508916` hex of SHA256 of the preimage
 
 > ### The same, on testnet, with a fallback address mk2QpYatsKicvFVuTAQLBryyccRXMUaGHP
-> lntb20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfpp3x9et2e20v6pu37c5d9vax37wxq72un98kmzzhznpurw9sgl2v0nklu2g4d0keph5t7tj9tcqd8rexnd07ux4uv2cjvcqwaxgj7v4uwn5wmypjd5n69z2xm3xgksg28nwht7f6zspwp3f9t
+> lntb20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygshp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfpp3x9et2e20v6pu37c5d9vax37wxq72un989yc66dftyfrx5g53s7r80rxljxj8wugm7nhqcnfdmqzw758jda4yur0nxahhyg04ln2p47wmjdrz5weu2ajfqh4l2qya4244ujuytvgp6nw4dc
 
 Breakdown:
 
@@ -458,6 +466,7 @@ Breakdown:
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
 * `h`: tagged field: hash of description...
+* `s`: payment secret...
 * `p`: payment hash...
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1; 1 * 32 + 1 == 33)
@@ -472,7 +481,7 @@ Breakdown:
   * `00c17b39642becc064615ef196a6cc0cce262f1d8dde7b3c23694aeeda473abe` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback address 1RustyRX2oai4EYYDpQGWvEL62BBGqN9T with extra routing info to go via nodes 029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255 then 039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255
-> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsfpp3qjmp7lwpagxun9pygexvgpjdc4jdj85fr9yq20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzqj9n4evl6mr5aj9f58zp6fyjzup6ywn3x6sk8akg5v4tgn2q8g4fhx05wf6juaxu9760yp46454gpg5mtzgerlzezqcqvjnhjh8z3g2qqdhhwkj
+> lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsfpp3qjmp7lwpagxun9pygexvgpjdc4jdj85fr9yq20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzqg042ea62q6wnxh909rfuu4x2amxc59mj99mrhr32kvqhytrm04us8edg0syy9n0ukgam0ud20jcxwskphv3rzpnengjsf8m3w9u5w8cqzrhtg2
 
 Breakdown:
 
@@ -480,6 +489,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
+* `s`: payment secret...
 * `p`: payment hash...
 * `h`: tagged field: hash of description...
 * `f`: tagged field: fallback address
@@ -508,7 +518,7 @@ Breakdown:
   * `ff68246c5ad4b48c90cf8ff3b33b5cea61e62f08d0e67910ffdce1edecade71b` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback (P2SH) address 3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX
-> lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppj3a24vwu6r8ejrss3axul8rxldph2q7z9kmrgvr7xlaqm47apw3d48zm203kzcq357a4ls9al2ea73r8jcceyjtya6fu5wzzpe50zrge6ulk4nvjcpxlekvmxl6qcs9j3tz0469gq5g658y
+> lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygshp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppj3a24vwu6r8ejrss3axul8rxldph2q7z9859drl0equ52uf58vpc4ekc58katdnsa0wpxrp7x8m34kz9wh4rhlk2ke89c5uuwcngz8axxkhs9drar8j3h83k5yx27s7fw7l9va2cpt3h3em
 
 Breakdown:
 
@@ -516,6 +526,7 @@ Breakdown:
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
+* `s`: payment secret...
 * `h`: tagged field: hash of description...
 * `p`: payment hash...
 * `f`: tagged field: fallback address
@@ -531,12 +542,13 @@ Breakdown:
   * `64f1ff500bcc62a1b211cd6db84a1d93d1f77c6a132904465b6ff912420176be` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback (P2WPKH) address bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
-> lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppqw508d6qejxtdg4y5r3zarvary0c5xw7kepvrhrm9s57hejg0p662ur5j5cr03890fa7k2pypgttmh4897d3raaq85a293e9jpuqwl0rnfuwzam7yr8e690nd2ypcq9hlkdwdvycqa0qza8
+> lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygshp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppqw508d6qejxtdg4y5r3zarvary0c5xw7k2v7at953q5p0dyg8axg4xxfxsm5d4hl8x2j606a5usxzgzs35rjq2m05ly7qlt293get8qct3tsv2h0f87ygthvg5mentx24yf39v4gpgx7n58
 
 * `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
+* `s`: payment secret...
 * `h`: tagged field: hash of description...
 * `p`: payment hash...
 * `f`: tagged field: fallback address
@@ -552,12 +564,13 @@ Breakdown:
   * `b3df27aaa01d891cc9de272e7609557bdf4bd6fd836775e4470502f71307b627` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback (P2WSH) address bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3
-> lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfp4qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q28j0v3rwgy9pvjnd48ee2pl8xrpxysd5g44td63g6xcjcu003j3qe8878hluqlvl3km8rm92f5stamd3jw763n3hck0ct7p8wwj463cql26ava
+> lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygshp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfp4qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qdplqpgddtaej8regxl46lj2jgu0s8yeent3dugye96zsldwtu2a3edz947azn7qksetrrk38mx2kryp0vxnh2nqgenuwcdau5flwa2cqcnjrk0
 
 * `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
 * `1`: Bech32 separator
 * `pvjluez`: timestamp (1496314658)
+* `s`: payment secret...
 * `h`: tagged field: hash of description...
 * `p`: payment hash...
 * `f`: tagged field: fallback address
@@ -573,7 +586,7 @@ Breakdown:
   * `399a8b167029fda8564fd2e99912236b0b8017e7d17e416ae17307812c92cf42` hex of SHA256 of the preimage
 
 > ### Please send 0.00967878534 BTC for a list of items within one week, amount in pico-BTC
-> lnbc9678785340p1pwmna7lpp5gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0sd8dgfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khxxqyjw5qcqp2rzjq0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9qn07ytgrxxzad9hc4xt3mawjjt8znfv8xzscs7007v9gh9j569lencxa8xeujzkxs0uamak9aln6ez02uunw6rd2ht2sqe4hz8thcdagpleym0j
+> lnbc9678785340p1pwmna7lsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0sd8dgfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khxxqyjw5qcqp2rzjq0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9qufzt0rlypjgwvq3k0p79gkjl2fadnswnl2x89puj8m5g3lj9q4y9ft5fs7v5t3g95dcavg23l634vatl46ww8ev6dx2m6xp2ehv4hssq0e27ql
 
 Breakdown:
 
@@ -581,7 +594,8 @@ Breakdown:
 * `9678785340p`: amount (9678785340 pico-bitcoin = 967878534 milli satoshi)
 * `1`: Bech32 separator
 * `pwmna7l`: timestamp (1572468703)
-* `p`: payment hash.
+* `s`: payment secret...
+* `p`: payment hash
   * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
   * `gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0s`: payment hash 462264ede7e14047e9b249da94fefc47f41f7d02ee9b091815a5506bc8abf75f
 * `d`: short description
