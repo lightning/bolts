@@ -1,0 +1,106 @@
+<pre>
+bLIP: 2
+Title: Keysend
+Status: Active
+Type: Standards Track
+Author: Valentine Wallace <vwallace@protonmail.com>
+Created: 2021-05-21
+License: BSD-2-Clause, OPL
+</pre>
+
+==Abstract==
+
+Keysend is a type of lightning payment that does not require the payee to
+provide an invoice. Instead, the payer includes their payer-selected payment
+preimage in the TLV onion.
+
+As of authoring this bLIP, keysend is already supported by lnd, C-Lightning,
+Eclair, LDK, and possibly others. This bLIP serves to document what is already
+well-supported in the wild, for posterity and so that new implementations don't
+have to reverse-engineer keysend from existing implementations.
+
+==Copyright==
+
+This bLIP is dual-licensed under the Open Publication License and BSD 2-clause
+license.
+
+==Specification==
+
+Sender:
+* MUST include a TLV record keyed by type `5482373484` with a TLV value of a
+  randomly generated and cryptographically-secure 32-byte value that serves as
+  the HTLC payment preimage
+* MUST NOT set a `payment_data` field
+* SHOULD only send payments to nodes advertising feature bit 55
+
+Receiver:
+* if failing the payment due to not wanting to accept keysend payments, SHOULD
+  error with `PERM|15 incorrect_or_unknown_payment_details`.
+* MUST advertise feature bit 55 in the node context only
+* MUST reject the keysend if the preimage does not match the payment hash
+* MUST reject the keysend if a `payment_data` field is present
+
+Note that because of the lack of a payment secret, basic MPP payments are not
+supported with keysend.
+
+==Motivation==
+
+A convenience of layer 1 bitcoin is being able to spontaneously send to a
+bitcoin address with no advance work required on the part of the payee. Keysend
+brings the convenience of sponaneous payments to layer 2 (with a few caveats,
+see the Drawbacks section).
+
+As previously mentioned, keysend also has the advantage of already being
+supported by major implementations. So regardless of whether it is the best
+solution to spontaneous payments, it's a good idea to have some form of
+official documentation for it.
+
+Additionally, as of authoring this bLIP, keysend is used in multiple lightning
+ecosystem projects such as Sphinx.chat.
+
+==Rationale==
+
+Design decisions for keysend were largely made by the original lnd keysend
+implementation (e.g. the choice of `5482373484` for the TLV type).
+
+* The TLV type `5482373484` was chosen at random
+* The rationale behind having a feature bit is that it's nicer to opt-in to
+  receiving keysend payments: without a feature bit, the only way for senders to
+  explicitly know that receivers support keysend is by attempting a keysend
+  payment and seeing whether or not it fails.
+* The rationale for not supporting basic MPP is (1) implementations currently do
+  not support it and (2) it doesn't make much sense for receivers to provide
+  their own `payment_secret`, which causes the payment secret to lose some of
+  its security properties. A future direction for keysend could be deciding that
+  it's acceptable to use receiver-generated payment secrets, thus making basic
+  MPP keysend payments possible.
+* If receivers don't check that the keysend preimage doesn't match the payment
+  hash, then an intermediate hop forwarding non-keysend-HTLC X could discover
+  the final destination of X, by probing the next node on the route with a
+  keysend payment of identical payment hash to X and observing the processing
+  time discrepancies due to a hash collision with X.
+
+==Keysend Drawbacks==
+
+* Inability for the payee to specify their preferred `min_final_cltv_expiry`.
+  This is an issue because payer and payee may have differing security
+  requirements, which could lead to payment failures if the payee considers the
+  payer's choice of `min_final_cltv_expiry` too high or too low.
+* Multi-path payments currently not supported
+* Loss of being able to use the preimage and invoice signature as
+  proof-of-payment. With regular lightning payments, payers are able to use (1)
+  the payment preimage and (2) the invoice signature in a situation where they
+  need to prove that they made a payment (the invoice signature is necessary to
+  prove that the payer was not an intermediary hop). This proof cannot be
+  provided for keysend payments because the preimage is provided by the payer to
+  begin with and no invoice is being paid.
+* Keysend is expected to be deprecated in favor of a more well-developed
+  spontaneous payment solution like
+  [Offers](https://github.com/lightningnetwork/lightning-rfc/pull/798) or
+  [AMP](https://github.com/lightningnetwork/lightning-rfc/pull/658)
+
+==Reference implementations==
+
+LDK: https://github.com/rust-bitcoin/rust-lightning/pull/967
+C-Lightning: https://github.com/ElementsProject/lightning/blob/master/plugins/keysend.c
+`lnd` original keysend PR: https://github.com/lightningnetwork/lnd/pull/3795
