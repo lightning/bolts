@@ -579,9 +579,6 @@ The funding node:
     - SHOULD send a `closing_signed` message.
 
 The sending node:
-  - If the channel does not use `option_anchor_outputs`:
-    - MUST set `fee_satoshis` less than or equal to the base fee of the final
-    commitment transaction, as calculated in [BOLT #3](03-transactions.md#fee-calculation).
   - SHOULD set the initial `fee_satoshis` according to its estimate of cost of
   inclusion in a block.
   - SHOULD set `fee_range` according to the minimum and maximum fees it is
@@ -603,10 +600,6 @@ The receiving node:
     - SHOULD use `fee_satoshis` to sign and broadcast the final closing transaction
     - SHOULD reply with a `closing_signed` with the same `fee_satoshis` value if it is different from its previously sent `fee_satoshis`
     - MAY close the connection.
-  - otherwise, if `fee_satoshis` is greater than the base fee of the final
-  commitment transaction as calculated in [BOLT #3](03-transactions.md#fee-calculation)
-  and the channel does not use `option_anchor_outputs`:
-    - MUST fail the connection.
   - if the message contains a `fee_range`:
     - if there is no overlap between that and its own `fee_range`:
       - SHOULD send a `warning`
