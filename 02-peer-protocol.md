@@ -609,17 +609,17 @@ The receiving node:
     - MUST fail the connection.
   - if the message contains a `fee_range`:
     - if there is no overlap between that and its own `fee_range`:
-      - SHOULD fail the connection
+      - SHOULD send a `warning`
     - otherwise:
       - if it is the funder:
         - if `fee_satoshis` is not in the overlap between the sent and received `fee_range`:
-          - SHOULD fail the connection
+          - SHOULD send a `warning`
         - otherwise:
           - MUST reply with the same `fee_satoshis`.
       - otherwise (it is not the funder):
         - if it has already sent a `closing_signed`:
           - if `fee_satoshis` is not the same as the value it sent:
-            - SHOULD fail the connection.
+            - SHOULD send a `warning`
         - otherwise:
           - MUST propose a `fee_satoshis` in the overlap between received and (about-to-be) sent `fee_range`.
   - otherwise, if `fee_satoshis` is not strictly between its last-sent `fee_satoshis`
