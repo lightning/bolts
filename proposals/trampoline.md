@@ -317,7 +317,7 @@ Such nodes are advised to sync only a small portion of the graph (their local
 neighborhood) and to ensure connectivity to a few distinct trampoline nodes.
 
 This allows them to insert normal hops before the first trampoline node, thus
-protecting their privacy with the same guarantees than normal payments. In the
+protecting their privacy with the same guarantees as normal payments. In the
 example graph from the previous section, T1 cannot know that the payment comes
 from Alice because it only sees an HTLC coming from N1 (especially if Alice is
 using an unannounced channel to N1). When T1 receives the HTLC, it cannot know
