@@ -375,13 +375,13 @@ Breakdown:
 * `d`: short description
   * `pl`: `data_length` (`p` = 1, `l` = 31; 1 * 32 + 31 == 63)
   * `2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq`: 'Please consider supporting this project'
-* `8rkx3yf5tcsyz3d73gafnh3cax9rn449d9p5uxz9ezhhypd0elx87sjle52x86fux2ypatgddc6k63n7erqz25le42c4u4ecky03ylcq`: signature
-* `ca784w`: Bech32 checksum
+* `0py3tfrnxkt5xadpzangn5rry6r0kqt4f3g36lwln8wwpxtxqccn5agpyte3nx0v78uwn78zu6k30k5mgdgn50yvnd20namlmzp2ersq`: signature
+* `8065fg`: Bech32 checksum
 * Signature breakdown:
-  * `38ec6891345e204145be8a3a99de38e98a39d6a569434e1845c8af7205afcfcc7f425fcd1463e93c32881ead0d6e356d467ec8c02553f9aab15e5738b11f127f` hex of signature data (32-byte r, 32-byte s)
+  * `784915a47335974375a1176689d0632686fb01754c511d7ddf99dce0996606313a750122f31999ecf1f8e9f8e2e6ad17da9b43513a3c8c9b54f9f77fd882ac8e` hex of signature data (32-byte r, 32-byte s)
   * `0` (int) recovery flag contained in `signature`
-  * `6c6e62630b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a1fa83632b0b9b29031b7b739b4b232b91039bab83837b93a34b733903a3434b990383937b532b1ba0` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `c3d4e83f646fa79a393d75277b1d858db1d1f7ab7137dcb7835db2ecd518e1c9` hex of SHA256 of the preimage
+  * `6c6e62630b25fe64500d04444444444444444444444444444444444444444444444444444444444444444021a00008101820283038404800081018202830384048000810182028303840480810343f506c6561736520636f6e736964657220737570706f7274696e6720746869732070726f6a65637400` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `22a303652832bb8d1e86a4c6333c8795111592831f3422f19a9f7c786b48fd69` hex of SHA256 of the preimage
 
 > ### Please send $3 for a cup of coffee to the same peer, within one minute
 > lnbc2500u1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuu4tgyw2zt3v3c7eljkv2cn8a3etgn8kh8ukctqdmuxdfa7xup0w5ruwpt6eugv73pgzqczz3nc8tcqt2pcljp8ldkrnu5klff35vyscq6lp6ja
@@ -400,13 +400,13 @@ Breakdown:
 * `x`: expiry time
   * `qz`: `data_length` (`q` = 0, `z` = 2; 0 * 32 + 2 == 2)
   * `pu`: 60 seconds (`p` = 1, `u` = 28; 1 * 32 + 28 == 60)
-* `aztrnwngzn3kdzw5hydlzf03qdgm2hdq27cqv3agm2awhz5se903vruatfhq77w3ls4evs3ch9zw97j25emudupq63nyw24cg27h2rsp`: signature
-* `fj9srp`: Bech32 checksum
+* `u4tgyw2zt3v3c7eljkv2cn8a3etgn8kh8ukctqdmuxdfa7xup0w5ruwpt6eugv73pgzqczz3nc8tcqt2pcljp8ldkrnu5klff35vyscq`: signature
+* `6lp6ja`: Bech32 checksum
 * Signature breakdown:
-  * `e89639ba6814e36689d4b91bf125f10351b55da057b00647a8dabaeb8a90c95f160f9d5a6e0f79d1fc2b964238b944e2fa4aa677c6f020d466472ab842bd750e` hex of signature data (32-byte r, 32-byte s)
-  * `1` (int) recovery flag contained in `signature`
-  * `6c6e626332353030750b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a0a189031bab81031b7b33332b2818020f00` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `3cd6ef07744040556e01be64f68fd9e1565fb47d78c42308b1ee005aca5a0d86` hex of SHA256 of the preimage
+  * `e5568239425c591c7b3f9598ac4cfd8e56899ed73f2d8581bbe19a9ef8dc0bdd41f1c15eb3c433d10a040c08519e0ebc016a0e3f209fedb0e7ca5be94c68c243` hex of signature data (32-byte r, 32-byte s)
+  * `0` (int) recovery flag contained in `signature`
+  * `6c6e626332353030750b25fe64500d04444444444444444444444444444444444444444444444444444444444444444021a000081018202830384048000810182028303840480008101820283038404808103414312063757020636f66666565030041e0` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `0c23bee14ec6b62e062af54840c7ba0e5b0e41566dff2f8e0f55f1649ac8219b` hex of SHA256 of the preimage
 
 > ### Please send 0.0025 BTC for a cup of nonsense (ナンセンス 1杯) to the same peer, within one minute
 > lnbc2500u1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuy0x9mrk2a32xsyvz6lzmrs38vzemux64pv6vdtmshnr9fc8eqgt4j74fnf3s60tzgeh6dnwzyv56wftaqwyyl3xu9nccq3py2hnnvsgqu5lqmm
@@ -425,13 +425,13 @@ Breakdown:
 * `x`: expiry time
   * `qz`: `data_length` (`q` = 0, `z` = 2; 0 * 32 + 2 == 2)
   * `pu`: 60 seconds (`p` = 1, `u` = 28; 1 * 32 + 28 == 60)
-* `yk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esq`: signature
-* `chsrny`: Bech32 checksum
+* `y0x9mrk2a32xsyvz6lzmrs38vzemux64pv6vdtmshnr9fc8eqgt4j74fnf3s60tzgeh6dnwzyv56wftaqwyyl3xu9nccq3py2hnnvsgq`: signature
+* `u5lqmm`: Bech32 checksum
 * Signature breakdown:
-  * `259f04511e7ef2aa77f6ff04d51b4ae9209504843e5ab9672ce32a153681f687515b73ce57ee309db588a10eb8e41b5a2d2bc17144ddf398033faa49ffe95ae6` hex of signature data (32-byte r, 32-byte s)
+  * `23cc5d8ecaec54681182d7c5b1c22760b3be1b550b34c6af70bcc654e0f90217597aa99a630d3d62466fa6cdc22329a7257d03884fc4dc2cf180442455e73641` hex of signature data (32-byte r, 32-byte s)
   * `0` (int) recovery flag contained in `signature`
-  * `6c6e626332353030750b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a1071c1c571c1d9f1c15df1c1d9f1c15c9018f34ed798020f0` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `197a3061f4f333d86669b8054592222b488f3c657a9d3e74f34f586fb3e7931c` hex of SHA256 of the preimage
+  * `6c6e626332353030750b25fe64500d04444444444444444444444444444444444444444444444444444444444444444021a000081018202830384048000810182028303840480008101820283038404808103420e3838ae383b3e382bbe383b3e382b92031e69daf30041e00` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `6cf6a69d27da81339c117489222f2e91263c63fc240590add902762742bec1b6` hex of SHA256 of the preimage
 
 > ### Now send $24 for an entire list of things (hashed)
 > lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs6e4fy93me7wjwdf9sxgrzr8xldm570z02ur92rv6pa7wkhzpfehnecuyhp4mdhsv5t7em4jz4tjtchs8zmx3tr555yl59lk848due0gqvkanpl
@@ -447,13 +447,13 @@ Breakdown:
 * `h`: tagged field: hash of description
   * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
   * `8yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs`: SHA256 of 'One piece of chocolate cake, one icecream cone, one pickle, one slice of swiss cheese, one slice of salami, one lollypop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon'
-* `cc6gd6ql3jrc5yzme8v4ntcewwz5cnw92tz0pc8qcuufvq7khhr8wpald05e92xw006sq94mg8v2ndf4sefvf9sygkshp5zfem29trqq`: signature
-* `2yxxz7`: Bech32 checksum
+* `6e4fy93me7wjwdf9sxgrzr8xldm570z02ur92rv6pa7wkhzpfehnecuyhp4mdhsv5t7em4jz4tjtchs8zmx3tr555yl59lk848due0gq`: signature
+* `vkanpl`: Bech32 checksum
 * Signature breakdown:
-  * `c63486e81f8c878a105bc9d959af1973854c4dc552c4f0e0e0c7389603d6bdc67707bf6be992a8ce7bf50016bb41d8a9b5358652c4960445a170d049ced4558c` hex of signature data (32-byte r, 32-byte s)
+  * `d66a92163bcf9d2735258190310ce6fb774f3c4f5706550d9a0f7ceb5c414e6f3ce384b86bb6de0ca2fd9dd642aae4bc5e0716cd158e94a13f42fec7a9dbccbd` hex of signature data (32-byte r, 32-byte s)
   * `0` (int) recovery flag contained in `signature`
-  * `6c6e626332306d0b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404082e1a1c92db7b3f161a001b7689049eea2701b46f8db7513629edf2408fac7eaedc60800` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `b6025e8a10539dddbcbe6840a9650707ae3f147b8dcfda338561ada710508916` hex of SHA256 of the preimage
+  * `6c6e626332306d0b25fe64500d04444444444444444444444444444444444444444444444444444444444444444021a000081018202830384048000810182028303840480008101820283038404808105c343925b6f67e2c340036ed12093dd44e0368df1b6ea26c53dbe4811f58fd5db8c100` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `ac4814cf47b9ffc20056eb6d6f0902427a765df8bdf0c375eb80df9dd69e2c44` hex of SHA256 of the preimage
 
 > ### The same, on testnet, with a fallback address mk2QpYatsKicvFVuTAQLBryyccRXMUaGHP
 > lntb20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygshp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfpp3x9et2e20v6pu37c5d9vax37wxq72un989yc66dftyfrx5g53s7r80rxljxj8wugm7nhqcnfdmqzw758jda4yur0nxahhyg04ln2p47wmjdrz5weu2ajfqh4l2qya4244ujuytvgp6nw4dc
@@ -471,13 +471,13 @@ Breakdown:
   * `pp`: `data_length` (`p` = 1; 1 * 32 + 1 == 33)
   * `3` = 17, so P2PKH address
   * `x9et2e20v6pu37c5d9vax37wxq72un98`: 160-bit P2PKH address
-* `kmzzhznpurw9sgl2v0nklu2g4d0keph5t7tj9tcqd8rexnd07ux4uv2cjvcqwaxgj7v4uwn5wmypjd5n69z2xm3xgksg28nwht7f6zsp`: signature
-* `wp3f9t`: Bech32 checksum
+* `9yc66dftyfrx5g53s7r80rxljxj8wugm7nhqcnfdmqzw758jda4yur0nxahhyg04ln2p47wmjdrz5weu2ajfqh4l2qya4244ujuytvgp`: signature
+* `6nw4dc`: Bech32 checksum
 * Signature breakdown:
-  * `b6c42b8a61e0dc5823ea63e76ff148ab5f6c86f45f9722af0069c7934daff70d5e315893300774c897995e3a7476c8193693d144a36e2645a0851e6ebafc9d0a` hex of signature data (32-byte r, 32-byte s)
+  * `2931ad352b22466a22918786778cdf91a477711bf4ee0c4d2dd804ef50f26f6a4e0df3376f7221f5fcd41af9db93462a3b3c5764905ebf5009daaab5e4b845b1` hex of signature data (32-byte r, 32-byte s)
   * `1` (int) recovery flag contained in `signature`
-  * `6c6e746232306d0b25fe64570d0e496dbd9f8b0d000dbb44824f751380da37c6dba89b14f6f92047d63f576e304021a000081018202830384048000810182028303840480008101820283038404808102421898b95ab2a7b341e47d8a34ace9a3e7181e5726538` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `00c17b39642becc064615ef196a6cc0cce262f1d8dde7b3c23694aeeda473abe` hex of SHA256 of the preimage
+  * `6c6e746232306d0b25fe64500d044444444444444444444444444444444444444444444444444444444444444442e1a1c92db7b3f161a001b7689049eea2701b46f8db7513629edf2408fac7eaedc608043400010203040506070809000102030405060708090001020304050607080901020484313172b5654f6683c8fb146959d347ce303cae4ca7` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `c1c4b94d0e537cec5c6dd9ffc7f66d665476d3392e7bb860ebcaddc7d88ac569` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback address 1RustyRX2oai4EYYDpQGWvEL62BBGqN9T with extra routing info to go via nodes 029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255 then 039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255
 > lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsfpp3qjmp7lwpagxun9pygexvgpjdc4jdj85fr9yq20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzqg042ea62q6wnxh909rfuu4x2amxc59mj99mrhr32kvqhytrm04us8edg0syy9n0ukgam0ud20jcxwskphv3rzpnengjsf8m3w9u5w8cqzrhtg2
@@ -508,13 +508,13 @@ Breakdown:
       * `fee_base_msat`: 2 millisatoshi
       * `fee_proportional_millionths`: 30
       * `cltv_expiry_delta`: 4
-* `j9n4evl6mr5aj9f58zp6fyjzup6ywn3x6sk8akg5v4tgn2q8g4fhx05wf6juaxu9760yp46454gpg5mtzgerlzezqcqvjnhjh8z3g2qq`: signature
-* `dhhwkj`: Bech32 checksum
+* `g042ea62q6wnxh909rfuu4x2amxc59mj99mrhr32kvqhytrm04us8edg0syy9n0ukgam0ud20jcxwskphv3rzpnengjsf8m3w9u5w8cq`: signature
+* `zrhtg2`: Bech32 checksum
 * Signature breakdown:
-  * `91675cb3fad8e9d915343883a49242e074474e26d42c7ed914655689a8074553733e8e4ea5ce9b85f69e40d755a55014536b12323f8b220600c94ef2b9c51428` hex of signature data (32-byte r, 32-byte s)
+  * `43eaacf74a069d335caf28d3ce54caeecd8a177229763b8e2ab301722c7b7d7903e5a87c0842cdfcb23bb7f1aa7cb06742c1bb223106799a25049f717179471f` hex of signature data (32-byte r, 32-byte s)
   * `0` (int) recovery flag contained in `signature`
-  * `6c6e626332306d0b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404082e1a1c92db7b3f161a001b7689049eea2701b46f8db7513629edf2408fac7eaedc60824218825b0fbee0f506e4ca122326620326e2b26c8f448ca4029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255010203040506070800000001000000140003039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255030405060708090a000000020000001e00040` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `ff68246c5ad4b48c90cf8ff3b33b5cea61e62f08d0e67910ffdce1edecade71b` hex of SHA256 of the preimage
+  * `6c6e626332306d0b25fe64500d04444444444444444444444444444444444444444444444444444444444444444021a000081018202830384048000810182028303840480008101820283038404808105c343925b6f67e2c340036ed12093dd44e0368df1b6ea26c53dbe4811f58fd5db8c104843104b61f7dc1ea0dc99424464cc4064dc564d91e891948053c07520370aa69fe3d258878e8863ef9ce408c0c1f9ef52b86fc291ef18ee4aa020406080a0c0e1000000002000000280006073c07520370aa69fe3d258878e8863ef9ce408c0c1f9ef52b86fc291ef18ee4aa06080a0c0e101214000000040000003c000800` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `998925a544c62142fdc56942096dc4f2b532267b1d94bb67f3cab7a6ea7e8e76` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback (P2SH) address 3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX
 > lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygshp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppj3a24vwu6r8ejrss3axul8rxldph2q7z9859drl0equ52uf58vpc4ekc58katdnsa0wpxrp7x8m34kz9wh4rhlk2ke89c5uuwcngz8axxkhs9drar8j3h83k5yx27s7fw7l9va2cpt3h3em
@@ -532,13 +532,13 @@ Breakdown:
   * `pp`: `data_length` (`p` = 1; 1 * 32 + 1 == 33)
   * `j` = 18, so P2SH address
   * `3a24vwu6r8ejrss3axul8rxldph2q7z9`:  160-bit P2SH address
-* `kmrgvr7xlaqm47apw3d48zm203kzcq357a4ls9al2ea73r8jcceyjtya6fu5wzzpe50zrge6ulk4nvjcpxlekvmxl6qcs9j3tz0469gq`: signature
-* `5g658y`: Bech32 checksum
+* `859drl0equ52uf58vpc4ekc58katdnsa0wpxrp7x8m34kz9wh4rhlk2ke89c5uuwcngz8axxkhs9drar8j3h83k5yx27s7fw7l9va2cp`: signature
+* `t3h3em`: Bech32 checksum
 * Signature breakdown:
-  * `b6c6860fc6ff41bafba1745b538b6a7c6c2c0234f76bf817bf567be88cf2c632492c9dd279470841cd1e21a33ae7ed59b25809bf9b3366fe81881651589f5d15` hex of signature data (32-byte r, 32-byte s)
-  * `0` (int) recovery flag contained in `signature`
-  * `6c6e626332306d0b25fe64570d0e496dbd9f8b0d000dbb44824f751380da37c6dba89b14f6f92047d63f576e304021a000081018202830384048000810182028303840480008101820283038404808102421947aaab1dcd0cf990e108f4dcf9c66fb437503c228` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `64f1ff500bcc62a1b211cd6db84a1d93d1f77c6a132904465b6ff912420176be` hex of SHA256 of the preimage
+  * `3d0ad1fdf90728ae268760715cdb143dbab6ce1d7b826187c63ee35b08aebd477fd956c9cb8a738ec4d023f4c6b5e0568fa33ca373c6d42195e8792ef7caceab` hex of signature data (32-byte r, 32-byte s)
+  * `1` (int) recovery flag contained in `signature`
+  * `6c6e626332306d0b25fe64500d044444444444444444444444444444444444444444444444444444444444444442e1a1c92db7b3f161a001b7689049eea2701b46f8db7513629edf2408fac7eaedc608043400010203040506070809000102030405060708090001020304050607080901020484328f55563b9a19f321c211e9b9f38cdf686ea07845` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `47b81292dcda0b7399d1b6ee89a5640f56fad5494c8b61db2bc0036ff81f9cd4` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback (P2WPKH) address bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
 > lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygshp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppqw508d6qejxtdg4y5r3zarvary0c5xw7k2v7at953q5p0dyg8axg4xxfxsm5d4hl8x2j606a5usxzgzs35rjq2m05ly7qlt293get8qct3tsv2h0f87ygthvg5mentx24yf39v4gpgx7n58
@@ -554,13 +554,13 @@ Breakdown:
   * `pp`: `data_length` (`p` = 1; 1 * 32 + 1 == 33)
   * `q`: 0, so witness version 0
   * `w508d6qejxtdg4y5r3zarvary0c5xw7k`: 160 bits = P2WPKH.
-* `epvrhrm9s57hejg0p662ur5j5cr03890fa7k2pypgttmh4897d3raaq85a293e9jpuqwl0rnfuwzam7yr8e690nd2ypcq9hlkdwdvycq`: signature
-* `a0qza8`: Bech32 checksum
+* `2v7at953q5p0dyg8axg4xxfxsm5d4hl8x2j606a5usxzgzs35rjq2m05ly7qlt293get8qct3tsv2h0f87ygthvg5mentx24yf39v4gp`: signature
+* `gx7n58`: Bech32 checksum
 * Signature breakdown:
-  * `c8583b8f65853d7cc90f0eb4ae0e92a606f89caf4f7d65048142d7bbd4e5f3623ef407a75458e4b20f00efbc734f1c2eefc419f3a2be6d51038016ffb35cd613` hex of signature data (32-byte r, 32-byte s)
-  * `0` (int) recovery flag contained in `signature`
-  * `6c6e626332306d0b25fe64570d0e496dbd9f8b0d000dbb44824f751380da37c6dba89b14f6f92047d63f576e304021a00008101820283038404800081018202830384048000810182028303840480810242103a8f3b740cc8cb6a2a4a0e22e8d9d191f8a19deb0` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `b3df27aaa01d891cc9de272e7609557bdf4bd6fd836775e4470502f71307b627` hex of SHA256 of the preimage
+  * `533dd596910502f69107e99153192686e8dadfe732a5a7ebb4e40c240a11a0e4056df4f93c0fad458a32b3830b8ae0c55de93f8885dd88a6f335995522625655` hex of signature data (32-byte r, 32-byte s)
+  * `1` (int) recovery flag contained in `signature`
+  * `6c6e626332306d0b25fe64500d044444444444444444444444444444444444444444444444444444444444444442e1a1c92db7b3f161a001b7689049eea2701b46f8db7513629edf2408fac7eaedc60804340001020304050607080900010203040506070809000102030405060708090102048420751e76e8199196d454941c45d1b3a323f1433bd6` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `1b3b688ca6a84b91e0097ad6def95523333db50a27b9e15fa719a5d18683b409` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback (P2WSH) address bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3
 > lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygshp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfp4qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qdplqpgddtaej8regxl46lj2jgu0s8yeent3dugye96zsldwtu2a3edz947azn7qksetrrk38mx2kryp0vxnh2nqgenuwcdau5flwa2cqcnjrk0
@@ -576,13 +576,13 @@ Breakdown:
   * `p4`: `data_length` (`p` = 1, `4` = 21; 1 * 32 + 21 == 53)
   * `q`: 0, so witness version 0
   * `rp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q`: 260 bits = P2WSH.
-* `28j0v3rwgy9pvjnd48ee2pl8xrpxysd5g44td63g6xcjcu003j3qe8878hluqlvl3km8rm92f5stamd3jw763n3hck0ct7p8wwj463cq`: signature
-* `l26ava`: Bech32 checksum
+* `dplqpgddtaej8regxl46lj2jgu0s8yeent3dugye96zsldwtu2a3edz947azn7qksetrrk38mx2kryp0vxnh2nqgenuwcdau5flwa2cq`: signature
+* `cnjrk0`: Bech32 checksum
 * Signature breakdown:
-  * `51e4f6446e410a164a6da9f39507e730c26241b4456ab6ea28d1b12c71ef8ca20c9cfe3dffc07d9f8db671ecaa4d20beedb193bda8ce37c59f85f82773a55d47` hex of signature data (32-byte r, 32-byte s)
+  * `687e00a1ad5f73238f2837ebafc952471f0393399ae2de20992e850fb5cbe2bb1cb445afba29f816865631da27d99561902f61a7754c08ccf8ec37bca27eeeab` hex of signature data (32-byte r, 32-byte s)
   * `0` (int) recovery flag contained in `signature`
-  * `6c6e626332306d0b25fe64570d0e496dbd9f8b0d000dbb44824f751380da37c6dba89b14f6f92047d63f576e304021a00008101820283038404800081018202830384048000810182028303840480810243500c318a1e0a628b34025e8c9019ab6d09b64c2b3c66a693d0dc63194b02481931000` hex of data for signing (prefix + data after separator up to the start of the signature)
-  * `399a8b167029fda8564fd2e99912236b0b8017e7d17e416ae17307812c92cf42` hex of SHA256 of the preimage
+  * `6c6e626332306d0b25fe64500d044444444444444444444444444444444444444444444444444444444444444442e1a1c92db7b3f161a001b7689049eea2701b46f8db7513629edf2408fac7eaedc608043400010203040506070809000102030405060708090001020304050607080901020486a01863143c14c5166804bd19203356da136c985678cd4d27a1b8c632960490326200` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `18d04bc7ea5d8f839c9e83a4feb270b7e7ce3e572434333801825a379d560237` hex of SHA256 of the preimage
 
 > ### Please send 0.00967878534 BTC for a list of items within one week, amount in pico-BTC
 > lnbc9678785340p1pwmna7lpp5gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0sd8dgfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khxsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygsxqyjw5qcqp2rzjq0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9q0777th7sgnqqpykcmu4c2u65vtnefrnjzws78maaxy87euvpj0hr8t5ma58cyw5f3f9ej4aw9swcyvk4vp6vjlxtgpcfdy8u9m4c6wgpdqfxt2
@@ -614,8 +614,8 @@ Breakdown:
     * fee_base_msat = 1000
     * fee_proportional_millionths = 2500
     * cltv_expiry_delta = 40
-* `n07ytgrxxzad9hc4xt3mawjjt8znfv8xzscs7007v9gh9j569lencxa8xeujzkxs0uamak9aln6ez02uunw6rd2ht2sqe4hz8thcdagp`: signature
-* `leym0j`: Bech32 checksum
+* `0777th7sgnqqpykcmu4c2u65vtnefrnjzws78maaxy87euvpj0hr8t5ma58cyw5f3f9ej4aw9swcyvk4vp6vjlxtgpcfdy8u9m4c6wgp`: signature
+* `dqfxt2`: Bech32 checksum
 
 > ### Please send $30 for coffee beans to the same peer, which supports features 9, 15 and 99, using secret 0x1111111111111111111111111111111111111111111111111111111111111111
 > lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqpqsq67gye39hfg3zd8rgc80k32tvy9xk2xunwm5lzexnvpx6fd77en8qaq424dxgt56cag2dpt359k3ssyhetktkpqh24jqnjyw6uqd08sgptq44qu
