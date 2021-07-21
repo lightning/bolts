@@ -583,6 +583,8 @@ The sending node:
   inclusion in a block.
   - SHOULD set `fee_range` according to the minimum and maximum fees it is
   prepared to pay for a close transaction.
+  - if it doesn't receive a `closing_signed` response after a reasonable amount of time:
+    - MUST fail the channel
   - if it is not the funder:
     - SHOULD set `max_fee_satoshis` to at least the `max_fee_satoshis` received
 	  - SHOULD set `min_fee_satoshis` to a fairly low value
@@ -603,16 +605,17 @@ The receiving node:
   - if the message contains a `fee_range`:
     - if there is no overlap between that and its own `fee_range`:
       - SHOULD send a `warning`
+      - MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time
     - otherwise:
       - if it is the funder:
         - if `fee_satoshis` is not in the overlap between the sent and received `fee_range`:
-          - SHOULD send a `warning`
+          - MUST fail the channel
         - otherwise:
           - MUST reply with the same `fee_satoshis`.
       - otherwise (it is not the funder):
         - if it has already sent a `closing_signed`:
           - if `fee_satoshis` is not the same as the value it sent:
-            - SHOULD send a `warning`
+            - MUST fail the channel
         - otherwise:
           - MUST propose a `fee_satoshis` in the overlap between received and (about-to-be) sent `fee_range`.
   - otherwise, if `fee_satoshis` is not strictly between its last-sent `fee_satoshis`
