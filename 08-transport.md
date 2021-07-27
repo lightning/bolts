@@ -18,6 +18,7 @@ of a node.
     * [Handshake State](#handshake-state)
     * [Handshake State Initialization](#handshake-state-initialization)
     * [Handshake Exchange](#handshake-exchange)
+  * [Alternate Transport Layers: WebSocket](#websocket)
   * [Lightning Message Specification](#lightning-message-specification)
     * [Encrypting and Sending Messages](#encrypting-and-sending-messages)
     * [Receiving and Decrypting Messages](#receiving-and-decrypting-messages)
@@ -100,7 +101,9 @@ indicates that no change is necessary, while a non-zero version indicate that th
 client has deviated from the protocol originally specified within this
 document.
 
-Clients MUST reject handshake attempts initiated with an unknown version.
+Clients MAY attempt to switch to an alternate interpretation if they
+receive and invalid version on receipt of Act One, but otherwise
+MUST reject handshake attempts initiated with an unknown version.
 
 ### Noise Protocol Instantiation
 
@@ -253,7 +256,9 @@ and 16 bytes for the `poly1305` tag.
     * The raw bytes of the remote party's ephemeral public key (`re`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
-3. If `v` is an unrecognized handshake version, then the responder MUST
+3. If `v` is an unrecognized handshake version, and the responder supports
+   `option_websocket`, it MAY interpret the message as the initiation of
+   a [WebSocket connection](#websocket).  Otherwise the responder MUST
     abort the connection attempt.
 4. `h = SHA-256(h || re.serializeCompressed())`
     * The responder accumulates the initiator's ephemeral key into the authenticating
@@ -401,6 +406,43 @@ construction, and 16 bytes for a final authenticating tag.
        receiving messages for the duration of the session, are generated.
 10. `rn = 0, sn = 0`
      * The sending and receiving nonces are initialized to 0.
+
+## Alternate Transport Layers: WebSocket
+
+Normally the transport protocol defined here is performed over TCP/IP,
+but it can also be performed over other underlying transports, such as
+the WebSocket protocol as specified in
+RFC6455<sup>[4](#reference-4)</sup>.
+
+A client may connect to a node and initiate a WebSocket; this will
+normally fail as the WebSocket protocol begins with a "GET" request,
+which is trivially distinguishable from a valid handshake.  However,
+the node may also allow it and operate the protocol over binary
+WebSocket frames.  The `option_websocket` feature allows nodes to
+advertise this, but not all nodes send node_announcements, so it is
+not required before attempting a WebSocket connection.
+
+
+### Requirements
+
+The initiator:
+- MAY attempt to initiate an unencrypted WebSocket as specified in RFC6455<sup>[4](#reference-4)</sup>:
+  - MUST send at least 50 bytes before awaiting a response.
+  - MUST abort the connection attempt if WebSocket upgrade fails.
+  - MUST begin the [Handshake Exchange](#handshake-exchange) as initiator 
+    as soon as upgrade succeeds.
+
+The responder:
+- if it supports `option_websocket`:
+  - SHOULD set `option_websocket` in its node announcements
+  - MUST attempt WebSocket upgrade if the Act 1 handshake it receives
+    is not valid.
+  - MUST abort the connection attempt if WebSocket upgrade fails.
+
+Both nodes, after upgrade:
+  - MUST use binary frames to send and receive messages.
+  - MUST NOT rely on WebSocket framing for message semantics.
+
 
 ## Lightning Message Specification
 
@@ -779,6 +821,7 @@ TODO(roasbeef); fin
 1. <a id="reference-1">https://tools.ietf.org/html/rfc8439</a>
 2. <a id="reference-2">http://noiseprotocol.org/noise.html</a>
 3. <a id="reference-3">https://tools.ietf.org/html/rfc5869</a>
+4. <a id="reference-4">https://tools.ietf.org/html/rfc6455</a>
 
 # Authors
 

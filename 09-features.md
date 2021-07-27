@@ -41,6 +41,7 @@ The Context column decodes as follows:
 | 20/21 | `option_anchor_outputs`          | Anchor outputs                                            | IN       | `option_static_remotekey` | [BOLT #3](03-transactions.md)         |
 | 22/23 | `option_anchors_zero_fee_htlc_tx` | Anchor commitment type with zero fee HTLC transactions   | IN       |                   | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful]|
 | 26/27 | `option_shutdown_anysegwit`         | Future segwit versions allowed in `shutdown`              | IN       |                   | [BOLT #2][bolt02-shutdown]   |
+| 42/43 | `option_websocket`                  | Can tunnel over WebSocket protocol              | N       |                   | [BOLT #8][bolt08-websocket]   |
 
 ## Requirements
 
@@ -88,4 +89,5 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
 [bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
+[bolt08-websocket]: 08-transport.md#websocket
 [ml-sighash-single-harmful]: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-September/002796.html
