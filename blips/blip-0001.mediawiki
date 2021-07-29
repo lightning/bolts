@@ -58,13 +58,7 @@ If you are interested in assuming ownership of a bLIP, send a message asking to 
 
 ====bLIP Editors====
 
-The current bLIP editors are:
-
-* ACINQ volunteer?
-* c-lightning volunteer?
-* lnd volunteer?
-* rust-lightning volunteer?
-* ideally would add some app layer volunteers too*
+The current BOLT editors are the bLIP editors.
 
 ====bLIP Editor Responsibilities & Workflow====
 
