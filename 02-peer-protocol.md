@@ -587,7 +587,7 @@ The sending node:
     - MUST fail the channel
   - if it is not the funder:
     - SHOULD set `max_fee_satoshis` to at least the `max_fee_satoshis` received
-	  - SHOULD set `min_fee_satoshis` to a fairly low value
+    - SHOULD set `min_fee_satoshis` to a fairly low value
   - MUST set `signature` to the Bitcoin signature of the close transaction,
   as specified in [BOLT #3](03-transactions.md#closing-transaction).
 
