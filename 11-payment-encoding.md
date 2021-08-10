@@ -159,7 +159,7 @@ Currently defined tagged fields are:
 
 A writer:
   - MUST include exactly one `p` field.
-  - If the `payment_secret` feature is set, MUST include exactly one `s` field.
+  - MUST include exactly one `s` field.
   - MUST set `payment_hash` to the SHA2 256-bit hash of the `payment_preimage`
   that will be given in return for payment.
   - MUST include either exactly one `d` or exactly one `h` field.
@@ -293,19 +293,11 @@ The field is big-endian.  The least-significant bit is numbered 0,
 which is _even_, and the next most significant bit is numbered 1,
 which is _odd_.
 
-Note that the `payment_secret` feature prevents probing attacks from nodes
-along the path, but only if made compulsory: yet doing so will break
-older clients which do not understand the feature.  It is compulsory
-for `basic_mpp` however, as that is also a recent feature, and makes
-nodes more vulnerable to probing attacks as there is no lower-bound
-on the amount sent.
-
 ### Requirements
 
 A writer:
   - MUST set the `9` field to a feature vector compliant with the
     [BOLT 9 origin node requirements](09-features.md#requirements).
-  - MUST set an `s` field if and only if the `payment_secret` feature is set.
 
 A reader:
   - if the feature vector does not set all known, transitive feature dependencies:
