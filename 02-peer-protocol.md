@@ -239,6 +239,7 @@ The receiving node MAY fail the channel if:
   - it considers `channel_reserve_satoshis` too large.
   - it considers `max_accepted_htlcs` too small.
   - it considers `dust_limit_satoshis` too small and plans to rely on the sending node publishing its commitment transaction in the event of a data loss (see [message-retransmission](02-peer-protocol.md#message-retransmission)).
+  - it considers `dust_limit_satoshis` too large.
 
 The receiving node MUST fail the channel if:
   - the `chain_hash` value is set to a hash of a chain that is unknown to the receiver.
@@ -258,7 +259,7 @@ The receiving node MUST NOT:
 
 #### Rationale
 
-The requirement for `funding_satoshis` to be less than 2^24 satoshi was a temporary self-imposed limit while implementations were not yet considered stable, it can be lifted by advertising `option_support_large_channel`. 
+The requirement for `funding_satoshis` to be less than 2^24 satoshi was a temporary self-imposed limit while implementations were not yet considered stable, it can be lifted by advertising `option_support_large_channel`.
 
 The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% of the channel total is suggested. Each side of a channel maintains this reserve so it always has something to lose if it were to try to broadcast an old, revoked commitment transaction. Initially, this reserve may not be met, as only one side has funds; but the protocol ensures that there is always progress toward meeting this reserve, and once met, it is maintained.
 
@@ -273,6 +274,10 @@ according to `dust_limit_satoshis` eliminates cases where all outputs
 would be eliminated as dust.  The similar requirements in
 `accept_channel` ensure that both sides' `channel_reserve_satoshis`
 are above both `dust_limit_satoshis`.
+
+The receiver should not accept large `dust_limit_satoshis`, as this could be
+used in griefing attacks, where the peer publishes its commitment with a lot
+of dust htlcs, which effectively become miner fees.
 
 Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
 
@@ -321,9 +326,9 @@ The receiver:
   - if `minimum_depth` is unreasonably large:
     - MAY reject the channel.
   - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
-	- MUST reject the channel.
+    - MUST reject the channel.
   - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:
-	- MUST reject the channel.
+    - MUST reject the channel.
 Other fields have the same requirements as their counterparts in `open_channel`.
 
 ### The `funding_created` Message
