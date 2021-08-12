@@ -42,6 +42,7 @@ The Context column decodes as follows:
 | 22/23 | `option_anchors_zero_fee_htlc_tx` | Anchor commitment type with zero fee HTLC transactions   | IN       | `option_static_remotekey` | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful]|
 | 26/27 | `option_shutdown_anysegwit`         | Future segwit versions allowed in `shutdown`              | IN       |                   | [BOLT #2][bolt02-shutdown]   |
 | 44/45 | `option_channel_type`            | Node supports the `channel_type` field in open/accept     | IN       |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
+| 46/47 | `option_scid_alias`              | Supply channel aliases for routing                        | IN       |                   | [BOLT #2][bolt02-funding-locked]   |
 | 48/49 | `option_payment_metadata` | Payment metadata in tlv record | 9 | | [BOLT #11](11-payment-encoding.md#tagged-fields)
 
 ## Definitions
@@ -90,6 +91,7 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt02-open]: 02-peer-protocol.md#the-open_channel-message
 [bolt03-htlc-tx]: 03-transactions.md#htlc-timeout-and-htlc-success-transactions
 [bolt02-shutdown]: 02-peer-protocol.md#closing-initiation-shutdown
+[bolt02-funding-locked]: 02-peer-protocol.md#the-funding_locked-message
 [bolt04]: 04-onion-routing.md
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
