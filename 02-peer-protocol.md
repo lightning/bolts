@@ -409,25 +409,48 @@ this channel will continue to use `option_static_remotekey` or `option_anchor_ou
 
 This message indicates that the funding transaction has reached the `minimum_depth` asked for in `accept_channel`. Once both nodes have sent this, the channel enters normal operating mode.
 
+As an extension, nodes which entirely funded the channel themselves,
+or has other reason to trust the peer, can send this message early, and
+optionally indicate the short_channel_id they will use to refer to it.
+
+
 1. type: 36 (`funding_locked`)
 2. data:
     * [`channel_id`:`channel_id`]
     * [`point`:`next_per_commitment_point`]
+    * [`funding_locked_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `funding_locked_tlvs`
+2. types:
+    1. type: 1 (`short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`short_channel_id`]
 
 #### Requirements
 
-The sender MUST:
-  - NOT send `funding_locked` unless outpoint of given by `funding_txid` and
+The sender:
+  - MUST NOT send `funding_locked` unless outpoint of given by `funding_txid` and
    `funding_output_index` in the `funding_created` message pays exactly `funding_satoshis` to the scriptpubkey specified in [BOLT #3](03-transactions.md#funding-transaction-output).
-  - wait until the funding transaction has reached `minimum_depth` before
-  sending this message.
-  - set `next_per_commitment_point` to the per-commitment point to be used
+  - MUST set `next_per_commitment_point` to the per-commitment point to be used
   for the following commitment transaction, derived as specified in
   [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+  - SHOULD set `short_channel_id`
+  - if it is the sole contributor to the funding transaction, or has reason to trust the peer:
+    - MAY send `funding_locked` before the funding transaction has reached `minimum_depth`
+	- MAY set `short_channel_id` to a fake value, if it will route payments to that `short_channel_id`.
+  - otherwise:
+    - MUST wait until the funding transaction has reached `minimum_depth` before sending this message.
+  - SHOULD re-transmit `funding_locked` if the `short_channel_id` for this chanel has changed.
+
+
+The sender:
 
 A non-funding node (fundee):
   - SHOULD forget the channel if it does not see the correct funding
   transaction after a timeout of 2016 blocks.
+
+The receiver:
+  - SHOULD ignore the `funding_locked` if it knows the `short_channel_id` of the channel and it differs from the value in `funding_locked`.
 
 From the point of waiting for `funding_locked` onward, either node MAY
 fail the channel if it does not receive a required response from the
@@ -444,6 +467,15 @@ If the fundee forgets the channel before it was confirmed, the funder will need
 to broadcast the commitment transaction to get his funds back and open a new
 channel. To avoid this, the funder should ensure the funding transaction
 confirms in the next 2016 blocks.
+
+Nodes which have funded the channel or trust their peers to have done,
+can simply start using the channel instantly by sending
+`funding_locked`.  This raises the problem of how to use this new
+channel in route hints, since it does not yet have a block number.
+For this reason, a convincing fake number can be use; when the real
+funding transaction is finally mined, it can re-send `funding_locked`
+with the real value.
+
 
 ## Channel Close
 
