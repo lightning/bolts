@@ -16,7 +16,7 @@ operation, and closing.
       * [The `tx_remove_input` and `tx_remote_output` Messages](#the-tx_remove_input-and-tx_remove_output-messages)
       * [The `tx_complete` Message](#the-tx_complete-message)
       * [The `tx_signatures` Message](#the-tx_signatures-message)
-    * [Channel Establishment](#channel-establishment)
+    * [Channel Establishment v1](#channel-establishment-v1)
       * [The `open_channel` Message](#the-open_channel-message)
       * [The `accept_channel` Message](#the-accept_channel-message)
       * [The `funding_created` Message](#the-funding_created-message)
@@ -426,7 +426,7 @@ If the fees paid by the peer (inputs - outputs) does not meet or exceed
 the pre-established `feerate`, the receiving peer SHOULD immediately
 fail the channel by broadcasting their commitment transaction.
 
-## Channel Establishment
+## Channel Establishment v1
 
 After authenticating and initializing a connection ([BOLT #8](08-transport.md)
 and [BOLT #1](01-messaging.md#the-init-message), respectively), channel establishment may begin.
