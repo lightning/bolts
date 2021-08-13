@@ -148,7 +148,6 @@ Here are a few example exchanges.
 
 A, *initiator* has two inputs and an output (the funding output).
 B, the *non-initiator* has nothing to contribute.
-n
 
         +-------+                       +-------+
         |       |--(1)- tx_add_input -->|       |
