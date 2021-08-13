@@ -103,8 +103,7 @@ The protocol makes the following assumptions:
 
 - The `feerate` for the transaction is known.
 - The `dust_limit` for the transaction is known.
-- The `nLocktime` for the transaction has been negotiated, or is established
-  via convention.
+- The `nLocktime` for the transaction is known.
 - The transaction version is 2.
 
 ### Fee Responsibility
