@@ -230,7 +230,7 @@ MAY omit this message.
 `serial_id` is a randomly chosen number which uniquely identifies this input.
 Inputs in the constructed transaction are sorted by `serial_id`.
 
-`prevtx_tx` is the serialized transaction that contains the output
+`prevtx` is the serialized transaction that contains the output
 this input spends. Used to verify that the input is non-malleable.
 
 `prevtx_vout` is the index of the output being spent.
