@@ -239,7 +239,7 @@ this input spends. Used to verify that the input is non-malleable.
 4294967294 (0xFFFFFFFE). See BIP125.
 
 `script_sig` is the scriptSig for the input, with length omitted.
-The `script_sig` for non-P2SH-wrapped inputs will be an empty byte.
+The `script_sig` for non-P2SH-wrapped inputs will be an empty byte array.
 
 ### The `tx_add_output` Message
 
