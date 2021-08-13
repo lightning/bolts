@@ -72,7 +72,6 @@ ids.
 For channels established using the v2 protocol, the `channel_id` is the
 SHA256(lesser-revocation-basepoint || greater-revocation-basepoint),
 where the lesser and greater is based off the order of the basepoint.
-The basepoints are compact DER-encoded public keys.
 
 If the peer's revocation basepoint is unknown (e.g. `open_channel2`
 and `accept_channel2`), a temporary `channel_id` should be found by
