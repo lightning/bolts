@@ -217,7 +217,7 @@ The receiving node:
       (and not removed) input's
     - `prevtx` is not a valid transaction
     - `prevtx_vout` is greater or equal to the number of outputs on `prevtx`
-    - the `prevtx_out` input of `prevtx` is not an `OP_0` to `OP_16`
+    - the `scriptPubKey` of the `prevtx_out` output of `prevtx` does not begin with `OP_0` to `OP_16`
       followed by a single push of 2 to 40 bytes
     - the `serial_id` is already included in the transaction
     - the `serial_id` has the wrong parity
