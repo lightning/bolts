@@ -1017,7 +1017,7 @@ Upon receipt of consecutive `tx_complete`s, the receiving node:
         `open_channel2`.`funding_satoshis` and `accept_channel2`.
         `funding_satoshis`
       - the value of the funding output is less than the `dust_limit`
- - if is an RBF attempt:
+ - if it is an RBF attempt:
     - MUST fail the negotiation if:
       - the transaction's total fees is less than the last
         successfully negotiated transaction's fees
