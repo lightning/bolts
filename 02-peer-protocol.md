@@ -128,7 +128,7 @@ protocol with `tx_add_input`. The *non-initiator* responds with any
 of `tx_add_input`, `tx_add_output`, `tx_remove_input`, `tx_remove_output`, or
  `tx_complete`. The protocol continues with the synchronous exchange
 of interactive transaction protocol messages until both nodes have sent
-and received a consecutive `tx_complete`.
+and received a consecutive `tx_complete`. This is a turn-based protocol.
 
 Once peers have exchanged consecutive `tx_complete`s, the
 interactive transaction construction protocol is considered concluded.
