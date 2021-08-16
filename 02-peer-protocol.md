@@ -860,7 +860,7 @@ This message initiates the v2 channel establishment workflow.
 1. type: 64 (`open_channel2`)
 2. data:
    * [`chain_hash`:`chain_hash`]
-   * [`channel_id`:`channel_id`]
+   * [`channel_id`:`zerod_channel_id`]
    * [`u32`:`funding_feerate_perkw`]
    * [`u32`:`commitment_feerate_perkw`]
    * [`u64`:`funding_satoshis`]
@@ -898,8 +898,6 @@ If nodes have negotiated `option_dual_fund`:
 
 The sending node:
   - MUST set `funding_feerate_perkw` to the feerate for this transaction
-  - MUST ensure `temporary_channel_id` is unique from any
-    other channel ID with the same peer.
 
 The receiving node:
   - MAY fail the negotiation if:
@@ -907,7 +905,7 @@ The receiving node:
     - the `funding_feerate_per_kw` is unacceptable
 
 #### Rationale
-`channel_id` for the `open_channel2` MUST be derived using a zero-d out
+`zerod_channel_id` for the `open_channel2` MUST be derived using a zero-d out
 basepoint for the peer's revocation basepoint.  This allows the peer to
 return channel-assignable errors before the *accepter*'s revocation
 basepoint is known.
@@ -938,7 +936,7 @@ acceptance of the new channel.
 
 1. type: 65 (`accept_channel2`)
 2. data:
-    * [`channel_id`:`channel_id`]
+    * [`channel_id`:`zerod_channel_id`]
     * [`u64`:`funding_satoshis`]
     * [`u64`:`dust_limit_satoshis`]
     * [`u64`:`max_htlc_value_in_flight_msat`]
@@ -982,7 +980,7 @@ Instead, the channel reserve is fixed at 1% of the total channel balance
 rounded down to the nearest whole satoshi or the `dust_limit_satoshis`,
 whichever is greater.
 
-`channel_id` for the `accept_channel2` MUST be derived using a zero-d out
+`zerod_channel_id` for the `accept_channel2` MUST be derived using a zero-d out
 basepoint for the peer's revocation basepoint.  This allows the peer to
 return channel-assignable errors before the *accepter*'s revocation
 basepoint is known.
