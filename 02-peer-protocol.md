@@ -397,9 +397,6 @@ The receiving node:
     - the number of `witness_stack`s does not equal the number of inputs
       added by the sending node
     - the `txid` does not match the txid of the transaction
-  - MUST fail the channel if:
-    - the `witness_stack` weight lowers the effective `feerate`
-      below the agreed upon transaction `feerate`
   - SHOULD apply the `witness`es to the transaction and broadcast it
   - MUST reply with their `tx_signatures` if not already transmitted
 
@@ -419,9 +416,6 @@ While the `minimum fee` is calculated and verified at `tx_complete` conclusion,
 it is possible for the fee for the exchanged witness data to be underpaid.
 It is the responsibility of the sending peer to correctly account for the
 required fee, e.g. a multisig witness stack whose weight exceeds 110.
-If the fees paid by the peer (inputs - outputs) does not meet or exceed
-the pre-established `feerate`, the receiving peer SHOULD immediately
-fail the channel by broadcasting their commitment transaction.
 
 ## Channel Establishment v1
 
@@ -1074,9 +1068,8 @@ The sending node:
     - MUST NOT send a `tx_signatures` message
 
 The receiving node:
-  - if the received `witness_stack` weight results in the peer's
-    paid feerate falling below the *opener*'s feerate for the funding
-    transaction:
+  - the `witness_stack` weight lowers the effective `feerate`
+    below the the *opener*'s feerate for the funding transaction:
     - SHOULD broadcast their commitment transaction, closing the channel.
   - SHOULD apply `witness`es to the funding transaction and broadcast it
   - if has already sent or received a `funding_locked` message for this
