@@ -125,7 +125,7 @@ the peer who contributed that input or output via `tx_add_input` or
 
 The *initiator* initiates the interactive transaction construction
 protocol with `tx_add_input`. The *non-initiator* responds with any
-of `tx_add_input`, `tx_add_output`, `tx_rm_input`, `tx_rm_output`, or
+of `tx_add_input`, `tx_add_output`, `tx_remove_input`, `tx_remove_output`, or
  `tx_complete`. The protocol continues with the synchronous exchange
 of interactive transaction protocol messages until both nodes have sent
 and received a consecutive `tx_complete`.
@@ -169,18 +169,18 @@ but waits until A adds a second input before contributing.
 Note that if A does not send a second input, the negotiation will end without
 B's contributions.
 
-        +-------+                       +-------+
-        |       |--(1)- tx_add_input -->|       |
-        |       |<-(2)- tx_complete ----|       |
-        |       |--(3)- tx_add_output ->|       |
-        |       |<-(4)- tx_complete ----|       |
-        |       |--(5)- tx_add_input -->|       |
-        |   A   |<-(6)- tx_add_input ---|   B   |
-        |       |<-(7)- tx_add_output --|       |
-        |       |--(8)- tx_rm_output -->|       |
-        |       |<-(9)- tx_complete ----|       |
-        |       |--(10) tx_complete --->|       |
-        +-------+                       +-------+
+        +-------+                         +-------+
+        |       |--(1)- tx_add_input ---->|       |
+        |       |<-(2)- tx_complete ------|       |
+        |       |--(3)- tx_add_output --->|       |
+        |       |<-(4)- tx_complete ------|       |
+        |       |--(5)- tx_add_input ---->|       |
+        |   A   |<-(6)- tx_add_input -----|   B   |
+        |       |<-(7)- tx_add_output ----|       |
+        |       |--(8)- tx_remove_output >|       |
+        |       |<-(9)- tx_complete ------|       |
+        |       |--(10) tx_complete ----->|       |
+        +-------+                         +-------+
 
 
 ### The `tx_add_input` Message
