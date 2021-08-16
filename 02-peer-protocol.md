@@ -1104,7 +1104,7 @@ The sender:
   - MUST NOT have sent or received a `funding_locked` message.
 
 The recipient:
-  - MUST respond with either an error or an `ack_rbf` message.
+  - MUST respond either by failing the negotiation or with an `ack_rbf` message.
   - MUST fail the negotiation if:
     - the `funding_feerate_perkw` is not greater than 65/64 times
       `funding_feerate_perkw` of the last successfully negotiated
