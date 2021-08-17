@@ -30,7 +30,7 @@ Sender:
 * MUST include a TLV record keyed by type `5482373484` with a TLV value of a
   randomly generated and cryptographically-secure 32-byte value that serves as
   the HTLC payment preimage
-* MUST NOT set a `payment_data` field
+* MUST NOT set a `payment_data` field in the onion routing packet's TLV payload
 * SHOULD only send payments to nodes advertising feature bit 55
 
 Receiver:
@@ -38,7 +38,8 @@ Receiver:
   error with `PERM|15 incorrect_or_unknown_payment_details`.
 * MUST advertise feature bit 55 in the node context only
 * MUST reject the keysend if the preimage does not match the payment hash
-* MUST reject the keysend if a `payment_data` field is present
+* MUST reject the keysend if a `payment_data` field is present in the onion
+  routing packet's TLV payload
 
 Note that because of the lack of a payment secret, basic MPP payments are not
 supported with keysend.
@@ -104,3 +105,4 @@ implementation (e.g. the choice of `5482373484` for the TLV type).
 LDK: https://github.com/rust-bitcoin/rust-lightning/pull/967
 C-Lightning: https://github.com/ElementsProject/lightning/blob/master/plugins/keysend.c
 `lnd` original keysend PR: https://github.com/lightningnetwork/lnd/pull/3795
+Eclair: https://github.com/ACINQ/eclair/pull/1485
