@@ -554,9 +554,9 @@ exchange continues until both agree on the same fee or when one side fails
 the channel.
 
 In the modern method, the funder sends its permissable fee range, and the
-non-funder has to pick a fee in this range. If it chooses the same value,
-negotiation is complete after two messages, otherwise the funder will reply
-with the same value (completing after three messages).
+non-funder has to pick a fee in this range. If the non-funder chooses the same
+value, negotiation is complete after two messages, otherwise the funder will
+reply with the same value (completing after three messages).
 
 1. type: 39 (`closing_signed`)
 2. data:
@@ -604,7 +604,7 @@ The receiving node:
     - MAY close the connection.
   - if the message contains a `fee_range`:
     - if there is no overlap between that and its own `fee_range`:
-      - SHOULD send a `warning`
+      - SHOULD fail the connection
       - MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time
     - otherwise:
       - if it is the funder:
