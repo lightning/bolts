@@ -21,6 +21,8 @@ This details the exact format of on-chain transactions, which both sides need to
     * [Fees](#fees)
         * [Fee Calculation](#fee-calculation)
         * [Fee Payment](#fee-payment)
+    * [Dust Limits](#dust-limits)
+    * [Commitment Transaction Construction](#commitment-transaction-construction)
   * [Keys](#keys)
     * [Key Derivation](#key-derivation)
         * [`localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation](#localpubkey-remotepubkey-local_htlcpubkey-remote_htlcpubkey-local_delayedpubkey-and-remote_delayedpubkey-derivation)
@@ -483,6 +485,112 @@ contribute to fees.
 A node:
   - if the resulting fee rate is too low:
     - MAY fail the channel.
+
+## Dust Limits
+
+The `dust_limit_satoshis` parameter is used to configure the threshold below
+which nodes will not produce on-chain transaction outputs.
+
+There is no consensus rule in Bitcoin that makes outputs below dust thresholds
+invalid or unspendable, but policy rules in popular implementations will prevent
+relaying transactions that contain such outputs.
+
+Bitcoin Core defines the following dust thresholds:
+
+- pay to pubkey hash (p2pkh): 546 satoshis
+- pay to script hash (p2sh): 540 satoshis
+- pay to witness pubkey hash (p2wpkh): 294 satoshis
+- pay to witness script hash (p2wsh): 330 satoshis
+- unknown segwit versions: 354 satoshis
+
+The rationale of this calculation (implemented [here](https://github.com/bitcoin/bitcoin/blob/0.21/src/policy/policy.cpp))
+is explained in the following sections.
+
+In all these sections, the calculations are done with a feerate of 3000 sat/kB
+as per Bitcoin Core's implementation.
+
+### Pay to pubkey hash (p2pkh)
+
+A p2pkh output is 34 bytes:
+
+- 8 bytes for the output amount
+- 1 byte for the script length
+- 25 bytes for the script (`OP_DUP` `OP_HASH160` `20` 20-bytes `OP_EQUALVERIFY` `OP_CHECKSIG`)
+
+A p2pkh input is at least 148 bytes:
+
+- 36 bytes for the previous output (32 bytes hash + 4 bytes index)
+- 1 byte for the script sig length
+- 4 bytes for the sequence
+- 107 bytes for the script sig:
+  - 1 byte for the items count
+  - 1 byte for the signature length
+  - 71 bytes for the signature
+  - 1 byte for the public key length
+  - 33 bytes for the public key
+
+The p2pkh dust threshold is then `(34 + 148) * 3000 / 1000 = 546 satoshis`
+
+### Pay to script hash (p2sh)
+
+A p2sh output is 32 bytes:
+
+- 8 bytes for the output amount
+- 1 byte for the script length
+- 23 bytes for the script (`OP_HASH160` `20` 20-bytes `OP_EQUAL`)
+
+A p2sh input doesn't have a fixed size, since it depends on the underlying
+script, so we use 148 bytes as a lower bound.
+
+The p2sh dust threshold is then `(32 + 148) * 3000 / 1000 = 540 satoshis`
+
+### Pay to witness pubkey hash (p2wpkh)
+
+A p2wpkh output is 31 bytes:
+
+- 8 bytes for the output amount
+- 1 byte for the script length
+- 22 bytes for the script (`OP_0` `20` 20-bytes)
+
+A p2wpkh input is at least 67 bytes (depending on the signature length):
+
+- 36 bytes for the previous output (32 bytes hash + 4 bytes index)
+- 1 byte for the script sig length
+- 4 bytes for the sequence
+- 26 bytes for the witness (with the 75% segwit discount applied):
+  - 1 byte for the items count
+  - 1 byte for the signature length
+  - 71 bytes for the signature
+  - 1 byte for the public key length
+  - 33 bytes for the public key
+
+The p2wpkh dust threshold is then `(31 + 67) * 3000 / 1000 = 294 satoshis`
+
+### Pay to witness script hash (p2wsh)
+
+A p2wsh output is 43 bytes:
+
+- 8 bytes for the output amount
+- 1 byte for the script length
+- 34 bytes for the script (`OP_0` `32` 32-bytes)
+
+A p2wsh input doesn't have a fixed size, since it depends on the underlying
+script, so we use 67 bytes as a lower bound.
+
+The p2wsh dust threshold is then `(43 + 67) * 3000 / 1000 = 330 satoshis`
+
+### Unknown segwit versions
+
+Unknown segwit outputs are at most 51 bytes:
+
+- 8 bytes for the output amount
+- 1 byte for the script length
+- 42 bytes for the script (`OP_1` through `OP_16` inclusive, followed by a single push of 2 to 40 bytes)
+
+The input doesn't have a fixed size, since it depends on the underlying
+script, so we use 67 bytes as a lower bound.
+
+The unknown segwit version dust threshold is then `(51 + 67) * 3000 / 1000 = 354 satoshis`
 
 ## Commitment Transaction Construction
 
