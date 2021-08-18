@@ -366,7 +366,10 @@ Each node offering a signature:
   - MUST round each output down to whole satoshis.
   - MUST subtract the fee given by `fee_satoshis` from the output to the funder.
   - MUST remove any output below its own `dust_limit_satoshis`.
-  - MAY eliminate its own output.
+  - if its own output is below the network's dust threshold (see the [dust limits section](#dust-limits)):
+    - MUST eliminate its own output.
+  - otherwise:
+    - MAY eliminate its own output.
 
 ### Rationale
 
@@ -382,9 +385,6 @@ However, if one side chooses to eliminate its own output, there's no
 reason for the other side to fail the closing protocol; so this is
 explicitly allowed. The signature indicates which variant
 has been used.
-
-There will be at least one output, if the funding amount is greater
-than twice `dust_limit_satoshis`.
 
 ## Fees
 
