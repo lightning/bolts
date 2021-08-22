@@ -797,6 +797,56 @@ A fulfilling node:
   transaction, AND is past this fulfillment deadline:
     - MUST fail the channel.
 
+### Bounding exposure to trimmed in-flight HTLCs: `max_dust_htlc_exposure_msat`
+
+When an HTLC in a channel is below the "trimmed" threshold in [BOLT3 #3](03-transactions.md),
+the HTLC is not claimable on-chain, instead being turned into additional miner
+fees if either party unilaterally closes the channel. Because the threshold is
+per-HTLC, the total exposure to such HTLCs may be substantial if there are many
+dust HTLCs present when the channel is force-closed.
+
+This can be exploited in griefing attacks or even in miner-extractable-value attacks,
+if the malicious entity avails <sup>[mining capabilities](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-May/002714.html)</sup>.
+
+The total exposure is given by the following back-of-the-envelope computation:
+
+	counterparty's `max_accepted_htlcs` * (`HTLC-success-kiloweight` * opener's `feerate_per_kw` + counterparty's `dust_limit_satoshis`)
+		+ holder's `max_accepted_htlcs` * (`HTLC-timeout-kiloweight` * opener's `feerate_per_kw` + counterparty's `dust_limit_satoshis`)
+
+
+To mitigate this scenario, a `max_dust_htlc_exposure_msat` can be applied at
+HTLC sending, forwarding and receiving.
+
+A node:
+  - upon an incoming HTLC:
+    - if the HTLC's `amount_msat` is inferior to the counterparty's `dust_limit_satoshis` plus the HTLC-timeout fee at the `feerate_per_kw`:
+      - if the `amount_msat` plus the dust balance on counterparty transaction is superior to `max_dust_htlc_exposure_msat`:
+        - SHOULD fail this HTLC once it's committed
+        - SHOULD NOT reveal a preimage for this HTLC
+    - if the HTLC's `amount_msat` is inferior to the holder's `dust_limit_satoshis` plus the HTLC-success fee at the `feerate_per_kw`:
+      - if the `amount_msat` plus the dust balance on holder transaction is superior to `max_dust_htlc_exposure_msat`:
+        - SHOULD fail this HTLC once it's committed
+        - SHOULD NOT reveal a preimage for this HTLC
+  - upon an outgoing HTLC:
+    - if the HTLC's `amount_msat` is inferior the counterparty's `dust_limit_satoshis` plus the HTLC-success fee at the `feerate_per_kw`:
+      - if the `amount_msat` plus the dust balance on counterparty transaction is superior to `max_dust_htlc_exposure_msat`:
+        - SHOULD NOT send this HTLC
+        - SHOULD fail this HTLC if it's forwarded
+    - if the HTLC's `amount_msat` is inferior to the holder's `dust_limit_satoshis` plus the HTLC-timeout fee at the `feerate_per_kw`:
+      - if the `amount_msat` plus the dust balance on holder transaction is superior to `max_dust_htlc_exposure_msat`:
+        - SHOULD NOT send this HTLC
+        - SHOULD fail this HTLC if it's forwarded
+
+For pre-`option_anchors_zero_fee_htlc` channels, the second-stage HTLC transaction
+fee is function of the negotiated `feerate_per_kw`. To avoid a node being
+significantly more exposed to trimmed balance in case of feerate increases when
+several HTLCs are pending which are near the dust limit, it is recommended to
+calculate that `feerate_per_kw` with some buffer.
+
+The `max_dust_htlc_exposure_msat` is an upper bound on the trimmed balance from
+dust exposure. The exact value is left as a matter of node policy, as what qualifies
+as a notable loss is devolved to the operator subjectivity.
+
 ### Adding an HTLC: `update_add_htlc`
 
 Either node can send `update_add_htlc` to offer an HTLC to the other,
