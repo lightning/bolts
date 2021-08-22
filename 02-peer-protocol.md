@@ -1168,6 +1168,15 @@ The node _responsible_ for paying the Bitcoin fee:
 The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
 
+A sending node:
+  - if the `update_fee` is above the `feerate_per_kw`:
+    - if the dust balance on counterparty transaction at the current `feerate_per_kw` is superior to `max_dust_htlc_exposure_msat`:
+      - MAY NOT send `update_fee`
+      - MAY fail the channel
+    - if the dust balance on holder transaction at the current `feerate_per_kw` is superior to `max_dust_htlc_exposure_msat`:
+      - MAY NOT send `update_fee`
+      - MAY fail the channel
+
 A receiving node:
   - if the `update_fee` is too low for timely processing, OR is unreasonably large:
     - SHOULD fail the channel.
@@ -1177,6 +1186,18 @@ A receiving node:
   current commitment transaction:
     - SHOULD fail the channel,
       - but MAY delay this check until the `update_fee` is committed.
+  - if the `update_fee` is above the `feerate_per_kw`:
+    - if the dust balance on counterparty transaction at the current `feerate_per_kw` is superior to `max_dust_htlc_exposure_msat`:
+      - MAY fail the channel
+    - if the dust balance on holder transaction at the current `feerate_per_kw` is superior to `max_dust_htlc_exposure_msat`:
+      - MAY fail the channel
+
+There is a risk of triggering a third-party channel closure in case of
+high-fee spikes by forwarding many trimmed HTLCs on this channel and waiting
+for an automatic `update_fee` provoking an unilateral close. For this reason,
+closing the channel in case of `update_fee` overflowing the
+`max_dust_htlc_exposure_msat` is deferred to the node operator, where it could
+be evaluated in function of the channel trust.
 
 #### Rationale
 
