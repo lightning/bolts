@@ -504,12 +504,12 @@ Breakdown:
   * `9y`: `data_length` (`9` = 5, `y` = 4; 5 * 32 + 4 == 164)
     * `q20q82gphp2nflc7jtzrcazrra7wwgzxqc8u7754cdlpfrmccae92qgzqvzq2ps8pqqqqqqpqqqqq9qqqvpeuqafqxu92d8lr6fvg0r5gv0heeeqgcrqlnm6jhphu9y00rrhy4grqszsvpcgpy9qqqqqqgqqqqq7qqzq`:
       * pubkey: `029e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`
-      * `short_channel_id`: 0102030405060708
+      * `short_channel_id`: 66051x263430x1800
       * `fee_base_msat`: 1 millisatoshi
       * `fee_proportional_millionths`: 20
       * `cltv_expiry_delta`: 3
       * pubkey: `039e03a901b85534ff1e92c43c74431f7ce72046060fcf7a95c37e148f78c77255`
-      * `short_channel_id`: 030405060708090a
+      * `short_channel_id`: 197637x395016x2314
       * `fee_base_msat`: 2 millisatoshi
       * `fee_proportional_millionths`: 30
       * `cltv_expiry_delta`: 4
