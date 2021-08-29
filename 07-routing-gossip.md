@@ -462,8 +462,6 @@ The origin node:
       - MUST set this to less than or equal to the channel capacity.
       - MUST set this to less than or equal to `max_htlc_value_in_flight_msat`
     it received from the peer.
-      - for channels with `chain_hash` identifying the Bitcoin blockchain:
-        - MUST set this to less than 2^32.
   - otherwise:
     - MUST set the `option_channel_htlc_max` bit of `message_flags` to 0.
   - MUST set bits in `channel_flags` and `message_flags `that are not assigned a meaning to 0.
