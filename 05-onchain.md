@@ -163,7 +163,7 @@ need not consume resources monitoring the channel state.
 There exists a bias towards preferring mutual closes over unilateral closes,
 because outputs of the former are unencumbered by a delay and are directly
 spendable by wallets. In addition, mutual close fees tend to be less exaggerated
-than those of commitment transactions (or in the case of `option_anchor_outputs`,
+than those of commitment transactions (or in the case of `option_anchors`,
 the commitment transaction may require a child transaction to cause it to be mined). So, the only reason not to use the
 signature from `closing_signed` would be if the fee offered was too small for
 it to be processed.
@@ -514,7 +514,7 @@ A local node:
   using the revocation private key.
   - SHOULD extract the payment preimage from the transaction input witness, if
   it's not already known.
-  - if `option_anchor_outputs` applies:
+  - if `option_anchors` applies:
     - MAY use a single transaction to *resolve* all the outputs.
     - if confirmation doesn't happen before reaching `security_delay` blocks from
   expiry:
@@ -531,7 +531,7 @@ A single transaction that resolves all the outputs will be under the
 standard size limit because of the 483 HTLC-per-party limit (see
 [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
 
-Note: if `option_anchor_outputs` applies, the cheating node can pin spends of its
+Note: if `option_anchors` applies, the cheating node can pin spends of its
 HTLC-timeout/HTLC-success outputs thanks to SIGHASH_SINGLE malleability.
 Using a single penalty transaction for all revoked outputs is thus unsafe as it
 could be blocked to propagate long enough for the _local node's `to_local` output_ 's
@@ -587,16 +587,37 @@ Note: even if the `to_remote` output is not swept, the resulting
 
 # Generation of HTLC Transactions
 
-If `option_anchor_outputs` does not apply to the commitment transaction, then HTLC-timeout and HTLC-success transactions are complete transactions with (hopefully!) reasonable fees and must be used directly.
+If `option_anchors` does not apply to the commitment transaction, then
+HTLC-timeout and HTLC-success transactions are complete transactions with
+(hopefully!) reasonable fees and must be used directly.
 
-Otherwise, the use of `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` on the HTLC signatures received from the peer allows HTLC transactions to be combined with other transactions.
-The local signature MUST use `SIGHASH_ALL`, otherwise anyone can attach additional inputs and outputs to the tx.
+Otherwise, the use of `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` on the HTLC
+signatures received from the peer allows HTLC transactions to be combined with
+other transactions.  The local signature MUST use `SIGHASH_ALL`, otherwise
+anyone can attach additional inputs and outputs to the tx.
+
+If `option_anchors_zero_fee_htlc_tx` applies, then the HTLC-timeout and
+HTLC-success transactions are signed with the input and output having the same
+value. This means they have a zero fee and MUST be combined with other inputs
+to arrive at a reasonable fee.
 
 ## Requirements
 
-A node which broadcasts an HTLC-success or HTLC-timeout transaction for a commitment transaction for which `option_anchor_outputs` applies:
-  - MUST contribute sufficient fee to ensure timely inclusion in a block.
-  - MAY combine it with other transactions.
+A node which broadcasts an HTLC-success or HTLC-timeout transaction for a
+commitment transaction:
+  1. if `option_anchor_outputs` applies:
+    - SHOULD combine it with inputs contributing sufficient fee to ensure
+      timely inclusion in a block.
+    - MAY combine it with other transactions.
+  2. if `option_anchors_zero_fee_htlc_tx` applies:
+    - MUST combine it with inputs contributing sufficient fee to ensure timely
+      inclusion in a block.
+    - MAY combine it with other transactions.
+
+Note that `option_anchors_zero_fee_htlc_tx` has a stronger requirement for
+adding inputs to the final transactions than `option_anchor_outputs`, since the
+HTLC-success and HTLC-timeout transactions won't propagate without additional
+inputs added.
 
 # General Requirements
 
