@@ -233,6 +233,8 @@ The sending node:
     - MAY include `upfront_shutdown_script`.
   - if it includes `open_channel_tlvs`:
     - MUST include `upfront_shutdown_script`.
+  - if `option_channel_type` is negotiated:
+    - MUST set `channel_type`
   - if it includes `channel_type`:
     - MUST set it to a defined type representing the type it wants.
     - MUST use the smallest bitmap possible to represent the channel type.
@@ -252,6 +254,7 @@ The receiving node MUST:
     - discard the previous `open_channel` message.
 
 The receiving node MAY fail the channel if:
+  - `option_channel_type` was negotiated but the message doesn't include a `channel_type`
   - `announce_channel` is `false` (`0`), yet it wishes to publicly announce the channel.
   - `funding_satoshis` is too small.
   - it considers `htlc_minimum_msat` too large.
