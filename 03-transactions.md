@@ -520,8 +520,8 @@ A p2pkh output is 34 bytes:
 A p2pkh input is at least 148 bytes:
 
 - 36 bytes for the previous output (32 bytes hash + 4 bytes index)
-- 1 byte for the script sig length
 - 4 bytes for the sequence
+- 1 byte for the script sig length
 - 107 bytes for the script sig:
   - 1 byte for the items count
   - 1 byte for the signature length
@@ -555,9 +555,9 @@ A p2wpkh output is 31 bytes:
 A p2wpkh input is at least 67 bytes (depending on the signature length):
 
 - 36 bytes for the previous output (32 bytes hash + 4 bytes index)
-- 1 byte for the script sig length
 - 4 bytes for the sequence
-- 26 bytes for the witness (with the 75% segwit discount applied):
+- 1 byte for the script sig length
+- 26 bytes for the witness (rounded down from 26.75, with the 75% segwit discount applied):
   - 1 byte for the items count
   - 1 byte for the signature length
   - 71 bytes for the signature
