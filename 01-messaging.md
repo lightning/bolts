@@ -226,7 +226,7 @@ integers can be omitted:
 * `tu64`: a 0 to 8 byte unsigned integer
 
 When used to encode amounts, the previous fields MUST comply with the upper
-bound of 21 millions BTC:
+bound of 21 million BTC:
 
 * satoshi amounts MUST be at most `0x000775f05a074000`
 * milli-satoshi amounts MUST be at most `0x1d24b2dfac520000`
