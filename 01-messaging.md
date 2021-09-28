@@ -225,6 +225,12 @@ integers can be omitted:
 * `tu32`: a 0 to 4 byte unsigned integer
 * `tu64`: a 0 to 8 byte unsigned integer
 
+When used to encode amounts, the previous fields MUST comply with the upper
+bound of 21 million BTC:
+
+* satoshi amounts MUST be at most `0x000775f05a074000`
+* milli-satoshi amounts MUST be at most `0x1d24b2dfac520000`
+
 The following convenience types are also defined:
 
 * `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
