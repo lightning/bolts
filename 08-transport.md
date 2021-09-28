@@ -96,7 +96,7 @@ terminated.
 
 Each message sent during the initial handshake starts with a single leading
 byte, which indicates the version used for the current handshake. A version of 0
-indicates that no change is necessary, while a non-zero version indicate that the
+indicates that no change is necessary, while a non-zero version indicates that the
 client has deviated from the protocol originally specified within this
 document.
 
@@ -484,7 +484,7 @@ steps are completed:
 
 ## Lightning Message Key Rotation
 
-Changing keys regularly and forgetting previous keys is useful to
+Changing keys regularly and forgetting previous keys are useful to
 prevent the decryption of old messages, in the case of later key leakage (i.e.
 backwards secrecy).
 

@@ -102,15 +102,15 @@ A recipient node:
     - MAY fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
     - SHOULD queue the `channel_announcement` message for its peers.
-  - if it has not sent funding_locked:
-    - MAY defer handling the announcement_signatures until after it has sent funding_locked
+  - if it has not sent `funding_locked`:
+    - MAY defer handling the `announcement_signatures` until after it has sent `funding_locked`
     - otherwise:
       - MUST ignore it.
 
 
 ### Rationale
 
-The reason for allowing deferring of a premature announcement_signatures is
+The reason for allowing deferring of a premature `announcement_signatures` is
 that an earlier version of the spec did not require waiting for receipt of
 funding locked: deferring rather than ignoring it allows compatibility with
 this behavior.
@@ -469,7 +469,7 @@ The origin node:
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
   settlement).
-    - MAY sent a subsequent `channel_update` with the `disable` bit set to 0 to
+    - MAY send a subsequent `channel_update` with the `disable` bit set to 0 to
     re-enable the channel.
   - MUST set `timestamp` to greater than 0, AND to greater than any
   previously-sent `channel_update` for this `short_channel_id`.
@@ -674,7 +674,7 @@ The receiver:
       - if bit 4 of `query_flag` is set and it has received a `node_announcement` from `node_id_2`:
         - MUST reply with the latest `node_announcement` for `node_id_2`
     - SHOULD NOT wait for the next outgoing gossip flush to send these.
-  - SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
+  - SHOULD avoid sending duplicate `node_announcement`s in response to a single `query_short_channel_ids`.
   - MUST follow these responses with `reply_short_channel_ids_end`.
   - if does not maintain up-to-date channel information for `chain_hash`:
     - MUST set `full_information` to 0.

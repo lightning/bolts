@@ -184,7 +184,7 @@ useful for preserving privacy when outsourcing penalty transactions to
 third parties.
 
 `first_per_commitment_point` is the per-commitment point to be used
-for the first commitment transaction,
+for the first commitment transaction.
 
 Only the least-significant bit of `channel_flags` is currently
 defined: `announce_channel`. This indicates whether the initiator of
@@ -946,8 +946,8 @@ A receiving node:
     - SHOULD fail the channel.
   - receiving an `amount_msat` that the sending node cannot afford at the current `feerate_per_kw` (while maintaining its channel reserve and any `to_local_anchor` and `to_remote_anchor` costs):
     - SHOULD fail the channel.
-  - if a sending node adds more than receiver `max_accepted_htlcs` HTLCs to
-    its local commitment transaction, OR adds more than receiver `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction:
+  - if a sending node adds more than receiver's `max_accepted_htlcs` HTLCs to
+    its local commitment transaction, OR adds more than receiver's `max_htlc_value_in_flight_msat` worth of offered HTLCs to its local commitment transaction:
     - SHOULD fail the channel.
   - if sending node sets `cltv_expiry` to greater or equal to 500000000:
     - SHOULD fail the channel.
@@ -1420,7 +1420,7 @@ The handling of updates is similarly atomic: if the commit is not
 acknowledged (or wasn't sent) the updates are re-sent. However, it's not
 insisted they be identical: they could be in a different order,
 involve different fees, or even be missing HTLCs which are now too old
-to be added. Requiring they be identical would effectively mean a
+to be added. Requiring them to be identical would effectively mean a
 write to disk by the sender upon each transmission, whereas the scheme
 here encourages a single persistent write to disk for each
 `commitment_signed` sent or received. But if you need to retransmit both a

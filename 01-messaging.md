@@ -423,7 +423,7 @@ clients will be put to sleep without prior warning. Hence, a
 distinct `ping` message is used, in order to probe for the liveness of the connection on
 the other side, as well as to keep the established connection active.
 
-Additionally, the ability for a sender to request that the receiver send a
+Additionally, the ability for a sender to request that the receiver sends a
 response with a particular number of bytes enables nodes on the network to
 create _synthetic_ traffic. Such traffic can be used to partially defend
 against packet and timing analysis — as nodes can fake the traffic patterns of
