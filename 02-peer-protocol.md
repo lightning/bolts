@@ -258,7 +258,7 @@ The receiving node MAY fail the channel if:
   - it considers `max_htlc_value_in_flight_msat` too small.
   - it considers `channel_reserve_satoshis` too large.
   - it considers `max_accepted_htlcs` too small.
-  - it considers `dust_limit_satoshis` too small and plans to rely on the sending node publishing its commitment transaction in the event of a data loss (see [message-retransmission](02-peer-protocol.md#message-retransmission)).
+  - it considers `dust_limit_satoshis` too large.
 
 The receiving node MUST fail the channel if:
   - the `chain_hash` value is set to a hash of a chain that is unknown to the receiver.
@@ -269,6 +269,7 @@ The receiving node MUST fail the channel if:
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
 are not valid secp256k1 pubkeys in compressed format.
   - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
+  - `dust_limit_satoshis` is smaller than `354 satoshis` (see [BOLT 3](03-transactions.md#dust-limits)).
   - the funder's amount for the initial commitment transaction is not sufficient for full [fee payment](03-transactions.md#fee-payment).
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
   - `funding_satoshis` is greater than or equal to 2^24 and the receiver does not support `option_support_large_channel`. 
@@ -279,7 +280,7 @@ The receiving node MUST NOT:
 
 #### Rationale
 
-The requirement for `funding_satoshis` to be less than 2^24 satoshi was a temporary self-imposed limit while implementations were not yet considered stable, it can be lifted by advertising `option_support_large_channel`. 
+The requirement for `funding_satoshis` to be less than 2^24 satoshi was a temporary self-imposed limit while implementations were not yet considered stable, it can be lifted by advertising `option_support_large_channel`.
 
 The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% of the channel total is suggested. Each side of a channel maintains this reserve so it always has something to lose if it were to try to broadcast an old, revoked commitment transaction. Initially, this reserve may not be met, as only one side has funds; but the protocol ensures that there is always progress toward meeting this reserve, and once met, it is maintained.
 
@@ -294,6 +295,10 @@ according to `dust_limit_satoshis` eliminates cases where all outputs
 would be eliminated as dust.  The similar requirements in
 `accept_channel` ensure that both sides' `channel_reserve_satoshis`
 are above both `dust_limit_satoshis`.
+
+The receiver should not accept large `dust_limit_satoshis`, as this could be
+used in griefing attacks, where the peer publishes its commitment with a lot
+of dust htlcs, which effectively become miner fees.
 
 Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
 
@@ -352,7 +357,6 @@ The receiver:
     - MUST reject the channel.
   - if `channel_type` is set, and `channel_type` was set in `open_channel`, and they are not equal types:
     - MUST reject the channel.
-
 
 Other fields have the same requirements as their counterparts in `open_channel`.
 
@@ -543,12 +547,9 @@ A sending node:
     - MUST send the same value in `scriptpubkey`.
   - MUST set `scriptpubkey` in one of the following forms:
 
-    1. `OP_DUP` `OP_HASH160` `20` 20-bytes `OP_EQUALVERIFY` `OP_CHECKSIG`
-   (pay to pubkey hash), OR
-    2. `OP_HASH160` `20` 20-bytes `OP_EQUAL` (pay to script hash), OR
-    3. `OP_0` `20` 20-bytes (version 0 pay to witness pubkey hash), OR
-    4. `OP_0` `32` 32-bytes (version 0 pay to witness script hash), OR
-    5. if (and only if) `option_shutdown_anysegwit` is negotiated:
+    1. `OP_0` `20` 20-bytes (version 0 pay to witness pubkey hash), OR
+    2. `OP_0` `32` 32-bytes (version 0 pay to witness script hash), OR
+    3. if (and only if) `option_shutdown_anysegwit` is negotiated:
       * `OP_1` through `OP_16` inclusive, followed by a single push of 2 to 40 bytes
         (witness program versions 1 through 16)
 
@@ -576,9 +577,11 @@ may immediately begin closing negotiation, so we ban further updates
 to the commitment transaction (in particular, `update_fee` would be
 possible otherwise).
 
-The `scriptpubkey` forms include only standard forms accepted by the
-Bitcoin network, which ensures the resulting transaction will
-propagate to miners.
+The `scriptpubkey` forms include only standard segwit forms accepted by
+the Bitcoin network, which ensures the resulting transaction will
+propagate to miners. However old nodes may send non-segwit scripts, which
+may be accepted for backwards-compatibility (with a caveat to force-close
+if this output doesn't meet dust relay requirements).
 
 The `option_upfront_shutdown_script` feature means that the node
 wanted to pre-commit to `shutdown_scriptpubkey` in case it was
@@ -674,6 +677,10 @@ The receiving node:
     - MUST propose a value "strictly between" the received `fee_satoshis`
     and its previously-sent `fee_satoshis`.
 
+The receiving node:
+  - if one of the outputs in the closing transaction is below the dust limit for its `scriptpubkey` (see [BOLT 3](03-transactions.md#dust-limits)):
+    - MUST fail the channel
+
 #### Rationale
 
 When `fee_range` is not provided, the "strictly between" requirement ensures
@@ -689,6 +696,12 @@ Note that the non-funder is not paying the fee, so there is no reason for it
 to have a maximum feerate. It may want a minimum feerate, however, to ensure
 that the transaction propagates. It can always use CPFP later to speed up
 confirmation if necessary, so that minimum should be low.
+
+It may happen that the closing transaction doesn't meet bitcoin's default relay
+policies (e.g. when using a non-segwit shutdown script for an output below 546
+satoshis, which is possible if `dust_limit_satoshis` is below 546 satoshis).
+No funds are at risk when that happens, but the channel must be force-closed as
+the closing transaction will likely never reach miners.
 
 ## Normal Operation
 
