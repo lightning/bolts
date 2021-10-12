@@ -409,10 +409,23 @@ this channel will continue to use `option_static_remotekey` or `option_anchor_ou
 
 This message indicates that the funding transaction has reached the `minimum_depth` asked for in `accept_channel`. Once both nodes have sent this, the channel enters normal operating mode.
 
+Nodes which have funded the channel, or trust their peers to have
+done, or wish to use `push_msat` from other side's opening (without
+accepting incoming HTLCs) can simply send their `funding_locked` right
+away. As soon as both parties have sent their `funding_locked`, the channel
+can be used even if the funding transaction hasn't yet been confirmed.
+
 1. type: 36 (`funding_locked`)
 2. data:
     * [`channel_id`:`channel_id`]
     * [`point`:`next_per_commitment_point`]
+    * [`funding_locked_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `funding_locked_tlvs`
+2. types:
+    1. type: 1 (`short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`alias`]
 
 #### Requirements
 
@@ -422,12 +435,26 @@ The sender MUST:
   - wait until the funding transaction has reached `minimum_depth` before
   sending this message.
   - set `next_per_commitment_point` to the per-commitment point to be used
-  for the following commitment transaction, derived as specified in
+    for commitment transaction #1, derived as specified in
   [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
+  - if `option_scid_alias` was negotiated:
+    - SHOULD set `short_channel_id` `alias`.
+    - if it sets `alias`:
+      - MUST set `alias` to a value not related to the real `short_channel_id`.
+      - MUST NOT send the same `alias` for multiple peers.
+      - MUST always recognize the `alias` as a `short_channel_id` for incoming HTLCs to this channel.
+      - MAY send multiple `funding_locked` messages with different `alias` values.
+  - otherwise:
+    - MUST wait until the funding transaction has reached `minimum_depth` before sending this message.
+
+The receiver:
+- MAY use any of the `alias` it received in BOLT 11 `r` fields.
+- if it received at least one `alias`:
+    - MUST NOT use the real `short_channel_id` in BOLT 11 `r` fields.
 
 A non-funding node (fundee):
   - SHOULD forget the channel if it does not see the correct funding
-  transaction after a timeout of 2016 blocks.
+    transaction after a timeout of 2016 blocks.
 
 From the point of waiting for `funding_locked` onward, either node MAY
 fail the channel if it does not receive a required response from the
@@ -444,6 +471,16 @@ If the fundee forgets the channel before it was confirmed, the funder will need
 to broadcast the commitment transaction to get his funds back and open a new
 channel. To avoid this, the funder should ensure the funding transaction
 confirms in the next 2016 blocks.
+
+The `alias` here is both required for routing (since the real
+short_channel_id is unknown until confirmation), and useful even once
+there is a real `short_channel_id` for a public channel.
+
+While a node can send multiple `alias`, it must remember all of the
+ones it has sent so it can use them should they be requested by
+incoming HTLCs.  The recipient only need remember one, for use in
+`r` route hints in BOLT 11 invoices.
+
 
 ## Channel Close
 
@@ -1241,7 +1278,8 @@ A node:
   sent and received:
     - MUST retransmit `funding_locked`.
   - otherwise:
-    - MUST NOT retransmit `funding_locked`.
+    - MUST NOT retransmit `funding_locked`, but MAY send `funding_locked` with
+   a different `short_channel_id` `alias` field.
   - upon reconnection:
     - MUST ignore any redundant `funding_locked` it receives.
   - if `next_commitment_number` is equal to the commitment number of
