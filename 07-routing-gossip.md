@@ -395,6 +395,12 @@ of *relaying* payments, not *sending* payments. When making a payment
  the last HTLC in the route, are provided in the payment request
  (see [BOLT #11](11-payment-encoding.md#tagged-fields)).
 
+1. `tlv_stream`: `channel_update_tlvs`
+2. types:
+    1. type: 1 (`min_cltv_from_now`)
+    2. data:
+        * [`u16`:`min_cltv_from_now`]
+
 1. type: 258 (`channel_update`)
 2. data:
     * [`signature`:`signature`]
@@ -408,6 +414,7 @@ of *relaying* payments, not *sending* payments. When making a payment
     * [`u32`:`fee_base_msat`]
     * [`u32`:`fee_proportional_millionths`]
     * [`u64`:`htlc_maximum_msat`] (option_channel_htlc_max)
+    * [`channel_update_tlvs`:`tlvs`]
 
 The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
@@ -482,6 +489,8 @@ The origin node:
   for any HTLC.
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
   satoshi) it will charge per transferred satoshi.
+  - SHOULD include a `min_cltv_from_now` TLV in the `tlvs` stream iff the value
+  for the `min_cltv_from_now` field is not 14.
   - SHOULD NOT create redundant `channel_update`s
 
 The receiving node:
@@ -523,6 +532,13 @@ The receiving node:
       - SHOULD ignore this channel during route considerations.
     - otherwise:
       - SHOULD consider the `htlc_maximum_msat` when routing.
+  - if the `min_cltv_from_now` TLV is present,
+	- SHOULD ensure that any HTLCs routed through the channel have at least
+	`min_cltv_from_now` blocks between the current height and the HTLC's expiry.
+	- SHOULD ensure the above holds even if a block is received by the routing
+	node after the HTLC was sent by its original sender.
+  - if the `min_cltv_from_now` TLV is not present,
+	- SHOULD consider `min_cltv_from_now` to be 14.
 
 ### Rationale
 
