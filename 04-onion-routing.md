@@ -657,7 +657,7 @@ compared against the packet's HMAC.
 Comparison of the computed HMAC and the packet's HMAC MUST be
 time-constant to avoid information leaks.
 
-At this point, the processing node can generate a _rho_-key and a _gamma_-key.
+At this point, the processing node can generate a _rho_-key.
 
 The routing information is then deobfuscated, and the information about the
 next hop is extracted.
