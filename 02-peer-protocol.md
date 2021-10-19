@@ -346,6 +346,7 @@ the `open_channel` message.
 The sender:
   - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to
 avoid double-spending of the funding transaction.
+  - MAY set `minimum_depth` to zero if it trusts the peer.
   - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
   - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
   - if it sets `channel_type`:
@@ -465,11 +466,9 @@ is negotiated.
 
 This message indicates that the funding transaction has reached the `minimum_depth` asked for in `accept_channel`. Once both nodes have sent this, the channel enters normal operating mode.
 
-Nodes which have funded the channel, or trust their peers to have
-done, or wish to use `push_msat` from other side's opening (without
-accepting incoming HTLCs) can simply start using the channel instantly
-by sending `funding_locked`.
-
+Note that `minimum_depth` can be 0 if the accepter trusts the opener,
+in which case this message is a misnomer.  The opener is free to send this
+message at any time (since it presumably trusts itself).
 
 1. type: 36 (`funding_locked`)
 2. data:
@@ -488,13 +487,16 @@ by sending `funding_locked`.
 The sender:
   - MUST NOT send `funding_locked` unless outpoint of given by `funding_txid` and
    `funding_output_index` in the `funding_created` message pays exactly `funding_satoshis` to the scriptpubkey specified in [BOLT #3](03-transactions.md#funding-transaction-output).
+  - if it is not the node opening the channel:
+    - SHOULD wait until the funding transaction has reached `minimum_depth` before
+      sending this message.
   - MUST set `next_per_commitment_point` to the per-commitment point to be used
   for commitment transaction #1, derived as specified in
   [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
   - if `option_scid_alias` was negotiated:
     - MUST set `short_channel_id` `alias`.
   - otherwise:
-    - SHOULD set `short_channel_id` `alias`.
+    - MAY set `short_channel_id` `alias`.
   - if it sets `alias`:
     - if the `announce_channel` bit was set in `open_channel`:
       - SHOULD initially set `alias` to value not related to the real `short_channel_id`.
@@ -505,7 +507,7 @@ The sender:
     - MUST always recognize the `alias` as a `short_channel_id` for incoming HTLCs to this channel.
     - if `option_scid_alias` was negotiated and `announce_channel` bit was not set in `open_channel`:
       - MUST NOT allow incoming HTLCs to this channel using the real `short_channel_id`
-    - MAY send multiple `funding_locked` messages with different `alias` values.
+    - MAY send multiple `funding_locked` messages to the same peer with different `alias` values.
   - otherwise:
     - MUST wait until the funding transaction has reached `minimum_depth` before sending this message.
 
@@ -546,7 +548,6 @@ While a node can send multiple `alias`, it must remember all of the
 ones it has sent so it can use them should they be requested by
 incoming HTLCs.  The recipient only need remember one, for use in
 `r` route hints in BOLT 11 invoices.
-
 
 ## Channel Close
 
