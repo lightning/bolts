@@ -207,11 +207,14 @@ definitions they reuse even feature bits, but they are not an
 arbitrary combination (they represent the persistent features which
 affect the channel operation).
 
-The currently defined types are:
+The currently defined basic types are:
   - no features (no bits set)
   - `option_static_remotekey` (bit 12)
   - `option_anchor_outputs` and `option_static_remotekey` (bits 20 and 12)
   - `option_anchors_zero_fee_htlc_tx` and `option_static_remotekey` (bits 22 and 12)
+
+Each basic type has the following variations allowed:
+  - `option_scid_alias` (bit 46)
 
 #### Requirements
 
@@ -239,6 +242,8 @@ The sending node:
     - MUST set it to a defined type representing the type it wants.
     - MUST use the smallest bitmap possible to represent the channel type.
     - SHOULD NOT set it to a type containing a feature which was not negotiated.
+    - if `announce_channel` is `true` (not `0`):
+      - MUST NOT send `channel_type` with the `option_scid_alias` bit set.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -505,7 +510,7 @@ The sender:
     - MUST NOT send the same `alias` for multiple peers or use an alias which
       collides with a `short_channel_id`  of a channel on the same node.
     - MUST always recognize the `alias` as a `short_channel_id` for incoming HTLCs to this channel.
-    - if `option_scid_alias` was negotiated and `announce_channel` bit was not set in `open_channel`:
+    - if `channel_type` has `option_scid_alias` set:
       - MUST NOT allow incoming HTLCs to this channel using the real `short_channel_id`
     - MAY send multiple `funding_locked` messages to the same peer with different `alias` values.
   - otherwise:
@@ -520,7 +525,7 @@ A non-funding node (fundee):
 
 The receiver:
   - MAY use any of the `alias` it received, in BOLT 11 `r` fields.
-  - if `option_scid_alias` was negotiated and the `announce_channel` bit was not set in `open_channel`:
+  - if `channel_type` has `option_scid_alias` set:
     - MUST NOT use the real `short_channel_id` in BOLT 11 `r` fields.
 
 From the point of waiting for `funding_locked` onward, either node MAY
