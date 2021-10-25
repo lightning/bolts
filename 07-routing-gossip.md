@@ -285,7 +285,7 @@ The following `address descriptor` types are defined:
          onion service addresses; Encodes:
          `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where
          `checksum = sha3(".onion checksum" | pubkey || version)[:2]`.
-   * `5`: WebSocket port; data = `[2:port]` (length 2)
+   * `6`: WebSocket port; data = `[2:port]` (length 2)
 
 ### Requirements
 
