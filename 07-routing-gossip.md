@@ -307,15 +307,15 @@ The origin node:
   - MUST place address descriptors in ascending order.
   - SHOULD NOT place any zero-typed address descriptors anywhere.
   - SHOULD use placement only for aligning fields that follow `addresses`.
-  - MUST NOT create a `type 1`, `type 2` or `type 5` address descriptor with `port` equal
+  - MUST NOT create a `type 1`, `type 2` or `type 6` address descriptor with `port` equal
   to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
-  - MUST NOT add a `type 5` address unless there is also at least one address of different type.
-  - if it adds a type 5 address:
-    - MUST allow unencrypted RFC6455<sup>[3](#reference-3)</sup> as a transport when a connection is made to at least one of the other addresses, with the type 5 `port` substituted for that address's `port` 
+  - MUST NOT add a `type 6` address unless there is also at least one address of different type.
+  - if it adds a type 6 address:
+    - MUST allow unencrypted RFC6455<sup>[3](#reference-3)</sup> as a transport when a connection is made to at least one of the other addresses, with the type 6 `port` substituted for that address's `port` 
 	- SHOULD allow this on ALL of the other addresses.
 
 The receiving node:
