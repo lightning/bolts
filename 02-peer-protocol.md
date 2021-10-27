@@ -1381,7 +1381,7 @@ A node:
     `your_last_per_commitment_secret` is correct for that
     `next_revocation_number` minus 1:
       - MUST NOT broadcast its commitment transaction.
-      - SHOULD fail the channel.
+      - SHOULD send an `error` to request the peer to fail the channel.
     - otherwise:
       - if `your_last_per_commitment_secret` does not match the expected values:
         - SHOULD fail the channel.
@@ -1390,7 +1390,7 @@ A node:
     `your_last_per_commitment_secret` is correct for that
     `next_revocation_number` minus 1:
       - MUST NOT broadcast its commitment transaction.
-      - SHOULD fail the channel.
+      - SHOULD send an `error` to request the peer to fail the channel.
       - SHOULD store `my_current_per_commitment_point` to retrieve funds
         should the sending node broadcast its commitment transaction on-chain.
     - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
