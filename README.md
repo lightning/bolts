@@ -5,7 +5,7 @@ drafted.
 
 Pull requests and comments welcome, seeking input from community stakeholders.
 
-Discussion available on the [lighting-dev mailing list](https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev).
+Discussion available on the [lightning-dev mailing list](https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev).
 
 ### [Start here for Table of Contents](00-introduction.md)
 
