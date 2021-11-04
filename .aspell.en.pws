@@ -387,3 +387,6 @@ CHECKSIGVERIFY
 IFDUP
 sats
 anysegwit
+quiesce
+quiescing
+SomeThing
