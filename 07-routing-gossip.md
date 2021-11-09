@@ -449,6 +449,8 @@ The origin node:
   - MAY create a `channel_update` to communicate the channel parameters to the
   channel peer, even though the channel has not yet been announced (i.e. the
   `announce_channel` bit was not set).
+    - MUST set the `short_channel_id` to either an `alias` it has
+	  received from the peer, or the real channel `short_channel_id`.
     - MUST NOT forward such a `channel_update` to other peers, for privacy
     reasons.
     - Note: such a `channel_update`, one not preceded by a
