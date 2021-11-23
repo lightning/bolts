@@ -918,7 +918,7 @@ message. The base `init` message (without extensions) for these examples is
 The following `init` messages are valid:
 
 - `0x001000000000`: no extension provided
-- `0x00100000000001012a030104`: the extension contains two _odd_ TLV records (with types `0x01` and `0x03`)
+- `0x00100000000009012a0b0104`: the extension contains two unknown _odd_ TLV records (with types `0x09` and `0x0b`)
 
 The following `init` messages are invalid:
 
