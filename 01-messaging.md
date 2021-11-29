@@ -918,13 +918,13 @@ message. The base `init` message (without extensions) for these examples is
 The following `init` messages are valid:
 
 - `0x001000000000`: no extension provided
-- `0x00100000000001012a030104`: the extension contains two _odd_ TLV records (with types `0x01` and `0x03`)
+- `0x001000000000c9012acb0104`: the extension contains two unknown _odd_ TLV records (with types `0xc9` and `0xcb`)
 
 The following `init` messages are invalid:
 
 - `0x00100000000001`: the extension is present but truncated
-- `0x00100000000002012a`: the extension contains unknown _even_ TLV records (assuming that TLV type `0x02` is unknown)
-- `0x001000000000010101010102`: the extension TLV stream is invalid (duplicate TLV record type `0x01`)
+- `0x001000000000ca012a`: the extension contains unknown _even_ TLV records (assuming that TLV type `0xca` is unknown)
+- `0x001000000000c90101c90102`: the extension TLV stream is invalid (duplicate TLV record type `0xc9`)
 
 Note that when messages are signed, the _extension_ is part of the signed bytes.
 Nodes should store the _extension_ bytes even if they don't understand them to
