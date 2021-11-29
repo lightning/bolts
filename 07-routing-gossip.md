@@ -276,10 +276,7 @@ The following `address descriptor` types are defined:
 
    * `1`: ipv4; data = `[4:ipv4_addr][2:port]` (length 6)
    * `2`: ipv6; data = `[16:ipv6_addr][2:port]` (length 18)
-   * `3`: Tor v2 onion service; data = `[10:onion_addr][2:port]` (length 12)
-       * version 2 onion service addresses; Encodes an 80-bit, truncated `SHA-1`
-       hash of a 1024-bit `RSA` public key for the onion service (a.k.a. Tor
-       hidden service).
+   * `3`: Deprecated (length 12). Used to contain Tor v2 onion services.
    * `4`: Tor v3 onion service; data = `[35:onion_addr][2:port]` (length 37)
        * version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt))
          onion service addresses; Encodes:
@@ -312,6 +309,7 @@ The origin node:
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
+  - SHOULD not announce a Tor v2 onion service.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -345,6 +343,7 @@ any future fields appended to the end):
       - MAY choose NOT to queue messages longer than the minimum expected length.
   - MAY use `rgb_color` AND `alias` to reference nodes in interfaces.
     - SHOULD insinuate their self-signed origins.
+  - SHOULD ignore Tor v2 onion services.
 
 ### Rationale
 
