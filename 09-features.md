@@ -92,4 +92,5 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
 [bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
+[bolt08-websocket]: 08-transport.md#websocket
 [ml-sighash-single-harmful]: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-September/002796.html

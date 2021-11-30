@@ -285,6 +285,7 @@ The following `address descriptor` types are defined:
          onion service addresses; Encodes:
          `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where
          `checksum = sha3(".onion checksum" | pubkey || version)[:2]`.
+   * `6`: WebSocket port; data = `[2:port]` (length 2)
 
 ### Requirements
 
@@ -306,12 +307,16 @@ The origin node:
   - MUST place address descriptors in ascending order.
   - SHOULD NOT place any zero-typed address descriptors anywhere.
   - SHOULD use placement only for aligning fields that follow `addresses`.
-  - MUST NOT create a `type 1` OR `type 2` address descriptor with `port` equal
+  - MUST NOT create a `type 1`, `type 2` or `type 6` address descriptor with `port` equal
   to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
+  - MUST NOT add a `type 6` address unless there is also at least one address of different type.
+  - if it adds a type 6 address:
+    - MUST allow unencrypted RFC6455<sup>[3](#reference-3)</sup> as a transport when a connection is made to at least one of the other addresses, with the type 6 `port` substituted for that address's `port` 
+	- SHOULD allow this on ALL of the other addresses.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -358,6 +363,12 @@ New address types may be added in the future; as address descriptors have
 to be ordered in ascending order, unknown ones can be safely ignored.
 Additional fields beyond `addresses` may also be added in the future—with
 optional padding within `addresses`, if they require certain alignment.
+
+Websockets generally are run on adjacent ports (or even overloaded on
+the same port) as existing "raw" transports, so including just the
+port is a compromise which avoids replacating all the addresses.  It's
+ideal if all addresses support this, but it's not a hard requirement:
+at least one must.
 
 ### Security Considerations for Node Aliases
 
@@ -1121,6 +1132,7 @@ above.
 
 1. <a id="reference-1">[RFC 1950 "ZLIB Compressed Data Format Specification version 3.3](https://www.ietf.org/rfc/rfc1950.txt)</a>
 2. <a id="reference-2">[Maximum Compression Factor](https://zlib.net/zlib_tech.html)</a>
+3. <a id="reference-3">[RFC 6455 "The WebSocket Protocol"](https://datatracker.ietf.org/doc/html/rfc6455)
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
