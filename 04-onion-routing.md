@@ -457,7 +457,7 @@ The introduction point:
   - MUST use the decrypted fields to locate the next node
 - If `encrypted_data` contains a `next_blinding_override`:
   - MUST use it as the next blinding point
-- Otherise:
+- Otherwise:
   - MUST use `E(1)` as the next blinding point
 - MUST forward the onion and communicate the next blinding point to the next node
 
@@ -476,7 +476,7 @@ An intermediate node in the blinded route:
   - MUST use the decrypted fields to locate the next node
 - If `encrypted_data` contains a `next_blinding_override`:
   - MUST use it as the next blinding point
-- Otherise:
+- Otherwise:
   - MUST use `E(i+1)` as the next blinding point
 - MUST forward the onion and communicate the next blinding point to the next node
 
