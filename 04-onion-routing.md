@@ -423,10 +423,10 @@ A recipient N(r) creating a blinded route `N(0) -> N(1) -> ... -> N(r)` to itsel
 - MUST create a blinded node ID `B(i)` for each node using the following algorithm:
   - `e(0) <- {0;1}^256`
   - `E(0) = e(0) * G`
-  - For every node `N(i)` in the route:
-    - let `P(i) = k(i) * G` be `N(i)`'s `node_id` (`k(i)` is `N(i)`'s private key)
-    - `ss(i) = SHA256(e(i) * P(i)) = SHA256(k(i) * E(i))` (ECDH shared secret known only by `N(r)` and `N(i)`)
-    - `B(i) = HMAC256("blinded_node_id", ss(i)) * P(i)` (blinded `node_id` for `N(i)`, private key known only by `N(i)`)
+  - For every node in the route:
+    - let `N(i) = k(i) * G` be the `node_id` (`k(i)` is `N(i)`'s private key)
+    - `ss(i) = SHA256(e(i) * N(i)) = SHA256(k(i) * E(i))` (ECDH shared secret known only by `N(r)` and `N(i)`)
+    - `B(i) = HMAC256("blinded_node_id", ss(i)) * N(i)` (blinded `node_id` for `N(i)`, private key known only by `N(i)`)
     - `rho(i) = HMAC256("rho", ss(i))`
     - `e(i+1) = SHA256(E(i) || ss(i)) * e(i)` (ephemeral private key, only known by `N(r)`)
     - `E(i+1) = SHA256(E(i) || ss(i)) * E(i)` (NB: `N(i)` MUST NOT learn `e(i)`)

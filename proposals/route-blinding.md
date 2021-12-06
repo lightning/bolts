@@ -53,7 +53,7 @@ feature. It only becomes effective once a big enough share of the network suppor
 
 ### Notations
 
-* A node `N(i)`'s `node_id` is defined as: `P(i) = k(i) * G` (`k(i)` is the node's private key).
+* A node `N(i)`'s `node_id` is defined as: `N(i) = k(i) * G` (`k(i)` is the node's private key).
 * Blinded `node_id`s are defined as: `B(i) = b(i) * G` (`b(i)` is the blinding factor).
 * Ephemeral public keys are defined as: `E(i) = e(i) * G`.
 
@@ -101,8 +101,8 @@ Initialization:
 Blinding:
 
   For i = 0 to r-1:
-    ss(i) = H(e(i) * P(i)) = H(k(i) * E(i))         // shared secret known only by N(r) and N(i)
-    B(i) = HMAC256("blinded_node_id", ss(i)) * P(i) // Blinded node_id for N(i), private key known only by N(i)
+    ss(i) = H(e(i) * N(i)) = H(k(i) * E(i))         // shared secret known only by N(r) and N(i)
+    B(i) = HMAC256("blinded_node_id", ss(i)) * N(i) // Blinded node_id for N(i), private key known only by N(i)
     rho(i) = HMAC256("rho", ss(i))                  // Key used to encrypt payload for N(i) by N(r)
     e(i+1) = H(E(i) || ss(i)) * e(i)                // Ephemeral private key, only known by N(r)
     E(i+1) = H(E(i) || ss(i)) * E(i)                // NB: N(i) must not learn e(i)
