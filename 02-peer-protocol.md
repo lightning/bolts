@@ -449,7 +449,7 @@ use `option_static_remotekey`, `option_anchor_outputs` or
 
 `option_anchors_zero_fee_htlc_tx` is considered superior to
 `option_anchor_outputs`, which again is considered superior to
-`option_static_remotekey`, and the superior one is is favored if more than one
+`option_static_remotekey`, and the superior one is favored if more than one
 is negotiated.
 
 ### The `funding_locked` Message
