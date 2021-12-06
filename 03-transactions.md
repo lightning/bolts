@@ -78,7 +78,7 @@ A `<>` designates an empty vector as required for compliance with MINIMALIF-stan
 * version: 2
 * locktime: upper 8 bits are 0x20, lower 24 bits are the lower 24 bits of the obscured commitment number
 * txin count: 1
-   * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
+   * `txin[0]` outpoint: `txid` and `output_index` from `funding_created`
    * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits of the obscured commitment number
    * `txin[0]` script bytes: 0
    * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
@@ -352,13 +352,13 @@ Note that there are two possible variants for each node.
 * version: 2
 * locktime: 0
 * txin count: 1
-   * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
+   * `txin[0]` outpoint: `txid` and `output_index` from `funding_created`
    * `txin[0]` sequence: 0xFFFFFFFF
    * `txin[0]` script bytes: 0
    * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
 * txout count: 0, 1 or 2
    * `txout` amount: final balance to be paid to one node (minus `fee_satoshis` from `closing_signed`, if this peer funded the channel)
-   * `txout` script: as specified in that node's `scriptpubkey` in its `shutdown` message
+   * `txout` script: as specified in that node's `scriptpubkey` in its `shutdown`
 
 ### Requirements
 
