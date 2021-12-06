@@ -9,13 +9,7 @@ The default TCP port is 9735. This corresponds to hexadecimal `0x2607`: the Unic
 
 All data fields are unsigned big-endian unless otherwise specified.
 
-Within this document messages are referred to with their `message_name` instead of their type. In particular they are usually not referred to with as `message_name` message but just as `message_name`. Thus within the document we write 
-
-> If a node receives / sends a `message_name`...
-
-instead of:
-
-> If a node receives / sends a `message_name` message...
+We refer to messages by their `message_name`, instead of their type (e.g. "The receiving node sends `error`" instead of "... sends `error` message" or "... sends message 17").
 
 ## Table of Contents
 
