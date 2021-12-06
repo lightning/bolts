@@ -267,7 +267,7 @@ It is formatted according to the Type-Length-Value format defined in [BOLT #1](0
 ### Requirements
 
 The writer:
-  - Unless `node_announcement`, `init` message or the [BOLT #11](11-payment-encoding.md#tagged-fields) offers feature `var_onion_optin`:
+  - Unless `node_announcement`, `init` or the [BOLT #11](11-payment-encoding.md#tagged-fields) offers feature `var_onion_optin`:
     - MUST use the legacy payload format instead.
   - For every node:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
