@@ -54,7 +54,7 @@ ids.
 
 After authenticating and initializing a connection ([BOLT #8](08-transport.md)
 and [BOLT #1](01-messaging.md#the-init-message), respectively), channel establishment may begin.
-This consists of the funding node (funder) sending an `open_channel` message,
+This consists of the funding node (funder) sending `open_channel`,
 followed by the responding node (fundee) sending `accept_channel`. With the
 channel parameters locked in, the funder is able to create the funding
 transaction and both versions of the commitment transaction, as described in
@@ -63,15 +63,15 @@ The funder then sends the outpoint of the funding output with the `funding_creat
 message, along with the signature for the fundee's version of the commitment
 transaction. Once the fundee learns the funding outpoint, it's able to
 generate the signature for the funder's version of the commitment transaction and send it
-over using the `funding_signed` message.
+over using `funding_signed`.
 
-Once the channel funder receives the `funding_signed` message, it
+Once the channel funder receives `funding_signed`, it
 must broadcast the funding transaction to the Bitcoin network. After
-the `funding_signed` message is sent/received, both sides should wait
+the `funding_signed` is sent/received, both sides should wait
 for the funding transaction to enter the blockchain and reach the
-specified depth (number of confirmations). After both sides have sent
-the `funding_locked` message, the channel is established and can begin
-normal operation. The `funding_locked` message includes information
+specified depth (number of confirmations). After both sides have sent 
+`funding_locked`, the channel is established and can begin
+normal operation. The `funding_locked` includes information
 that will be used to construct channel authentication proofs.
 
 
@@ -165,7 +165,7 @@ node can offer.
 (i.e. 1/4 the more normally-used 'satoshi per 1000 vbytes') that this
 side will pay for commitment and HTLC transactions, as described in
 [BOLT #3](03-transactions.md#fee-calculation) (this can be adjusted
-later with an `update_fee` message).
+later by sending an `update_fee` ).
 
 `to_self_delay` is the number of blocks that the other node's to-self
 outputs must be delayed, using `OP_CHECKSEQUENCEVERIFY` delays; this
@@ -197,8 +197,8 @@ even if a node is compromised later.
 
 The `option_support_large_channel` is a feature used to let everyone 
 know this node will accept `funding_satoshis` greater than or equal to 2^24.
-Since it's broadcast in the `node_announcement` message other nodes can use it to identify peers 
-willing to accept large channel even before exchanging the `init` message with them. 
+Since it is broadcast in the `node_announcement` other nodes can use it to identify peers 
+willing to accept large channel even before exchanging `init` with them. 
 
 #### Defined Channel Types
 
@@ -247,9 +247,9 @@ The sending node SHOULD:
 The receiving node MUST:
   - ignore undefined bits in `channel_flags`.
   - if the connection has been re-established after receiving a previous
- `open_channel`, BUT before receiving a `funding_created` message:
-    - accept a new `open_channel` message.
-    - discard the previous `open_channel` message.
+ `open_channel`, BUT before receiving a `funding_created`:
+    - accept a new `open_channel`.
+    - discard the previous `open_channel`.
 
 The receiving node MAY fail the channel if:
   - `announce_channel` is `false` (`0`), yet it wishes to publicly announce the channel.
@@ -337,23 +337,22 @@ funding transaction and both versions of the commitment transaction.
 
 #### Requirements
 
-The `temporary_channel_id` MUST be the same as the `temporary_channel_id` in
-the `open_channel` message.
+The `temporary_channel_id` MUST be the same as the `temporary_channel_id` in `open_channel`.
 
 The sender:
   - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to
 avoid double-spending of the funding transaction.
-  - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
-  - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
+  - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel`.
+  - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel`.
   - if it sets `channel_type`:
     - MUST set it to the `channel_type` from `open_channel`
 
 The receiver:
   - if `minimum_depth` is unreasonably large:
     - MAY reject the channel.
-  - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
+  - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel`:
     - MUST reject the channel.
-  - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:
+  - if `channel_reserve_satoshis` from the `open_channel` is less than `dust_limit_satoshis`:
     - MUST reject the channel.
   - if `channel_type` is set, and `channel_type` was set in `open_channel`, and they are not equal types:
     - MUST reject the channel.
@@ -376,7 +375,7 @@ signature, via `funding_signed`, it will broadcast the funding transaction.
 #### Requirements
 
 The sender MUST set:
-  - `temporary_channel_id` the same as the `temporary_channel_id` in the `open_channel` message.
+  - `temporary_channel_id` the same as the `temporary_channel_id` in the `open_channel`.
   - `funding_txid` to the transaction ID of a non-malleable transaction,
     - and MUST NOT broadcast this transaction.
   - `funding_output_index` to the output number of that transaction that corresponds the funding transaction output, as defined in [BOLT #3](03-transactions.md#funding-transaction-output).
@@ -430,7 +429,7 @@ Both peers:
   - MUST use that `channel_type` for all commitment transactions.
 
 The sender MUST set:
-  - `channel_id` by exclusive-OR of the `funding_txid` and the `funding_output_index` from the `funding_created` message.
+  - `channel_id` by exclusive-OR of the `funding_txid` and the `funding_output_index` from the `funding_created`.
   - `signature` to the valid signature, using its `funding_pubkey` for the initial commitment transaction, as defined in [BOLT #3](03-transactions.md#commitment-transaction).
 
 The recipient:
@@ -469,7 +468,7 @@ This message indicates that the funding transaction has reached the `minimum_dep
 
 The sender MUST:
   - NOT send `funding_locked` unless outpoint of given by `funding_txid` and
-   `funding_output_index` in the `funding_created` message pays exactly `funding_satoshis` to the scriptpubkey specified in [BOLT #3](03-transactions.md#funding-transaction-output).
+   `funding_output_index` in the `funding_created` pays exactly `funding_satoshis` to the scriptpubkey specified in [BOLT #3](03-transactions.md#funding-transaction-output).
   - wait until the funding transaction has reached `minimum_depth` before
   sending this message.
   - set `next_per_commitment_point` to the per-commitment point to be used
@@ -522,7 +521,7 @@ Closing happens in two stages:
 
 ### Closing Initiation: `shutdown`
 
-Either node (or both) can send a `shutdown` message to initiate closing,
+Either node (or both) can send a `shutdown` to initiate closing,
 along with the `scriptpubkey` it wants to be paid to.
 
 1. type: 38 (`shutdown`)
@@ -541,7 +540,7 @@ A sending node:
     - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
   - if no HTLCs remain in either commitment transaction:
-    - MUST NOT send any `update` message after a `shutdown`.
+    - MUST NOT send any `update_` message after a `shutdown`.
   - SHOULD fail to route any HTLC added after it has sent `shutdown`.
   - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
     - MUST send the same value in `scriptpubkey`.
@@ -559,9 +558,9 @@ A receiving node:
   - if the `scriptpubkey` is not in one of the above forms:
     - SHOULD fail the connection.
   - if it hasn't sent a `funding_locked` yet:
-    - MAY reply to a `shutdown` message with a `shutdown`
+    - MAY reply to a `shutdown` with a `shutdown`
   - once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:
-    - MUST reply to a `shutdown` message with a `shutdown`
+    - MUST reply to a `shutdown` with a `shutdown`
   - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
     - MUST fail the connection.
 
@@ -598,7 +597,7 @@ Once shutdown is complete and the channel is empty of HTLCs, the final
 current commitment transactions will have no HTLCs, and closing fee
 negotiation begins.  The funder chooses a fee it thinks is fair, and
 signs the closing transaction with the `scriptpubkey` fields from the
-`shutdown` messages (along with its chosen fee) and sends the signature;
+`shutdown` (along with its chosen fee) and sends the signature;
 the other node then replies similarly, using a fee it thinks is fair.  This
 exchange continues until both agree on the same fee or when one side fails
 the channel.
@@ -626,7 +625,7 @@ reply with the same value (completing after three messages).
 
 The funding node:
   - after `shutdown` has been received, AND no HTLCs remain in either commitment transaction:
-    - SHOULD send a `closing_signed` message.
+    - SHOULD send a `closing_signed`.
 
 The sending node:
   - SHOULD set the initial `fee_satoshis` according to its estimate of cost of
@@ -708,7 +707,7 @@ the closing transaction will likely never reach miners.
 Once both nodes have exchanged `funding_locked` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hashed Time Locked Contracts.
 
 Changes are sent in batches: one or more `update_` messages are sent before a
-`commitment_signed` message, as in the following diagram:
+`commitment_signed`, as in the following diagram:
 
         +-------+                               +-------+
         |       |--(1)---- update_add_htlc ---->|       |
@@ -988,7 +987,7 @@ reconnection purposes; allowing them at other times simplifies the
 recipient code (though strict checking may help debugging).
 
 `max_accepted_htlcs` is limited to 483 to ensure that, even if both
-sides send the maximum number of HTLCs, the `commitment_signed` message will
+sides send the maximum number of HTLCs, the `commitment_signed` will
 still be under the maximum message size. It also ensures that
 a single penalty transaction can spend the entire commitment transaction,
 as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
@@ -1091,7 +1090,7 @@ such detection is left as an option.
 
 When a node has changes for the remote commitment, it can apply them,
 sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), and send a
-`commitment_signed` message.
+`commitment_signed`.
 
 1. type: 132 (`commitment_signed`)
 2. data:
@@ -1103,11 +1102,10 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
 #### Requirements
 
 A sending node:
-  - MUST NOT send a `commitment_signed` message that does not include any
+  - MUST NOT send a `commitment_signed` that does not include any
 updates.
-  - MAY send a `commitment_signed` message that only
-alters the fee.
-  - MAY send a `commitment_signed` message that doesn't
+  - MAY send a `commitment_signed` that only alters the fee.
+  - MAY send a `commitment_signed` that doesn't
 change the commitment transaction aside from the new revocation number
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).
@@ -1125,7 +1123,7 @@ A receiving node:
       - MUST fail the channel.
   - if any `htlc_signature` is not valid for the corresponding HTLC transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST fail the channel.
-  - MUST respond with a `revoke_and_ack` message.
+  - MUST respond with a `revoke_and_ack`.
 
 #### Rationale
 
@@ -1191,7 +1189,7 @@ A node:
 
 ### Updating Fees: `update_fee`
 
-An `update_fee` message is sent by the node which is paying the
+An `update_fee` is sent by the node which is paying the
 Bitcoin fee. Like any update, it's first committed to the receiver's
 commitment transaction and then (once acknowledged) committed to the
 sender's. Unlike an HTLC, `update_fee` is never closed but simply
@@ -1299,7 +1297,7 @@ A funding node:
 
 A non-funding node:
   - upon disconnection:
-    - if it has sent the `funding_signed` message:
+    - if it has sent the `funding_signed`:
       - MUST remember the channel for reconnection.
     - otherwise:
       - SHOULD NOT remember the channel for reconnection.
@@ -1326,7 +1324,7 @@ The sending node:
   - MUST set `next_commitment_number` to the commitment number of the
   next `commitment_signed` it expects to receive.
   - MUST set `next_revocation_number` to the commitment number of the
-  next `revoke_and_ack` message it expects to receive.
+  next `revoke_and_ack` it expects to receive.
   - if `option_static_remotekey` or `option_anchors` applies to the commitment
     transaction:
     - MUST set `my_current_per_commitment_point` to a valid point.
@@ -1348,11 +1346,11 @@ A node:
   - upon reconnection:
     - MUST ignore any redundant `funding_locked` it receives.
   - if `next_commitment_number` is equal to the commitment number of
-  the last `commitment_signed` message the receiving node has sent:
+  the last `commitment_signed` the receiving node has sent:
     - MUST reuse the same commitment number for its next `commitment_signed`.
   - otherwise:
     - if `next_commitment_number` is not 1 greater than the
-  commitment number of the last `commitment_signed` message the receiving
+  commitment number of the last `commitment_signed` the receiving
   node has sent:
       - SHOULD fail the channel.
     - if it has not sent `commitment_signed`, AND `next_commitment_number`
@@ -1399,7 +1397,7 @@ A node:
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
-    - if it has sent a previous `commitment_signed` message:
+    - if it has sent a previous `commitment_signed`:
       - MUST handle the case where the corresponding commitment transaction is
       broadcast at any time by the other side,
         - Note: this is particularly important if the node does not simply
@@ -1412,7 +1410,7 @@ A node:
 
 The requirements above ensure that the opening phase is nearly
 atomic: if it doesn't complete, it starts again. The only exception
-is if the `funding_signed` message is sent but not received. In
+is if the `funding_signed` is sent but not received. In
 this case, the funder will forget the channel, and presumably open
 a new one upon reconnection; meanwhile, the other node will eventually forget
 the original channel, due to never receiving `funding_locked` or seeing
@@ -1462,7 +1460,7 @@ fact an impossible requirement. A node must either firstly commit to
 disk and secondly broadcast the transaction or vice versa. The new
 language reflects this reality: it's surely better to remember a
 channel which hasn't been broadcast than to forget one which has!
-Similarly, for the fundee's `funding_signed` message: it's better to
+Similarly, for the fundee's `funding_signed`: it's better to
 remember a channel that never opens (and times out) than to let the
 funder open it while the fundee has forgotten it.
 
