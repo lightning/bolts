@@ -1,8 +1,8 @@
 # BOLT #9: Assigned Feature Flags
 
-This document tracks the assignment of `features` flags in the `init`
-message ([BOLT #1](01-messaging.md)), as well as `features` fields in
-the `channel_announcement` and `node_announcement` messages ([BOLT
+This document tracks the assignment of `features` flags in `init`
+([BOLT #1](01-messaging.md)), as well as `features` fields in
+`channel_announcement` and `node_announcement` ([BOLT
 #7](07-routing-gossip.md)).  The flags are tracked separately, since
 new flags will likely be added over time.
 
@@ -19,11 +19,11 @@ for use of the channel, so the presentation of those features depends
 on the feature itself.
 
 The Context column decodes as follows:
-* `I`: presented in the `init` message.
-* `N`: presented in the `node_announcement` messages
-* `C`: presented in the `channel_announcement` message.
-* `C-`: presented in the `channel_announcement` message, but always odd (optional).
-* `C+`: presented in the `channel_announcement` message, but always even (required).
+* `I`: presented in `init`.
+* `N`: presented in `node_announcement`
+* `C`: presented in `channel_announcement`.
+* `C-`: presented in `channel_announcement`, but always odd (optional).
+* `C+`: presented in `channel_announcement`, but always even (required).
 * `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
 
 | Bits  | Name                             | Description                                               | Context  | Dependencies      | Link                                  |
