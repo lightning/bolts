@@ -140,6 +140,8 @@ Currently defined tagged fields are:
 * `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment.
 * `s` (16): `data_length` 52. This 256-bit secret prevents forwarding nodes from probing the payment recipient.
 * `d` (13): `data_length` variable. Short description of purpose of payment (UTF-8), e.g. '1 cup of coffee' or 'ナンセンス 1杯'
+* `m` (27): `data_length` variable. Additional metadata to attach to the
+  payment. Note that the size of this field is limited by the maximum hop payload size. Long metadata fields reduce the maximum route length.
 * `n` (19): `data_length` 53. 33-byte public key of the payee node
 * `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is over 639 bytes, but the transport mechanism for the description in that case is transport specific and not defined here.
 * `x` (6): `data_length` variable. `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
@@ -216,7 +218,8 @@ A reader:
     - MUST use that as [`payment_secret`](04-onion-routing.md#tlv_payload-payload-format)
   - if the `c` field (`min_final_cltv_expiry`) is not provided:
     - MUST use an expiry delta of at least 18 when making the payment
-
+  - if an `m` field is provided:
+    - MUST use that as [`payment_metadata`](04-onion-routing.md#tlv_payload-payload-format)
 ### Rationale
 
 The type-and-length format allows future extensions to be backward
@@ -234,6 +237,9 @@ complex orders. Thus, the `h` field allows a summary: though the method
 by which the description is served is as-yet unspecified and will
 probably be transport dependent. The `h` format could change in the future,
 by changing the length, so readers ignore it if it's not 256 bits.
+
+The `m` field allows metadata to be attached to the payment. This supports
+applications where the recipient doesn't keep any context for the payment.
 
 The `n` field can be used to explicitly specify the destination node ID,
 instead of requiring signature recovery.
@@ -703,6 +709,33 @@ Breakdown:
   * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
 * `z599y53s3ujmcfjp5xrdap68qxymkqphwsexhmhr8wdz5usdzkzrse33chw6dlp3jhuhge9ley7j2ayx36kawe7kmgg8sv5ugdyusdcq`: signature
 * `zn8z9x`: Bech32 checksum
+
+> ### Please send 0.01 BTC with payment metadata 0x01fafaf0
+> lnbc10m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdp9wpshjmt9de6zqmt9w3skgct5vysxjmnnd9jx2mq8q8a04uqsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q2gqqqqqqsgq7hf8he7ecf7n4ffphs6awl9t6676rrclv9ckg3d3ncn7fct63p6s365duk5wrk202cfy3aj5xnnp5gs3vrdvruverwwq7yzhkf5a3xqpd05wjc
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
+* `10m`: amount (10 milli-bitcoin)
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `p`: payment hash
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq`: payment hash 0001020304050607080900010203040506070809000102030405060708090102
+* `d`: short description
+  * `p9`: `data_length` (`p` = 1, `9` = 5; 1 * 32 + 5 == 37)
+  * `wpshjmt9de6zqmt9w3skgct5vysxjmnnd9jx2`: 'payment metadata inside'
+* `m`: metadata
+  * `q8`: `data_length` (`q` = 0, `8` = 7; 0 * 32 + 7 == 7)
+  * `q8a04uq`: 0x01fafaf0
+* `s`: payment secret
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: 0x1111111111111111111111111111111111111111111111111111111111111111
+* `9`: features
+  * `q2`: `data_length` (`q` = 0, `2` = 10; 0 * 32 + 10 == 10)
+  * `gqqqqqqsgq`: [b01000000000000000000000000000000000100000100000000] = 8 + 14 + 48
+* `7hf8he7ecf7n4ffphs6awl9t6676rrclv9ckg3d3ncn7fct63p6s365duk5wrk202cfy3aj5xnnp5gs3vrdvruverwwq7yzhkf5a3xqp`: signature
+* `d05wjc`: Bech32 checksum
 
 # Examples of Invalid Invoices
 
