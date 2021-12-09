@@ -396,7 +396,6 @@ memory.
   - if it doesn't receive a corresponding `pong`:
     - MAY terminate the network connection,
       - and MUST NOT fail the channels in this case.
-  - SHOULD NOT send `ping` messages more often than once every 30 seconds.
 
 A node sending a `pong` message:
   - SHOULD set `ignored` to 0s.
@@ -404,7 +403,6 @@ A node sending a `pong` message:
  memory.
 
 A node receiving a `ping` message:
-  - SHOULD fail the channels if it has received significantly in excess of one `ping` per 30 seconds.
   - if `num_pong_bytes` is less than 65532:
     - MUST respond by sending a `pong` message, with `byteslen` equal to `num_pong_bytes`.
   - otherwise (`num_pong_bytes` is **not** less than 65532):
