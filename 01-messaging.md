@@ -9,6 +9,8 @@ The default TCP port is 9735. This corresponds to hexadecimal `0x2607`: the Unic
 
 All data fields are unsigned big-endian unless otherwise specified.
 
+We refer to messages by their `message_name`, instead of their type (e.g. "The receiving node sends `error`" instead of "... sends `error` message" or "... sends message 17").
+
 ## Table of Contents
 
   * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
@@ -323,11 +325,11 @@ The 2-byte `len` field indicates the number of bytes in the immediately followin
 The channel is referred to by `channel_id`, unless `channel_id` is 0 (i.e. all bytes are 0), in which case it refers to all channels.
 
 The funding node:
-  - for all error messages sent before (and including) the `funding_created` message:
+  - for all error messages sent before (and including) `funding_created`:
     - MUST use `temporary_channel_id` in lieu of `channel_id`.
 
 The fundee node:
-  - for all error messages sent before (and not including) the `funding_signed` message:
+  - for all error messages sent before (and not including) `funding_signed`:
     - MUST use `temporary_channel_id` in lieu of `channel_id`.
 
 A sending node:
@@ -337,7 +339,7 @@ A sending node:
   - SHOULD send `error` with the unknown `channel_id` in reply to messages of type `32`-`255` related to unknown channels.
   - MAY send an empty `data` field.
   - when failure was caused by an invalid signature check:
-    - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
+    - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed`.
   - when `channel_id` is 0:
     - MUST fail all channels with the receiving node.
     - MUST close the connection.
@@ -376,11 +378,11 @@ application level. Such messages also allow obfuscation of traffic patterns.
     * [`u16`:`byteslen`]
     * [`byteslen*byte`:`ignored`]
 
-The `pong` message is to be sent whenever a `ping` message is received. It
+`pong` is to be sent whenever a `ping` is received. It
 serves as a reply and also serves to keep the connection alive, while
 explicitly notifying the other end that the receiver is still active. Within
-the received `ping` message, the sender will specify the number of bytes to be
-included within the data payload of the `pong` message.
+the received `ping`, the sender will specify the number of bytes to be
+included within the data payload of the `pong`.
 
 1. type: 19 (`pong`)
 2. data:
@@ -389,7 +391,7 @@ included within the data payload of the `pong` message.
 
 #### Requirements
 
-A node sending a `ping` message:
+A node sending `ping`:
   - SHOULD set `ignored` to 0s.
   - MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
 memory.
@@ -397,18 +399,19 @@ memory.
     - MAY terminate the network connection,
       - and MUST NOT fail the channels in this case.
 
-A node sending a `pong` message:
+A node sending `pong`:
   - SHOULD set `ignored` to 0s.
   - MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
  memory.
 
-A node receiving a `ping` message:
+A node receiving `ping`:
+
   - if `num_pong_bytes` is less than 65532:
-    - MUST respond by sending a `pong` message, with `byteslen` equal to `num_pong_bytes`.
+    - MUST respond by sending `pong`, with `byteslen` equal to `num_pong_bytes`.
   - otherwise (`num_pong_bytes` is **not** less than 65532):
     - MUST ignore the `ping`.
 
-A node receiving a `pong` message:
+A node receiving `pong`:
   - if `byteslen` does not correspond to any `ping`'s `num_pong_bytes` value it has sent:
     - MAY fail the channels.
 
@@ -424,7 +427,7 @@ no new data will be
 exchanged for a
 significant portion of a connection's lifetime. Also, on several platforms it's possible that Lightning
 clients will be put to sleep without prior warning. Hence, a
-distinct `ping` message is used, in order to probe for the liveness of the connection on
+distinct `ping` is used, in order to probe for the liveness of the connection on
 the other side, as well as to keep the established connection active.
 
 Additionally, the ability for a sender to request that the receiver send a
@@ -444,7 +447,7 @@ latitude is given because of network delays. Note that there are other methods
 of incoming traffic flooding (e.g. sending _odd_ unknown message types, or padding
 every message maximally).
 
-Finally, the usage of periodic `ping` messages serves to promote frequent key
+Finally, the periodic usage of `ping` serves to promote frequent key
 rotations as specified within [BOLT #8](08-transport.md).
 
 ## Appendix A: BigSize Test Vectors
@@ -910,15 +913,15 @@ failure:
 ## Appendix C: Message Extension
 
 This section contains examples of valid and invalid extensions on the `init`
-message. The base `init` message (without extensions) for these examples is
+message. The base `init` (without extensions) for these examples is
 `0x001000000000` (all features turned off).
 
-The following `init` messages are valid:
+The following examples of `init` are valid:
 
 - `0x001000000000`: no extension provided
 - `0x001000000000c9012acb0104`: the extension contains two unknown _odd_ TLV records (with types `0xc9` and `0xcb`)
 
-The following `init` messages are invalid:
+The following examples of `init` are invalid:
 
 - `0x00100000000001`: the extension is present but truncated
 - `0x001000000000ca012a`: the extension contains unknown _even_ TLV records (assuming that TLV type `0xca` is unknown)
