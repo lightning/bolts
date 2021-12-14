@@ -74,8 +74,8 @@ A node:
   reorganizations.
   - upon the funding transaction being spent, if the channel is NOT already
   closed:
+    - MAY send a descriptive `error`.
     - SHOULD fail the channel.
-    - MAY send a descriptive error packet.
   - SHOULD ignore invalid transactions.
 
 ## Rationale

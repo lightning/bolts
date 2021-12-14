@@ -132,6 +132,20 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See related: [closing transaction](#closing-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
    * _See types: [revoked commitment transaction](#revoked-commitment-transaction)_
 
+* #### *Fail the channel*:
+  * This is a forced close of the channel. Very early on (before
+  opening), this may not require any action but forgetting the
+  existence of the channel.  Usually it requires signing and
+  broadcasting the latest commitment transaction, although during
+  mutual close it can also be performed by signing and broadcasting a
+  mutual close transaction.  See [BOLT #5](05-onchain.md#failing-a-channel).
+
+* #### *Close the connection*:
+  * This means closing communication with the peer (such as closing
+  the TCP socket).  It does not imply closing any channels with the
+  peer, but does cause the discarding of uncommitted state for
+  connections with channels: see [BOLT #2](02-peer-protocol.md#message-retransmission).
+
 * #### *Final node*:
    * The final recipient of a packet that is routing a payment from an *[origin node](#origin-node)* through some number of *[hops](#hop)*. It is also the final *[receiving peer](#receiving-peer)* in a chain.
    * _See category: [node](#node)_

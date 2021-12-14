@@ -17,7 +17,7 @@ All data fields are unsigned big-endian unless otherwise specified.
   * [Fundamental Types](#fundamental-types)
   * [Setup Messages](#setup-messages)
     * [The `init` Message](#the-init-message)
-    * [The `error` Message](#the-error-message)
+    * [The `error` and `warning` Messages](#the-error-and-warning-messages)
   * [Control Messages](#control-messages)
     * [The `ping` and `pong` Messages](#the-ping-and-pong-messages)
   * [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
@@ -285,11 +285,11 @@ The receiving node:
   - upon receiving unknown _odd_ feature bits that are non-zero:
     - MUST ignore the bit.
   - upon receiving unknown _even_ feature bits that are non-zero:
-    - MUST fail the connection.
+    - MUST close the connection.
   - upon receiving `networks` containing no common chains
-    - MAY fail the connection.
+    - MAY close the connection.
   - if the feature vector does not set all known, transitive dependencies:
-    - MUST fail the connection.
+    - MUST close the connection.
 
 #### Rationale
 
@@ -404,7 +404,7 @@ A node sending a `ping` message:
   - MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
 memory.
   - if it doesn't receive a corresponding `pong`:
-    - MAY terminate the network connection,
+    - MAY close the network connection,
       - and MUST NOT fail the channels in this case.
 
 A node sending a `pong` message:
@@ -420,7 +420,7 @@ A node receiving a `ping` message:
 
 A node receiving a `pong` message:
   - if `byteslen` does not correspond to any `ping`'s `num_pong_bytes` value it has sent:
-    - MAY fail the channels.
+    - MAY close the connection.
 
 ### Rationale
 

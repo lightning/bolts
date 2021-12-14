@@ -484,7 +484,8 @@ contribute to fees.
 
 A node:
   - if the resulting fee rate is too low:
-    - MAY fail the channel.
+    - MAY send a `warning` warn and close the connection, or send an
+      `error` and fail the channel.
 
 ## Dust Limits
 
