@@ -560,7 +560,7 @@ A sending node:
 
 A receiving node:
   - if it hasn't received a `funding_signed` (if it is a funder) or a `funding_created` (if it is a fundee):
-    - SHOULD send a `warning`.
+    - SHOULD send an `error` and fail the channel.
   - if the `scriptpubkey` is not in one of the above forms:
     - SHOULD send a `warning`.
   - if it hasn't sent a `funding_locked` yet:
