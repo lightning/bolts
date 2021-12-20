@@ -263,6 +263,11 @@ It is formatted according to the Type-Length-Value format defined in [BOLT #1](0
     2. data:
         * [`32*byte`:`payment_secret`]
         * [`tu64`:`total_msat`]
+    1. type: 17 (`sender_auth`)
+    2. data:
+        * [`33*byte`:`pubkey`]
+        * [`32*byte`:`hmac`]
+
 
 ### Requirements
 
@@ -280,12 +285,14 @@ The writer:
       - MUST include `payment_data`
       - MUST set `payment_secret` to the one provided
       - MUST set `total_msat` to the total amount it will send
+    - MAY include `sender_auth`. `pubkey` is set to the node public key of the sender. `hmac` is calculated over `payment_hash`, using a shared secret as the key. This shared secret is calculated using Elliptic-curve Diffie-Hellman between `pubkey` and the receiver key.
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
   - if it is the final node:
     - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it
       is not present.
+    - MUST verify `hmac` in `sender_auth` if present.
 
 The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format)
 and [below](#basic-multi-part-payments).
