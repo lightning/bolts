@@ -324,6 +324,8 @@ For simplicity of diagnosis, it's often useful to tell a peer that something is 
 
 #### Requirements
 
+The channel is referred to by `channel_id`, unless `channel_id` is 0 (i.e. all bytes are 0), in which case it refers to all channels.
+
 The funding node:
   - for all error messages sent before (and including) the `funding_created` message:
     - MUST use `temporary_channel_id` in lieu of `channel_id`.
@@ -336,9 +338,10 @@ A sending node:
   - SHOULD send `error` for protocol violations or internal errors that make channels unusable or that make further communication unusable.
   - SHOULD send `error` with the unknown `channel_id` in reply to messages of type `32`-`255` related to unknown channels.
   - when sending `error`:
-    - MUST fail the channel referred to by the error message.
+    - MUST fail the channel(s) referred to by the error message.
+    - MAY set `channel_id` to all zero to indicate all channels.
   - when sending `warning`:
-	- MAY set `channel_id` to all zero if the warning is not related to a specific channel.
+    - MAY set `channel_id` to all zero if the warning is not related to a specific channel.
   - MAY close the connection after sending.
   - MAY send an empty `data` field.
   - when failure was caused by an invalid signature check:
@@ -346,12 +349,15 @@ A sending node:
 
 The receiving node:
   - upon receiving `error`:
-    - MUST fail the channel referred to by `channel_id`, if that channel is with the sending node.
+    - if `channel_id` is all zero:
+      - MUST fail all channels with the sending node.
+    - otherwise:
+      - MUST fail the channel referred to by `channel_id`, if that channel is with the sending node.
   - upon receiving `warning`:
     - SHOULD log the message for later diagnosis.
-	- MAY disconnect.
-	- MAY reconnect after some delay to retry.
-	- MAY attempt `shutdown` if permitted at this point.
+    - MAY disconnect.
+    - MAY reconnect after some delay to retry.
+    - MAY attempt `shutdown` if permitted at this point.
   - if no existing channel is referred to by `channel_id`:
     - MUST ignore the message.
   - if `data` is not composed solely of printable ASCII characters (For reference: the printable character set includes byte values 32 through 126, inclusive):
