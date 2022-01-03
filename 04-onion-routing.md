@@ -263,6 +263,9 @@ It is formatted according to the Type-Length-Value format defined in [BOLT #1](0
     2. data:
         * [`32*byte`:`payment_secret`]
         * [`tu64`:`total_msat`]
+    1. type: 16 (`payment_metadata`)
+    2. data:
+        * [`...*byte`:`payment_metadata`]
 
 ### Requirements
 
@@ -280,6 +283,9 @@ The writer:
       - MUST include `payment_data`
       - MUST set `payment_secret` to the one provided
       - MUST set `total_msat` to the total amount it will send
+    - if the recipient provided `payment_metadata`:
+      - MUST include `payment_metadata` with every HTLC
+      - MUST not apply any limits to the size of payment_metadata except the limits implied by the fixed onion size
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
@@ -301,6 +307,9 @@ Note that `amt_to_forward` is the amount for this HTLC only: a
 ultimate sender that the rest of the payment will follow in succeeding
 HTLCs; we call these outstanding HTLCs which have the same preimage,
 an "HTLC set".
+
+`payment_metadata` is to be included in every payment part, so that
+invalid payment details can be detected as early as possible.
 
 #### Requirements
 
@@ -948,9 +957,9 @@ handling by the processing node.
    * [`u32`:`height`]
 
 The `payment_hash` is unknown to the final node, the `payment_secret` doesn't
-match the `payment_hash`, the amount for that `payment_hash` is incorrect or
+match the `payment_hash`, the amount for that `payment_hash` is incorrect,
 the CLTV expiry of the htlc is too close to the current block height for safe
-handling.
+handling or `payment_metadata` isn't present while it should be.
 
 The `htlc_msat` parameter is superfluous, but left in for backwards
 compatibility. The value of `htlc_msat` always matches the amount specified in
