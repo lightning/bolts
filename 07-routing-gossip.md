@@ -97,9 +97,11 @@ A node:
 
 A recipient node:
   - if the `short_channel_id` is NOT correct:
-    - SHOULD fail the channel.
+    - SHOULD send a `warning` and close the connection, or send an
+      `error` and fail the channel.
   - if the `node_signature` OR the `bitcoin_signature` is NOT correct:
-    - MAY fail the channel.
+    - MAY send a `warning` and close the connection, or send an
+      `error` and fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
     - SHOULD queue the `channel_announcement` message for its peers.
   - if it has not sent funding_locked:
@@ -201,7 +203,9 @@ The receiving node:
   - otherwise:
     - if `bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` OR
     `node_signature_2` are invalid OR NOT correct:
-      - SHOULD fail the connection.
+      - SHOULD send a `warning`.
+      - MAY close the connection.
+      - MUST ignore the message.
     - otherwise:
       - if `node_id_1` OR `node_id_2` are blacklisted:
         - SHOULD ignore the message.
@@ -313,12 +317,14 @@ The origin node:
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
-    - SHOULD fail the connection.
+    - SHOULD send a `warning`.
+    - MAY close the connection.
     - MUST NOT process the message further.
   - if `signature` is NOT a valid signature (using `node_id` of the
   double-SHA256 of the entire message following the `signature` field, including
 any future fields appended to the end):
-    - SHOULD fail the connection.
+    - SHOULD send a `warning`.
+    - MAY close the connection.
     - MUST NOT process the message further.
   - if `features` field contains _unknown even bits_:
     - SHOULD NOT connect to the node.
@@ -329,7 +335,8 @@ any future fields appended to the end):
   defined above.
   - if `addrlen` is insufficient to hold the address descriptors of the
   known types:
-    - SHOULD fail the connection.
+    - SHOULD send a `warning`.
+    - MAY close the connection.
   - if `port` is equal to 0:
     - SHOULD ignore `ipv6_addr` OR `ipv4_addr`.
   - if `node_id` is NOT previously known from a `channel_announcement` message,
@@ -493,8 +500,8 @@ The receiving node:
   - if `signature` is not a valid signature, using `node_id` of the
   double-SHA256 of the entire message following the `signature` field (including
   unknown fields following `fee_proportional_millionths`):
+    - SHOULD send a `warning` and close the connection.
     - MUST NOT process the message further.
-    - SHOULD fail the connection.
   - if the specified `chain_hash` value is unknown (meaning it isn't active on
   the specified chain):
     - MUST ignore the channel update.
@@ -504,7 +511,7 @@ The receiving node:
       - MAY blacklist this `node_id`.
       - MAY forget all channels associated with it.
     - if the fields below `timestamp` are equal:
-      - SHOULD ignore this message	
+      - SHOULD ignore this message
   - if `timestamp` is lower than that of the last-received
   `channel_update` for this `short_channel_id` AND for `node_id`:
     - SHOULD ignore the message.
@@ -644,16 +651,21 @@ The sender:
 
 The receiver:
   - if the first byte of `encoded_short_ids` is not a known encoding type:
-    - MAY fail the connection
+    - MAY send a `warning`.
+    - MAY close the connection.
   - if `encoded_short_ids` does not decode into a whole number of `short_channel_id`:
-    - MAY fail the connection.
+    - MAY send a `warning`.
+    - MAY close the connection.
   - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
-    - MAY fail the connection.
+    - MAY send a `warning`.
+    - MAY close the connection.
   - if the incoming message includes `query_short_channel_ids_tlvs`:
     - if `encoding_type` is not a known encoding type:
-      - MAY fail the connection
+      - MAY send a `warning`.
+      - MAY close the connection.
     - if `encoded_query_flags` does not decode to exactly one flag per `short_channel_id`:
-      - MAY fail the connection.
+      - MAY send a `warning`.
+      - MAY close the connection.
   - MUST respond to each known `short_channel_id`:
     - if the incoming message does not include `encoded_query_flags`:
       - with a `channel_announcement` and the latest `channel_update` for each end
@@ -773,20 +785,21 @@ The sender of `query_channel_range`:
 
 The receiver of `query_channel_range`:
   - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
-    - MAY fail the connection.
+    - MAY send a `warning`.
+    - MAY close the connection.
   - MUST respond with one or more `reply_channel_range`:
     - MUST set with `chain_hash` equal to that of `query_channel_range`,
     - MUST limit `number_of_blocks` to the maximum number of blocks whose
       results could fit in `encoded_short_ids`
     - MAY split block contents across multiple `reply_channel_range`.
     - the first `reply_channel_range` message:
-	  - MUST set `first_blocknum` less than or equal to the `first_blocknum` in `query_channel_range`
-	  - MUST set `first_blocknum` plus `number_of_blocks` greater than `first_blocknum` in `query_channel_range`.
-	- successive `reply_channel_range` message:
-	  - MUST have `first_blocknum` equal or greater than the previous `first_blocknum`.
+      - MUST set `first_blocknum` less than or equal to the `first_blocknum` in `query_channel_range`
+      - MUST set `first_blocknum` plus `number_of_blocks` greater than `first_blocknum` in `query_channel_range`.
+    - successive `reply_channel_range` message:
+      - MUST have `first_blocknum` equal or greater than the previous `first_blocknum`.
     - MUST set `sync_complete` to `false` if this is not the final `reply_channel_range`.
-	- the final `reply_channel_range` message:
-	  - MUST have `first_blocknum` plus `number_of_blocks` equal or greater than the `query_channel_range` `first_blocknum` plus `number_of_blocks`.
+    - the final `reply_channel_range` message:
+      - MUST have `first_blocknum` plus `number_of_blocks` equal or greater than the `query_channel_range` `first_blocknum` plus `number_of_blocks`.
     - MUST set `sync_complete` to `true`.
 
 If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
