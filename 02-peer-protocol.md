@@ -458,7 +458,7 @@ use `option_static_remotekey`, `option_anchor_outputs` or
 
 `option_anchors_zero_fee_htlc_tx` is considered superior to
 `option_anchor_outputs`, which again is considered superior to
-`option_static_remotekey`, and the superior one is is favored if more than one
+`option_static_remotekey`, and the superior one is favored if more than one
 is negotiated.
 
 ### The `funding_locked` Message
@@ -1352,7 +1352,7 @@ The sending node:
   next `commitment_signed` it expects to receive.
   - MUST set `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
-  - if `option_static_remotekey` or `option_anchors` applies to the commitment
+  - if `option_static_remotekey` applies to the commitment
     transaction:
     - MUST set `my_current_per_commitment_point` to a valid point.
   - otherwise:
@@ -1400,8 +1400,7 @@ A node:
       - SHOULD send an `error` and fail the channel.
 
  A receiving node:
-  - if `option_static_remotekey` or `option_anchors` applies to the commitment
-    transaction:
+  - if `option_static_remotekey` applies to the commitment transaction:
     - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
     `next_revocation_number` minus 1:
