@@ -1381,7 +1381,7 @@ A node:
     `your_last_per_commitment_secret` is correct for that
     `next_revocation_number` minus 1:
       - MUST NOT broadcast its commitment transaction.
-      - SHOULD fail the channel.
+      - SHOULD send an `error` to request the peer to fail the channel.
     - otherwise:
       - if `your_last_per_commitment_secret` does not match the expected values:
         - SHOULD fail the channel.
@@ -1390,7 +1390,7 @@ A node:
     `your_last_per_commitment_secret` is correct for that
     `next_revocation_number` minus 1:
       - MUST NOT broadcast its commitment transaction.
-      - SHOULD fail the channel.
+      - SHOULD send an `error` to request the peer to fail the channel.
       - SHOULD store `my_current_per_commitment_point` to retrieve funds
         should the sending node broadcast its commitment transaction on-chain.
     - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
@@ -1466,18 +1466,19 @@ Similarly, for the fundee's `funding_signed` message: it's better to
 remember a channel that never opens (and times out) than to let the
 funder open it while the fundee has forgotten it.
 
-`option_data_loss_protect` was added to allow a node, which has somehow fallen behind
-(e.g. has been restored from old backup), to detect that it's fallen-behind. A fallen-behind
-node must know it cannot broadcast its current commitment transaction — which would lead to
-total loss of funds — as the remote node can prove it knows the
-revocation preimage. The error returned by the fallen-behind node
-(or simply the invalid numbers in the `channel_reestablish` it has
-sent) should make the other node drop its current commitment
-transaction to the chain. This will, at least, allow the fallen-behind node to recover
-non-HTLC funds, if the `my_current_per_commitment_point`
-is valid. However, this also means the fallen-behind node has revealed this
-fact (though not provably: it could be lying), and the other node could use this to
-broadcast a previous state.
+`option_data_loss_protect` was added to allow a node, which has somehow fallen
+behind (e.g. has been restored from old backup), to detect that it has fallen
+behind. A fallen-behind node must know it cannot broadcast its current
+commitment transaction — which would lead to total loss of funds — as the
+remote node can prove it knows the revocation preimage. The `error` returned by
+the fallen-behind node should make the other node drop its current commitment
+transaction to the chain. The other node should wait for that `error` to give
+the fallen-behind node an opportunity to fix its state first (e.g by restarting
+with a different backup). If the fallen-behind node doesn't have the latest
+backup, this will, at least, allow it to recover non-HTLC funds, if the
+`my_current_per_commitment_point` is valid. However, this also means the
+fallen-behind node has revealed this fact (though not provably: it could be lying),
+and the other node could use this to broadcast a previous state.
 
 `option_static_remotekey` removes the changing `to_remote` key,
 so the `my_current_per_commitment_point` is unnecessary and thus

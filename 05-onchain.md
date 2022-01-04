@@ -143,15 +143,14 @@ A node:
       sufficient fee:
         - SHOULD use this fee to perform a *mutual close*.
       - otherwise:
-      	- if the node knows or assumes its channel state is outdated it
-      	  -  MUST NOT broadcast its *last commitment transaction*. 
-      	  -  SHOULD send an `error`.
+      	- if the node knows or assumes its channel state is outdated:
+      	  - MUST NOT broadcast its *last commitment transaction*.
         - otherwise:
           - MUST broadcast the *last commitment transaction*, for which it has a
-        signature, to perform a *unilateral close*.
-          - MUST spend any `to_local_anchor` output, providing sufficient fees as incentive to include the commitment transaction in a block
-        Special care must be taken when spending to a third-party, because this re-introduces the vulnerability that was
-        addressed by adding the CSV delay to the non-anchor outputs.
+          signature, to perform a *unilateral close*.
+          - MUST spend any `to_local_anchor` output, providing sufficient fees as incentive to include the commitment transaction in a block.
+          Special care must be taken when spending to a third-party, because this re-introduces the vulnerability that was
+          addressed by adding the CSV delay to the non-anchor outputs.
           - SHOULD use [replace-by-fee](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki) or other mechanism on the spending transaction if it proves insufficient for timely inclusion in a block.
 
 ## Rationale
