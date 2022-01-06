@@ -350,7 +350,7 @@ A local node:
       - MUST handle HTLCs offered by the remote node as specified in
       [HTLC Output Handling: Remote Commitment, Remote Offers](#htlc-output-handling-remote-commitment-remote-offers)
     - otherwise (it is NOT able to handle the broadcast for some reason):
-      - MUST send a warning regarding lost funds.
+      - MUST inform the user of potentially lost funds.
 
 ## Rationale
 
@@ -563,7 +563,7 @@ A node:
   - upon discovering a transaction that spends a funding transaction output
   which does not fall into one of the above categories (mutual close, unilateral
   close, or revoked transaction close):
-    - MUST send a warning regarding lost funds.
+    - MUST warn the user of potentially lost funds.
       - Note: the existence of such a rogue transaction implies that its private
       key has leaked and that its funds may be lost as a result.
   - MAY simply monitor the contents of the most-work chain for transactions.
