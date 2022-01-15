@@ -594,8 +594,8 @@ If `option_anchors` does not apply to the commitment transaction, then
 HTLC-timeout and HTLC-success transactions are complete transactions with
 (hopefully!) reasonable fees and must be used directly.
 
-Otherwise, the use of `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` on the HTLC
-signatures received from the peer allows HTLC transactions to be combined with
+Otherwise, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` MUST be used on the
+HTLC signatures received from the peer, as this allows HTLC transactions to be combined with 
 other transactions.  The local signature MUST use `SIGHASH_ALL`, otherwise
 anyone can attach additional inputs and outputs to the tx.
 
