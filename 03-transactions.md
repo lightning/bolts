@@ -328,7 +328,8 @@ These HTLC transactions are almost identical, except the HTLC-timeout transactio
 * txout count: 1
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation))
    * `txout[0]` script: version-0 P2WSH with witness script as shown below
-* if `option_anchors` applies to this commitment transaction, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used.
+* if `option_anchors` applies to this commitment transaction, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` MUST be used for the `remotehtlcsig` signature.
+* `SIGHASH_ALL` SHOULD always be used for the `localhtlcsig` signature.
 
 The witness script for the output is:
 
