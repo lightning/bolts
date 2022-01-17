@@ -265,8 +265,12 @@ The `features` field MUST be padded to bytes with 0s.
     2. data:
         * [`...*chain_hash`:`chains`]
 
+    1. type: 3 (`remote_addr`)
+    2. data:
+        * `address descriptor`  (1 byte type and data, see BOLT 7)
 
 The optional `networks` indicates the chains the node is interested in.
+The optional `remote_addr` can be used to circumvent NAT issues.
 
 #### Requirements
 
@@ -277,6 +281,10 @@ The sending node:
   - SHOULD NOT set features greater than 13 in `globalfeatures`.
   - SHOULD use the minimum length required to represent the `features` field.
   - SHOULD set `networks` to all chains it will gossip or open channels for.
+  - SHOULD set `remote_addr` to reflect the remote IP address (and port) of an
+    incoming connection, if the node is the receiver and the connection was done
+    via IP.
+  - SHOULD NOT set private addresses as `remote_addr`.
 
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
@@ -290,6 +298,7 @@ The receiving node:
     - MAY close the connection.
   - if the feature vector does not set all known, transitive dependencies:
     - MUST close the connection.
+  - MAY use the `remote_addr` to update its `node_annoucement`
 
 #### Rationale
 
