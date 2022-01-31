@@ -155,9 +155,8 @@ B, the *non-initiator* has nothing to contribute.
         |       |--(3)- tx_add_input -->|       |
         |   A   |<-(4)- tx_complete ----|   B   |
         |       |--(5)- tx_add_output ->|       |
-        |       |                       |       |
-        |       |--(6)- tx_complete --->|       |
-        |       |<-(7)- tx_complete ----|       |
+        |       |<-(6)- tx_complete ----|       |
+        |       |--(7)- tx_complete --->|       |
         +-------+                       +-------+
 
 #### *initiator* and *non-initiator*
@@ -176,10 +175,10 @@ B's contributions.
         |       |<-(4)- tx_complete ------|       |
         |       |--(5)- tx_add_input ---->|       |
         |   A   |<-(6)- tx_add_input -----|   B   |
-        |       |<-(7)- tx_add_output ----|       |
-        |       |--(8)- tx_remove_output >|       |
-        |       |<-(9)- tx_complete ------|       |
-        |       |--(10) tx_complete ----->|       |
+        |       |--(7)- tx_remove_output >|       |
+        |       |<-(8)- tx_add_output ----|       |
+        |       |--(9)- tx_complete ----->|       |
+        |       |<-(10) tx_complete ------|       |
         +-------+                         +-------+
 
 
