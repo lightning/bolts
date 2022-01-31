@@ -16,6 +16,7 @@ operation, and closing.
       * [The `tx_remove_input` and `tx_remote_output` Messages](#the-tx_remove_input-and-tx_remove_output-messages)
       * [The `tx_complete` Message](#the-tx_complete-message)
       * [The `tx_signatures` Message](#the-tx_signatures-message)
+      * [The `tx_abort` Message](#the-tx_abort-message)
     * [Channel Establishment v1](#channel-establishment-v1)
       * [The `open_channel` Message](#the-open_channel-message)
       * [The `accept_channel` Message](#the-accept_channel-message)
@@ -418,6 +419,41 @@ While the `minimum fee` is calculated and verified at `tx_complete` conclusion,
 it is possible for the fee for the exchanged witness data to be underpaid.
 It is the responsibility of the sending peer to correctly account for the
 required fee, e.g. a multisig witness stack whose weight exceeds 110.
+
+
+### The `tx_abort` Message
+
+1. type: 74 (`tx_abort`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u16`:`len`]
+   * [`len*byte`:`data`]
+
+The 2-byte `len` field indicates the number of bytes in the immediately following field.
+
+#### Requirements
+
+A sending node:
+  - MUST NOT have already transmitted `tx_signatures`
+  - SHOULD forget the current negotiation and reset their state.
+
+A receiving node:
+  - if they have already sent `tx_signatures` to the peer:
+    - MUST NOT forget the channel until any inputs to the negotiated tx
+      have been spent.
+  - if they have not sent `tx_signatures`:
+    - SHOULD forget the current negotiation and reset their state.
+
+#### Rationale
+
+A recieving node, if they've already sent their `tx_signatures` has no guarantee
+that the transaction won't be signed and published by their peer. They must remember
+the transaction and channel (if appropriate) until the transaction is  no longer
+eligible to be spent (i.e. any input has been spent in a different transaction).
+
+The `tx_abort` message allows for the cancelation of an in progress negotation,
+and a return to the initial starting state.
+
 
 ## Channel Establishment v1
 
