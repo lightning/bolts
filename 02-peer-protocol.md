@@ -269,7 +269,7 @@ The sending node:
 
 The receiving node:
   - MUST add the specified output to the transaction
-  - MUST accept P2SH, P2WSH, P2WPKH, P2PKH, P2TR `script`s
+  - MUST accept P2WSH, P2WPKH, P2PKH, P2TR `script`s
   - MAY fail the negotiation if `script` is non-standard
   - MUST fail the negotiation if:
     - the `serial_id` is already included in the transaction
