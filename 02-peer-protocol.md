@@ -274,7 +274,7 @@ The receiving node:
     - the `serial_id` has the wrong parity
     - it has received 4096 `tx_add_output` messages during this negotiation
     - the `sats` amount is less than the `dust_limit`
-    - the `sats` amount is greater than 21,0000,0000 (`MAX_MONEY`)
+    - the `sats` amount is greater than 210,0000,000,000,000(`MAX_MONEY`)
 
 
 #### Rationale
