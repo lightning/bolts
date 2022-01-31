@@ -328,7 +328,7 @@ These HTLC transactions are almost identical, except the HTLC-timeout transactio
 * txout count: 1
    * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation))
    * `txout[0]` script: version-0 P2WSH with witness script as shown below
-* if `option_anchors` applies to this commitment transaction, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used.
+* if `option_anchors` applies to this commitment transaction, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used as described in [BOLT #5](05-onchain.md#generation-of-htlc-transactions).
 
 The witness script for the output is:
 
