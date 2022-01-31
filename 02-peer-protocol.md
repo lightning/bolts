@@ -438,11 +438,11 @@ The sender:
     of the previously constructed transaction, rounded down.
 
 The recipient:
-  - MUST respond either by failing the negotiation or with `tx_ack_rbf`.
-  - MUST fail the negotiation if:
+  - MUST respond either with `tx_abort` or with `tx_ack_rbf`
+  - MUST respond with `tx_abort` if:
     - the `feerate` is not greater than 25/24 times `feerate` of the last
       successfully constructed transaction
-  - MAY fail the negotiation for any reason
+  - MAY send `tx_abort` for any reason
 
 #### Rationale
 
@@ -477,7 +477,7 @@ made in the previously completed transaction.
 #### Requirements
 
 The recipient:
-  - MUST either fail the negotiation or transmit a `tx_add_input` message,
+  - MUST respond with `tx_abort` or with a `tx_add_input` message,
     restarting the interactive tx collaboration protocol.
 
 #### Rationale
@@ -491,6 +491,45 @@ It's recommended that a peer, rather than fail the RBF negotiation due to
 a large feerate change, instead sets their `funding_output_contribution` to
 zero, and decline to participate further in the transaction (by not
 contributing, they may obtain incoming liquidity at no cost).
+
+### The `tx_abort` Message
+
+1. type: 74 (`tx_abort`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u16`:`len`]
+   * [`len*byte`:`data`]
+
+#### Requirements
+
+A sending node:
+  - MUST NOT have already transmitted `tx_signatures`
+  - SHOULD forget the current negotiation and reset their state.
+
+A receiving node:
+  - if they have already sent `tx_signatures` to the peer:
+    - MUST NOT forget the channel until any inputs to the negotiated tx
+      have been spent.
+  - if they have not sent `tx_signatures`:
+    - SHOULD forget the current negotiation and reset their state.
+  - if they have not sent `tx_abort`:
+    - MUST echo back `tx_abort`
+
+#### Rationale
+
+A receiving node, if they've already sent their `tx_signatures` has no guarantee
+that the transaction won't be signed and published by their peer. They must remember
+the transaction and channel (if appropriate) until the transaction is no longer
+eligible to be spent (i.e. any input has been spent in a different transaction).
+
+The `tx_abort` message allows for the cancellation of an in progress negotiation,
+and a return to the initial starting state. It is distinct from the `error`
+message, which triggers a channel close.
+
+Echoing back `tx_abort` allows the peer to ack that they've seen the abort message,
+permitting the originating peer to terminate the in-flight process without
+worrying about stale messages.
+
 
 ## Channel Establishment v1
 
