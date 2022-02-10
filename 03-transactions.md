@@ -787,7 +787,7 @@ calculated as follows.  Note that the feerate is rounded down to the nearest sat
                      + 41 * 4
                      + 43 * 4
                      + 31 * 4
-                     + 107
+                     + 110
 
     initiator_weight = 612
 
