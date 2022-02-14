@@ -101,8 +101,10 @@ Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, ca
 
 The amounts for the `to_local` and `to_remote` outputs MUST be rounded
 to the nearest satoshi. Any amount less than 500msat is rounded down;
-any amount greater than 499msat is rounded up. This minimizes loss to fees
-over the lifetime of a node.
+any amount greater than 500msat is rounded up. This minimizes loss to fees
+over the lifetime of a node. If the outputs are 500msats,
+the opener's `to_local`/`to_remote` is rounded up; with the corresponding peer's
+output rounding down.
 
 The amounts for each HTLC output MUST be rounded *down* to whole satoshis. If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
 
@@ -392,7 +394,9 @@ There will be at least one output, if the funding amount is greater
 than twice `dust_limit_satoshis`.
 
 Output amounts are rounded to the nearest whole satoshi. Any amount less
-than 500msat is rounded down; any amount greater than 499msat is rounded up.
+than 500msat is rounded down; any amount greater than 500msat is rounded up.
+In the case that both outputs are 500msat, the opener's output is rounded up;
+with the corresponding peer's output rounded down.
 
 This ensures that over the lifetime of a node, the number of satoshis
 a node earns/spends will be approximately accurate.
