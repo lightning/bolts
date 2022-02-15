@@ -215,6 +215,7 @@ The currently defined basic types are:
 
 Each basic type has the following variations allowed:
   - `option_scid_alias` (bit 46)
+  - `option_zeroconf` (bit 50)
 
 #### Requirements
 
@@ -281,7 +282,9 @@ are not valid secp256k1 pubkeys in compressed format.
   - the funder's amount for the initial commitment transaction is not sufficient for full [fee payment](03-transactions.md#fee-payment).
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
   - `funding_satoshis` is greater than or equal to 2^24 and the receiver does not support `option_support_large_channel`. 
-  - It supports `channel_type`, `channel_type` was set, and the `type` is not suitable.
+  - It supports `channel_type` and `channel_type` was set:
+    - if `type` is not suitable.
+    - if `type` includes `option_zeroconf` and it does not trust the sender to open an unconfirmed channel.
 
 The receiving node MUST NOT:
   - consider funds received, using `push_msat`, to be received until the funding transaction has reached sufficient depth.
@@ -349,9 +352,10 @@ The `temporary_channel_id` MUST be the same as the `temporary_channel_id` in
 the `open_channel` message.
 
 The sender:
-  - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to
-avoid double-spending of the funding transaction.
-  - MAY set `minimum_depth` to zero if it trusts the peer.
+  - if `channel_type` includes `option_zeroconf`:
+    - MUST set `minimum_depth` to zero.
+  - otherwise:
+    - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
   - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
   - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
   - if it sets `channel_type`:
