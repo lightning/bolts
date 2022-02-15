@@ -661,7 +661,7 @@ The receiving node:
     - MAY close the connection.
   - if the message contains a `fee_range`:
     - if there is no overlap between that and its own `fee_range`:
-      - SHOULD fail the connection
+      - SHOULD send a warning
       - MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time
     - otherwise:
       - if it is the funder:
