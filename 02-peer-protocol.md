@@ -12,7 +12,7 @@ operation, and closing.
       * [The `accept_channel` Message](#the-accept_channel-message)
       * [The `funding_created` Message](#the-funding_created-message)
       * [The `funding_signed` Message](#the-funding_signed-message)
-      * [The `funding_locked` Message](#the-funding_locked-message)
+      * [The `channel_ready` Message](#the-channel_ready-message)
     * [Channel Close](#channel-close)
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
@@ -70,8 +70,8 @@ must broadcast the funding transaction to the Bitcoin network. After
 the `funding_signed` message is sent/received, both sides should wait
 for the funding transaction to enter the blockchain and reach the
 specified depth (number of confirmations). After both sides have sent
-the `funding_locked` message, the channel is established and can begin
-normal operation. The `funding_locked` message includes information
+the `channel_ready` message, the channel is established and can begin
+normal operation. The `channel_ready` message includes information
 that will be used to construct channel authentication proofs.
 
 
@@ -82,8 +82,8 @@ that will be used to construct channel authentication proofs.
         |   A   |--(3)--  funding_created  --->|   B   |
         |       |<-(4)--  funding_signed  -----|       |
         |       |                              |       |
-        |       |--(5)--- funding_locked  ---->|       |
-        |       |<-(6)--- funding_locked  -----|       |
+        |       |--(5)---  channel_ready  ---->|       |
+        |       |<-(6)---  channel_ready  -----|       |
         +-------+                              +-------+
 
         - where node A is 'funder' and node B is 'fundee'
@@ -471,21 +471,20 @@ use `option_static_remotekey`, `option_anchor_outputs` or
 `option_static_remotekey`, and the superior one is favored if more than one
 is negotiated.
 
-### The `funding_locked` Message
+### The `channel_ready` Message
 
-This message indicates that the funding transaction has reached the `minimum_depth` asked for in `accept_channel`. Once both nodes have sent this, the channel enters normal operating mode.
+This message (which used to be called `funding_locked`) indicates that the funding transaction has sufficient confirms for channel use. Once both nodes have sent this, the channel enters normal operating mode.
 
-Note that `minimum_depth` can be 0 if the accepter trusts the opener,
-in which case this message is a misnomer.  The opener is free to send this
-message at any time (since it presumably trusts itself).
+Note that the opener is free to send this message at any time (since it presumably trusts itself), but the
+accepter would usually wait until the funding has reached the `minimum_depth` asked for in `accept_channel`.
 
-1. type: 36 (`funding_locked`)
+1. type: 36 (`channel_ready`)
 2. data:
     * [`channel_id`:`channel_id`]
-    * [`point`:`next_per_commitment_point`]
-    * [`funding_locked_tlvs`:`tlvs`]
+    * [`point`:`second_per_commitment_point`]
+    * [`channel_ready_tlvs`:`tlvs`]
 
-1. `tlv_stream`: `funding_locked_tlvs`
+1. `tlv_stream`: `channel_ready_tlvs`
 2. types:
     1. type: 1 (`short_channel_id`)
     2. data:
@@ -494,12 +493,12 @@ message at any time (since it presumably trusts itself).
 #### Requirements
 
 The sender:
-  - MUST NOT send `funding_locked` unless outpoint of given by `funding_txid` and
+  - MUST NOT send `channel_ready` unless outpoint of given by `funding_txid` and
    `funding_output_index` in the `funding_created` message pays exactly `funding_satoshis` to the scriptpubkey specified in [BOLT #3](03-transactions.md#funding-transaction-output).
   - if it is not the node opening the channel:
     - SHOULD wait until the funding transaction has reached `minimum_depth` before
       sending this message.
-  - MUST set `next_per_commitment_point` to the per-commitment point to be used
+  - MUST set `second_per_commitment_point` to the per-commitment point to be used
   for commitment transaction #1, derived as specified in
   [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
   - if `option_scid_alias` was negotiated:
@@ -516,7 +515,7 @@ The sender:
     - MUST always recognize the `alias` as a `short_channel_id` for incoming HTLCs to this channel.
     - if `channel_type` has `option_scid_alias` set:
       - MUST NOT allow incoming HTLCs to this channel using the real `short_channel_id`
-    - MAY send multiple `funding_locked` messages to the same peer with different `alias` values.
+    - MAY send multiple `channel_ready` messages to the same peer with different `alias` values.
   - otherwise:
     - MUST wait until the funding transaction has reached `minimum_depth` before sending this message.
 
@@ -532,7 +531,7 @@ The receiver:
   - if `channel_type` has `option_scid_alias` set:
     - MUST NOT use the real `short_channel_id` in BOLT 11 `r` fields.
 
-From the point of waiting for `funding_locked` onward, either node MAY
+From the point of waiting for `channel_ready` onward, either node MAY
 send an `error` and fail the channel if it does not receive a required response from the
 other node after a reasonable timeout.
 
@@ -598,7 +597,7 @@ along with the `scriptpubkey` it wants to be paid to.
 A sending node:
   - if it hasn't sent a `funding_created` (if it is a funder) or a `funding_signed` (if it is a fundee):
     - MUST NOT send a `shutdown`
-  - MAY send a `shutdown` before a `funding_locked`, i.e. before the funding transaction has reached `minimum_depth`.
+  - MAY send a `shutdown` before a `channel_ready`, i.e. before the funding transaction has reached `minimum_depth`.
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
@@ -620,7 +619,7 @@ A receiving node:
     - SHOULD send an `error` and fail the channel.
   - if the `scriptpubkey` is not in one of the above forms:
     - SHOULD send a `warning`.
-  - if it hasn't sent a `funding_locked` yet:
+  - if it hasn't sent a `channel_ready` yet:
     - MAY reply to a `shutdown` message with a `shutdown`
   - once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:
     - MUST reply to a `shutdown` message with a `shutdown`
@@ -770,7 +769,7 @@ the closing transaction will likely never reach miners.
 
 ## Normal Operation
 
-Once both nodes have exchanged `funding_locked` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hashed Time Locked Contracts.
+Once both nodes have exchanged `channel_ready` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hashed Time Locked Contracts.
 
 Changes are sent in batches: one or more `update_` messages are sent before a
 `commitment_signed` message, as in the following diagram:
@@ -1424,12 +1423,12 @@ The sending node:
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
   sent and received:
-    - MUST retransmit `funding_locked`.
+    - MUST retransmit `channel_ready`.
   - otherwise:
-    - MUST NOT retransmit `funding_locked`, but MAY send `funding_locked` with
+    - MUST NOT retransmit `channel_ready`, but MAY send `channel_ready` with
       a different `short_channel_id` `alias` field.
   - upon reconnection:
-    - MUST ignore any redundant `funding_locked` it receives.
+    - MUST ignore any redundant `channel_ready` it receives.
   - if `next_commitment_number` is equal to the commitment number of
   the last `commitment_signed` message the receiving node has sent:
     - MUST reuse the same commitment number for its next `commitment_signed`.
@@ -1497,7 +1496,7 @@ atomic: if it doesn't complete, it starts again. The only exception
 is if the `funding_signed` message is sent but not received. In
 this case, the funder will forget the channel, and presumably open
 a new one upon reconnection; meanwhile, the other node will eventually forget
-the original channel, due to never receiving `funding_locked` or seeing
+the original channel, due to never receiving `channel_ready` or seeing
 the funding transaction on-chain.
 
 There's no acknowledgment for `error`, so if a reconnect occurs it's
@@ -1533,7 +1532,7 @@ commitment number 0 is created during opening.
 `commitment_signed` for commitment number 1 is send and then
 the revocation for commitment number 0 is received.
 
-`funding_locked` is implicitly acknowledged by the start of normal
+`channel_ready` is implicitly acknowledged by the start of normal
 operation, which is known to have begun after a `commitment_signed` has been
 received — hence, the test for a `next_commitment_number` greater
 than 1.
