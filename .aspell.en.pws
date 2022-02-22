@@ -387,3 +387,7 @@ CHECKSIGVERIFY
 IFDUP
 sats
 anysegwit
+griefing
+unspendable
+pkh
+kB

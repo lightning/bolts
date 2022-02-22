@@ -609,7 +609,7 @@ the other node then replies similarly, using a fee it thinks is fair.  This
 exchange continues until both agree on the same fee or when one side fails
 the channel.
 
-In the modern method, the funder sends its permissable fee range, and the
+In the modern method, the funder sends its permissible fee range, and the
 non-funder has to pick a fee in this range. If the non-funder chooses the same
 value, negotiation is complete after two messages, otherwise the funder will
 reply with the same value (completing after three messages).
