@@ -63,6 +63,9 @@ The origin node:
   * MUST NOT set feature bits in fields not specified by the table above.
   * MUST set all transitive feature dependencies.
 
+The origin node MUST support:
+  * `var_onion_optin`
+
 The requirements for receiving specific bits are defined in the linked sections in the table above.
 The requirements for feature bits that are not defined
 above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-message).

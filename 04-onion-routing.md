@@ -48,8 +48,7 @@ A node:
   * [Key Generation](#key-generation)
   * [Pseudo Random Byte Stream](#pseudo-random-byte-stream)
   * [Packet Structure](#packet-structure)
-    * [Legacy HopData Payload Format](#legacy-hop_data-payload-format)
-    * [TLV Payload Format](#tlv_payload-format)
+    * [Payload Format](#payload-format)
     * [Basic Multi-Part Payments](#basic-multi-part-payments)
   * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
     * [Payload for the Last Node](#payload-for-the-last-node)
@@ -92,9 +91,7 @@ There are a number of conventions adhered to throughout this document:
  - The term _peers_ refers only to hops that are direct neighbors (in the
    overlay network): more specifically, _sending peers_ forward packets
    to _receiving peers_.
- - Each hop in the route has a variable length `hop_payload`, or a fixed-size
-   legacy `hop_data` payload.
-    - The legacy `hop_data` is identified by a single `0x00`-byte prefix
+ - Each hop in the route has a variable length `hop_payload`.
     - The variable length `hop_payload` is prefixed with a `bigsize` encoding
       the length in bytes, excluding the prefix and the trailing HMAC.
 
@@ -139,7 +136,7 @@ The packet consists of four sections:
  - a 33-byte compressed `secp256k1` `public_key`, used during the shared secret
    generation
  - a 1300-byte `hop_payloads` consisting of multiple, variable length,
-   `hop_payload` payloads or up to 20 fixed sized legacy `hop_data` payloads.
+   `hop_payload` payloads
  - a 32-byte `hmac`, used to verify the packet's integrity
 
 The network format of the packet consists of the individual sections
@@ -164,91 +161,29 @@ It is 1300 bytes long and has the following structure:
 1. type: `hop_payloads`
 2. data:
    * [`bigsize`:`length`]
-   * [`hop_payload_length`:`hop_payload`]
+   * [`length*byte`:`payload`]
    * [`32*byte`:`hmac`]
    * ...
    * `filler`
 
-Where, the `length`, `hop_payload` (with contents dependent on `length`), and `hmac` are repeated for each hop;
+Where, the `length`, `payload`, and `hmac` are repeated for each hop;
 and where, `filler` consists of obfuscated, deterministically-generated padding, as detailed in [Filler Generation](#filler-generation).
 Additionally, `hop_payloads` is incrementally obfuscated at each hop.
 
-Using the `hop_payload` field, the origin node is able to specify the path and structure of the HTLCs forwarded at each hop.
-As the `hop_payload` is protected under the packet-wide HMAC, the information it contains is fully authenticated with each pair-wise relationship between the HTLC sender (origin node) and each hop in the path.
+Using the `payload` field, the origin node is able to specify the path and structure of the HTLCs forwarded at each hop.
+As the `payload` is protected under the packet-wide HMAC, the information it contains is fully authenticated with each pair-wise relationship between the HTLC sender (origin node) and each hop in the path.
 
 Using this end-to-end authentication, each hop is able to cross-check the HTLC
-parameters with the `hop_payload`'s specified values and to ensure that the
+parameters with the `payload`'s specified values and to ensure that the
 sending peer hasn't forwarded an ill-crafted HTLC.
 
-The `length` field determines both the length and the format of the `hop_payload` field; the following formats are defined:
+Since no `payload` TLV value can ever be shorter than 2 bytes, `length` values of 0 and 1 are reserved.  (`0` indicated a legacy format no longer supported, and `1` is reserved for future use).
 
- - Legacy `hop_data` format, identified by a single `0x00` byte for length. In this case the `hop_payload_length` is defined to be 32 bytes.
- - `tlv_payload` format, identified by any length over `1`. In this case the `hop_payload_length` is equal to the numeric value of `length`.
- - A single `0x01` byte for length is reserved for future use to signal a different payload format. This is safe since no TLV value can ever be shorter than 2 bytes. In this case the `hop_payload_length` MUST be defined in the future specification making use of this `length`.
+### `payload` format
 
-## Legacy `hop_data` payload format
+This is formatted according to the Type-Length-Value format defined in [BOLT #1](01-messaging.md#type-length-value-format).
 
-The `hop_data` format is identified by a single `0x00`-byte length, for backward compatibility.
-Its payload is defined as:
-
-1. type: `hop_data` (for `realm` 0)
-2. data:
-   * [`short_channel_id`:`short_channel_id`]
-   * [`u64`:`amt_to_forward`]
-   * [`u32`:`outgoing_cltv_value`]
-   * [`12*byte`:`padding`]
-
-Field descriptions:
-
-   * `short_channel_id`: The ID of the outgoing channel used to route the 
-      message; the receiving peer should operate the other end of this channel.
-
-   * `amt_to_forward`: The amount, in millisatoshis, to forward to the next
-     receiving peer specified within the routing information.
-
-     For non-final nodes, this value amount MUST include the origin node's computed _fee_ for the
-     receiving peer. When processing an incoming Sphinx packet and the HTLC
-     message that it is encapsulated within, if the following inequality doesn't hold,
-     then the HTLC should be rejected as it would indicate that a prior hop has
-     deviated from the specified parameters:
-
-          incoming_htlc_amt - fee >= amt_to_forward
-
-     Where `fee` is calculated according to the receiving peer's advertised fee
-     schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees)).
-
-     For the final node, this value MUST be exactly equal to the incoming htlc
-     amount, otherwise the HTLC should be rejected.
-
-   * `outgoing_cltv_value`: The CLTV value that the _outgoing_ HTLC carrying
-     the packet should have.
-
-          cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
-
-     Inclusion of this field allows a hop to both authenticate the information
-     specified by the origin node, and the parameters of the HTLC forwarded,
-     and ensure the origin node is using the current `cltv_expiry_delta` value.
-     If there is no next hop, `cltv_expiry_delta` is 0.
-     If the values don't correspond, then the HTLC should be failed and rejected, as
-     this indicates that either a forwarding node has tampered with the intended HTLC
-     values or that the origin node has an obsolete `cltv_expiry_delta` value.
-     The hop MUST be consistent in responding to an unexpected
-     `outgoing_cltv_value`, whether it is the final node or not, to avoid
-     leaking its position in the route.
-
-   * `padding`: This field is for future use and also for ensuring that future non-0-`realm`
-     `hop_data`s won't change the overall `hop_payloads` size.
-
-When forwarding HTLCs, nodes MUST construct the outgoing HTLC as specified
-within `hop_data` above; otherwise, deviation from the specified HTLC
-parameters may lead to extraneous routing failure.
-
-### `tlv_payload` format
-
-This is a more flexible format, which avoids the redundant `short_channel_id` field for the final node. 
-It is formatted according to the Type-Length-Value format defined in [BOLT #1](01-messaging.md#type-length-value-format).
-
-1. `tlv_stream`: `tlv_payload`
+1. `tlv_stream`: `payload`
 2. types:
     1. type: 2 (`amt_to_forward`)
     2. data:
@@ -267,11 +202,34 @@ It is formatted according to the Type-Length-Value format defined in [BOLT #1](0
     2. data:
         * [`...*byte`:`payment_metadata`]
 
+`short_channel_id` is the ID of the outgoing channel used to route the
+message; the receiving peer should operate the other end of this channel.
+
+`amt_to_forward` is the amount, in millisatoshis, to forward to the
+next receiving peer specified within the routing information, or for
+the final destination.
+
+For non-final nodes, this includes the origin node's computed _fee_ for the
+receiving peer, calculated according to the receiving peer's advertised fee
+schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees)).
+
+`outgoing_cltv_value` is the CLTV value that the _outgoing_ HTLC
+carrying the packet should have.  Inclusion of this field allows a hop
+to both authenticate the information specified by the origin node, and
+the parameters of the HTLC forwarded, and ensure the origin node is
+using the current `cltv_expiry_delta` value.
+
+If the values don't correspond, this indicates that either a
+forwarding node has tampered with the intended HTLC values or that the
+origin node has an obsolete `cltv_expiry_delta` value.
+
+The requirements ensure consistency in responding to an unexpected
+`outgoing_cltv_value`, whether it is the final node or not, to avoid
+leaking its position in the route.
+
 ### Requirements
 
 The writer:
-  - Unless `node_announcement`, `init` message or the [BOLT #11](11-payment-encoding.md#tagged-fields) offers feature `var_onion_optin`:
-    - MUST use the legacy payload format instead.
   - For every node:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
   - For every non-final node:
@@ -289,12 +247,20 @@ The writer:
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
+  - if it is not the final node:
+    - MUST return an error if:
+      - `short_channel_id` is not present,
+       - it cannot forward the HTLC to the peer indicated by the channel `short_channel_id`.
+       - incoming `amount_msat` - `fee` < `amt_to_forward` (where `fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
+       - `cltv_expiry` - `cltv_expiry_delta` < `outgoing_cltv_value`
   - if it is the final node:
     - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it
       is not present.
+    - MUST return an error if:
+       - incoming `amount_msat` != `amt_to_forward`.
+       - incoming `cltv_expiry` != `cltv_expiry_delta`.
 
-The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format)
-and [below](#basic-multi-part-payments).
+Additional requirements are specified [below](#basic-multi-part-payments).
 
 ### Basic Multi-Part Payments
 
