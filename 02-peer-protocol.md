@@ -348,8 +348,8 @@ The sender:
 avoid double-spending of the funding transaction.
   - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
   - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
-  - if it sets `channel_type`:
-    - MUST set it to the `channel_type` from `open_channel`
+  - if `option_channel_type` was negotiated:
+    - MUST set `channel_type` to the `channel_type` from `open_channel`
 
 The receiver:
   - if `minimum_depth` is unreasonably large:
@@ -360,6 +360,8 @@ The receiver:
     - MUST reject the channel.
   - if `channel_type` is set, and `channel_type` was set in `open_channel`, and they are not equal types:
     - MUST reject the channel.
+  - if `option_channel_type` was negotiated but the message doesn't include a `channel_type`:
+    - MAY reject the channel.
 
 Other fields have the same requirements as their counterparts in `open_channel`.
 
