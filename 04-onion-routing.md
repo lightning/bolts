@@ -277,10 +277,9 @@ The writer:
   - Unless `node_announcement`, `init` message or the [BOLT #11](11-payment-encoding.md#tagged-fields) offers feature `var_onion_optin`:
     - MUST use the legacy payload format instead.
   - For every node:
-    - MUST include `amt_to_forward` and `outgoing_cltv_value`.
+    - MUST include `amt_to_forward` and `outgoing_cltv_value`, unless it's using route blinding and they are included inside `encrypted_recipient_data`.
   - For every non-final node:
-    - MUST include `short_channel_id`, unless it's using route blinding and
-      has included it inside `encrypted_recipient_data`
+    - MUST include `short_channel_id`, unless it's using route blinding and it is included inside `encrypted_recipient_data`.
     - MUST NOT include `payment_data`
   - For the final node:
     - MUST NOT include `short_channel_id`
@@ -290,6 +289,7 @@ The writer:
       - MUST set `total_msat` to the total amount it will send
 
 The reader:
+  - if `encrypted_recipient_data` is present, MUST decrypt it and use its fields as if they were directly in `tlv_payload`.
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
   - if it is the final node:
     - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it
@@ -415,6 +415,12 @@ may contain the following TLV fields:
     1. type: 8 (`next_blinding_override`)
     2. data:
         * [`point`:`blinding`]
+    1. type: 10 (`amt_to_forward`)
+    2. data:
+        * [`tu64`:`amt_to_forward`]
+    1. type: 12 (`outgoing_cltv_value`)
+    2. data:
+        * [`tu32`:`outgoing_cltv_value`]
 
 #### Requirements
 
@@ -439,6 +445,11 @@ A recipient N(r) creating a blinded route `N(0) -> N(1) -> ... -> N(r)` to itsel
 - MUST communicate the blinded node IDs `B(i)` and `encrypted_data(i)` to the sender
 - MUST communicate the real node ID of the introduction point `N(0)` to the sender
 - MUST communicate the first ephemeral key `E(0)` to the sender
+- If the route is to be used for messaging:
+  - MUST include `next_node_id` in each `encrypted_data` except the last one.
+- If the route is to be used for payment:
+  - MUST include `short_channel_id` in each `encrypted_data` except the last one.
+  - MUST compute all the `amt_to_forward`s and `outgoing_cltv_value`s along the route and include them in the `encrypted_data`s.
 
 The sender:
 
@@ -527,6 +538,18 @@ The `padding` field can be used to ensure that all `encrypted_data` have the
 same length. It's particularly useful when adding dummy hops at the end of a
 blinded route, to prevent the sender from figuring out which node is the final
 recipient.
+
+When expecting a blinded payment, the payer should tell the recipient how much
+they want to send and the recipient should create a new blinded route paying
+the right fees to the intermediate nodes for this amount and using the right
+CLTV expiries.
+This allows the payer to send the payment without having to know the fees and
+CLTV expiry deltas of the channels inside the blinded route which would be a
+privacy leak.
+In this scenario, the recipient should pay the fees of the blinded route so that
+the payer doesn't get any information on the blinded route and also because it
+wouldn't be fair to have the payer pay fees for a path that they are forced to
+use.
 
 # Accepting and Forwarding a Payment
 
