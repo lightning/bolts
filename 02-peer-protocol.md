@@ -604,8 +604,9 @@ A sending node:
     - MUST NOT send a `shutdown`.
   - MUST NOT send multiple `shutdown` messages.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
-  - if no HTLCs remain in either commitment transaction:
-    - MUST NOT send any `update` message after a `shutdown`.
+  - if no HTLCs remain in either commitment transaction (including dust HTLCs)
+    and neither side has a pending `revoke_and_ack` to send:
+    - MUST NOT send any `update` message after that point.
   - SHOULD fail to route any HTLC added after it has sent `shutdown`.
   - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
     - MUST send the same value in `scriptpubkey`.
@@ -637,10 +638,13 @@ shutdown starts, the question of how to behave if it wasn't is avoided:
 the sender always sends a `commitment_signed` first.
 
 As shutdown implies a desire to terminate, it implies that no new
-HTLCs will be added or accepted.  Once any HTLCs are cleared, the peer
-may immediately begin closing negotiation, so we ban further updates
-to the commitment transaction (in particular, `update_fee` would be
-possible otherwise).
+HTLCs will be added or accepted.  Once any HTLCs are cleared, there are no commitments
+for which a revocation is owed, and all updates are included on both commitment
+transactions, the peer may immediately begin closing negotiation, so we ban further
+updates to the commitment transaction (in particular, `update_fee` would be
+possible otherwise). However, while there are HTLCs on the commitment transaction,
+the initiator may find it desirable to increase the feerate as there may be pending
+HTLCs on the commitment which could timeout.
 
 The `scriptpubkey` forms include only standard segwit forms accepted by
 the Bitcoin network, which ensures the resulting transaction will
@@ -659,8 +663,9 @@ The `shutdown` response requirement implies that the node sends `commitment_sign
 
 ### Closing Negotiation: `closing_signed`
 
-Once shutdown is complete and the channel is empty of HTLCs, the final
-current commitment transactions will have no HTLCs, and closing fee
+Once shutdown is complete, the channel is empty of HTLCs, there are no commitments
+for which a revocation is owed, and all updates are included on both commitments,
+the final current commitment transactions will have no HTLCs, and closing fee
 negotiation begins.  The funder chooses a fee it thinks is fair, and
 signs the closing transaction with the `scriptpubkey` fields from the
 `shutdown` messages (along with its chosen fee) and sends the signature;
