@@ -405,7 +405,7 @@ The sender:
 The recipient:
   - if `signature` is incorrect OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST send a `warning` and close the connection, or send an
-      `error` and fail the channel.
+     `error` and fail the channel.
 
 #### Rationale
 
@@ -575,7 +575,8 @@ Closing happens in two stages:
         |       |<-(2)-----  shutdown  --------|       |
         |       |                              |       |
         |       | <complete all pending HTLCs> |       |
-        |   A   |                 ...          |   B   |
+        |       |    <must not add HTLCs>      |       |
+        |   A   |              ...             |   B   |
         |       |                              |       |
         |       |--(3)-- closing_signed  F1--->|       |
         |       |<-(4)-- closing_signed  F2----|       |
@@ -612,7 +613,6 @@ A sending node:
   - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
     - MUST send the same value in `scriptpubkey`.
   - MUST set `scriptpubkey` in one of the following forms:
-
     1. `OP_0` `20` 20-bytes (version 0 pay to witness pubkey hash), OR
     2. `OP_0` `32` 32-bytes (version 0 pay to witness script hash), OR
     3. if (and only if) `option_shutdown_anysegwit` is negotiated:
