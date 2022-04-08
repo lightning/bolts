@@ -280,37 +280,33 @@ The writer:
 
 - Unless `node_announcement`, `init` message or the [BOLT #11](11-payment-encoding.md#tagged-fields) offers feature `var_onion_optin`:
   - MUST use the legacy payload format instead.
-- For every node outside of a blinded route:
-  - MUST include `amt_to_forward` and `outgoing_cltv_value`.
 - For every node inside a blinded route:
   - MUST include the `encrypted_data` provided by the recipient
-  - If it is the final node:
-    - MUST include `amt_to_forward` and `outgoing_cltv_value`.
-  - Otherwise:
-    - MUST NOT include `amt_to_forward` and `outgoing_cltv_value`.
-  - For the first node in the blinded route:
-    - MUST include the `blinding_point` provided by the recipient
-- For every non-final node:
-  - MUST include `short_channel_id` when not part of a blinded route
-  - MUST NOT include `payment_data`
-- For the final node:
-  - MUST NOT include `short_channel_id`
-  - if the recipient provided `payment_secret`:
-    - MUST include `payment_data`
-    - MUST set `payment_secret` to the one provided
-    - MUST set `total_msat` to the total amount it will send
-  - if the recipient provided `payment_metadata`:
-    - MUST include `payment_metadata` with every HTLC
-    - MUST not apply any limits to the size of `payment_metadata` except the limits implied by the fixed onion size
+  - MUST NOT set any other TLV, except:
+    - For the final node, MUST set `amt_to_forward` and `outgoing_cltv_value`.
+    - For the first node in the blinded route, MUST set `blinding_point` to the value provided by the recipient
+- For every node outside of a blinded route:
+  - MUST include `amt_to_forward` and `outgoing_cltv_value`.
+  - For every non-final node:
+    - MUST include `short_channel_id`
+    - MUST NOT include `payment_data`
+  - For the final node:
+    - MUST NOT include `short_channel_id`
+    - if the recipient provided `payment_secret`:
+      - MUST include `payment_data`
+      - MUST set `payment_secret` to the one provided
+      - MUST set `total_msat` to the total amount it will send
+    - if the recipient provided `payment_metadata`:
+      - MUST include `payment_metadata` with every HTLC
+      - MUST not apply any limits to the size of `payment_metadata` except the limits implied by the fixed onion size
 
 The reader:
 
-- If it is not part of a blinded route:
-  - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
-- If it is the final node:
-  - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it is not present.
-- If it is part of a blinded route:
+- If the reader is provided a `blinding_point`, either in the lightning message from the previous node or in this payload:
+  - MUST return an error if it received `blinding_point` from both the lightning message from the previous node and this payload.
   - MUST return an error if `encrypted_recipient_data` is not present.
+  - If it is the final node MUST return an error if `amt_to_forward` or `outgoing_cltv_value` is not set.
+  - MUST return an error if any other TLV is present, including unknown TLVs.
   - MUST return an error if the expiry is greater than `encrypted_recipient_data.payment_constraints.max_cltv_expiry`.
   - MUST return an error if the amount is below `encrypted_recipient_data.payment_constraints.htlc_minimum_msat`.
   - MUST return an error if the payment uses a feature not included in `encrypted_recipient_data.payment_constraints.allowed_features`.
@@ -325,6 +321,11 @@ The reader:
     - MUST return an error if the `path_id` in `encrypted_recipient_data` does not match the one it created.
     - MUST return an error if `amt_to_forward` is below what it expects for the payment.
     - SHOULD add a random delay before returning errors.
+- Otherwise it is not part of a blinded route:
+  - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
+  - MUST return an error if `encrypted_recipient_data` is present.
+- If it is the final node:
+  - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it is not present.
 
 The requirements for the contents of these fields are specified [above](#legacy-hop_data-payload-format)
 and [below](#basic-multi-part-payments).
@@ -482,6 +483,15 @@ A recipient N(r) creating a blinded route `N(0) -> N(1) -> ... -> N(r)` to itsel
 - MUST communicate the blinded node IDs `B(i)` and `encrypted_data(i)` to the sender
 - MUST communicate the real node ID of the introduction point `N(0)` to the sender
 - MUST communicate the first blinding ephemeral key `E(0)` to the sender
+- If the blinded route is for payments:
+  - MUST set `short_channel_id` and `payment_relay` for all but the last node.
+  - MUST NOT set `next_node_id`.
+  - MUST NOT set `path_id` except possibly for the last node.
+  - MUST compute the total fees and CLTV expiry delta of the route by aggregating all the `payment_relay`s and communicate them to the sender.
+- If the blinded route is for sending messages:
+  - MUST set `next_node_id` for all but the last node.
+  - MUST NOT set `short_channel_id`, `payment_relay` or `payment_constraints`.
+  - MUST NOT set `path_id` except possibly for the last node.
 
 The sender:
 
