@@ -546,6 +546,7 @@ A sending node:
   - MAY send a `shutdown` before a `funding_locked`, i.e. before the funding transaction has reached `minimum_depth`.
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
+  - MUST NOT send multiple `shutdown` messages.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
   - if no HTLCs remain in either commitment transaction:
     - MUST NOT send any `update` message after a `shutdown`.
