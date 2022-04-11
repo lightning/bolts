@@ -990,6 +990,12 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
    * [`u32`:`cltv_expiry`]
    * [`1366*byte`:`onion_routing_packet`]
 
+1. `tlv_stream`: `update_add_htlc_tlvs`
+2. types:
+    1. type: 0 (`blinding_point`)
+    2. data:
+        * [`point`:`blinding`]
+
 #### Requirements
 
 A sending node:
@@ -1025,6 +1031,8 @@ A sending node:
   - for the first HTLC it offers:
     - MUST set `id` to 0.
   - MUST increase the value of `id` by 1 for each successive offer.
+  - if it is relaying a payment inside a blinded route:
+    - MUST set `blinding_point` (see [Route Blinding](04-onion-routing.md#route-blinding))
 
 `id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
 been received). It MUST continue incrementing instead.
@@ -1049,6 +1057,8 @@ A receiving node:
   - if other `id` violations occur:
     - MAY send a `warning` and close the connection, or send an
       `error` and fail the channel.
+  - if `blinding_point` is provided:
+    - MUST use the corresponding blinded private key to decrypt the `onion_routing_packet` (see [Route Blinding](04-onion-routing.md#route-blinding))
 
 The `onion_routing_packet` contains an obfuscated list of hops and instructions for each hop along the path.
 It commits to the HTLC by setting the `payment_hash` as associated data, i.e. includes the `payment_hash` in the computation of HMACs.
@@ -1131,6 +1141,17 @@ A node:
   commitment transactions:
     - MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc`, or
 `update_fail_malformed_htlc`.
+  - When failing an incoming HTLC:
+    - If `current_blinding_point` is set in the onion payload and it is not the
+      final node:
+      - MUST send an `update_fail_htlc` error using the
+        `invalid_onion_blinding` failure code with the `sha256_of_onion`
+        of the onion it received, for any local or downstream errors.
+      - SHOULD add a random delay before sending `update_fail_htlc`.
+    - If `blinding_point` is set in the incoming `update_add_htlc`:
+      - MUST send an `update_fail_malformed_htlc` error using the
+        `invalid_onion_blinding` failure code with the `sha256_of_onion`
+        of the onion it received, for any local or downstream errors.
 
 A receiving node:
   - if the `id` does not correspond to an HTLC in its current commitment transaction:
@@ -1169,6 +1190,9 @@ does match the onion it sent, which may allow it to detect random bit
 errors. However, without re-checking the actual encrypted packet sent,
 it won't know whether the error was its own or the remote's; so
 such detection is left as an option.
+
+Nodes inside a blinded route must use `invalid_onion_blinding` to avoid
+leaking information to senders trying to probe the blinded route.
 
 ### Committing Updates So Far: `commitment_signed`
 

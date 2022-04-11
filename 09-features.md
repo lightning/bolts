@@ -19,32 +19,35 @@ for use of the channel, so the presentation of those features depends
 on the feature itself.
 
 The Context column decodes as follows:
+
 * `I`: presented in the `init` message.
 * `N`: presented in the `node_announcement` messages
 * `C`: presented in the `channel_announcement` message.
 * `C-`: presented in the `channel_announcement` message, but always odd (optional).
 * `C+`: presented in the `channel_announcement` message, but always even (required).
 * `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
+* `B`: presented in the `allowed_features` field of a blinded path.
 
-| Bits  | Name                             | Description                                               | Context  | Dependencies      | Link                                  |
-|-------|----------------------------------|-----------------------------------------------------------|----------|-------------------|---------------------------------------|
-| 0/1   | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields   | IN       |                   | [BOLT #2][bolt02-retransmit]          |
-| 3     | `initial_routing_sync`           | Sending node needs a complete routing information dump    | I        |                   | [BOLT #7][bolt07-sync]                |
-| 4/5   | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel   | IN       |                   | [BOLT #2][bolt02-open]                |
-| 6/7   | `gossip_queries`                 | More sophisticated gossip control                         | IN       |                   | [BOLT #7][bolt07-query]               |
-| 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN9      |                   | [Routing Onion Specification][bolt04] |
-| 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | `gossip_queries`  | [BOLT #7][bolt07-query]               |
-| 12/13 | `option_static_remotekey`        | Static key for remote output                              | IN       |                   | [BOLT #3](03-transactions.md)         |
-| 14/15 | `payment_secret`                 | Node supports `payment_secret` field                      | IN9      | `var_onion_optin` | [Routing Onion Specification][bolt04] |
-| 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | `payment_secret`  | [BOLT #4][bolt04-mpp]                 |
-| 18/19 | `option_support_large_channel`   | Can create large channels                                 | IN       |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
-| 20/21 | `option_anchor_outputs`          | Anchor outputs                                            | IN       | `option_static_remotekey` | [BOLT #3](03-transactions.md)         |
-| 22/23 | `option_anchors_zero_fee_htlc_tx` | Anchor commitment type with zero fee HTLC transactions   | IN       | `option_static_remotekey` | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful]|
-| 26/27 | `option_shutdown_anysegwit`         | Future segwit versions allowed in `shutdown`              | IN       |                   | [BOLT #2][bolt02-shutdown]   |
-| 44/45 | `option_channel_type`            | Node supports the `channel_type` field in open/accept     | IN       |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
-| 46/47 | `option_scid_alias`              | Supply channel aliases for routing                        | IN       |                   | [BOLT #2][bolt02-channel-ready]   |
-| 48/49 | `option_payment_metadata` | Payment metadata in tlv record | 9 | | [BOLT #11](11-payment-encoding.md#tagged-fields)
-| 50/51 | `option_zeroconf`                | Understands zeroconf channel types                        | IN       | `option_scid_alias` | [BOLT #2][bolt02-channel-ready]   |
+| Bits  | Name                              | Description                                               | Context  | Dependencies              | Link                                                                  |
+|-------|-----------------------------------|-----------------------------------------------------------|----------|---------------------------|-----------------------------------------------------------------------|
+| 0/1   | `option_data_loss_protect`        | Requires or supports extra `channel_reestablish` fields   | IN       |                           | [BOLT #2][bolt02-retransmit]                                          |
+| 3     | `initial_routing_sync`            | Sending node needs a complete routing information dump    | I        |                           | [BOLT #7][bolt07-sync]                                                |
+| 4/5   | `option_upfront_shutdown_script`  | Commits to a shutdown scriptpubkey when opening channel   | IN       |                           | [BOLT #2][bolt02-open]                                                |
+| 6/7   | `gossip_queries`                  | More sophisticated gossip control                         | IN       |                           | [BOLT #7][bolt07-query]                                               |
+| 8/9   | `var_onion_optin`                 | Requires/supports variable-length routing onion payloads  | IN9      |                           | [Routing Onion Specification][bolt04]                                 |
+| 10/11 | `gossip_queries_ex`               | Gossip queries can include additional information         | IN       | `gossip_queries`          | [BOLT #7][bolt07-query]                                               |
+| 12/13 | `option_static_remotekey`         | Static key for remote output                              | IN       |                           | [BOLT #3](03-transactions.md)                                         |
+| 14/15 | `payment_secret`                  | Node supports `payment_secret` field                      | IN9      | `var_onion_optin`         | [Routing Onion Specification][bolt04]                                 |
+| 16/17 | `basic_mpp`                       | Node can receive basic multi-part payments                | IN9      | `payment_secret`          | [BOLT #4][bolt04-mpp]                                                 |
+| 18/19 | `option_support_large_channel`    | Can create large channels                                 | IN       |                           | [BOLT #2](02-peer-protocol.md#the-open_channel-message)               |
+| 20/21 | `option_anchor_outputs`           | Anchor outputs                                            | IN       | `option_static_remotekey` | [BOLT #3](03-transactions.md)                                         |
+| 22/23 | `option_anchors_zero_fee_htlc_tx` | Anchor commitment type with zero fee HTLC transactions    | IN       | `option_static_remotekey` | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful] |
+| 24/25 | `option_route_blinding`           | Node supports blinded paths                               | IN9      | `var_onion_optin`         | [BOLT #4](bolt04-route-blinding)                                      |
+| 26/27 | `option_shutdown_anysegwit`       | Future segwit versions allowed in `shutdown`              | IN       |                           | [BOLT #2][bolt02-shutdown]                                            |
+| 44/45 | `option_channel_type`             | Node supports the `channel_type` field in open/accept     | IN       |                           | [BOLT #2](02-peer-protocol.md#the-open_channel-message)               |
+| 46/47 | `option_scid_alias`               | Supply channel aliases for routing                        | IN       |                           | [BOLT #2][bolt02-channel-ready]                                       |
+| 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                           | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
+| 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | IN       | `option_scid_alias`       | [BOLT #2][bolt02-channel-ready]                                       |
 
 ## Definitions
 
@@ -100,4 +103,5 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
 [bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
+[bolt04-route-blinding]: 04-onion-routing.md#route-blinding
 [ml-sighash-single-harmful]: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-September/002796.html

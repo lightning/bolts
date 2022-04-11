@@ -19,6 +19,7 @@
   * [Recipient pays fees](#recipient-pays-fees)
   * [Dummy hops](#dummy-hops)
   * [Wallets and unannounced channels](#wallets-and-unannounced-channels)
+  * [Blinded route selection](#blinded-route-selection)
   * [Blinded trampoline route](#blinded-trampoline-route)
 * [FAQ](#faq)
   * [Why not use rendezvous](#why-not-use-rendezvous)
@@ -198,9 +199,10 @@ The `encrypted_data` for each intermediate node will contain the following field
 * `htlc_minimum_msat`: minimum htlc amount that should be accepted
 * `allowed_features`: features related to payment relay that the sender is allowed to use
 
-The recipient must use values that exceed the ones found in each `channel_udpate`, otherwise it
-would be easy for a malicious sender to figure out which channels are hidden inside the blinded
-route.
+The recipient must use values that provide a good enough anonymity set, by looking at nearby
+channels and selecting values that would work for a large enough number of those channels.
+Otherwise it could be easy for a malicious sender to figure out which channels are hidden inside
+the blinded route if for example the selected fees are lower than most other candidates.
 
 The recipient also includes the `payment_preimage` (or another private unique identifier for the
 payment) in the `path_id` field of the `encrypted_data` payload for itself: this will let the
@@ -244,12 +246,18 @@ channels described above and adds a safety margin in case nodes update their rel
 * `cltv_expiry_delta`: 144
 
 Alice uses the same values for both channels for simplicity's sake. Alice can now compute aggregate
-values for the complete route (iteratively starting from the end of the route):
+values for the complete route (iteratively starting from the end of the route), using integer
+arithmetric to compute `ceil(a/b)` as `(a+b-1)/b` (we round values up, otherwise the sender may
+receive slightly less than intended):
 
-* `route_fee_base_msat`: ceil(100 + 100 * (1 + 500/1000000)) = 201
-* `route_fee_proportional_millionths`: ceil((500/1000000) + (500/1000000) + (500/1000000)^2) = 1001
+* `route_fee_base_msat(n+1) = (fee_base_msat(n+1) * 1000000 + route_fee_base_msat(n) * (1000000 + fee_proportional_millionths(n+1)) + 1000000 - 1) / 1000000`
+* `route_fee_proportional_millionths(n+1) = ((route_fee_proportional_millionths(n) + fee_proportional_millionths(n+1)) * 1000000 + route_fee_proportional_millionths(n) * fee_proportional_millionths(n+1) + 1000000 - 1) / 1000000`
+
+This yields the following values:
+
+* `route_fee_base_msat`: 201
+* `route_fee_proportional_millionths`: 1001
 * `route_cltv_expiry_delta`: 288
-* NB: we need to round values up, otherwise the recipient will receive slightly less than expected
 
 Let's assume the current block height is 1000. Alice wants the route to be used in the next 200
 blocks, so she sets `max_cltv_expiry = 1200` and adds `cltv_expiry_delta` for each hop. Alice then
@@ -288,19 +296,19 @@ allow Carol to compute the blinding shared secret and correctly forward. We put 
 ephemeral key in the onion instead of using a tlv in `update_add_htlc` because intermediate nodes
 added before the blinded route may not support route blinding and wouldn't know how to relay it.
 
-Eve wants to send 100 000 msat to this blinded route.
-She can reach Carol via Dave: `Eve -> Dave -> Carol`, where the channel between Dave and Carol uses
+Erin wants to send 100 000 msat to this blinded route.
+She can reach Carol via Dave: `Erin -> Dave -> Carol`, where the channel between Dave and Carol uses
 the following relay parameters:
 
 * `fee_base_msat`: 10
 * `fee_proportional_millionths`: 100
 * `cltv_expiry_delta`: 24
 
-Eve uses the aggregated route relay parameters to compute how much should be sent to Carol:
+Erin uses the aggregated route relay parameters to compute how much should be sent to Carol:
 
-* `amount = ceil(100000 + 201 + 1001 * 100000 / 1000000) = 100302 msat`
+* `amount = 100000 + 201 + (1001 * 100000 + 1000000 - 1) / 1000000 = 100302 msat`
 
-Eve chooses a final expiry of 1100, which is below Alice's `max_cltv_expiry`, and computes the
+Erin chooses a final expiry of 1100, which is below Alice's `max_cltv_expiry`, and computes the
 expiry that should be sent to Carol:
 
 * `expiry = 1100 + 288 = 1388`
@@ -311,12 +319,12 @@ or `outgoing_cltv_value`. They will have to compute them based on the fields con
 
 For example, here is how Carol will compute the values for the htlc she relays to Bob:
 
-* `amount = ceil((100302 - fee_base_msat) / (1 + fee_proportional_millionths)) = 100152 msat`
+* `amount = ((100302 - fee_base_msat) * 1000000 + 1000000 + fee_proportional_millionths - 1) / (1000000 + fee_proportional_millionths) = 100152 msat`
 * `expiry = 1388 - cltv_expiry_delta = 1244`
 
 And here is how Bob computes the values for the htlc he relays to Alice:
 
-* `amount = ceil((100152 - fee_base_msat) / (1 + fee_proportional_millionths)) = 100002 msat`
+* `amount = ((100152 - fee_base_msat) * 1000000 + 1000000 + fee_proportional_millionths - 1) / (1000000 + fee_proportional_millionths) = 100002 msat`
 * `expiry = 1244 - cltv_expiry_delta = 1100`
 
 Note that as the rounding errors aggregate, the recipient will receive slightly more than what was
@@ -327,7 +335,7 @@ protects against intermediate nodes that would try to relay a lower amount).
 The messages exchanged will contain the following values:
 
 ```text
-     Eve                                          Dave                                                   Carol                                                   Bob                                         Alice
+    Erin                                          Dave                                                   Carol                                                   Bob                                         Alice
       |             update_add_htlc                |              update_add_htlc                          |             update_add_htlc                          |             update_add_htlc                |
       |     +--------------------------------+     |      +------------------------------------------+     |     +------------------------------------------+     |     +--------------------------------+     |
       |     |  amount: 100322 msat           |     |      |  amount: 100302 msat                     |     |     |  amount: 100152 msat                     |     |     |  amount: 100002 msat           |     |
@@ -476,6 +484,80 @@ and `scid` from the sender. It obviously reveals to the blinded node that the ne
 final recipient, but a wallet that's not online all the time with a stable IP will never be able
 to hide that information from the nodes it connects to anyway (even with rendezvous).
 
+### Blinded route selection
+
+There is a wide array of strategies that a recipient may use when creating a blinded route to
+ensure good privacy while maintaining good payment reliability. We will walk through some of
+these strategies below. Note that these are only examples, implementations should find strategies
+that suit their users' needs.
+
+If the recipient is not a public node and has a small number of peers, then it's very simple:
+they can include one path per peer. A mobile wallet's topology for example will typically look
+like this:
+
+```text
+               +-------+      +-------+
+    +----------| Carol |      |   X   |
+    |          +-------+      +-------+
+    |              |              |
+    |              |              |
++-------+      +-------+      +-------+      +-------+
+| Alice |------|  Bob  |------|   X   |------|   X   |
++-------+      +-------+      +-------+      +-------+
+    |                             |
+    |                             |
+    |                         +-------+
+    +-------------------------| Dave  |
+                              +-------+
+```
+
+Alice could provide a blinded route containing one blinded path per peer and dummy hops:
+
+* Bob   -> Blinded(Alice) -> Blinded(Alice) -> Blinded(Alice)
+* Carol -> Blinded(Alice) -> Blinded(Alice) -> Blinded(Alice)
+* Dave  -> Blinded(Alice) -> Blinded(Alice) -> Blinded(Alice)
+
+Alice is able to use all of her inbound liquidity while benefiting from a large anonymity set: she
+could be any node at most three hops away from Bob, Carol and Dave.
+
+If the recipient is a public node, its strategy will be different. It should use introduction nodes
+that have many peers to obtain a good anonymity set. Let's assume that Alice's neighbourhood has
+the following topology:
+
+```text
++-------+      +-------+
+|   X   |      |   X   |
++-------+      +-------+
+    |              |
+    |              |
++-------+      +-------+      +-------+
+|  N1   |------|  N2   |------|   X   |
++-------+      +-------+      +-------+
+    |              |              |
+    |              |              |
++-------+      +-------+      +-------+      +-------+
+| Alice |------|  N3   |------|  N4   |------|   X   |
++-------+      +-------+      +-------+      +-------+
+```
+
+Alice can run a BFS of depth 2 to identify that N2 and N4 are good introduction nodes that provide
+a large anonymity set. She can then provide the following blinded paths:
+
+* N2 -> Blinded(N1) -> Blinded(Alice) -> Blinded(Alice)
+* N4 -> Blinded(N3) -> Blinded(Alice) -> Blinded(Alice)
+
+Alice should analyze the payment relay parameters of all channels in her anonymity set and choose
+fees/cltv that would work for a large enough subset of them.
+
+Note that Alice chose non-overlapping paths: otherwise these paths may not have enough liquidity
+to relay the payment she expects to receive, unless the path capacity is much larger than the
+expected payment.
+
+When the receiver expects to receive large payments, liquidity may become an issue if it is
+scattered among too many peers. The receiver may be forced to use introduction nodes that are
+direct peers to ensure that enough liquidity is available (in which case it's particularly useful
+to include dummy hops in the blinded paths).
+
 ### Blinded trampoline route
 
 Route blinding can also be used with trampoline very easily. Instead of providing the
@@ -485,6 +567,34 @@ Each trampoline node can then decrypt the `node_id` of the next node and compute
 next trampoline node. That `E(i)` can then be sent in the outer onion payload instead of using the
 lightning message's fields, which is even cleaner and doesn't require nodes between trampoline
 nodes to understand route blinding.
+
+Using a blinded trampoline route is a good solution for public nodes that have many peers and
+run into liquidity issues affecting payment reliability. Such recipients can choose trampoline
+nodes that will be able to find many paths towards them:
+
+```text
+               +-------+                     +-------+      
+    +----------|   X   |--------+   +--------|   X   |----------+
+    |          +-------+        |   |        +-------+          |
+    |                           |   |                           |
+    |                           |   |                           |
++-------+      +-------+      +-------+      +-------+      +-------+
+|  T1   |------|   X   |------| Alice |------|   X   |------|  T2   |
++-------+      +-------+      +-------+      +-------+      +-------+
+    |                           |   |                           |
+    |                           |   |                           |
+    |          +-------+        |   |        +-------+          |
+    +----------|   X   |--------+   +--------|   X   |----------+
+               +-------+                     +-------+      
+```
+
+Alice can provide the following blinded trampoline paths:
+
+* T1 -> Blinded(Alice)
+* T2 -> Blinded(Alice)
+
+T1 and T2 will be able to find many paths towards Alice and retry whenever some paths fail,
+working around the potential liquidity constraints.
 
 ## FAQ
 
