@@ -998,11 +998,13 @@ The amount in the HTLC doesn't match the value in the onion.
 
 1. type: UPDATE|20 (`channel_disabled`)
 2. data:
-   * [`u16`:`flags`]
+   * [`u16`:`disabled_flags`]
    * [`u16`:`len`]
    * [`len*byte`:`channel_update`]
 
 The channel from the processing node has been disabled.
+No flags for `disabled_flags` are currently defined, thus it is currently
+always two zero bytes.
 
 1. type: 21 (`expiry_too_far`)
 
