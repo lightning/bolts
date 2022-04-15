@@ -1105,7 +1105,7 @@ per [HTLC Fees](#htlc-fees):
 
         200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
-Similarly, it would need to add B->C's `channel_update` `cltv_expiry` (20), C's
+Similarly, it would need to add B->C's `channel_update` `cltv_expiry_delta` (20), C's
 requested `min_final_cltv_expiry` (9), and the cost for the _shadow route_ (42).
 Thus, A->B's `update_add_htlc` message would be:
 
