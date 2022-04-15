@@ -853,7 +853,8 @@ The top byte of `failure_code` can be read as a set of flags:
 * 0x1000 (UPDATE): new channel update enclosed
 
 Please note that the `channel_update` field is mandatory in messages whose
-`failure_code` includes the `UPDATE` flag.
+`failure_code` includes the `UPDATE` flag. It is encoded *with* the message
+type prefix, i.e. it will always start with `0x0102`.
 
 The following `failure_code`s are defined:
 
