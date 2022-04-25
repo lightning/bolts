@@ -570,21 +570,17 @@ of extended queries for gossip synchronization.  These explicitly
 request what gossip should be received.
 
 There are several messages which contain a long array of
-`short_channel_id`s (called `encoded_short_ids`) so we utilize a
-simple compression scheme: the first byte indicates the encoding, the
-rest contains the data.
+`short_channel_id`s (called `encoded_short_ids`) so we include an encoding byte
+which allows for different encoding schemes to be defined in the future, if they
+provide benefit.
 
 Encoding types:
 * `0`: uncompressed array of `short_channel_id` types, in ascending order.
-* `1`: array of `short_channel_id` types, in ascending order, compressed with zlib deflate<sup>[1](#reference-1)</sup>
+* `1`: Previously used for zlib compression, this encoding MUST NOT be used.
 
-This encoding is also used for arrays of other types (timestamps, flags, ...), and specified with an `encoded_` prefix. For example, `encoded_timestamps` is an array of timestamps than can be either compressed (with a `1` prefix) or uncompressed (with a `0` prefix).
-
-Note that a 65535-byte zlib message can decompress into 67632120
-bytes<sup>[2](#reference-2)</sup>, but since the only valid contents
-are unique 8-byte values, no more than 14 bytes can be duplicated
-across the stream: as each duplicate takes at least 2 bits, no valid
-contents could decompress to more than 3669960 bytes.
+This encoding is also used for arrays of other types (timestamps, flags, ...),
+and specified with an `encoded_` prefix. For example, `encoded_timestamps` is
+an array of timestamps with a `0` prefix.
 
 Query messages can be extended with optional fields that can help reduce the number of messages needed to synchronize routing tables by enabling:
 
@@ -1129,10 +1125,6 @@ A->D's `update_add_htlc` message would be:
 And D->C's `update_add_htlc` would again be the same as B->C's direct payment
 above.
 
-## References
-
-1. <a id="reference-1">[RFC 1950 "ZLIB Compressed Data Format Specification version 3.3](https://www.ietf.org/rfc/rfc1950.txt)</a>
-2. <a id="reference-2">[Maximum Compression Factor](https://zlib.net/zlib_tech.html)</a>
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
