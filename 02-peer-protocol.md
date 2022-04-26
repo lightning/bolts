@@ -29,8 +29,8 @@ operation, and closing.
       * [Funding Composition](#funding-composition)
       * [The `commitment_signed` Message](#the-commitment_signed-message)
       * [Sharing funding signatures: `tx_signatures`](#sharing-funding-signatures-tx_signatures)
-      * [The `init_rbf` Message](#the-init_rbf-message)
-      * [The `ack_rbf` Message](#the-ack_rbf-message)
+      * [The `tx_init_rbf` Message](#the-tx_init_rbf-message)
+      * [The `tx_ack_rbf` Message](#the-tx_ack_rbf-message)
     * [Channel Close](#channel-close)
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
@@ -67,7 +67,6 @@ transaction is confirmed are also not persistent - until you know the script
 pubkey corresponding to the funding output nothing prevents duplicative channel
 ids.
 
-
 ### `channel_id`, v2
 
 For channels established using the v2 protocol, the `channel_id` is the
@@ -79,11 +78,11 @@ and `accept_channel2`), a temporary `channel_id` should be found by
 using a zeroed out basepoint for the unknown peer.
 
 #### Rationale
+
 These values must be remembered by both peers for correct operation anyway.
 They're known from the first exchange of messages, obviating the need for
 a `temporary_channel_id`. Finally, by mixing information from both sides,
 they avoid `channel_id` collisions.
-
 
 ## Interactive Transaction Construction
 
@@ -95,7 +94,7 @@ for dual-funded channels establishment (v2).
 
 There are two parties to a transaction construction: an *initiator*
 and a *non-initiator*.
- The *initiator* is the peer which initiates the protocol, e.g.
+The *initiator* is the peer which initiates the protocol, e.g.
 for channel establishment v2 the *initiator* would be the peer which
 sends `open_channel2`; for a close, the *initiator* sends `shutdown`.
 
@@ -121,13 +120,12 @@ The rest of the transaction bytes' fees are the responsibility of
 the peer who contributed that input or output via `tx_add_input` or
 `tx_add_output`, at the agreed upon `feerate`.
 
-
 ### Overview
 
 The *initiator* initiates the interactive transaction construction
 protocol with `tx_add_input`. The *non-initiator* responds with any
 of `tx_add_input`, `tx_add_output`, `tx_remove_input`, `tx_remove_output`, or
- `tx_complete`. The protocol continues with the synchronous exchange
+`tx_complete`. The protocol continues with the synchronous exchange
 of interactive transaction protocol messages until both nodes have sent
 and received a consecutive `tx_complete`. This is a turn-based protocol.
 
@@ -182,7 +180,6 @@ B's contributions.
         |       |<-(10) tx_complete ------|       |
         +-------+                         +-------+
 
-
 ### The `tx_add_input` Message
 
 This message contains a transaction input.
@@ -195,8 +192,6 @@ This message contains a transaction input.
     * [`prevtx_len*byte`:`prevtx`]
     * [`u32`:`prevtx_vout`]
     * [`u32`:`sequence`]
-    * [`u16`:`script_sig_len`]
-    * [`script_sig_len*byte`:`script_sig`]
 
 #### Requirements
 
@@ -217,16 +212,13 @@ The receiving node:
       (and not removed) input's
     - `prevtx` is not a valid transaction
     - `prevtx_vout` is greater or equal to the number of outputs on `prevtx`
-    - if the `script_sig` is provided:
-	- and it is not exactly a 1-byte push opcode (for the numeric values `0` to `16`) followed by a data push between 2 and 40 bytes OR
-    - else:
-        - the `scriptPubKey` of the `prevtx_out` output of `prevtx` is not exactly a 1-byte push opcode (for the numeric values 0 to 16) followed by a data push between 2 and 40 bytes
-      followed by a single push of 2 to 40 bytes
+    - the `scriptPubKey` of the `prevtx_vout` output of `prevtx` is not exactly a 1-byte push opcode (for the numeric values `0` to `16`) followed by a data push between 2 and 40 bytes
     - the `serial_id` is already included in the transaction
     - the `serial_id` has the wrong parity
     - if has received 4096 `tx_add_input` messages during this negotiation
 
 #### Rationale
+
 Each node must know the set of the transaction inputs. The *non-initiator*
 MAY omit this message.
 
@@ -240,9 +232,6 @@ this input spends. Used to verify that the input is non-malleable.
 
 `sequence` is the sequence number of this input.  Must be less than
 4294967294 (0xFFFFFFFE). See BIP125.
-
-`script_sig` is the scriptSig for the input, with length omitted.
-The `script_sig` for non-P2SH-wrapped inputs will be an empty byte array.
 
 ### The `tx_add_output` Message
 
@@ -270,17 +259,17 @@ The sending node:
 
 The receiving node:
   - MUST add the specified output to the transaction
-  - MUST accept P2WSH, P2WPKH, P2PKH, P2TR `script`s
+  - MUST accept P2WSH, P2WPKH, P2TR `script`s
   - MAY fail the negotiation if `script` is non-standard
   - MUST fail the negotiation if:
     - the `serial_id` is already included in the transaction
     - the `serial_id` has the wrong parity
     - it has received 4096 `tx_add_output` messages during this negotiation
     - the `sats` amount is less than the `dust_limit`
-    - the `sats` amount is greater than 210,0000,000,000,000(`MAX_MONEY`)
-
+    - the `sats` amount is greater than 2,100,000,000,000,000 (`MAX_MONEY`)
 
 #### Rationale
+
 Each node must know the set of the transaction outputs.
 
 `serial_id` is a randomly chosen number which uniquely identifies this output.
@@ -288,13 +277,13 @@ Outputs in the constructed transaction are sorted by `serial_id`.
 
 `sats` is the satoshi value of the output.
 
-`script` is the scriptPubKey for the output. The length is omitted.
+`script` is the scriptPubKey for the output (with its length omitted).
 It's left undefined if you accept other standard outputs such as `OP_RETURN`
 or implement stricter checks on standardness.
 
-
 ### The `tx_remove_input` and `tx_remove_output` Messages
-These message removes an input from the transaction.
+
+This message removes an input from the transaction.
 
 1. type: 68 (`tx_remove_input`)
 2. data:
@@ -321,7 +310,6 @@ The receiving node:
       sender
     - the `serial_id` does not correspond to a currently added input (or output)
 
-
 ### The `tx_complete` Message
 
 This message signals the conclusion of a peer's transaction
@@ -330,7 +318,6 @@ contributions.
 1. type: 70 (`tx_complete`)
 2. data:
     * [`channel_id`:`channel_id`]
-
 
 #### Requirements
 
@@ -350,6 +337,7 @@ The receiving node:
     - the estimated weight of the tx is greater than 400,000 (`MAX_STANDARD_TX_WEIGHT`)
 
 #### Rationale
+
 To signal the conclusion of exchange of transaction inputs and outputs.
 
 Upon successful exchange of `tx_complete` messages, both nodes
@@ -360,7 +348,6 @@ For the `minimum fee` calculation see [BOLT #3](03-transactions.md#calculating-f
 
 The maximum inputs and outputs are capped at 252. This effectively fixes
 the byte size of the input and output counts on the transaction to one (1).
-
 
 ### The `tx_signatures` Message
 
@@ -381,8 +368,8 @@ the byte size of the input and output counts on the transaction to one (1).
     * [`u16`:`len`]
     * [`len*byte`:`witness`]
 
-
 #### Requirements
+
 The sending node:
   - if it has the lowest total satoshis contributed, as defined
     by total `tx_add_input` values:
@@ -403,8 +390,8 @@ The receiving node:
   - SHOULD apply the `witness`es to the transaction and broadcast it
   - MUST reply with their `tx_signatures` if not already transmitted
 
-
 #### Rationale
+
 The peer with the lowest total of inputs amounts must transmit its
 `tx_signatures` first. This gives in a strict ordering of transmission
 for any multiparty tx collaboration.
@@ -420,6 +407,81 @@ it is possible for the fee for the exchanged witness data to be underpaid.
 It is the responsibility of the sending peer to correctly account for the
 required fee, e.g. a multisig witness stack whose weight exceeds 110.
 
+### The `tx_init_rbf` Message
+
+This message initiates a replacement of the transaction after it's been
+completed.
+
+1. type: 72 (`tx_init_rbf`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u32`:`locktime`]
+   * [`u32`:`feerate`]
+
+1. `tlv_stream`: `tx_init_rbf_tlvs`
+2. types:
+    1. type: 0 (`funding_output_contribution`)
+    2. data:
+        * [`tu64`:`satoshis`]
+
+#### Requirements
+
+The sender:
+  - MUST set `feerate` greater than or equal to 65/64 times the `feerate`
+    of the previously constructed transaction, rounded down.
+
+The recipient:
+  - MUST respond either by failing the negotiation or with `tx_ack_rbf`.
+  - MUST fail the negotiation if:
+    - the `feerate` is not greater than 65/64 times `feerate` of the last
+      successfully constructed transaction
+  - MAY fail the negotiation for any reason
+
+#### Rationale
+
+`feerate` is the feerate this transaction will pay. It must be at least
+1/64 greater than the last used `feerate`, rounded down to the nearest
+satoshi to ensure there is progress.
+
+E.g. if the last `feerate` was 520, the next sent `feerate` must be 528
+(520 * 65 / 64 = 528.125, rounded down to 528).
+
+If the previous transaction confirms in the middle of an RBF attempt,
+the attempt MUST be abandoned.
+
+`funding_output_contribution` is the amount of satoshis that this peer
+will contribute to the funding output of the transaction, when there is
+such an output. Note that it may be different from the contribution
+made in the previously completed transaction.
+
+### The `tx_ack_rbf` Message
+
+1. type: 73 (`tx_ack_rbf`)
+2. data:
+    * [`channel_id`:`channel_id`]
+
+1. `tlv_stream`: `tx_ack_rbf_tlvs`
+2. types:
+    1. type: 0 (`funding_output_contribution`)
+    2. data:
+        * [`tu64`:`satoshis`]
+
+#### Requirements
+
+The recipient:
+  - MUST either fail the negotiation or transmit a `tx_add_input` message,
+    restarting the interactive tx collaboration protocol.
+
+#### Rationale
+
+`funding_output_contribution` is the amount of satoshis that this peer
+will contribute to the funding output of the transaction, when there is
+such an output. Note that it may be different from the contribution
+made in the previously completed transaction.
+
+It's recommended that a peer, rather than fail the RBF negotiation due to
+a large feerate change, instead sets their `funding_output_contribution` to
+zero, and decline to participate further in the transaction.
 
 ### The `tx_abort` Message
 
@@ -429,7 +491,7 @@ required fee, e.g. a multisig witness stack whose weight exceeds 110.
    * [`u16`:`len`]
    * [`len*byte`:`data`]
 
-The 2-byte `len` field indicates the number of bytes in the immediately following field.
+The `len` field indicates the number of bytes in the immediately following field.
 
 #### Requirements
 
@@ -446,14 +508,13 @@ A receiving node:
 
 #### Rationale
 
-A recieving node, if they've already sent their `tx_signatures` has no guarantee
+A receiving node, if they've already sent their `tx_signatures` has no guarantee
 that the transaction won't be signed and published by their peer. They must remember
 the transaction and channel (if appropriate) until the transaction is  no longer
 eligible to be spent (i.e. any input has been spent in a different transaction).
 
-The `tx_abort` message allows for the cancelation of an in progress negotation,
+The `tx_abort` message allows for the cancelation of an in progress negotiation,
 and a return to the initial starting state.
-
 
 ## Channel Establishment v1
 
@@ -867,8 +928,6 @@ It changes the previous protocol to allow the `accept_channel2` peer
 (the *accepter*/*non-initiator*) to contribute inputs to the funding
 transaction, via the interactive transaction construction protocol.
 
-The protocol is also expanded to include a mechanism for initiating RBF.
-
         +-------+                              +-------+
         |       |--(1)--- open_channel2  ----->|       |
         |       |<-(2)--- accept_channel2 -----|       |
@@ -881,8 +940,8 @@ The protocol is also expanded to include a mechanism for initiating RBF.
     |   |       |<-(5)--  tx_signatures -------|       |
     |   |       |--(6)--  tx_signatures ------>|       |
     |   |       |                              |       |
-    |   |       |--(a)--- init_rbf ----------->|       |
-    ----|       |<-(b)--- ack_rbf  ------------|       |
+    |   |       |--(a)--- tx_init_rbf -------->|       |
+    ----|       |<-(b)--- tx_ack_rbf ----------|       |
         |       |                              |       |
         |       |--(7)--- funding_locked ----->|       |
         |       |<-(8)--- funding_locked ------|       |
@@ -917,18 +976,16 @@ This message initiates the v2 channel establishment workflow.
    * [`byte`:`channel_flags`]
    * [`opening_tlvs`:`tlvs`]
 
-
 1. `tlv_stream`: `opening_tlvs`
 2. types:
-   1. type: 1 (`option_upfront_shutdown_script`)
+   1. type: 0 (`upfront_shutdown_script`)
    2. data:
-       * [`u16`:`shutdown_len`]
-       * [`shutdown_len*byte`:`shutdown_scriptpubkey`]
+       * [`...*byte`:`shutdown_scriptpubkey`]
 
+Rationale and Requirements are the same as for [`open_channel`](#the-open_channel-message),
+with the following additions.
 
-Rationale and Requirements are the same as for [`open_channel`](#the-open_channel-message), with the following additions:
-
-#### Requirements:
+#### Requirements
 
 If nodes have negotiated `option_dual_fund`:
   - the opening node:
@@ -943,6 +1000,7 @@ The receiving node:
     - the `funding_feerate_per_kw` is unacceptable
 
 #### Rationale
+
 `zerod_channel_id` for the `open_channel2` MUST be derived using a zero-d out
 basepoint for the peer's revocation basepoint.  This allows the peer to
 return channel-assignable errors before the *accepter*'s revocation
@@ -992,17 +1050,15 @@ acceptance of the new channel.
 
 1. `tlv_stream`: `accept_tlvs`
 2. types:
-   1. type: 1 (`option_upfront_shutdown_script`)
+   1. type: 0 (`upfront_shutdown_script`)
    2. data:
-       * [`u16`:`shutdown_len`]
-       * [`shutdown_len*byte`:`shutdown_scriptpubkey`]
-
+       * [`...*byte`:`shutdown_scriptpubkey`]
 
 Rationale and Requirements are the same as listed above,
 for [`accept_channel`](#the-accept_channel-message) with the following
 additions.
 
-#### Requirements:
+#### Requirements
 
 The accepting node:
     - MAY respond with a `funding_satoshis` value of zero.
@@ -1024,26 +1080,27 @@ return channel-assignable errors before the *accepter*'s revocation
 basepoint is known.
 
 ### Funding Composition
+
 Funding composition for channel establishment v2 makes use of the
 [Interactive Transaction Construction](#interactive-transaction-construction)
 protocol, with the following additional caveats.
-
 
 #### The `tx_add_input` Message
 
 No additional caveats or requirements.
 
-
 #### The `tx_add_output` Message
+
 ##### Requirements
+
 The sending node:
   - if is the *opener*:
     - MUST send at least one `tx_add_output`,  which contains the
       channel's funding output
 
 ##### Rationale
-The channel funding output must be added by the *opener*, who pays its fees.
 
+The channel funding output must be added by the *opener*, who pays its fees.
 
 #### The `tx_complete` Message
 
@@ -1073,10 +1130,10 @@ for [`commitment_signed`](#commiting-updates-so-far-commitment_signed) with the 
 #### Requirements
 
 The sending node:
-  - MUST send zero HTLC's.
+  - MUST send zero HTLCs.
 
 The receiving node:
-  - if the message has one or more HTLC's:
+  - if the message has one or more HTLCs:
     - MUST fail the negotiation
   - if it has not already transmitted its `commitment_signed`:
     - MUST send `commitment_signed`
@@ -1085,8 +1142,7 @@ The receiving node:
 
 #### Rationale
 
-The first commitment transaction has no HTLC's.
-
+The first commitment transaction has no HTLCs.
 
 ### Sharing funding signatures: `tx_signatures`
 
@@ -1095,8 +1151,8 @@ from the peer and a `commitment_signature` has been sent, a peer:
   - MUST transmit a [`tx_signatures` message](#the-tx_signatures-message) with their signatures for
     the funding transaction
 
-
 #### Requirements
+
 The sending node:
   - MUST verify it has received a valid commitment signature from its peer
   - MUST remember the details of this funding transaction
@@ -1113,83 +1169,44 @@ The receiving node:
     - MUST ignore this message
 
 #### Rationale
+
 A peer sends their `tx_signatures` as soon as they have received a valid
-`commitments_signed` message.
+`commitment_signed` message.
 
 The channel should be preemptively closed in the case where a peer provides
 valid witness data that causes their paid feerate to fall beneath the
 `open_channel2.funding_feerate_perkw` rate. This penalizes the peer
 for underpayment of fees.
 
+### Fee bumping: `tx_init_rbf` and `tx_ack_rbf`
 
-### The `init_rbf` Message
-
-This message initiates a replacement of a broadcast funding transaction.
-
-1. type: 72 (`init_rbf`)
-2. data:
-   * [`channel_id`:`channel_id`]
-   * [`u64`:`funding_satoshis`]
-   * [`u32`:`locktime`]
-   * [`u32`:`funding_feerate_perkw`]
+After the funding transaction has been broadcast, it can be replaced by
+a transaction paying more fees to make the channel confirm faster.
 
 #### Requirements
 
-The sender:
-  - MUST have sent `open_channel2`
-  - MUST set `funding_feerate_perkw` greater than or equal to
-    65/64 times the last sent `funding_feerate_perkw` rounded down.
+The sender of `tx_init_rbf`:
+  - MUST be the *initiator*
   - MUST NOT have sent or received a `funding_locked` message.
 
 The recipient:
-  - MUST respond either by failing the negotiation or with an `ack_rbf` message.
-  - MUST fail the negotiation if:
-    - the `funding_feerate_perkw` is not greater than 65/64 times
-      `funding_feerate_perkw` of the last successfully negotiated
-      open attempt
-    - they have already sent or received `funding_locked`
+  - MUST fail the negotiation if they have already sent or received
+    `funding_locked`
   - MAY fail the negotiation for any reason
 
 #### Rationale
-`funding_feerate_perkw` is the feerate this funding transaction
-will pay. It must be at least 1/64 greater than the last
-received `funding_feerate_perkw`, rounded down to the nearest
-satoshi.
-
-E.g. if the last `feerate_per_kw_funding` was 520
-the next sent `feerate_per_kw_funding` must be 528
-(520 * 65 / 64 = 528.125, rounded down to 528).
 
 If a valid `funding_locked` message is received in the middle of an
 RBF attempt, the attempt MUST be abandoned.
 
-### The `ack_rbf` Message
-
-1. type: 73 (`ack_rbf`)
-2. data:
-    * [`channel_id`:`channel_id`]
-    * [`u64`:`funding_satoshis`]
-
-#### Requirements
-
-The sender:
-  - MUST NOT have sent or received a `funding_locked` message
-
-The recipient:
-  - MUST either fail the negotiation or transmit a `tx_add_input` message,
-    restarting the interactive tx collaboration protocol, and proceeding
-    the same as with `accept_channel2`.
-
-#### Rationale
-`funding_satoshis` is the amount of satoshis that this peer will
-contribute to the funding output.  Note that this may be different than
-the amount transmitted in either `accept_channel2`.`funding_satoshis` or
-any previous `ack_rbf`.`funding_satoshis`, as the amount the *accepter*
-wishes to commit to the funding output may change.
+Peers can use different values in `tx_init_rbf.funding_output_contribution`
+and `tx_ack_rbf.funding_output_contribution` from the amounts transmitted
+in `open_channel2` and `accept_channel2`: they are allowed to change how
+much they wish to commit to the funding output.
 
 It's recommended that a peer, rather than fail the RBF negotiation due to
-a large feerate change, instead sets their `funding_satoshis` to zero,
-and decline to participate further in the channel funding.
+a large feerate change, instead sets their `sats` to zero, and decline to
+participate further in the channel funding.
 
 ## Channel Close
 
