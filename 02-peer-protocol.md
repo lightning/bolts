@@ -97,7 +97,7 @@ There are two parties to a transaction construction: an *initiator*
 and a *non-initiator*.
 The *initiator* is the peer which initiates the protocol, e.g.
 for channel establishment v2 the *initiator* would be the peer which
-sends `open_channel2`; for a close, the *initiator* sends `shutdown`.
+sends `open_channel2`.
 
 The protocol makes the following assumptions:
 
@@ -511,10 +511,10 @@ A receiving node:
 
 A receiving node, if they've already sent their `tx_signatures` has no guarantee
 that the transaction won't be signed and published by their peer. They must remember
-the transaction and channel (if appropriate) until the transaction is  no longer
+the transaction and channel (if appropriate) until the transaction is no longer
 eligible to be spent (i.e. any input has been spent in a different transaction).
 
-The `tx_abort` message allows for the cancelation of an in progress negotiation,
+The `tx_abort` message allows for the cancellation of an in progress negotiation,
 and a return to the initial starting state.
 
 ## Channel Establishment v1
@@ -982,6 +982,9 @@ This message initiates the v2 channel establishment workflow.
    1. type: 0 (`upfront_shutdown_script`)
    2. data:
        * [`...*byte`:`shutdown_scriptpubkey`]
+   1. type: 1 (`channel_type`)
+   2. data:
+        * [`...*byte`:`type`]
 
 Rationale and Requirements are the same as for [`open_channel`](#the-open_channel-message),
 with the following additions.
@@ -998,7 +1001,7 @@ The sending node:
 The receiving node:
   - MAY fail the negotiation if:
     - the `locktime` is unacceptable
-    - the `funding_feerate_per_kw` is unacceptable
+    - the `funding_feerate_perkw` is unacceptable
 
 #### Rationale
 
@@ -1054,6 +1057,9 @@ acceptance of the new channel.
    1. type: 0 (`upfront_shutdown_script`)
    2. data:
        * [`...*byte`:`shutdown_scriptpubkey`]
+   1. type: 1 (`channel_type`)
+   2. data:
+        * [`...*byte`:`type`]
 
 Rationale and Requirements are the same as listed above,
 for [`accept_channel`](#the-accept_channel-message) with the following
@@ -1161,10 +1167,10 @@ The sending node:
     - MUST NOT send a `tx_signatures` message
 
 The receiving node:
-  - the `witness_stack` weight lowers the effective `feerate`
+  - if the `witness_stack` weight lowers the effective `feerate`
     below the the *opener*'s feerate for the funding transaction:
     - SHOULD broadcast their commitment transaction, closing the channel.
-  - SHOULD apply `witness`es to the funding transaction and broadcast it
+  - SHOULD apply `witnesses` to the funding transaction and broadcast it
   - if has already sent or received a `funding_locked` message for this
     channel:
     - MUST ignore this message

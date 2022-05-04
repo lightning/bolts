@@ -21,6 +21,7 @@ This details the exact format of on-chain transactions, which both sides need to
     * [Fees](#fees)
         * [Fee Calculation](#fee-calculation)
         * [Fee Payment](#fee-payment)
+        * [Calculating Fees for Collaborative Transactions](#calculating-fees-for-collaborative-transactions)
   * [Keys](#keys)
     * [Key Derivation](#key-derivation)
         * [`localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation](#localpubkey-remotepubkey-local_htlcpubkey-remote_htlcpubkey-local_delayedpubkey-and-remote_delayedpubkey-derivation)
@@ -28,6 +29,7 @@ This details the exact format of on-chain transactions, which both sides need to
         * [Per-commitment Secret Requirements](#per-commitment-secret-requirements)
     * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
   * [Appendix A: Expected Weights](#appendix-a-expected-weights)
+      * [Expected Weight of the Funding Transaction (v2 Channel Establishment)](#expected-weight-of-the-funding-transaction-(v2-channel-establishment))
       * [Expected Weight of the Commitment Transaction](#expected-weight-of-the-commitment-transaction)
       * [Expected Weight of HTLC-timeout and HTLC-success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
   * [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
@@ -37,7 +39,7 @@ This details the exact format of on-chain transactions, which both sides need to
     * [Storage Tests](#storage-tests)
   * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
   * [Appendix F: Commitment and HTLC Transaction Test Vectors (anchors)](#appendix-f-commitment-and-htlc-transaction-test-vectors-anchors)
-  * [Appendix G: Dual Funded Transaction Test Vectors](#appendix-f-dual-funded-transaction-test-vectors)
+  * [Appendix G: Dual Funded Transaction Test Vectors](#appendix-g-dual-funded-transaction-test-vectors)
   * [References](#references)
   * [Authors](#authors)
 
@@ -478,13 +480,11 @@ A node:
   - if the resulting fee rate is too low:
     - MAY fail the channel.
 
-
 ### Calculating Fees for Collaborative Transactions
 
 For transactions constructed using the [interactive protocol](02-peer-protocol.md#interactive-transaction-construction),
 fees are paid by each party to the transaction, at `feerate` determined during the
 initiation, with the initiator covering the fees for the common transaction fields.
-
 
 ## Commitment Transaction Construction
 
@@ -724,37 +724,37 @@ at each bucket is a prefix of the desired index.
 The *expected weight* of a funding transaction is calculated as follows:
 
       inputs: 40 bytes + var_int + `scriptlen`
-		- previous_out_point: 36 bytes
-			- hash: 32 bytes
-			- index: 4 bytes
-		- var_int: ? bytes (dependent on `scriptlen`)
-		- script_sig: `scriptlen`
-		- witness <----	Cost for "witness" data calculated separately.
-		- sequence: 4 bytes
+        - previous_out_point: 36 bytes
+          - hash: 32 bytes
+          - index: 4 bytes
+        - var_int: ? bytes (dependent on `scriptlen`)
+        - script_sig: `scriptlen`
+        - witness <---- Cost for "witness" data calculated separately.
+        - sequence: 4 bytes
 
-       non_funding_outputs: 8 bytes + var_int + `scriptlen`
-                - value: 8 bytes
-                - var_int: ? bytes (dependent on `scriptlen`)
-                - script_sig: `scriptlen`
+      non_funding_outputs: 8 bytes + var_int + `scriptlen`
+        - value: 8 bytes
+        - var_int: ? bytes (dependent on `scriptlen`)
+        - script: `scriptlen`
 
-       funding_output: 43 bytes
-                - value: 8 bytes
-                - var_int: 1 byte
-                - script: 34 bytes
-		  - OP_0: 1 byte
-		  - PUSHDATA(32-byte-hash): 33 bytes
+      funding_output: 43 bytes
+        - value: 8 bytes
+        - var_int: 1 byte
+        - script: 34 bytes
+          - OP_0: 1 byte
+          - PUSHDATA(32-byte-hash): 33 bytes
 
 Multiplying non-witness data by 4 results in a weight of:
 
-	// transaction_fields = 10 (version, input count, output count, locktime)
-	// segwit_fields = 2 (marker + flag)
-	// funding_transaction = 43 + num_inputs * 40 + num_outputs * 8
-        //                       + sum(scriptlen) + sum(var_ints) +
-	funding_transaction_weight = 4 * (funding_transaction + transaction_fields) + segwit_fields
+      // transaction_fields = 10 (version, input count, output count, locktime)
+      // segwit_fields = 2 (marker + flag)
+      // funding_transaction = 43 + num_inputs * 40 + num_outputs * 8
+      //                       + sum(scriptlen) + sum(var_ints) +
+      funding_transaction_weight = 4 * (funding_transaction + transaction_fields) + segwit_fields
 
-	witness_weight = sum(max_witness_len)
+      witness_weight = sum(witness_len)
 
-	overall_weight = funding_transaction_weight + witness_weight
+      overall_weight = funding_transaction_weight + witness_weight
 
 ### Calculating Fees for Collaborative Transaction Construction
 
@@ -811,11 +811,9 @@ The contributor's minimum fee is calculated as follows.
     contributor_fees = 796 * 253 / 1000
     contributor_fees = 201 sats
 
-
-This is an estimated fee. The peer MUST at least contribute the estimated rate,
+This is an estimated fee. The peer MUST at least contribute the estimated fee,
 and MUST exceed the minimum fee in the case that their witness weight is greater
 than the estimated weight of 110 per input.
-
 
 ## Expected Weight of the Commitment Transaction
 
@@ -2487,6 +2485,7 @@ before subtraction of:
         "RemoteSigHex": "3045022100c592f6b80d35b4f5d1e3bc9788f51141a0065be6013bad53a1977f7c444651660220278ac06ead9016bfb8dc476f186eabace2b02793b2f308442f5b0d5f24a68948"
     }
 ]
+```
 
 # Appendix G: Dual Funded Transaction Test Vectors
 
