@@ -428,24 +428,24 @@ completed.
 #### Requirements
 
 The sender:
-  - MUST set `feerate` greater than or equal to 65/64 times the `feerate`
+  - MUST set `feerate` greater than or equal to 25/24 times the `feerate`
     of the previously constructed transaction, rounded down.
 
 The recipient:
   - MUST respond either by failing the negotiation or with `tx_ack_rbf`.
   - MUST fail the negotiation if:
-    - the `feerate` is not greater than 65/64 times `feerate` of the last
+    - the `feerate` is not greater than 25/24 times `feerate` of the last
       successfully constructed transaction
   - MAY fail the negotiation for any reason
 
 #### Rationale
 
 `feerate` is the feerate this transaction will pay. It must be at least
-1/64 greater than the last used `feerate`, rounded down to the nearest
+1/24 greater than the last used `feerate`, rounded down to the nearest
 satoshi to ensure there is progress.
 
-E.g. if the last `feerate` was 520, the next sent `feerate` must be 528
-(520 * 65 / 64 = 528.125, rounded down to 528).
+E.g. if the last `feerate` was 520, the next sent `feerate` must be 541
+(520 * 25 / 24 = 541.667, rounded down to 541).
 
 If the previous transaction confirms in the middle of an RBF attempt,
 the attempt MUST be abandoned.
