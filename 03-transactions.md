@@ -128,13 +128,14 @@ If a revoked commitment transaction is published, the other party can spend this
 
 If `option_anchors` applies to the commitment transaction, the `to_remote` output is encumbered by a one block csv lock.
 
-    <remote_pubkey> OP_CHECKSIGVERIFY 1 OP_CHECKSEQUENCEVERIFY
+    <remotepubkey> OP_CHECKSIGVERIFY 1 OP_CHECKSEQUENCEVERIFY
 
 The output is spent by an input with `nSequence` field set to `1` and witness:
 
     <remote_sig>
 
-Otherwise, this output is a simple P2WPKH to `remotepubkey`.
+Otherwise, this output is a simple P2WPKH to `remotepubkey`. Note: the remote's commitment transaction uses your `localpubkey` for their
+`to_remote` output to yourself.
 
 #### `to_local_anchor` and `to_remote_anchor` Output (option_anchors)
 
