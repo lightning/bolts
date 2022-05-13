@@ -2506,10 +2506,10 @@ Parent transaction (spends coinbase of block 1):
 
 ### Funding transaction (spends parent's outputs):
 
-Locktime: 618013
+Locktime: 120
 Feerate: 253 sat/kiloweight
-Opener's `funding_satoshi`: 4 0000 0000 sat
-Accepter's `funding_satoshi`: 4 0000 0000 sat
+Opener's `funding_satoshi`: 2 0000 0000 sat
+Accepter's `funding_satoshi`: 2 0000 0000 sat
 
 Inputs:
 ```
@@ -2520,14 +2520,6 @@ Inputs:
 	scriptPubKey: 0020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b946
 	address: bcrt1qlky6eaj5sh0cj7tanwnm573nvf9vg3f0qrdssyrlxsjh6vl9h9rql40v2g
 
-4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9 1
-	redeemScript: 0020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b946
-	witness_data:
-	  preimage: 20 68656c6c6f2074686572652c2074686973206973206120626974636f6e212121
-	  witness_script: 27 82012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff87
-	scriptPubKey: a9146a235d064786b49e7043e4a042d4cc429f7eb69487
-	address: 2N2vRyi3cm5VYpw218MJJrJWK1Jd4qbaefW
-
 4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9 2
 	pubkey: 034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484
 	privkey: cUM8Dr33wK4uFmw3Tz8sbQ7BiBNgX5BthRurU7RkgXVvNUPcWrJf
@@ -2535,67 +2527,39 @@ Inputs:
 	scriptPubKey: 0014fbb4db9d85fba5e301f4399e3038928e44e37d32
 	address: bcrt1qlw6dh8v9lwj7xq058x0rqwyj3ezwxlfjxsy7er
 
-4303ca8ff10c6c345b9299672a66f111c5b81ae027cc5b0d4d39d09c66b032b9 3
-	pubkey: 034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484
-	privkey: cUM8Dr33wK4uFmw3Tz8sbQ7BiBNgX5BthRurU7RkgXVvNUPcWrJf
-	redeemScript: 0014fbb4db9d85fba5e301f4399e3038928e44e37d32
-	witness_program: fbb4db9d85fba5e301f4399e3038928e44e37d32
-	scriptPubKey: a9147ecd1b519326bc13b0ec716e469b58ed02b112a087
-	address: 2N4ogqX3kaLTT2jjxi18nAiyWdwKtE5PxLF
 ```
 
-Expected Opener's `tx_add_input` (inputs 0+1 above):
+### Expected Opener's `tx_add_input` (input 0 above):
 ```
-  num_inputs: 2
+  num_inputs: 1
   tx_add_input:[
     {
-      channel_id: xxx,
-      serial_id: 10,
-      prevtx_len: 353,
-      prevtx: 02000000000101f86fd1d0db3ac5a72df968622f31e6b5e6566a09e29206d7c7a55df90e181de800000000171600141fb9623ffd0d422eacc450fd1e967efc477b83ccffffffff0580b2e60e00000000220020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b94680b2e60e0000000017a9146a235d064786b49e7043e4a042d4cc429f7eb6948780b2e60e00000000160014fbb4db9d85fba5e301f4399e3038928e44e37d3280b2e60e0000000017a9147ecd1b519326bc13b0ec716e469b58ed02b112a087f0006bee0000000017a914f856a70093da3a5b5c4302ade033d4c2171705d387024730440220696f6cee2929f1feb3fd6adf024ca0f9aa2f4920ed6d35fb9ec5b78c8408475302201641afae11242160101c6f9932aeb4fcd1f13a9c6df5d1386def000ea259a35001210381d7d5b1bc0d7600565d827242576d9cb793bfe0754334af82289ee8b65d137600000000
-,
-      prev_vout: 0,
-      sequence: 4294967293,
-      script_sig_len: 0,
-      script_sig: null
-    },{
-      channel_id: xxx,
+      channel_id: "xxx",
       serial_id: 20,
       prevtx_len: 353,
-      prevtx: 02000000000101f86fd1d0db3ac5a72df968622f31e6b5e6566a09e29206d7c7a55df90e181de800000000171600141fb9623ffd0d422eacc450fd1e967efc477b83ccffffffff0580b2e60e00000000220020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b94680b2e60e0000000017a9146a235d064786b49e7043e4a042d4cc429f7eb6948780b2e60e00000000160014fbb4db9d85fba5e301f4399e3038928e44e37d3280b2e60e0000000017a9147ecd1b519326bc13b0ec716e469b58ed02b112a087f0006bee0000000017a914f856a70093da3a5b5c4302ade033d4c2171705d387024730440220696f6cee2929f1feb3fd6adf024ca0f9aa2f4920ed6d35fb9ec5b78c8408475302201641afae11242160101c6f9932aeb4fcd1f13a9c6df5d1386def000ea259a35001210381d7d5b1bc0d7600565d827242576d9cb793bfe0754334af82289ee8b65d137600000000
-      prev_vout: 1,
-      sequence: 4294967293,
-      script_sig_len: 68,
-      script_sig: 0020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b946
+      prevtx: "02000000000101f86fd1d0db3ac5a72df968622f31e6b5e6566a09e29206d7c7a55df90e181de800000000171600141fb9623ffd0d422eacc450fd1e967efc477b83ccffffffff0580b2e60e00000000220020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b94680b2e60e0000000017a9146a235d064786b49e7043e4a042d4cc429f7eb6948780b2e60e00000000160014fbb4db9d85fba5e301f4399e3038928e44e37d3280b2e60e0000000017a9147ecd1b519326bc13b0ec716e469b58ed02b112a087f0006bee0000000017a914f856a70093da3a5b5c4302ade033d4c2171705d387024730440220696f6cee2929f1feb3fd6adf024ca0f9aa2f4920ed6d35fb9ec5b78c8408475302201641afae11242160101c6f9932aeb4fcd1f13a9c6df5d1386def000ea259a35001210381d7d5b1bc0d7600565d827242576d9cb793bfe0754334af82289ee8b65d137600000000",
+      prev_vout: 0,
+      sequence: 4294967293
     }
   ]
 ```
 
-Expected Accepter's `tx_add_input` (inputs 2+3 above):
+### Expected Accepter's `tx_add_input` (input 2 above):
 ```
-  num_inputs: 2
+  num_inputs: 1
   tx_add_input:[
     {
-      channel_id: xxx,
+      channel_id: "xxx",
       serial_id: 11,
       prevtx_len: 353,
-      prevtx: 02000000000101f86fd1d0db3ac5a72df968622f31e6b5e6566a09e29206d7c7a55df90e181de800000000171600141fb9623ffd0d422eacc450fd1e967efc477b83ccffffffff0580b2e60e00000000220020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b94680b2e60e0000000017a9146a235d064786b49e7043e4a042d4cc429f7eb6948780b2e60e00000000160014fbb4db9d85fba5e301f4399e3038928e44e37d3280b2e60e0000000017a9147ecd1b519326bc13b0ec716e469b58ed02b112a087f0006bee0000000017a914f856a70093da3a5b5c4302ade033d4c2171705d387024730440220696f6cee2929f1feb3fd6adf024ca0f9aa2f4920ed6d35fb9ec5b78c8408475302201641afae11242160101c6f9932aeb4fcd1f13a9c6df5d1386def000ea259a35001210381d7d5b1bc0d7600565d827242576d9cb793bfe0754334af82289ee8b65d137600000000
+      prevtx: "02000000000101f86fd1d0db3ac5a72df968622f31e6b5e6566a09e29206d7c7a55df90e181de800000000171600141fb9623ffd0d422eacc450fd1e967efc477b83ccffffffff0580b2e60e00000000220020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b94680b2e60e0000000017a9146a235d064786b49e7043e4a042d4cc429f7eb6948780b2e60e00000000160014fbb4db9d85fba5e301f4399e3038928e44e37d3280b2e60e0000000017a9147ecd1b519326bc13b0ec716e469b58ed02b112a087f0006bee0000000017a914f856a70093da3a5b5c4302ade033d4c2171705d387024730440220696f6cee2929f1feb3fd6adf024ca0f9aa2f4920ed6d35fb9ec5b78c8408475302201641afae11242160101c6f9932aeb4fcd1f13a9c6df5d1386def000ea259a35001210381d7d5b1bc0d7600565d827242576d9cb793bfe0754334af82289ee8b65d137600000000",
       prev_vout: 2,
-      script_sig_len: 0,
-      script_sig: null
-    },{
-      channel_id: xxx,
-      serial_id: 17,
-      prevtx_len: 353,
-      prevtx: 02000000000101f86fd1d0db3ac5a72df968622f31e6b5e6566a09e29206d7c7a55df90e181de800000000171600141fb9623ffd0d422eacc450fd1e967efc477b83ccffffffff0580b2e60e00000000220020fd89acf65485df89797d9ba7ba7a33624ac4452f00db08107f34257d33e5b94680b2e60e0000000017a9146a235d064786b49e7043e4a042d4cc429f7eb6948780b2e60e00000000160014fbb4db9d85fba5e301f4399e3038928e44e37d3280b2e60e0000000017a9147ecd1b519326bc13b0ec716e469b58ed02b112a087f0006bee0000000017a914f856a70093da3a5b5c4302ade033d4c2171705d387024730440220696f6cee2929f1feb3fd6adf024ca0f9aa2f4920ed6d35fb9ec5b78c8408475302201641afae11242160101c6f9932aeb4fcd1f13a9c6df5d1386def000ea259a35001210381d7d5b1bc0d7600565d827242576d9cb793bfe0754334af82289ee8b65d137600000000
-      prev_vout: 3,
-      script_sig_len: 22,
-      script_sig: 0014fbb4db9d85fba5e301f4399e3038928e44e37d32
+      sequence: 4294967293
     }
   ]
 ```
 
-Outputs: (scriptPubKeys)
+### Outputs: (scriptPubKeys)
 ```
 # opener's change address
 pubkey: 0206e626a4c6d4392d4030bc78bd93f728d1ba61214a77c63adc17d71e32ded3df
@@ -2618,28 +2582,28 @@ scriptPubKey: 0020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98e
 address: bcrt1q99ae9s3czclgyzuzfpsggc6tfprts63uvkxc0wfcgxfwd04f3mzs3asq6l
 ```
 
-Expected Opener's `tx_add_output`:
+### Expected Opener's `tx_add_output`:
 
 ```
   num_outputs: 2
   tx_add_output[
     {
-      channel_id: xxx,
+      channel_id:"xxx",
       serial_id: 30,
-      sats: 99999809
-      scriptlen: 22
-      script: 1600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b
+      sats: 49999845,
+      scriptlen: 22,
+      script: "1600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b"
     },{
-      channel_id: xxx,
+      channel_id: "xxx",
       serial_id: 44,
-      sats: 800000000
-      scriptlen: 34
-      script: 220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec5
+      sats: 400000000,
+      scriptlen: 34,
+      script: "220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec5"
     }
   ]
 ```
 
-Expected Accepter's `tx_add_output`:
+### Expected Accepter's `tx_add_output`:
 
 ```
   num_outputs: 1
@@ -2647,83 +2611,138 @@ Expected Accepter's `tx_add_output`:
     {
       channel_id: xxx,
       serial_id: 33,
-      sats: 99999809
-      scriptlen: 22
+      sats: 49999899,
+      scriptlen: 22,
       script: 16001444cb0c39f93ecc372b5851725bd29d865d333b10
     }
+  ]
 ```
 
-Expected Fee Calculation:
+### Expected Fee Calculation:
 
 Opener's fees and change:
 ```
-    initiator_weight = transaction_fields * 4
-                     + segwit_fields
-                     + inputs * 4
+    initiator_weight = (input_count, output_count, version, locktime) * 4
+                     + segwit_fields (marker + flag)
+                     + inputs (txid, vout, scriptSig, sequence) * number initiator inputs * 4
                      + funding_output * 4
                      + change_output * 4
-                     + sum_max_witness_weight
+                     + max(number initiator inputs
+			       * minimum witness weight,
+			   actual witness weight of all inputs)
 
-    initiator_weight = 10 * 4
+    initiator_weight = (1 + 1 + 4 + 4) * 4
                      + 2
-                     + (41 + 74) * 4
+                     + (32 + 4 + 1 + 4) * 1 * 4
                      + 43 * 4
                      + 31 * 4
-                     + 148
+                     + max(1 * 110, 71)
 
-    initiator_weight = 946
+    initiator_weight = 612
 
     initiator_fees = initiator_weight * feerate
-    initiator_fees = 946 * 253 / 1000
-    initiator_fees = 239 sats
+    initiator_fees = 722 * 253 / 1000
+    initiator_fees = 155 sats
 
     change = total_funding
            - funding_sats
            - fees
 
-    change = 5 0000 0000
-           - 4 0000 0000
-           -         239
+    change = 2 5000 0000
+           - 2 0000 0000
+           -         155
 
-    change =   9999 9761
+    change =   4999 9845
+
+    as hex: e5effa0200000000
 ```
 
-Accepter's fees and change:
+### Accepter's fees and change:
 ```
-    contributor_weight = 2 * p2wpkh_input * 4
-                       + 2 * p2wpkh_output * 4
-                       + sum_max_witness_weight
+    contributor_weight = inputs(txid, vout, scriptSig, sequence)
+			  * number contributor inputs * 4
+                       + change_output * 4
+		       + max(number contributor inputs
+			         * minimum witness weight,
+			     actual witness weight of all inputs)
 
-    contributor_weight = (41 + 63) * 4
+    contributor_weight = (32 + 4 + 1 + 4) * 1 *  4
                        + 31 * 4
-                       + 218
+                       + max(1 * 110, 99)
 
-    contributor_weight = 758
+    contributor_weight = 398
 
     contributor_fees = contributor_weight * feerate
-    contributor_fees = 758 * 253 / 1000
-    contributor_fees = 191 sats
+    contributor_fees = 398 * 253 / 1000
+    contributor_fees = 101 sats
 
     change = total_funding
            - funding_sats
            - fees
 
-    change = 5 0000 0000
-           - 4 0000 0000
-           -         191
+    change = 2 5000 0000
+           - 2 0000 0000
+           -         101
 
-    change =   9999 9809
+    change =   4999 9899
 
+    as hex: 1bf0fa0200000000
 ```
 
-Unsigned Funding Transaction:
+### Unsigned Funding Transaction:
 ```
-0200000004b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430300000000ffffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430100000000ffffffff0341e0f505000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b11e0f5050000000016001444cb0c39f93ecc372b5851725bd29d865d333b100008af2f00000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec51d6e0900
+0200000002b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000fdffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000fdffffff03e5effa02000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b1bf0fa020000000016001444cb0c39f93ecc372b5851725bd29d865d333b100084d71700000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec578000000
 ```
 
-Signed Funding Transaction:
+### Expected Opener's `tx_signatures`:
+
 ```
-TODO
+  tx_signatures{
+      channel_id: xxx,
+      txid: "046f570b49c60e5dcb5ce3295c9678bde91f673f5fe71e6aafcf76b6babb1050",
+      num_witnesses: 1,
+      witness_stack[{
+	num_input_witness: 2,
+	witness_element:[
+	{
+	  len: 32,
+	  witness: "68656c6c6f2074686572652c2074686973206973206120626974636f6e212121"
+	},{
+	  len: 39,
+	  witness: "82012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff87"
+	}]
+     }]
+  }
+```
+
+### Expected Accepter's `tx_signatures`:
+
+```
+  tx_signatures{
+      channel_id: xxx,
+      txid: "046f570b49c60e5dcb5ce3295c9678bde91f673f5fe71e6aafcf76b6babb1050",
+      num_witnesses: 1,
+      witness_stack[{
+	num_input_witness: 2,
+	witness_element:[
+	{
+	  len: 71,
+	  witness: "304402207fd87dbbf34bc4fca19d1f4b03f7ae1cfa5e764fef5ca0ab133034432f6383a302204c9bc5ce6f7996a55d550b5425086f71dda57387377c05e63e164d84f1aed71c01",
+	},{
+	  len: 33,
+	  witness: "034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484"
+	}]
+     }]
+  }
+```
+
+#### Signed Funding Transaction:
+
+Note locktime is set to 120.
+
+```
+02000000000102b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000fdffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000fdffffff03e5effa02000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b1bf0fa020000000016001444cb0c39f93ecc372b5851725bd29d865d333b100084d71700000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec50247304402207fd87dbbf34bc4fca19d1f4b03f7ae1cfa5e764fef5ca0ab133034432f6383a302204c9bc5ce6f7996a55d550b5425086f71dda57387377c05e63e164d84f1aed71c0121034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484022068656c6c6f2074686572652c2074686973206973206120626974636f6e2121212782012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff8778000000
+
 ```
 
 # References
