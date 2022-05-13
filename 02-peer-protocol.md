@@ -394,7 +394,9 @@ The receiving node:
 #### Rationale
 
 The peer with the lowest total of inputs amounts must transmit its
-`tx_signatures` first. This gives in a strict ordering of transmission
+`tx_signatures` first. If both peers have contributed equal input amounts,
+the peer with the first `node_id` (sorted lexicographically) sends their
+`tx_signatures` first.  This gives in a strict ordering of transmission
 for any multiparty tx collaboration.
 
 `witness` is the data for a witness element in a witness stack.
