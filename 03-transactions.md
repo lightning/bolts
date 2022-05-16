@@ -766,54 +766,54 @@ Upon successful exchange of `tx_complete` messages, each peer must at
 least cover a minimum estimated fee. Here is how to calculate the minimum
 fee for each participant.
 
-The minimum witness weight for an input is 110.
+The minimum witness weight for an input is 107.
 
 In the following, the initiator has provided one input (P2WPKH), one change output
 (P2WPKH), and the funding output. The contributor has provided two
 inputs (P2WPKH) and two change outputs (P2WPKH).
 
 Assuming a `feerate` of 253 per kiloweight, the initiator's minimum fee is
-calculated as follows.  Note that the feerate is rounded down to the nearest satoshi.
+calculated as follows.  Note that the feerate is rounded up to the nearest satoshi.
 
     initiator_weight = transaction_fields * 4
                      + segwit_fields
                      + p2wpkh_input * 4
                      + funding_output * 4
                      + p2wpkh_output * 4
-                     + input_count * 110 (minimum witness weight)
+                     + input_count * 107 (minimum witness weight)
 
     initiator_weight = 10 * 4
                      + 2
                      + 41 * 4
                      + 43 * 4
                      + 31 * 4
-                     + 110
+                     + 107
 
-    initiator_weight = 612
+    initiator_weight = 609
 
     initiator_fees = initiator_weight * feerate
-    initiator_fees = 612 * 253 / 1000
-    initiator_fees = 154 sats
+    initiator_fees = 609 * 253 / 1000
+    initiator_fees = 155 sats
 
 The contributor's minimum fee is calculated as follows.
 
     contributor_weight = 2 * p2wpkh_input * 4
                        + 2 * p2wpkh_output * 4
-                       + input_count * 110 (minimum witness weight)
+                       + input_count * 107 (minimum witness weight)
 
     contributor_weight = 2 * 41 * 4
                        + 2 * 31 * 4
-                       + 2 * 110
+                       + 2 * 107
 
-    contributor_weight = 796
+    contributor_weight = 790
 
     contributor_fees = contributor_weight * feerate
-    contributor_fees = 796 * 253 / 1000
-    contributor_fees = 201 sats
+    contributor_fees = 790 * 253 / 1000
+    contributor_fees = 200 sats
 
 This is an estimated fee. The peer MUST at least contribute the estimated fee,
 and MUST exceed the minimum fee in the case that their witness weight is greater
-than the estimated weight of 110 per input.
+than the estimated weight of 107 per input.
 
 ## Expected Weight of the Commitment Transaction
 
@@ -2611,7 +2611,7 @@ address: bcrt1q99ae9s3czclgyzuzfpsggc6tfprts63uvkxc0wfcgxfwd04f3mzs3asq6l
     {
       channel_id: xxx,
       serial_id: 33,
-      sats: 49999899,
+      sats: 49999900,
       scriptlen: 22,
       script: 16001444cb0c39f93ecc372b5851725bd29d865d333b10
     }
@@ -2636,12 +2636,12 @@ Opener's fees and change:
                      + (32 + 4 + 1 + 4) * 1 * 4
                      + 43 * 4
                      + 31 * 4
-                     + max(1 * 110, 71)
+                     + max(1 * 107, 71)
 
-    initiator_weight = 612
+    initiator_weight = 609
 
     initiator_fees = initiator_weight * feerate
-    initiator_fees = 722 * 253 / 1000
+    initiator_fees = 609 * 253 / 1000
     initiator_fees = 155 sats
 
     change = total_funding
@@ -2668,13 +2668,13 @@ Opener's fees and change:
 
     contributor_weight = (32 + 4 + 1 + 4) * 1 *  4
                        + 31 * 4
-                       + max(1 * 110, 99)
+                       + max(1 * 107, 99)
 
-    contributor_weight = 398
+    contributor_weight = 395
 
     contributor_fees = contributor_weight * feerate
     contributor_fees = 398 * 253 / 1000
-    contributor_fees = 101 sats
+    contributor_fees = 100 sats
 
     change = total_funding
            - funding_sats
@@ -2682,16 +2682,17 @@ Opener's fees and change:
 
     change = 2 5000 0000
            - 2 0000 0000
-           -         101
+           -         100
 
-    change =   4999 9899
+    change =   4999 9900
 
-    as hex: 1bf0fa0200000000
+    as hex: 1cf0fa0200000000
 ```
 
 ### Unsigned Funding Transaction:
+
 ```
-0200000002b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000fdffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000fdffffff03e5effa02000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b1bf0fa020000000016001444cb0c39f93ecc372b5851725bd29d865d333b100084d71700000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec578000000
+0200000002b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000fdffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000fdffffff03e5effa02000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b1cf0fa020000000016001444cb0c39f93ecc372b5851725bd29d865d333b100084d71700000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec578000000
 ```
 
 ### Expected Opener's `tx_signatures`:
@@ -2699,7 +2700,7 @@ Opener's fees and change:
 ```
   tx_signatures{
       channel_id: xxx,
-      txid: "046f570b49c60e5dcb5ce3295c9678bde91f673f5fe71e6aafcf76b6babb1050",
+      txid: "5ca4e657c1aa9d069ea4a5d712045d233a7d7c52738cb02993637289e6386057",
       num_witnesses: 1,
       witness_stack[{
 	num_input_witness: 2,
@@ -2720,14 +2721,14 @@ Opener's fees and change:
 ```
   tx_signatures{
       channel_id: xxx,
-      txid: "046f570b49c60e5dcb5ce3295c9678bde91f673f5fe71e6aafcf76b6babb1050",
+      txid: "5ca4e657c1aa9d069ea4a5d712045d233a7d7c52738cb02993637289e6386057",
       num_witnesses: 1,
       witness_stack[{
 	num_input_witness: 2,
 	witness_element:[
 	{
 	  len: 71,
-	  witness: "304402207fd87dbbf34bc4fca19d1f4b03f7ae1cfa5e764fef5ca0ab133034432f6383a302204c9bc5ce6f7996a55d550b5425086f71dda57387377c05e63e164d84f1aed71c01",
+	  witness: "304402207de9ba56bb9f641372e805782575ee840a899e61021c8b1572b3ec1d5b5950e9022069e9ba998915dae193d3c25cb89b5e64370e6a3a7755e7f31cf6d7cbc2a49f6d01",
 	},{
 	  len: 33,
 	  witness: "034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484"
@@ -2741,8 +2742,7 @@ Opener's fees and change:
 Note locktime is set to 120.
 
 ```
-02000000000102b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000fdffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000fdffffff03e5effa02000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b1bf0fa020000000016001444cb0c39f93ecc372b5851725bd29d865d333b100084d71700000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec50247304402207fd87dbbf34bc4fca19d1f4b03f7ae1cfa5e764fef5ca0ab133034432f6383a302204c9bc5ce6f7996a55d550b5425086f71dda57387377c05e63e164d84f1aed71c0121034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484022068656c6c6f2074686572652c2074686973206973206120626974636f6e2121212782012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff8778000000
-
+02000000000102b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000fdffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000fdffffff03e5effa02000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b1cf0fa020000000016001444cb0c39f93ecc372b5851725bd29d865d333b100084d71700000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec50247304402207de9ba56bb9f641372e805782575ee840a899e61021c8b1572b3ec1d5b5950e9022069e9ba998915dae193d3c25cb89b5e64370e6a3a7755e7f31cf6d7cbc2a49f6d0121034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484022068656c6c6f2074686572652c2074686973206973206120626974636f6e2121212782012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff8778000000
 ```
 
 # References

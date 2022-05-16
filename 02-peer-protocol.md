@@ -408,7 +408,7 @@ the corresponding input.
 While the `minimum fee` is calculated and verified at `tx_complete` conclusion,
 it is possible for the fee for the exchanged witness data to be underpaid.
 It is the responsibility of the sending peer to correctly account for the
-required fee, e.g. a multisig witness stack whose weight exceeds 110.
+required fee, e.g. a multisig witness stack whose weight exceeds 107.
 
 ### The `tx_init_rbf` Message
 
