@@ -288,7 +288,7 @@ The sending node:
 
 The receiving node:
   - MUST wait to receive `init` before sending any other messages.
-  - MUST combine (logical OR) the two feature bitmaps into one logical `features` map.
+  - MUST combine (bitwise OR) the two feature bitmaps into one logical `features` map.
   - MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
   - upon receiving unknown _odd_ feature bits that are non-zero:
     - MUST ignore the bit.
