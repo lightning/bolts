@@ -420,6 +420,7 @@ completed.
    * [`channel_id`:`channel_id`]
    * [`u32`:`locktime`]
    * [`u32`:`feerate`]
+   * [`tx_init_rbf_tlvs`:`tlvs`]
 
 1. `tlv_stream`: `tx_init_rbf_tlvs`
 2. types:
@@ -461,7 +462,8 @@ made in the previously completed transaction.
 
 1. type: 73 (`tx_ack_rbf`)
 2. data:
-    * [`channel_id`:`channel_id`]
+   * [`channel_id`:`channel_id`]
+   * [`tx_ack_rbf_tlvs`:`tlvs`]
 
 1. `tlv_stream`: `tx_ack_rbf_tlvs`
 2. types:
