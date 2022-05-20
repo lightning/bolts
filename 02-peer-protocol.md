@@ -25,6 +25,7 @@ operation, and closing.
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
     * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
+    * [Channel Backup Storage](#channel-backup-storage)
   * [Authors](#authors)
 
 # Channel
@@ -1310,6 +1311,12 @@ messages are), they are independent of requirements here.
    * [`32*byte`:`your_last_per_commitment_secret`]
    * [`point`:`my_current_per_commitment_point`]
 
+1. `tlv_stream`: `channel_reestablish_tlvs`
+2. types:
+    1. type: 1 (`channel_backup`)
+    2. data:
+        * [`...*byte`:`backup_data`]
+
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
 are independent for each peer in the channel and start at 0.
@@ -1514,6 +1521,52 @@ however), but the disclosure of previous secret still allows
 fall-behind detection.  An implementation can offer both, however, and
 fall back to the `option_data_loss_protect` behavior if
 `option_static_remotekey` is not negotiated.
+
+## Channel Backup Storage
+
+Nodes that advertise the `provide_peer_backup_storage` feature offer storing
+arbitrary data for their peers. [BOLT #1](01-messaging.md#node-backup-storage)
+describes how this allows storing per-node data, and the following section
+describes how this allows storing per-channel data.
+
+Nodes ask their peers to store data using the `update_channel_backup` message:
+
+1. type: 120 (`update_channel_backup`)
+2. data:
+   * [`u16`: `length`]
+   * [`length*byte`:`channel_backup`]
+
+A node with `want_peer_backup_storage` activated:
+  - if its peer doesn't support `provide_peer_backup_storage`:
+    - MUST NOT send `update_channel_backup`
+  - otherwise:
+    - when it sends a message that completes an update of the channel state (`funding_signed`, `commitment_signed`, `revoke_and_ack`, `shutdown` or `closing_signed`):
+      - MAY send an `update_channel_backup` *before* the channel update message
+      - MUST limit its `channel_backup` to 32000 bytes
+    - when it receives `channel_reestablish` with an outdated or missing `channel_backup`:
+      - MAY send a warning
+
+A node with `provide_peer_backup_storage` activated:
+  - when it receives `update_channel_backup`:
+    - if the `channel_backup` exceeds 32000 bytes:
+      - SHOULD send a warning
+      - MUST NOT store this backup data
+    - otherwise:
+      - SHOULD store this backup data before storing the next channel state
+        change
+  - when it sends `channel_reestablish`:
+    - MUST include the last `channel_backup` it stored for that channel
+  - when the channel is closed:
+    - SHOULD wait at least 2016 blocks before deleting the `channel_backup`
+
+### Rationale
+
+The `update_channel_backup` should be sent before the message that updates the
+channel state (e.g. `commit_sig`) to ensure that the backup is stored with that
+latest update, which can be retransmitted on reconnection. If the backup is
+sent after the channel update, there is a risk that the channel update is
+committed by the remote peer but not the corresponding backup, which may lead
+to data loss.
 
 # Authors
 
