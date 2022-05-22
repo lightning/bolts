@@ -47,7 +47,7 @@ This details the exact format of on-chain transactions, which both sides need to
 ## Transaction Output Ordering
 
 Outputs in transactions are always sorted according to:
- * first according to their value (in whole satoshis, note that for HTLC outputs, the millisatoshi part must be ignored)
+ * first according to their value, smallest first (in whole satoshis, note that for HTLC outputs, the millisatoshi part must be ignored)
  * followed by `scriptpubkey`, comparing the common-length prefix lexicographically as if by `memcmp`, then selecting the shorter script (if they differ in length),
  * finally, for HTLC outputs, in increasing `cltv_expiry` order.
 
