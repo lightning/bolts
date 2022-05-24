@@ -26,23 +26,25 @@ The Context column decodes as follows:
 * `C+`: presented in the `channel_announcement` message, but always even (required).
 * `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
 
-| Bits  | Name                             | Description                                               | Context  | Dependencies      | Link                                  |
-|-------|----------------------------------|-----------------------------------------------------------|----------|-------------------|---------------------------------------|
-| 0/1   | `option_data_loss_protect`       | Requires or supports extra `channel_reestablish` fields   | IN       |                   | [BOLT #2][bolt02-retransmit]          |
-| 3     | `initial_routing_sync`           | Sending node needs a complete routing information dump    | I        |                   | [BOLT #7][bolt07-sync]                |
-| 4/5   | `option_upfront_shutdown_script` | Commits to a shutdown scriptpubkey when opening channel   | IN       |                   | [BOLT #2][bolt02-open]                |
-| 6/7   | `gossip_queries`                 | More sophisticated gossip control                         | IN       |                   | [BOLT #7][bolt07-query]               |
-| 8/9   | `var_onion_optin`                | Requires/supports variable-length routing onion payloads  | IN9      |                   | [Routing Onion Specification][bolt04] |
-| 10/11 | `gossip_queries_ex`              | Gossip queries can include additional information         | IN       | `gossip_queries`  | [BOLT #7][bolt07-query]               |
-| 12/13 | `option_static_remotekey`        | Static key for remote output                              | IN       |                   | [BOLT #3](03-transactions.md)         |
-| 14/15 | `payment_secret`                 | Node supports `payment_secret` field                      | IN9      | `var_onion_optin` | [Routing Onion Specification][bolt04] |
-| 16/17 | `basic_mpp`                      | Node can receive basic multi-part payments                | IN9      | `payment_secret`  | [BOLT #4][bolt04-mpp]                 |
-| 18/19 | `option_support_large_channel`   | Can create large channels                                 | IN       |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
-| 20/21 | `option_anchor_outputs`          | Anchor outputs                                            | IN       | `option_static_remotekey` | [BOLT #3](03-transactions.md)         |
-| 22/23 | `option_anchors_zero_fee_htlc_tx` | Anchor commitment type with zero fee HTLC transactions   | IN       | `option_static_remotekey` | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful]|
-| 26/27 | `option_shutdown_anysegwit`         | Future segwit versions allowed in `shutdown`              | IN       |                   | [BOLT #2][bolt02-shutdown]   |
-| 44/45 | `option_channel_type`            | Node supports the `channel_type` field in open/accept     | IN       |                   | [BOLT #2](02-peer-protocol.md#the-open_channel-message) |
-| 48/49 | `option_payment_metadata` | Payment metadata in tlv record | 9 | | [BOLT #11](11-payment-encoding.md#tagged-fields)
+| Bits  | Name                              | Description                                               | Context  | Dependencies              | Link                                                                  |
+|-------|-----------------------------------|-----------------------------------------------------------|----------|---------------------------|-----------------------------------------------------------------------|
+| 0/1   | `option_data_loss_protect`        | Requires or supports extra `channel_reestablish` fields   | IN       |                           | [BOLT #2][bolt02-retransmit]                                          |
+| 3     | `initial_routing_sync`            | Sending node needs a complete routing information dump    | I        |                           | [BOLT #7][bolt07-sync]                                                |
+| 4/5   | `option_upfront_shutdown_script`  | Commits to a shutdown scriptpubkey when opening channel   | IN       |                           | [BOLT #2][bolt02-open]                                                |
+| 6/7   | `gossip_queries`                  | More sophisticated gossip control                         | IN       |                           | [BOLT #7][bolt07-query]                                               |
+| 8/9   | `var_onion_optin`                 | Requires/supports variable-length routing onion payloads  | IN9      |                           | [Routing Onion Specification][bolt04]                                 |
+| 10/11 | `gossip_queries_ex`               | Gossip queries can include additional information         | IN       | `gossip_queries`          | [BOLT #7][bolt07-query]                                               |
+| 12/13 | `option_static_remotekey`         | Static key for remote output                              | IN       |                           | [BOLT #3](03-transactions.md)                                         |
+| 14/15 | `payment_secret`                  | Node supports `payment_secret` field                      | IN9      | `var_onion_optin`         | [Routing Onion Specification][bolt04]                                 |
+| 16/17 | `basic_mpp`                       | Node can receive basic multi-part payments                | IN9      | `payment_secret`          | [BOLT #4][bolt04-mpp]                                                 |
+| 18/19 | `option_support_large_channel`    | Can create large channels                                 | IN       |                           | [BOLT #2](02-peer-protocol.md#the-open_channel-message)               |
+| 20/21 | `option_anchor_outputs`           | Anchor outputs                                            | IN       | `option_static_remotekey` | [BOLT #3](03-transactions.md)                                         |
+| 22/23 | `option_anchors_zero_fee_htlc_tx` | Anchor commitment type with zero fee HTLC transactions    | IN       | `option_static_remotekey` | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful] |
+| 26/27 | `option_shutdown_anysegwit`       | Future segwit versions allowed in `shutdown`              | IN       |                           | [BOLT #2][bolt02-shutdown]                                            |
+| 40/41 | `want_peer_backup_storage`        | Want to use other nodes to store encrypted backup data    | IN       |                           | [BOLT #1][bolt01-node-backup], [BOLT #2][bolt02-channel-backup]       |
+| 42/43 | `provide_peer_backup_storage`     | Can store other nodes' encrypted backup data              | IN       |                           | [BOLT #1][bolt01-node-backup], [BOLT #2][bolt02-channel-backup]       |
+| 44/45 | `option_channel_type`             | Node supports the `channel_type` field in open/accept     | IN       |                           | [BOLT #2](02-peer-protocol.md#the-open_channel-message)               |
+| 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                           | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
 
 ## Definitions
 
@@ -53,7 +55,7 @@ We define `option_anchors` as `option_anchor_outputs || option_anchors_zero_fee_
 The origin node:
   * If it supports a feature above, SHOULD set the corresponding odd
     bit in all feature fields indicated by the Context column unless
-	indicated that it must set the even feature bit instead.
+    indicated that it must set the even feature bit instead.
   * If it requires a feature above, MUST set the corresponding even
     feature bit in all feature fields indicated by the Context column,
     unless indicated that it must set the odd feature bit instead.
@@ -82,16 +84,24 @@ well-formed feature vector. By validating all known dependencies up front, this
 simplifies logic gated on a single feature bit; the feature's dependencies are
 known to be set, and do not need to be validated at every feature gate.
 
+Some features are asymmetric and come in pairs (e.g. `want_peer_backup_storage`
+and `provide_peer_backup_storage`), where some peers may want to use a feature
+that other peers provide, without providing it themselves. Nodes that want to
+only connect to peers who provide such feature should set the `want_XXX` bit to
+mandatory.
+
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
 
+[bolt01-node-backup]: 01-messaging.md#node-backup-storage
 [bolt02-retransmit]: 02-peer-protocol.md#message-retransmission
 [bolt02-open]: 02-peer-protocol.md#the-open_channel-message
 [bolt03-htlc-tx]: 03-transactions.md#htlc-timeout-and-htlc-success-transactions
 [bolt02-shutdown]: 02-peer-protocol.md#closing-initiation-shutdown
+[bolt02-channel-backup]: 02-peer-protocol.md#channel-backup-storage
 [bolt04]: 04-onion-routing.md
+[bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
-[bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
 [ml-sighash-single-harmful]: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-September/002796.html
