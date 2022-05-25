@@ -453,7 +453,7 @@ Breakdown:
 * `p`: payment hash...
 * `h`: tagged field: hash of description
   * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
-  * `8yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs`: SHA256 of 'One piece of chocolate cake, one icecream cone, one pickle, one slice of swiss cheese, one slice of salami, one lollypop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon'
+  * `8yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs`: SHA256 of 'One piece of chocolate cake, one icecream cone, one pickle, one slice of swiss cheese, one slice of salami, one lollypop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon'  (SHA256 hex: `3925b6f67e2c340036ed12093dd44e0368df1b6ea26c53dbe4811f58fd5db8c1`)
 * `9`: features
   * `qr`: `data_length` (`q` = 0, `r` = 3; 0 * 32 + 3 == 3)
   * `sgq`: b100000100000000
