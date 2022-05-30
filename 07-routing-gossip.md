@@ -85,7 +85,7 @@ The `announcement_signatures` message is created by constructing a `channel_anno
 A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
-      - MUST NOT send `announcement_signatures` messages until `funding_locked`
+      - MUST NOT send `announcement_signatures` messages until `channel_ready`
       has been sent and received AND the funding transaction has at least six confirmations.
   - otherwise:
     - MUST NOT send the `announcement_signatures` message.
@@ -104,8 +104,8 @@ A recipient node:
       `error` and fail the channel.
   - if it has sent AND received a valid `announcement_signatures` message:
     - SHOULD queue the `channel_announcement` message for its peers.
-  - if it has not sent funding_locked:
-    - MAY defer handling the announcement_signatures until after it has sent funding_locked
+  - if it has not sent `channel_ready`:
+    - MAY defer handling the announcement_signatures until after it has sent `channel_ready`
     - otherwise:
       - MUST ignore it.
 
@@ -167,7 +167,7 @@ The origin node:
     - for the _Bitcoin blockchain_:
       - MUST set `chain_hash` value (encoded in hex) equal to `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
   - MUST set `short_channel_id` to refer to the confirmed funding transaction,
-  as specified in [BOLT #2](02-peer-protocol.md#the-funding_locked-message).
+  as specified in [BOLT #2](02-peer-protocol.md#the-channel_ready-message).
     - Note: the corresponding output MUST be a P2WSH, as described in [BOLT #3](03-transactions.md#funding-transaction-output).
   - MUST set `node_id_1` and `node_id_2` to the public keys of the two nodes
   operating the channel, such that `node_id_1` is the lexicographically-lesser of the
@@ -445,10 +445,12 @@ or `node_id_2` otherwise.
 ### Requirements
 
 The origin node:
-  - MUST NOT send a created `channel_update` before `funding_locked` has been received.
+  - MUST NOT send a created `channel_update` before `channel_ready` has been received.
   - MAY create a `channel_update` to communicate the channel parameters to the
   channel peer, even though the channel has not yet been announced (i.e. the
   `announce_channel` bit was not set).
+    - MUST set the `short_channel_id` to either an `alias` it has
+	  received from the peer, or the real channel `short_channel_id`.
     - MUST NOT forward such a `channel_update` to other peers, for privacy
     reasons.
     - Note: such a `channel_update`, one not preceded by a

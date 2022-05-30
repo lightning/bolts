@@ -1118,6 +1118,15 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the `amt_to_forward` does NOT correspond with the `incoming_htlc_amt` from the
   final node's HTLC:
     - MUST return a `final_incorrect_htlc_amount` error.
+  - if it returns a `channel_update`:
+    - MUST set `short_channel_id` to the `short_channel_id` used by the incoming onion.
+
+### Rationale
+
+In the case of multiple short_channel_id aliases, the `channel_update`
+`short_channel_id` should refer to the one the original sender is
+expecting, to both avoid confusion and to avoid leaking information
+about other aliases (or the real location of the channel UTXO).
 
 ## Receiving Failure Codes
 
