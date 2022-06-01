@@ -407,7 +407,7 @@ of *relaying* payments, not *sending* payments. When making a payment
     * [`chain_hash`:`chain_hash`]
     * [`short_channel_id`:`short_channel_id`]
     * [`u32`:`timestamp`]
-    * [`byte`:`message_flags`]
+    * [`byte`:`must_be_one`]
     * [`byte`:`channel_flags`]
     * [`u16`:`cltv_expiry_delta`]
     * [`u64`:`htlc_minimum_msat`]
@@ -424,13 +424,6 @@ individual bits:
 | ------------- | ----------- | -------------------------------- |
 | 0             | `direction` | Direction this update refers to. |
 | 1             | `disable`   | Disable the channel.             |
-
-The `message_flags` bitfield is used to indicate the presence of optional
-fields in the `channel_update` message:
-
-| Bit Position  | Name                      | Field                            |
-| ------------- | ------------------------- | -------------------------------- |
-| 0             | `option_channel_htlc_max` | `htlc_maximum_msat`              |
 
 The `node_id` for the signature verification is taken from the corresponding
 `channel_announcement`: `node_id_1` if the least-significant bit of flags is 0
@@ -456,12 +449,12 @@ The origin node:
     - MUST set the `direction` bit of `channel_flags` to 0.
   - otherwise:
     - MUST set the `direction` bit of `channel_flags` to 1.
-  - MUST set the `option_channel_htlc_max` bit of `message_flags` to 1.
+  - MUST set `must_be_one` to 1.
   - MUST set `htlc_maximum_msat` to the maximum value it will send through this channel for a single HTLC.
     - MUST set this to less than or equal to the channel capacity.
     - MUST set this to less than or equal to `max_htlc_value_in_flight_msat`
       it received from the peer.
-  - MUST set bits in `channel_flags` and `message_flags `that are not assigned a meaning to 0.
+  - MUST set bits in `channel_flags`that are not assigned a meaning to 0.
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
@@ -544,6 +537,10 @@ indicate that the channel is disabled, with another update re-enabling
 the channel when the peer reestablishes contact.  Because gossip
 messages are batched and replace previous ones, the result may be a
 single seemingly-redundant update.
+
+The `must_be_one` field was previously used for message flags, and only
+the lower bit was defined.  It's now a constant value, and ignored by
+receivers.
 
 ## Query Messages
 
