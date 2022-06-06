@@ -962,10 +962,16 @@ allows for more refined synchronization.
 
 The origin node:
   - SHOULD accept HTLCs that pay a fee equal to or greater than:
-    - fee_base_msat + ( amount_to_forward * fee_proportional_millionths / 1000000 )
+    - fee_base_msat + ( max(amount_to_forward, htlc_minimum_msat) * fee_proportional_millionths / 1000000 )
   - SHOULD accept HTLCs that pay an older fee, for some reasonable time after
   sending `channel_update`.
     - Note: this allows for any propagation delay.
+
+### Rationale
+
+The purpose of `htlc_minimum_msat` is to reject uneconomical HTLCs, however
+lower amounts should still be accepted as long as the fee is high enough to
+relay `htlc_minimum_msat`.
 
 ## Pruning the Network View
 

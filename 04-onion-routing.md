@@ -915,15 +915,6 @@ the onion.
 The onion specified a `short_channel_id` which doesn't match any
 leading from the processing node.
 
-1. type: UPDATE|11 (`amount_below_minimum`)
-2. data:
-   * [`u64`:`htlc_msat`]
-   * [`u16`:`len`]
-   * [`len*byte`:`channel_update`]
-
-The HTLC amount was below the `htlc_minimum_msat` of the channel from
-the processing node.
-
 1. type: UPDATE|12 (`fee_insufficient`)
 2. data:
    * [`u64`:`htlc_msat`]
@@ -1068,10 +1059,6 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
     - return a `required_channel_feature_missing` error.
   - if the receiving peer specified by the onion is NOT known:
     - return an `unknown_next_peer` error.
-  - if the HTLC amount is less than the currently specified minimum amount:
-    - report the amount of the outgoing HTLC and the current channel setting for
-    the outgoing channel.
-    - return an `amount_below_minimum` error.
   - if the HTLC does NOT pay a sufficient fee:
     - report the amount of the incoming HTLC and the current channel setting for
     the outgoing channel.
