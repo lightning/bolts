@@ -549,10 +549,11 @@ to broadcast the commitment transaction to get his funds back and open a new
 channel. To avoid this, the funder should ensure the funding transaction
 confirms in the next 2016 blocks.
 
-The `alias` here is both required for routing (since there real
-short_channel_id is unknown until confirmation), and useful to provide
-one or more aliases, even once there is a real `short_channel_id` for
-a public channel.
+The `alias` here is required for two distinct use cases. The first one is
+for routing payments through channels that are not confirmed yet (since
+the real `short_channel_id` is unknown until confirmation). The second one
+is to provide one or more aliases to use for private channels (even once
+a real `short_channel_id` is available).
 
 While a node can send multiple `alias`, it must remember all of the
 ones it has sent so it can use them should they be requested by
