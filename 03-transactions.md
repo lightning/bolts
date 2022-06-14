@@ -12,7 +12,7 @@ This details the exact format of on-chain transactions, which both sides need to
         * [Commitment Transaction Outputs](#commitment-transaction-outputs)
           * [`to_local` Output](#to_local-output)
           * [`to_remote` Output](#to_remote-output)
-          * [`to_local_anchor` and `to_remote_anchor`](#to_local_anchor-and-to_remote_anchor-output-option_anchor_outputs)
+          * [`to_local_anchor` and `to_remote_anchor`](#to_local_anchor-and-to_remote_anchor-output-option_anchors)
           * [Offered HTLC Outputs](#offered-htlc-outputs)
           * [Received HTLC Outputs](#received-htlc-outputs)
         * [Trimmed Outputs](#trimmed-outputs)
