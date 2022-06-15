@@ -491,6 +491,8 @@ The origin node:
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
   satoshi) it will charge per transferred satoshi.
   - SHOULD NOT create redundant `channel_update`s
+  - If it creates a new `channel_update` with updated channel parameters:
+    - SHOULD keep accepting the previous channel parameters for 10 minutes
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
@@ -540,14 +542,14 @@ makes sense to have it be a UNIX timestamp (i.e. seconds since UTC
 1970-01-01). This cannot be a hard requirement, however, given the possible case
 of two `channel_update`s within a single second.
 
-It is assumed that more than one `channel_update` message changing the channel 
-parameters in the same second may be a DoS attempt, and therefore, the node responsible 
-for signing such messages may be blacklisted. However, a node may send a same 
-`channel_update` message with a different signature (changing the nonce in signature 
-signing), and hence fields apart from signature are checked to see if the channel 
-parameters have changed for the same timestamp. It is also important to note that 
-ECDSA signatures are malleable. So, an intermediate node who received the `channel_update` 
-message can rebroadcast it just by changing the `s` component of signature with `-s`. 
+It is assumed that more than one `channel_update` message changing the channel
+parameters in the same second may be a DoS attempt, and therefore, the node responsible
+for signing such messages may be blacklisted. However, a node may send a same
+`channel_update` message with a different signature (changing the nonce in signature
+signing), and hence fields apart from signature are checked to see if the channel
+parameters have changed for the same timestamp. It is also important to note that
+ECDSA signatures are malleable. So, an intermediate node who received the `channel_update`
+message can rebroadcast it just by changing the `s` component of signature with `-s`.
 This should however not result in the blacklist of the `node_id` from where
 the message originated.
 
@@ -564,6 +566,11 @@ indicate that the channel is disabled, with another update re-enabling
 the channel when the peer reestablishes contact.  Because gossip
 messages are batched and replace previous ones, the result may be a
 single seemingly-redundant update.
+
+When a node creates a new `channel_update` to change its channel parameters,
+it will take some time to propagate through the network and payers may use
+older parameters. It is recommended to keep accepting older parameters for
+at least 10 minutes to improve payment latency and reliability.
 
 ## Query Messages
 
