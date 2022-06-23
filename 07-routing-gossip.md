@@ -224,7 +224,7 @@ The receiving node:
       - otherwise:
         - SHOULD store this `channel_announcement`.
   - once its funding output has been spent OR reorganized out:
-    - SHOULD forget a channel.
+    - SHOULD forget a channel after a 12-block delay.
 
 ### Rationale
 
@@ -248,6 +248,10 @@ New channel features are possible in the future: backwards compatible (or
 optional) features will have _odd_ feature bits, while incompatible features
 will have _even_ feature bits
 (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
+
+A delay of 12-blocks is used when forgetting a channel on funding output spend
+as to permit a new `channel_announcement` to propagate which indicates this
+channel was spliced.
 
 ## The `node_announcement` Message
 
