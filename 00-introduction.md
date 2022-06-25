@@ -77,7 +77,7 @@ network bootstrap.
 
 ### Payment Invoicing
 
-A participant receives invoices that tell her what payments to make.
+A participant receives invoices that tell them what payments to make.
 
 See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) for the protocol describing the destination and purpose of a payment such that the payer can later prove successful payment.
 
