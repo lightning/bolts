@@ -358,6 +358,7 @@ the byte size of the input and output counts on the transaction to one (1).
     * [`sha256`:`txid`]
     * [`u16`:`num_witnesses`]
     * [`num_witnesses*witness_stack`:`witness_stack`]
+    * [`txsigs_tlvs`:`tlvs`]
 
 1. subtype: `witness_stack`
 2. data:
@@ -369,6 +370,12 @@ the byte size of the input and output counts on the transaction to one (1).
     * [`u16`:`len`]
     * [`len*byte`:`witness`]
 
+1. `tlv_stream`: `txsigs_tlvs`
+2. types:
+   1. type: 0 (`funding_outpoint_sig`)
+   2. data:
+       * [`...*byte`:`sig`]
+
 #### Requirements
 
 The sending node:
@@ -377,7 +384,10 @@ The sending node:
     - MUST transmit their `tx_signatures` before the peer
   - MUST order the `witness_stack`s by the `serial_id` of the input they
     correspond to
+  - MAY add `funding_outpoint_sig`s if funding outpoints are being spent. In
+    this case the corresponding inputs are not included in the `witness_stack`.
   - number of `witness_stack`s MUST equal the number of inputs they added
+    less the inputs spending funding outpoints
 
 The receiving node:
   - MUST fail the negotiation if:
