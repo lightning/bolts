@@ -413,7 +413,7 @@ of *relaying* payments, not *sending* payments. When making a payment
     * [`u64`:`htlc_minimum_msat`]
     * [`u32`:`fee_base_msat`]
     * [`u32`:`fee_proportional_millionths`]
-    * [`u64`:`htlc_maximum_msat`] (option_channel_htlc_max)
+    * [`u64`:`htlc_maximum_msat`]
 
 The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
@@ -425,18 +425,12 @@ individual bits:
 | 0             | `direction` | Direction this update refers to. |
 | 1             | `disable`   | Disable the channel.             |
 
-The `message_flags` bitfield is used to indicate the presence of optional
-fields in the `channel_update` message:
+The `message_flags` bitfield is used to provide additional details about the message:
 
-| Bit Position  | Name                      | Field                            |
-| ------------- | ------------------------- | -------------------------------- |
-| 0             | `option_channel_htlc_max` | `htlc_maximum_msat`              |
-
-Note that the `htlc_maximum_msat` field is static in the current
-protocol over the life of the channel: it is *not* designed to be
-indicative of real-time channel capacity in each direction, which
-would be both a massive data leak and uselessly spam the network (it
-takes an average of 30 seconds for gossip to propagate each hop).
+| Bit Position  | Name           |
+| ------------- | ---------------|
+| 0             | `must_be_one`  |
+| 1             | `dont_forward` |
 
 The `node_id` for the signature verification is taken from the corresponding
 `channel_announcement`: `node_id_1` if the least-significant bit of flags is 0
@@ -450,7 +444,8 @@ The origin node:
   channel peer, even though the channel has not yet been announced (i.e. the
   `announce_channel` bit was not set).
     - MUST set the `short_channel_id` to either an `alias` it has
-	  received from the peer, or the real channel `short_channel_id`.
+    received from the peer, or the real channel `short_channel_id`.
+    - MUST set `dont_forward` to 1 in `message_flags`
     - MUST NOT forward such a `channel_update` to other peers, for privacy
     reasons.
     - Note: such a `channel_update`, one not preceded by a
@@ -464,15 +459,8 @@ The origin node:
     - MUST set the `direction` bit of `channel_flags` to 0.
   - otherwise:
     - MUST set the `direction` bit of `channel_flags` to 1.
-  - if the `htlc_maximum_msat` field is present:
-    - MUST set the `option_channel_htlc_max` bit of `message_flags` to 1.
-    - MUST set `htlc_maximum_msat` to the maximum value it will send through this channel for a single HTLC.
-      - MUST set this to less than or equal to the channel capacity.
-      - MUST set this to less than or equal to `max_htlc_value_in_flight_msat`
-    it received from the peer.
-  - otherwise:
-    - MUST set the `option_channel_htlc_max` bit of `message_flags` to 0.
-  - MUST set bits in `channel_flags` and `message_flags `that are not assigned a meaning to 0.
+  - MUST set `must_be_one` in `message_flags` to 1.
+  - MUST set bits in `channel_flags` and `message_flags` that are not assigned a meaning to 0.
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
@@ -525,14 +513,11 @@ The receiving node:
     - otherwise:
       - SHOULD queue the message for rebroadcasting.
       - MAY choose NOT to for messages longer than the minimum expected length.
-  - if the `option_channel_htlc_max` bit of `message_flags` is 0:
-    - MUST consider `htlc_maximum_msat` not to be present.
+  - if `htlc_maximum_msat` is greater than channel capacity:
+    - MAY blacklist this `node_id`
+    - SHOULD ignore this channel during route considerations.
   - otherwise:
-    - if `htlc_maximum_msat` is not present or greater than channel capacity:
-      - MAY blacklist this `node_id`
-      - SHOULD ignore this channel during route considerations.
-    - otherwise:
-      - SHOULD consider the `htlc_maximum_msat` when routing.
+    - SHOULD consider the `htlc_maximum_msat` when routing.
 
 ### Rationale
 
@@ -553,12 +538,6 @@ message can rebroadcast it just by changing the `s` component of signature with 
 This should however not result in the blacklist of the `node_id` from where
 the message originated.
 
-The explicit `option_channel_htlc_max` flag to indicate the presence
-of `htlc_maximum_msat` (rather than having `htlc_maximum_msat` implied
-by the message length) allows us to extend the `channel_update`
-with different fields in future.  Since channels are limited to 2^32-1
-millisatoshis in Bitcoin, the `htlc_maximum_msat` has the same restriction.
-
 The recommendation against redundant `channel_update`s minimizes spamming the network,
 however it is sometimes inevitable.  For example, a channel with a
 peer which is unreachable will eventually cause a `channel_update` to
@@ -571,6 +550,10 @@ When a node creates a new `channel_update` to change its channel parameters,
 it will take some time to propagate through the network and payers may use
 older parameters. It is recommended to keep accepting older parameters for
 at least 10 minutes to improve payment latency and reliability.
+
+The `must_be_one` field in `message_flags` was previously used to indicate
+the presence of the `htlc_maximum_msat` field. This field must now always
+be present, so `must_be_one` is a constant value, and ignored by receivers.
 
 ## Query Messages
 
