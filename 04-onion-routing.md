@@ -679,8 +679,7 @@ A special `hmac` value of 32 `0x00`-bytes indicates that the currently processin
 
 If the HMAC does not indicate route termination, and if the next hop is a peer of the
 processing node; then the new packet is assembled. Packet assembly is accomplished
-by blinding the ephemeral key with the processing node's public key, along with the
-shared secret, and by serializing the `hop_payloads`.
+by (blinding the ephemeral key)[#blinding-ephemeral-keys], and by serializing the `hop_payloads`.
 The resulting packet is then forwarded to the addressed peer.
 
 ## Requirements
