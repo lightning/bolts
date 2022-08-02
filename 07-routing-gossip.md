@@ -286,6 +286,10 @@ The following `address descriptor` types are defined:
          onion service addresses; Encodes:
          `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where
          `checksum = sha3(".onion checksum" | pubkey || version)[:2]`.
+   * `5`: DNS hostname; data = `[1:hostname_len][hostname_len:hostname][2:port]` (length up to 258)
+       * `hostname` bytes MUST be ASCII characters.
+       * Non-ASCII characters MUST be encoded using Punycode:
+         https://en.wikipedia.org/wiki/Punycode
 
 ### Requirements
 
@@ -307,13 +311,14 @@ The origin node:
   - MUST place address descriptors in ascending order.
   - SHOULD NOT place any zero-typed address descriptors anywhere.
   - SHOULD use placement only for aligning fields that follow `addresses`.
-  - MUST NOT create a `type 1` OR `type 2` address descriptor with `port` equal
-  to 0.
+  - MUST NOT create a `type 1`, `type 2` or `type 5` address descriptor with
+  `port` equal to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
   - SHOULD not announce a Tor v2 onion service.
+  - MUST NOT announce more than one `type 5` DNS hostname.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -338,7 +343,7 @@ any future fields appended to the end):
     - SHOULD send a `warning`.
     - MAY close the connection.
   - if `port` is equal to 0:
-    - SHOULD ignore `ipv6_addr` OR `ipv4_addr`.
+    - SHOULD ignore `ipv6_addr` OR `ipv4_addr` OR `hostname`.
   - if `node_id` is NOT previously known from a `channel_announcement` message,
   OR if `timestamp` is NOT greater than the last-received `node_announcement`
   from this `node_id`:
@@ -351,6 +356,9 @@ any future fields appended to the end):
   - MAY use `rgb_color` AND `alias` to reference nodes in interfaces.
     - SHOULD insinuate their self-signed origins.
   - SHOULD ignore Tor v2 onion services.
+  - if more than one `type 5` address is announced:
+    - SHOULD ignore the additional data.
+    - MUST not forward the `node_announcement`.
 
 ### Rationale
 
