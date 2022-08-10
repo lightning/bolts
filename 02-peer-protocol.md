@@ -679,6 +679,10 @@ non-funder has to pick a fee in this range. If the non-funder chooses the same
 value, negotiation is complete after two messages, otherwise the funder will
 reply with the same value (completing after three messages).
 
+If `option_closing_rejected` is negotiated, then the fee_range flow is similar to
+the case where it isn't negotiated, except that `closing_rejected` messages are
+sent by the fundee in case of mismatch.
+
 1. type: 39 (`closing_signed`)
 2. data:
    * [`channel_id`:`channel_id`]
@@ -706,7 +710,12 @@ The sending node:
   prepared to pay for a close transaction.
   - if it doesn't receive a `closing_signed` response after a reasonable amount of time:
     - MUST fail the channel
-  - if it is not the funder:
+  - if it is the funder:
+    - if `option_closing_rejected` has been negotiated:
+      - if a `closing_signed` has already been sent:
+        - MUST wait until receipt of either a corresponding `closing_signed` or
+          `closing_rejected` before sending this `closing_signed`.
+  - otherwise (it is not the funder):
     - SHOULD set `max_fee_satoshis` to at least the `max_fee_satoshis` received
     - SHOULD set `min_fee_satoshis` to a fairly low value
   - MUST set `signature` to the Bitcoin signature of the close transaction,
@@ -728,6 +737,8 @@ The receiving node:
     - if there is no overlap between that and its own `fee_range`:
       - SHOULD send a warning
       - MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time
+      - if `option_closing_rejected` has been negotiated:
+        - MUST send a `closing_rejected` message.
     - otherwise:
       - if it is the funder:
         - if `fee_satoshis` is not in the overlap between the sent and received `fee_range`:
@@ -775,6 +786,31 @@ policies (e.g. when using a non-segwit shutdown script for an output below 546
 satoshis, which is possible if `dust_limit_satoshis` is below 546 satoshis).
 No funds are at risk when that happens, but the channel must be force-closed as
 the closing transaction will likely never reach miners.
+
+### Closing Rejected: `closing_rejected`
+
+If the fundee disagrees on the `fee_range` the funder proposed, they may send a
+`closing_rejected` to tell them to try again.
+
+1. type: 40 (`closing_rejected`)
+2. data:
+   * [`channel_id`:`channel_id`]
+
+#### Requirements
+
+The sending node (the fundee):
+  - if `option_closing_rejected` has not been negotiated:
+    - MUST NOT send this message.
+
+The receiving node (the funder):
+  - if `option_closing_rejected` has not been negotiated:
+    - MUST fail the channel.
+
+#### Rationale
+
+Without `option_closing_rejected`, it is possible that fee_range-based coop close
+results in a force close due to a [timing issue](https://github.com/lightning/bolts/issues/1013).
+Requiring that the negotiation is turn-based fixes the issue.
 
 ## Normal Operation
 
