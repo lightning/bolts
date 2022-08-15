@@ -1002,8 +1002,8 @@ A node:
 #### Requirements
 
 A node:
-  - if a channel's latest `channel_update`s `timestamp` is older than two weeks
-  (1209600 seconds):
+  - if the `timestamp` of the latest `channel_update` in either direction is
+  older than two weeks (1209600 seconds):
     - MAY prune the channel.
     - MAY ignore the channel.
     - Note: this is an individual node policy and MUST NOT be enforced by
