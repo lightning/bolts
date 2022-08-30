@@ -327,7 +327,7 @@ These HTLC transactions are almost identical, except the HTLC-timeout transactio
    * `txin[0]` script bytes: `0`
    * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-success, `0 <remotehtlcsig> <localhtlcsig> <>` for HTLC-timeout
 * txout count: 1
-   * `txout[0]` amount: the HTLC amount minus fees (see [Fee Calculation](#fee-calculation))
+   * `txout[0]` amount: the HTLC `amount_msat` divided by 1000 (rounding down) minus fees in satoshis (see [Fee Calculation](#fee-calculation))
    * `txout[0]` script: version-0 P2WSH with witness script as shown below
 * if `option_anchors` applies to this commitment transaction, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used as described in [BOLT #5](05-onchain.md#generation-of-htlc-transactions).
 
