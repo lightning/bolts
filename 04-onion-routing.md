@@ -803,7 +803,10 @@ The _origin node_:
 
 The failure message encapsulated in `failuremsg` has an identical format as
 a normal message: a 2-byte type `failure_code` followed by data applicable
-to that type. Below is a list of the currently supported `failure_code`
+to that type. The message data is followed by an optional
+[TLV stream](01-messaging.md#type-length-value-format).
+
+Below is a list of the currently supported `failure_code`
 values, followed by their use case requirements.
 
 Notice that the `failure_code`s are not of the same type as other message types,
