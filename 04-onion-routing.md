@@ -1143,7 +1143,7 @@ The test vectors use the following parameters:
 	pubkey[3] = 0x032c0b7cf95324a07d05398b240174dc0c2be444d96b159aa6c7f7b1e668680991
 	pubkey[4] = 0x02edabbd16b41c8371b92ef2f04c1185b4f03b6dcd52ba9b78d9d7c89c8f221145
 
-	nhops = 5/20
+	nhops = 5
 	sessionkey = 0x4141414141414141414141414141414141414141414141414141414141414141
 
 The following is an in-depth trace of an example of error message creation:
