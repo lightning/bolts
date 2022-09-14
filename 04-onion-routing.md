@@ -1145,7 +1145,6 @@ The test vectors use the following parameters:
 
 	nhops = 5/20
 	sessionkey = 0x4141414141414141414141414141414141414141414141414141414141414141
-	associated data = 0x4242424242424242424242424242424242424242424242424242424242424242
 
 The following is an in-depth trace of an example of error message creation:
 
