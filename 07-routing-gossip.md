@@ -83,7 +83,8 @@ The `announcement_signatures` message is created by constructing a `channel_anno
 `announcement_signatures` message may be sent.
 
 A node:
-  - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
+  - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent
+    AND the channel is not a simple-taproot-channel:
     - MUST send the `announcement_signatures` message.
       - MUST NOT send `announcement_signatures` messages until `funding_locked`
       has been sent and received AND the funding transaction has at least six confirmations.

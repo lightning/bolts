@@ -518,12 +518,51 @@ reached acceptable depth.
    * [`channel_id`:`channel_id`]
    * [`u32`:`funding_feerate_perkw`]
    * [`point`:`funding_pubkey`]
+   * [`splice_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `splice_tlvs`
+2. types:
+    1. type: 0 (`channel_type`)
+    2. data:
+        * [`...*byte`: `type`]
+    1. type: 2 (`verification_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`: `nonces`]
+    1. type: 4 (`signing_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`: `nonces`]
+    1. type: 6 (`tx_verification_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`: `nonces`]
+    1. type: 8 (`tx_signing_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`: `nonces`]
 
 1. type: 76 (`splice_ack`)
 2. data:
    * [`chain_hash`:`chain_hash`]
    * [`channel_id`:`channel_id`]
    * [`point`:`funding_pubkey`]
+   * [`splice_ack_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `splice_ack_tlvs`
+2. types:
+    1. type: 0 (`verification_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`: `nonces`]
+    1. type: 2 (`signing_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`: `nonces`]
+    1. type: 4 (`tx_verification_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`: `nonces`]
+    1. type: 6 (`tx_signing_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`: `nonces`]
+
+1. type: 78 (`splice_rejected`)
+2. data:
+   * [`channel_id`:`channel_id`]
 
 #### Requirements
 
@@ -533,21 +572,41 @@ The sender of `splice`:
 - MUST NOT send `splice` while a splice is being negotiated.
 - If any splice is in progress:
   - MUST NOT send a splice message with `funding_feerate_perkw` which is less than 1.25 the previous `funding_feerate_perkw` (rounded down).
+- MUST only set `verification_musig2_pubnonce` and `signing_musig2_pubnonce` if
+  `channel_type` has the `option_simple_taproot` required bit set.
+- If it sets the `channel_type`:
+  - MUST NOT set any bits unrelated to the `option_simple_taproot` bit.
+  - MUST only set the `option_simple_taproot` bit if the `option_simple_taproot` feature
+    bit was negotiated.
 
 The receiver of `splice`:
 - SHOULD fail the connection if there is an ongoing splice, and the `funding_feerate_perkw` is not at least 1.25 the previous `funding_feerate_perkw` (rounded down).
 - MUST respond with `splice_ack` containing its own `funding_pubkey`.
 - MUST begin splice negotiation.
+- MUST send a `splice_rejected` if the `channel_type` is set to a type they don't want or do not
+  understand.
 
 The receiver of `splice_ack`:
 - MUST begin splice negotiation.
 
+The sender of `splice_rejected`:
+- MUST stop splice negotiation for the `channel_id`.
+- MUST consider the connection no longer quiescent.
+
+The receiver of `splice_rejected`:
+- MUST stop splice negotiation for the `channel_id` it has with this peer.
+- MUST consider the connection no longer quiescent.
 
 #### Rationale
 
 There is no harm in agreeing to a splice with a high feerate
 (presumably the recipient will not contribute to the splice which they
 consider to be overpaying).
+
+The `verification_musig2_pubnonce` and `signing_musig2_pubnonce` are used for signing from the
+musig2 output in the splice transaction. The `tx_*` variants are only used for the case where
+the original funding output is already a musig2 output. In this case, the nonces are used in
+creating the cooperative signature contained in the `tx_signatures` message.
 
 ## Splice Negotiation
 
@@ -579,7 +638,8 @@ Upon receipt of consecutive `tx_complete`s, each node:
 - if either side has added an output other than the new channel funding output:
   - MUST fail the negotiation if the balance for that side is less than 1% of the total channel capacity.
 - SHOULD NOT fail if the splice transaction is nonstandard.
-- MUST increment the commitment number and send `commitment_signed`, including the signatures for the splice transaction.
+- MUST increment the commitment number and send `commitment_signed`, including the signatures
+  and nonces for each of the splice transactions.
 
 - Upon receipt of `revoke_and_ack` for the previous commitment:
   - MUST send `tx_signatures` for the splice transaction.
@@ -591,6 +651,8 @@ Upon receipt of consecutive `tx_complete`s, each node:
 On reconnection:
 - MUST retransmit the last splice `tx_signatures` (if any).
 - MUST ignore any redundant `tx_signatures` it receives.
+- MUST send a signing and verification nonce for every in-progress splice that spends from a
+  simple-taproot-channel funding output.
 
 ### Rationale
 
@@ -1198,6 +1260,12 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
     1. type: 0 (`splice_commitsigs`)
     2. data:
         * [`...*commitsigs`:`sigs`]
+    1. type: 2 (`signing_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`:`nonces`]
+    1. type: 4 (`splice_signing_pubnonces`)
+    2. data:
+        * [`...*splice_pub_nonce`:`nonces`]
 
 1. subtype: `commitsigs`
 2. data:
@@ -1205,6 +1273,9 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
    * [`u16`:`num_htlcs`]
    * [`num_htlcs*signature`:`htlc_signature`]
 
+1. subtype: `splice_pub_nonce`
+2. data:
+   * [`66*byte`:`nonces`]
 
 #### Requirements
 
@@ -1222,6 +1293,8 @@ fee changes).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
   - MUST send a `commitsigs` for each splice in progress, in increasing feerate order.
+  - MUST send a `splice_pub_nonce` for each splice in progress that spends from a
+    simple-taproot-channel funding output, in increasing feerate order.
 
 A receiving node:
   - once all pending updates are applied:
@@ -1234,7 +1307,11 @@ A receiving node:
     - MUST fail the channel.
   - if there is not exactly one `commitsigs` for each splice in progress:
     - MUST fail the channel.
-  - if `commit_signature`, `num_htlcs` or `htlc_signature` is not correct as specified above for each splice:
+  - if there is not exactly one `splice_pub_nonce` for each splice in progress that spends
+    from a simple-taproot-channel funding output:
+    - MUST fail the channel.
+  - if `commit_signature`, `num_htlcs`, `htlc_signature`, or `splice_pub_nonce` is not correct
+    as specified above for each splice:
     - MUST fail the channel.
   - MUST respond with a `revoke_and_ack` message.
 
@@ -1279,6 +1356,20 @@ The description of key derivation is in [BOLT #3](03-transactions.md#key-derivat
    * [`channel_id`:`channel_id`]
    * [`32*byte`:`per_commitment_secret`]
    * [`point`:`next_per_commitment_point`]
+   * [`revoke_and_ack_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `revoke_and_ack_tlvs`
+2. types:
+   1. type: 2 (`verification_musig2_pubnonce`)
+   2. data:
+       * [`66*byte`:`nonces`]
+   1. type: 4 (`splice_verification_pubnonces`)
+   2. data:
+       * [`...*splice_pub_nonce`:`nonces`]
+
+1. subtype: `splice_pub_nonce`
+2. data:
+   * [`66*byte`:`nonces`]
 
 #### Requirements
 
@@ -1287,12 +1378,16 @@ A sending node:
   the previous commitment transaction.
   - MUST set `next_per_commitment_point` to the values for its next commitment
   transaction.
+  - MUST send a `splice_pub_nonce` for each in-progress splice that spends from a
+    simple-taproot-channel funding output, in increasing feerate order.
 
 A receiving node:
   - if `per_commitment_secret` is not a valid secret key or does not generate the previous `per_commitment_point`:
     - MUST fail the channel.
   - if the `per_commitment_secret` was not generated by the protocol in [BOLT #3](03-transactions.md#per-commitment-secret-requirements):
     - MAY fail the channel.
+  - if there are an incorrect number of `splice_pub_nonce`:
+    - MUST fail the channel.
 
 A node:
   - MUST NOT broadcast old (revoked) commitment transactions,
@@ -1398,6 +1493,26 @@ messages are), they are independent of requirements here.
    * [`u64`:`next_revocation_number`]
    * [`32*byte`:`your_last_per_commitment_secret`]
    * [`point`:`my_current_per_commitment_point`]
+   * [`channel_reestablish_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `channel_reestablish_tlvs`
+2. types:
+    1. type: 2 (`verification_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`:`nonces`]
+    1. type: 4 (`signing_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`:`nonces`]
+    1. type: 6 (`splice_verification_pubnonces`)
+    2. data:
+        * [`...*splice_pub_nonce`:`nonces`]
+    1. type: 8 (`splice_signing_pubnonces`)
+    2. data:
+        * [`...*splice_pub_nonce`:`nonces`]
+
+1. subtype: `splice_pub_nonce`
+2. data:
+   * [`66*byte`:`nonces`]
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
@@ -1454,6 +1569,9 @@ The sending node:
     - MUST set `your_last_per_commitment_secret` to all zeroes
   - otherwise:
     - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret` it received
+  - MUST set `splice_verification_pubnonces` and `splice_signing_pubnonces` to contain a
+    `splice_pub_nonce` for each in-progress splice that spends from a simple-taproot-channel
+    funding output, in increasing feerate order.
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
@@ -1491,6 +1609,10 @@ A node:
       - SHOULD fail the channel.
 
  A receiving node:
+  - if either `splice_verification_pubnonces` or `splice_signing_pubnonces` does not contain
+    a `splice_pub_nonce` for each in-progress splice spending from a simple-taproot-channel
+    funding output:
+    - MUST fail the channel.
   - if `option_static_remotekey` applies to the commitment transaction:
     - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
