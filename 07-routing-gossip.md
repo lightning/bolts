@@ -471,6 +471,9 @@ The origin node:
     - MUST set the `direction` bit of `channel_flags` to 0.
   - otherwise:
     - MUST set the `direction` bit of `channel_flags` to 1.
+  - MUST set `htlc_maximum_msat` to the maximum value it will send through this channel for a single HTLC.
+    - MUST set this to less than or equal to the channel capacity.
+    - MUST set this to less than or equal to `max_htlc_value_in_flight_msat` it received from the peer.
   - MUST set `must_be_one` in `message_flags` to 1.
   - MUST set bits in `channel_flags` and `message_flags` that are not assigned a meaning to 0.
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
