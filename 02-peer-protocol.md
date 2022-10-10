@@ -800,52 +800,48 @@ A fulfilling node:
 ### Bounding exposure to trimmed in-flight HTLCs: `max_dust_htlc_exposure_msat`
 
 When an HTLC in a channel is below the "trimmed" threshold in [BOLT3 #3](03-transactions.md),
-the HTLC is not claimable on-chain, instead being turned into additional miner
+the HTLC cannot be claimed on-chain, instead being turned into additional miner
 fees if either party unilaterally closes the channel. Because the threshold is
 per-HTLC, the total exposure to such HTLCs may be substantial if there are many
-dust HTLCs present when the channel is force-closed.
+dust HTLCs committed when the channel is force-closed.
 
 This can be exploited in griefing attacks or even in miner-extractable-value attacks,
-if the malicious entity avails <sup>[mining capabilities](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-May/002714.html)</sup>.
+if the malicious entity wins <sup>[mining capabilities](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-May/002714.html)</sup>.
 
 The total exposure is given by the following back-of-the-envelope computation:
 
-	counterparty's `max_accepted_htlcs` * (`HTLC-success-kiloweight` * opener's `feerate_per_kw` + counterparty's `dust_limit_satoshis`)
-		+ holder's `max_accepted_htlcs` * (`HTLC-timeout-kiloweight` * opener's `feerate_per_kw` + counterparty's `dust_limit_satoshis`)
+	remote `max_accepted_htlcs` * (`HTLC-success-kiloweight` * `feerate_per_kw` + remote `dust_limit_satoshis`)
+		+ local `max_accepted_htlcs` * (`HTLC-timeout-kiloweight` * `feerate_per_kw` + remote `dust_limit_satoshis`)
 
-
-To mitigate this scenario, a `max_dust_htlc_exposure_msat` can be applied at
-HTLC sending, forwarding and receiving.
+To mitigate this scenario, a `max_dust_htlc_exposure_msat` threshold can be
+applied when sending, forwarding and receiving HTLCs.
 
 A node:
-  - upon an incoming HTLC:
-    - if the HTLC's `amount_msat` is inferior to the counterparty's `dust_limit_satoshis` plus the HTLC-timeout fee at the `feerate_per_kw`:
-      - if the `amount_msat` plus the dust balance on counterparty transaction is superior to `max_dust_htlc_exposure_msat`:
+  - when receiving an HTLC:
+    - if the HTLC's `amount_msat` is smaller than the remote `dust_limit_satoshis` plus the HTLC-timeout fee at `feerate_per_kw`:
+      - if the `amount_msat` plus the dust balance of the remote transaction is greater than `max_dust_htlc_exposure_msat`:
         - SHOULD fail this HTLC once it's committed
         - SHOULD NOT reveal a preimage for this HTLC
-    - if the HTLC's `amount_msat` is inferior to the holder's `dust_limit_satoshis` plus the HTLC-success fee at the `feerate_per_kw`:
-      - if the `amount_msat` plus the dust balance on holder transaction is superior to `max_dust_htlc_exposure_msat`:
+    - if the HTLC's `amount_msat` is smaller than the local `dust_limit_satoshis` plus the HTLC-success fee at `feerate_per_kw`:
+      - if the `amount_msat` plus the dust balance of the local transaction is greater than `max_dust_htlc_exposure_msat`:
         - SHOULD fail this HTLC once it's committed
         - SHOULD NOT reveal a preimage for this HTLC
-  - upon an outgoing HTLC:
-    - if the HTLC's `amount_msat` is inferior the counterparty's `dust_limit_satoshis` plus the HTLC-success fee at the `feerate_per_kw`:
-      - if the `amount_msat` plus the dust balance on counterparty transaction is superior to `max_dust_htlc_exposure_msat`:
+  - when offering an HTLC:
+    - if the HTLC's `amount_msat` is smaller than the remote `dust_limit_satoshis` plus the HTLC-success fee at `feerate_per_kw`:
+      - if the `amount_msat` plus the dust balance of the remote transaction is greater than `max_dust_htlc_exposure_msat`:
         - SHOULD NOT send this HTLC
-        - SHOULD fail this HTLC if it's forwarded
+        - SHOULD fail the corresponding incoming HTLC (if any)
     - if the HTLC's `amount_msat` is inferior to the holder's `dust_limit_satoshis` plus the HTLC-timeout fee at the `feerate_per_kw`:
-      - if the `amount_msat` plus the dust balance on holder transaction is superior to `max_dust_htlc_exposure_msat`:
+      - if the `amount_msat` plus the dust balance of the local transaction is greater than `max_dust_htlc_exposure_msat`:
         - SHOULD NOT send this HTLC
-        - SHOULD fail this HTLC if it's forwarded
-
-For pre-`option_anchors_zero_fee_htlc` channels, the second-stage HTLC transaction
-fee is function of the negotiated `feerate_per_kw`. To avoid a node being
-significantly more exposed to trimmed balance in case of feerate increases when
-several HTLCs are pending which are near the dust limit, it is recommended to
-calculate that `feerate_per_kw` with some buffer.
+        - SHOULD fail the corresponding incoming HTLC (if any)
 
 The `max_dust_htlc_exposure_msat` is an upper bound on the trimmed balance from
-dust exposure. The exact value is left as a matter of node policy, as what qualifies
-as a notable loss is devolved to the operator subjectivity.
+dust exposure. The exact value used is a matter of node policy.
+
+For channels that don't use `option_anchors_zero_fee_htlc_tx`, an increase of
+the `feerate_per_kw` may trim multiple htlcs from commitment transactions,
+which could create a large increase in dust exposure.
 
 ### Adding an HTLC: `update_add_htlc`
 
@@ -1169,11 +1165,11 @@ The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
 
 A sending node:
-  - if the `update_fee` is above the `feerate_per_kw`:
-    - if the dust balance on counterparty transaction at the current `feerate_per_kw` is superior to `max_dust_htlc_exposure_msat`:
+  - if the `update_fee` increases `feerate_per_kw`:
+    - if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:
       - MAY NOT send `update_fee`
       - MAY fail the channel
-    - if the dust balance on holder transaction at the current `feerate_per_kw` is superior to `max_dust_htlc_exposure_msat`:
+    - if the dust balance of the local transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:
       - MAY NOT send `update_fee`
       - MAY fail the channel
 
@@ -1186,18 +1182,11 @@ A receiving node:
   current commitment transaction:
     - SHOULD fail the channel,
       - but MAY delay this check until the `update_fee` is committed.
-  - if the `update_fee` is above the `feerate_per_kw`:
-    - if the dust balance on counterparty transaction at the current `feerate_per_kw` is superior to `max_dust_htlc_exposure_msat`:
+  - if the `update_fee` increases `feerate_per_kw`:
+    - if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater then `max_dust_htlc_exposure_msat`:
       - MAY fail the channel
-    - if the dust balance on holder transaction at the current `feerate_per_kw` is superior to `max_dust_htlc_exposure_msat`:
+    - if the dust balance of the local transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:
       - MAY fail the channel
-
-There is a risk of triggering a third-party channel closure in case of
-high-fee spikes by forwarding many trimmed HTLCs on this channel and waiting
-for an automatic `update_fee` provoking an unilateral close. For this reason,
-closing the channel in case of `update_fee` overflowing the
-`max_dust_htlc_exposure_msat` is deferred to the node operator, where it could
-be evaluated in function of the channel trust.
 
 #### Rationale
 
@@ -1220,6 +1209,11 @@ channel creation always pays the fees for the commitment transaction),
 it's simplest to only allow it to set fee levels; however, as the same
 fee rate applies to HTLC transactions, the receiving node must also
 care about the reasonableness of the fee.
+
+If on-chain fees increase while commitments contain many HTLCs that will
+be trimmed at the updated feerate, this could overflow the configured
+`max_dust_htlc_exposure_msat`. Whether to close the channel preemptively
+or not is left as a matter of node policy.
 
 ## Message Retransmission
 
