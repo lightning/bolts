@@ -250,15 +250,15 @@ The reader:
   - if it is not the final node:
     - MUST return an error if:
       - `short_channel_id` is not present,
-       - it cannot forward the HTLC to the peer indicated by the channel `short_channel_id`.
-       - incoming `amount_msat` - `fee` < `amt_to_forward` (where `fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
-       - `cltv_expiry` - `cltv_expiry_delta` < `outgoing_cltv_value`
+      - it cannot forward the HTLC to the peer indicated by the channel `short_channel_id`.
+      - incoming `amount_msat` - `fee` < `amt_to_forward` (where `fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
+      - `cltv_expiry` - `cltv_expiry_delta` < `outgoing_cltv_value`
   - if it is the final node:
     - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it
       is not present.
     - MUST return an error if:
-       - incoming `amount_msat` != `amt_to_forward`.
-       - incoming `cltv_expiry` != `cltv_expiry_delta`.
+      - incoming `amount_msat` < `amt_to_forward`.
+      - incoming `cltv_expiry` < `outgoing_cltv_value`.
 
 Additional requirements are specified [below](#basic-multi-part-payments).
 
