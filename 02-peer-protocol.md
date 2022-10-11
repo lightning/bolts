@@ -877,9 +877,9 @@ received.
 
 The critical settings here are the `cltv_expiry_delta` in
 [BOLT #7](07-routing-gossip.md#the-channel_update-message) and the
-related `min_final_cltv_expiry` in [BOLT #11](11-payment-encoding.md#tagged-fields).
+related `min_final_cltv_expiry_delta` in [BOLT #11](11-payment-encoding.md#tagged-fields).
 `cltv_expiry_delta` is the minimum difference in HTLC CLTV timeouts, in
-the forwarding case (B). `min_final_cltv_expiry` is the minimum difference
+the forwarding case (B). `min_final_cltv_expiry_delta` is the minimum difference
 between HTLC CLTV timeout and the current block height, for the
 terminal case (C).
 
