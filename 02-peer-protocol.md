@@ -1725,9 +1725,13 @@ has been exchanged).
 
 ### Closing Negotiation: `closing_signed`
 
-Once shutdown is complete, the channel is empty of HTLCs, there are no commitments
-for which a revocation is owed, and all updates are included on both commitments,
-the final current commitment transactions will have no HTLCs, and closing fee
+There may be multiple splice candidates (via RBF) however when one is confirmed
+it invalidates the others awaiting confirmation. We refer to this state as all
+splices being "cleared".
+
+Once shutdown is complete, all splices are cleared, the channel is empty
+of HTLCs, there are no commitments for which a revocation is owed, the final
+current commitment transactions will have no HTLCs, and closing fee
 negotiation begins.  The funder chooses a fee it thinks is fair, and
 signs the closing transaction with the `scriptpubkey` fields from the
 `shutdown` messages (along with its chosen fee) and sends the signature;
