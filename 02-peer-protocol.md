@@ -1572,7 +1572,7 @@ Upon receipt of consecutive `tx_complete`s, each node:
 - if either side has added an output other than the new channel funding output:
   - MUST fail the negotiation if the balance for that side is less than 1% of the total channel capacity.
 - SHOULD NOT fail if the splice transaction is nonstandard.
-- MUST increment the commitment number and send `commitment_signed`, including the signatures for the splice transaction.
+- MUST increment the commitment number and send `commitment_signed`, including the commitment signatures for the splice transaction(s).
 
 - Upon receipt of `revoke_and_ack` for the previous commitment:
   - MUST send `tx_signatures` for the splice transaction.
@@ -2347,7 +2347,7 @@ fee changes).
     to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
-  - MUST send a `commitsigs` for each splice in progress, in increasing feerate order.
+  - MUST send a `commitsigs` for each splice awaiting confirmation, in increasing feerate order.
 
 A receiving node:
   - once all pending updates are applied:
