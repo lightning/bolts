@@ -1716,11 +1716,12 @@ of the receiving node to change the `scriptpubkey`.
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
 
-`shutdown` requires that there be no splice in progress, but if there
-is already a splice in progress, it might require another splice to
-"unstick" it (if the first splice was invalid, double-spent, or simply
-had too low a fee), so in this case initiating another splice is legal
-even after sending a shutdown.
+`shutdown` MAY be sent while the splice is pending confirmation. New splice
+negotiations MAY BE initiated while the channel is in `shutdown`. 
+
+The `shutdown` phase MUST NOT be considered concluded until all htlcs are
+resolved and the channel has exited the pending splice phase (`splice_locked`
+has been exchanged).
 
 ### Closing Negotiation: `closing_signed`
 
