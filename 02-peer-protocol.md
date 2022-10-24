@@ -1132,6 +1132,7 @@ This message initiates the v2 channel establishment workflow.
    1. type: 1 (`channel_type`)
    2. data:
         * [`...*byte`:`type`]
+   1. type: 2 (`require_confirmed_inputs`)
 
 Rationale and Requirements are the same as for [`open_channel`](#the-open_channel-message),
 with the following additions.
@@ -1144,11 +1145,15 @@ If nodes have negotiated `option_dual_fund`:
 
 The sending node:
   - MUST set `funding_feerate_perkw` to the feerate for this transaction
+  - If it requires the receiving node to only use confirmed inputs:
+    - MUST set `require_confirmed_inputs`
 
 The receiving node:
   - MAY fail the negotiation if:
     - the `locktime` is unacceptable
     - the `funding_feerate_perkw` is unacceptable
+  - MUST fail the negotiation if:
+    - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
 
 #### Rationale
 
@@ -1177,6 +1182,10 @@ Note that `push_msat` has been omitted.
 
 `second_per_commitment_point` is now sent here (as well as in `channel_ready`)
 as a convenience for implementations.
+
+The sending node may require the other participant to only use confirmed inputs.
+This ensures that the sending node doesn't end up paying the fees of a low
+feerate unconfirmed ancestor of one of the other participant's inputs.
 
 ### The `accept_channel2` Message
 
@@ -1210,6 +1219,7 @@ acceptance of the new channel.
    1. type: 1 (`channel_type`)
    2. data:
         * [`...*byte`:`type`]
+   1. type: 2 (`require_confirmed_inputs`)
 
 Rationale and Requirements are the same as listed above,
 for [`accept_channel`](#the-accept_channel-message) with the following
@@ -1220,6 +1230,12 @@ additions.
 The accepting node:
   - MUST use the `temporary_channel_id` of the `open_channel2` message
   - MAY respond with a `funding_satoshis` value of zero.
+  - If it requires the opening node to only use confirmed inputs:
+    - MUST set `require_confirmed_inputs`
+
+The receiving node:
+  - MUST fail the negotiation if:
+    - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
 
 #### Rationale
 
@@ -1240,7 +1256,11 @@ protocol, with the following additional caveats.
 
 #### The `tx_add_input` Message
 
-No additional caveats or requirements.
+##### Requirements
+
+The sending node:
+  - if the receiver set `require_confirmed_inputs` in `open_channel2` or `accept_channel2`:
+    - MUST NOT send a `tx_add_input` that contains an unconfirmed input
 
 #### The `tx_add_output` Message
 
@@ -1265,12 +1285,15 @@ Upon receipt of consecutive `tx_complete`s, the receiving node:
         `open_channel2`.`funding_satoshis` and `accept_channel2`.
         `funding_satoshis`
       - the value of the funding output is less than the `dust_limit`
- - if it is an RBF attempt:
+  - if it is an RBF attempt:
     - MUST fail the negotiation if:
       - the transaction's total fees is less than the last
         successfully negotiated transaction's fees
       - the transaction does not share a common input with all previous
         funding transactions
+  - if it has sent `require_confirmed_inputs` in `open_channel2` or `accept_channel2`:
+    - MUST fail the negotiation if:
+      - one of the inputs added by the other peer is unconfirmed
 
 ### The `commitment_signed` Message
 
