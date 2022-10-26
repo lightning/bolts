@@ -436,12 +436,14 @@ completed.
 The sender:
   - MUST set `feerate` greater than or equal to 25/24 times the `feerate`
     of the previously constructed transaction, rounded down.
+  - If it contributes to the transaction's funding output:
+    - MUST set `funding_output_contribution`
 
 The recipient:
   - MUST respond either with `tx_abort` or with `tx_ack_rbf`
   - MUST respond with `tx_abort` if:
-    - the `feerate` is not greater than 25/24 times `feerate` of the last
-      successfully constructed transaction
+    - the `feerate` is not greater than or equal to 25/24 times `feerate`
+      of the last successfully constructed transaction
   - MAY send `tx_abort` for any reason
 
 #### Rationale
@@ -459,7 +461,8 @@ the attempt MUST be abandoned.
 `funding_output_contribution` is the amount of satoshis that this peer
 will contribute to the funding output of the transaction, when there is
 such an output. Note that it may be different from the contribution
-made in the previously completed transaction.
+made in the previously completed transaction. If omitted, the sender is
+not contributing to the funding output.
 
 ### The `tx_ack_rbf` Message
 
@@ -476,6 +479,10 @@ made in the previously completed transaction.
 
 #### Requirements
 
+The sender:
+  - If it contributes to the transaction's funding output:
+    - MUST set `funding_output_contribution`
+
 The recipient:
   - MUST respond with `tx_abort` or with a `tx_add_input` message,
     restarting the interactive tx collaboration protocol.
@@ -485,12 +492,13 @@ The recipient:
 `funding_output_contribution` is the amount of satoshis that this peer
 will contribute to the funding output of the transaction, when there is
 such an output. Note that it may be different from the contribution
-made in the previously completed transaction.
+made in the previously completed transaction. If omitted, the sender is
+not contributing to the funding output.
 
 It's recommended that a peer, rather than fail the RBF negotiation due to
-a large feerate change, instead sets their `funding_output_contribution` to
-zero, and decline to participate further in the transaction (by not
-contributing, they may obtain incoming liquidity at no cost).
+a large feerate change, instead stop contributing to the funding output,
+and decline to participate further in the transaction (by not contributing,
+they may obtain incoming liquidity at no cost).
 
 ### The `tx_abort` Message
 
