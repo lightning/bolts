@@ -704,6 +704,8 @@ The sending node:
   inclusion in a block.
   - SHOULD set `fee_range` according to the minimum and maximum fees it is
   prepared to pay for a close transaction.
+  - MUST NOT send another `fee_range` if it has already sent a `fee_range` and hasn't received
+  a `closing_signed` or `warning` in response from the peer.
   - if it doesn't receive a `closing_signed` response after a reasonable amount of time:
     - MUST fail the channel
   - if it is not the funder:
@@ -726,7 +728,7 @@ The receiving node:
     - MAY close the connection.
   - if the message contains a `fee_range`:
     - if there is no overlap between that and its own `fee_range`:
-      - SHOULD send a warning
+      - MUST send a warning
       - MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time
     - otherwise:
       - if it is the funder:
