@@ -1065,7 +1065,7 @@ channel:
 3. C: 30 blocks
 4. D: 40 blocks
 
-C also uses a `min_final_cltv_expiry` of 9 (the default) when requesting
+C also uses a `min_final_cltv_expiry_delta` of 9 (the default) when requesting
 payments.
 
 Also, each node has a set fee scheme that it uses for each of its
@@ -1089,7 +1089,7 @@ The network will see eight `channel_update` messages:
 
 **B->C.** If B were to send 4,999,999 millisatoshi directly to C, it would
 neither charge itself a fee nor add its own `cltv_expiry_delta`, so it would
-use C's requested `min_final_cltv_expiry` of 9. Presumably it would also add a
+use C's requested `min_final_cltv_expiry_delta` of 9. Presumably it would also add a
 _shadow route_ to give an extra CLTV of 42. Additionally, it could add extra
 CLTV deltas at other hops, as these values represent a minimum, but chooses not
 to do so here, for the sake of simplicity:
@@ -1109,7 +1109,7 @@ per [HTLC Fees](#htlc-fees):
         200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
 Similarly, it would need to add B->C's `channel_update` `cltv_expiry_delta` (20), C's
-requested `min_final_cltv_expiry` (9), and the cost for the _shadow route_ (42).
+requested `min_final_cltv_expiry_delta` (9), and the cost for the _shadow route_ (42).
 Thus, A->B's `update_add_htlc` message would be:
 
    * `amount_msat`: 5010198

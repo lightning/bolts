@@ -145,7 +145,7 @@ Currently defined tagged fields are:
 * `n` (19): `data_length` 53. 33-byte public key of the payee node
 * `h` (23): `data_length` 52. 256-bit description of purpose of payment (SHA256). This is used to commit to an associated description that is over 639 bytes, but the transport mechanism for the description in that case is transport specific and not defined here.
 * `x` (6): `data_length` variable. `expiry` time in seconds (big-endian). Default is 3600 (1 hour) if not specified.
-* `c` (24): `data_length` variable. `min_final_cltv_expiry` to use for the last HTLC in the route. Default is 18 if not specified.
+* `c` (24): `data_length` variable. `min_final_cltv_expiry_delta` to use for the last HTLC in the route. Default is 18 if not specified.
 * `f` (9): `data_length` variable, depending on version. Fallback on-chain address: for Bitcoin, this starts with a 5-bit `version` and contains a witness program or P2PKH or P2SH address.
 * `r` (3): `data_length` variable. One or more entries containing extra routing information for a private route; there may be more than one `r` field
    * `pubkey` (264 bits)
@@ -175,7 +175,7 @@ A writer:
   - MAY include one `x` field.
     - if `x` is included:
       - SHOULD use the minimum `data_length` possible.
-  - MUST include one `c` field (`min_final_cltv_expiry`).
+  - MUST include one `c` field (`min_final_cltv_expiry_delta`).
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
     - SHOULD use the minimum `data_length` possible.
@@ -216,7 +216,7 @@ A reader:
     - MUST use the `n` field to validate the signature instead of performing signature recovery.
   - if there is a valid `s` field:
     - MUST use that as [`payment_secret`](04-onion-routing.md#tlv_payload-payload-format)
-  - if the `c` field (`min_final_cltv_expiry`) is not provided:
+  - if the `c` field (`min_final_cltv_expiry_delta`) is not provided:
     - MUST use an expiry delta of at least 18 when making the payment
   - if an `m` field is provided:
     - MUST use that as [`payment_metadata`](04-onion-routing.md#tlv_payload-payload-format)
@@ -618,9 +618,9 @@ Breakdown:
 * `x`: expiry time
   * `qy`: `data_length` (`q` = 0, `y` = 2; 0 * 32 + 4 == 4)
   * `jw5q`: 604800 seconds (`j` = 18, `w` = 14, `5` = 20, `q` = 0; 18 * 32^3 + 14 * 32^2 + 20 * 32 + 0 == 604800)
-* `c`: `min_final_cltv_expiry`
+* `c`: `min_final_cltv_expiry_delta`
   * `qp`: `data_length` (`q` = 0, `p` = 1; 0 * 32 + 1 == 1)
-  * `2`: min_final_cltv_expiry = 10
+  * `2`: min_final_cltv_expiry_delta = 10
 * `r`: tagged field: route information
   * `zj`: `data_length` (`z` = 2, `j` = 18; 2 * 32 + 18 == 82)
   * `q0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9q`:

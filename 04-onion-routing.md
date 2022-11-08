@@ -250,15 +250,16 @@ The reader:
   - if it is not the final node:
     - MUST return an error if:
       - `short_channel_id` is not present,
-       - it cannot forward the HTLC to the peer indicated by the channel `short_channel_id`.
-       - incoming `amount_msat` - `fee` < `amt_to_forward` (where `fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
-       - `cltv_expiry` - `cltv_expiry_delta` < `outgoing_cltv_value`
+      - it cannot forward the HTLC to the peer indicated by the channel `short_channel_id`.
+      - incoming `amount_msat` - `fee` < `amt_to_forward` (where `fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
+      - `cltv_expiry` - `cltv_expiry_delta` < `outgoing_cltv_value`
   - if it is the final node:
     - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it
       is not present.
     - MUST return an error if:
-       - incoming `amount_msat` != `amt_to_forward`.
-       - incoming `cltv_expiry` != `cltv_expiry_delta`.
+      - incoming `amount_msat` < `amt_to_forward`.
+      - incoming `cltv_expiry` < `outgoing_cltv_value`.
+      - incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
 
 Additional requirements are specified [below](#basic-multi-part-payments).
 
@@ -405,7 +406,7 @@ the final node with the following values:
 * `payment_secret`: set to the payment secret specified by the recipient (e.g.
   `payment_secret` from a [BOLT #11](11-payment-encoding.md) payment invoice)
 * `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
-  `min_final_cltv_expiry` from a [BOLT #11](11-payment-encoding.md) payment invoice)
+  `min_final_cltv_expiry_delta` from a [BOLT #11](11-payment-encoding.md) payment invoice)
 * `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
   from a [BOLT #11](11-payment-encoding.md) payment invoice)
 
