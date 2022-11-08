@@ -292,7 +292,7 @@ The writer:
     - otherwise:
       - MUST set `total_msat` to the amount it wishes to pay.
     - MUST ensure that the total `amount_msat` of the HTLC set which arrives at the payee
-      is equal to `total_msat`.
+      is equal to or greater than `total_msat`.
     - MUST NOT send another HTLC if the total `amount_msat` of the HTLC set is already greater or equal to `total_msat`.
     - MUST include `payment_secret`.
   - otherwise:
@@ -307,7 +307,8 @@ The final node:
     - MUST add it to the HTLC set corresponding to that `payment_hash`.
     - SHOULD fail the entire HTLC set if `total_msat` is not the same for
       all HTLCs in the set.
-    - if the total `amount_msat` of this HTLC set equals `total_msat`:
+    - if the total `amount_msat` of this HTLC set is equal to or greater than
+      `total_msat`:
       - SHOULD fulfill all HTLCs in the HTLC set
     - otherwise, if the total `amount_msat` of this HTLC set is less than
       `total_msat`:
@@ -332,6 +333,13 @@ sent explicitly.  The requirements allow exceeding this slightly, as
 it simplifies adding noise to the amount when splitting, as well as
 scenarios in which the senders are genuinely independent (friends
 splitting a bill, for example).
+
+Because a node may need to pay more than its desired amount (due to the
+`htlc_minimum_msat` value of channels in the desired path), nodes are allowed
+to pay more than the `total_msat` they specified. Otherwise, nodes would be
+constrained in which paths they can take when retrying payments along specific
+paths. However, no individual HTLC may be for less than the difference between
+the total paid and `total_msat`.
 
 The restriction on sending an HTLC once the set is over the agreed total prevents the preimage being released before all
 the partial payments have arrived: that would allow any intermediate
