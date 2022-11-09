@@ -292,9 +292,10 @@ The writer:
          than or equal to twice `amount`.
     - otherwise:
       - MUST set `total_msat` to the amount it wishes to pay.
-    - MUST ensure that the total `amount_msat` of the HTLC set which arrives at the payee
-      is equal to or greater than `total_msat`.
-    - MUST NOT send another HTLC if the total `amount_msat` of the HTLC set is already greater or equal to `total_msat`.
+    - MUST ensure that the total `amt_to_forward` of the HTLC set which arrives
+      at the payee is equal to or greater than `total_msat`.
+    - MUST NOT send another HTLC if the total `amt_to_forward` of the HTLC set
+      is already greater or equal to `total_msat`.
     - MUST include `payment_secret`.
   - otherwise:
     - MUST set `total_msat` equal to `amt_to_forward`.
@@ -308,10 +309,10 @@ The final node:
     - MUST add it to the HTLC set corresponding to that `payment_hash`.
     - SHOULD fail the entire HTLC set if `total_msat` is not the same for
       all HTLCs in the set.
-    - if the total `amount_msat` of this HTLC set is equal to or greater than
-      `total_msat`:
+    - if the total `amt_to_forward` of this HTLC set is equal to or greater
+      than `total_msat`:
       - SHOULD fulfill all HTLCs in the HTLC set
-    - otherwise, if the total `amount_msat` of this HTLC set is less than
+    - otherwise, if the total `amt_to_forward` of this HTLC set is less than
       `total_msat`:
       - MUST NOT fulfill any HTLCs in the HTLC set
       - MUST fail all HTLCs in the HTLC set after some reasonable timeout.
