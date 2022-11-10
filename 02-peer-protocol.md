@@ -1509,6 +1509,7 @@ reached acceptable depth.
 2. data:
    * [`chain_hash`:`chain_hash`]
    * [`channel_id`:`channel_id`]
+   * [`u64`:`funding_satoshis`]
    * [`u32`:`funding_feerate_perkw`]
    * [`point`:`funding_pubkey`]
 
@@ -1516,7 +1517,13 @@ reached acceptable depth.
 2. data:
    * [`chain_hash`:`chain_hash`]
    * [`channel_id`:`channel_id`]
+   * [`u64`:`funding_satoshis`]
    * [`point`:`funding_pubkey`]
+
+`funding_satoshis` is the amount the sender is putting into the
+post-splice channel. It includes their old funded channel amount
+plus any satoshis they intend to add, or, less any satoshis they
+intend to remove.
 
 #### Requirements
 
