@@ -1088,11 +1088,9 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the `cltv_expiry` value is unreasonably near the present:
     - MUST fail the HTLC.
     - MUST return an `incorrect_or_unknown_payment_details` error.
-  - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
-  the final node's HTLC:
+  - if the `cltv_expiry` from the final node's HTLC is below `outgoing_cltv_value`:
     - MUST return `final_incorrect_cltv_expiry` error.
-  - if the `amt_to_forward` does NOT correspond with the `incoming_htlc_amt` from the
-  final node's HTLC:
+  - if `amount_msat` from the final node's HTLC is below `amt_to_forward`:
     - MUST return a `final_incorrect_htlc_amount` error.
   - if it returns a `channel_update`:
     - MUST set `short_channel_id` to the `short_channel_id` used by the incoming onion.
