@@ -135,6 +135,8 @@ Each Tagged Field is of the form:
 1. `data_length` (10 bits, big-endian)
 1. `data` (`data_length` x 5 bits)
 
+Note that the maximum length of a Tagged Field's `data` is constricted by the maximum value of `data_length`. This is 1023 x 5 bits, or 639 bytes.
+
 Currently defined tagged fields are:
 
 * `p` (1): `data_length` 52. 256-bit SHA256 payment_hash. Preimage of this provides proof of payment.
