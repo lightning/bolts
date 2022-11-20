@@ -201,6 +201,10 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
     1. type: 16 (`payment_metadata`)
     2. data:
         * [`...*byte`:`payment_metadata`]
+    1. type: 54823733684 (`credentials_payload`)
+    2. data:
+	* [`32*byte`:`credentials`]
+	* [`signature`: `signature`]
 
 `short_channel_id` is the ID of the outgoing channel used to route the
 message; the receiving peer should operate the other end of this channel.
@@ -218,6 +222,11 @@ carrying the packet should have.  Inclusion of this field allows a hop
 to both authenticate the information specified by the origin node, and
 the parameters of the HTLC forwarded, and ensure the origin node is
 using the current `cltv_expiry_delta` value.
+
+`credentials_payload` is the random byte string issued by the routing hop
+acoording to the hop's advertised routing policy (as described in
+[BOLT #7](07-routing-gossip.md#routing_policy)). For each credential, a
+signature should be attached.
 
 If the values don't correspond, this indicates that either a
 forwarding node has tampered with the intended HTLC values or that the
@@ -1001,6 +1010,13 @@ the decrypted byte stream.
 
 The complete amount of the multi-part payment was not received within a
 reasonable time.
+
+1. type: 24 (`routing_policy_error`)
+2. data:
+   * [`u16`: `len`]
+   * [`len*byte`: `routing_policy`]
+
+The HTLC doesn't comply with the routing hop additional policy checks.
 
 ### Requirements
 

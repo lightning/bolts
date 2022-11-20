@@ -27,6 +27,7 @@ To support channel and node discovery, three *gossip messages* are supported:
   * [The `channel_announcement` Message](#the-channel_announcement-message)
   * [The `node_announcement` Message](#the-node_announcement-message)
   * [The `channel_update` Message](#the-channel_update-message)
+  * [The `routing_policy` Message](#the-routing-policy-message)
   * [Query Messages](#query-messages)
   * [Initial Sync](#initial-sync)
   * [Rebroadcasting](#rebroadcasting)
@@ -426,6 +427,8 @@ of *relaying* payments, not *sending* payments. When making a payment
     * [`u32`:`fee_base_msat`]
     * [`u32`:`fee_proportional_millionths`]
     * [`u64`:`htlc_maximum_msat`]
+    * [`u32`: `fee_base_blocks`]
+    * [`u32`] `fee_base_blocks_grace_threshold`]
 
 The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
@@ -493,6 +496,10 @@ The origin node:
   for any HTLC.
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
   satoshi) it will charge per transferred satoshi.
+  - MUST set `fee_base_block` to the amount (in millionths of a
+  satoshi) it will charge per block included in the CLTV duration.
+  - MUST set `fee_base_block_grace_threshold` to the CLTV duration under which
+  `fee_base_block` is not applied.
   - SHOULD NOT create redundant `channel_update`s
   - If it creates a new `channel_update` with updated channel parameters:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
@@ -569,6 +576,28 @@ at least 10 minutes to improve payment latency and reliability.
 The `must_be_one` field in `message_flags` was previously used to indicate
 the presence of the `htlc_maximum_msat` field. This field must now always
 be present, so `must_be_one` is a constant value, and ignored by receivers.
+
+## The `routing_policy` Message
+
+This gossip message contains additional policy checks enforced in the processing
+of a HTLC forward, in additition ot the basic ones by BOLT4.
+
+1. type: 258 (`routing_policy`)
+2. data:
+   * [`acquisition*len`: `acquisition_method`]
+   * [`u32`: `acquisition_to_credential_rate`]
+   * [`u32`: `credential_to_liquidity_unit`]
+   * [`u32`: `credential_expiration_height`]
+   * [`bool`: `routing_check_enable`]
+
+The origin node:
+  - MUST set `acquisition_method` to a credential acquisition method supported (e.g pre-paid fees).
+  - MUST set `acquisition_to_credential_rate` to the translation between how many credentials units are provided per acquisition units satisfied.
+  - MUST set `credential_to_liquidity_unit` to the translation between how many liquidity units
+are provided per credentials unit provided (e.g 1 credential = 1 BTC per block).
+  - MUST set `credential_expiration_height` to the chain height at which all credentials issued
+are considred as expired and as such invalid for HTLC forward.
+  - MUST set `routing_check_enable` to signal the additional routing policy checks are enabled. In period of low local channel congestion, the additional routing policy checks can be disabled.
 
 ## Query Messages
 
