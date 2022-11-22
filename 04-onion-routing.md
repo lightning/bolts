@@ -292,9 +292,10 @@ The writer:
          than or equal to twice `amount`.
     - otherwise:
       - MUST set `total_msat` to the amount it wishes to pay.
-    - MUST ensure that the total `amount_msat` of the HTLC set which arrives at the payee
-      is equal to or greater than `total_msat`.
-    - MUST NOT send another HTLC if the total `amount_msat` of the HTLC set is already greater or equal to `total_msat`.
+    - MUST ensure that the total `amt_to_forward` of the HTLC set which arrives
+      at the payee is equal to or greater than `total_msat`.
+    - MUST NOT send another HTLC if the total `amt_to_forward` of the HTLC set
+      is already greater or equal to `total_msat`.
     - MUST include `payment_secret`.
   - otherwise:
     - MUST set `total_msat` equal to `amt_to_forward`.
@@ -308,10 +309,10 @@ The final node:
     - MUST add it to the HTLC set corresponding to that `payment_hash`.
     - SHOULD fail the entire HTLC set if `total_msat` is not the same for
       all HTLCs in the set.
-    - if the total `amount_msat` of this HTLC set is equal to or greater than
-      `total_msat`:
+    - if the total `amt_to_forward` of this HTLC set is equal to or greater
+      than `total_msat`:
       - SHOULD fulfill all HTLCs in the HTLC set
-    - otherwise, if the total `amount_msat` of this HTLC set is less than
+    - otherwise, if the total `amt_to_forward` of this HTLC set is less than
       `total_msat`:
       - MUST NOT fulfill any HTLCs in the HTLC set
       - MUST fail all HTLCs in the HTLC set after some reasonable timeout.
@@ -1087,11 +1088,9 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the `cltv_expiry` value is unreasonably near the present:
     - MUST fail the HTLC.
     - MUST return an `incorrect_or_unknown_payment_details` error.
-  - if the `outgoing_cltv_value` does NOT correspond with the `cltv_expiry` from
-  the final node's HTLC:
+  - if the `cltv_expiry` from the final node's HTLC is below `outgoing_cltv_value`:
     - MUST return `final_incorrect_cltv_expiry` error.
-  - if the `amt_to_forward` does NOT correspond with the `incoming_htlc_amt` from the
-  final node's HTLC:
+  - if `amount_msat` from the final node's HTLC is below `amt_to_forward`:
     - MUST return a `final_incorrect_htlc_amount` error.
   - if it returns a `channel_update`:
     - MUST set `short_channel_id` to the `short_channel_id` used by the incoming onion.
