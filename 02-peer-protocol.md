@@ -211,6 +211,7 @@ The sending node:
     - MUST send even `serial_id`s
   - if is the *non-initiator*:
     - MUST send odd `serial_id`s
+  - MUST provide a best estimate for the weight of the witness for this input
 
 The receiving node:
   - MUST add all received inputs to the transaction
@@ -411,7 +412,7 @@ prefixed with its length (since it is already specified in the `len` field).
 While the `minimum fee` is calculated and verified at `tx_complete` conclusion,
 it is possible for the fee for the exchanged witness data to be underpaid.
 It is the responsibility of the sending peer to correctly account for the
-required fee, e.g. a multisig witness stack whose weight exceeds 107.
+required fee.
 
 ### The `tx_init_rbf` Message
 
