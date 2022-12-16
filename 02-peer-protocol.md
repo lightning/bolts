@@ -1119,6 +1119,7 @@ This message initiates the v2 channel establishment workflow.
    * [`point`:`delayed_payment_basepoint`]
    * [`point`:`htlc_basepoint`]
    * [`point`:`first_per_commitment_point`]
+   * [`point`:`second_per_commitment_point`]
    * [`byte`:`channel_flags`]
    * [`opening_tlvs`:`tlvs`]
 
@@ -1173,6 +1174,9 @@ whichever is greater.
 
 Note that `push_msat` has been omitted.
 
+`second_per_commitment_point` is now sent here (as well as in `channel_ready`)
+as a convenience for implementations.
+
 ### The `accept_channel2` Message
 
 This message contains information about a node and indicates its
@@ -1194,6 +1198,7 @@ acceptance of the new channel.
     * [`point`:`delayed_payment_basepoint`]
     * [`point`:`htlc_basepoint`]
     * [`point`:`first_per_commitment_point`]
+    * [`point`:`second_per_commitment_point`]
     * [`accept_tlvs`:`tlvs`]
 
 1. `tlv_stream`: `accept_tlvs`
