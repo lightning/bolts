@@ -873,64 +873,6 @@ Multiplying non-witness data by 4 results in a weight of:
 
       overall_weight = funding_transaction_weight + witness_weight
 
-### Calculating Fees for Collaborative Transaction Construction
-
-Every participant in a collaborative transaction covers the fees for
-their own inputs and outputs. The initiator also provides funds to
-cover for the common transaction fields.
-
-Upon successful exchange of `tx_complete` messages, each peer must at
-least cover a minimum estimated fee. Here is how to calculate the minimum
-fee for each participant.
-
-The minimum witness weight for an input is 107.
-
-In the following, the initiator has provided one input (P2WPKH), one change output
-(P2WPKH), and the funding output. The contributor has provided two
-inputs (P2WPKH) and two change outputs (P2WPKH).
-
-Assuming a `feerate` of 253 per kiloweight, the initiator's minimum fee is
-calculated as follows.  Note that the feerate is rounded up to the nearest satoshi.
-
-    initiator_weight = transaction_fields * 4
-                     + segwit_fields
-                     + p2wpkh_input * 4
-                     + funding_output * 4
-                     + p2wpkh_output * 4
-                     + input_count * 107 (minimum witness weight)
-
-    initiator_weight = 10 * 4
-                     + 2
-                     + 41 * 4
-                     + 43 * 4
-                     + 31 * 4
-                     + 107
-
-    initiator_weight = 609
-
-    initiator_fees = initiator_weight * feerate
-    initiator_fees = 609 * 253 / 1000
-    initiator_fees = 155 sats
-
-The contributor's minimum fee is calculated as follows.
-
-    contributor_weight = 2 * p2wpkh_input * 4
-                       + 2 * p2wpkh_output * 4
-                       + input_count * 107 (minimum witness weight)
-
-    contributor_weight = 2 * 41 * 4
-                       + 2 * 31 * 4
-                       + 2 * 107
-
-    contributor_weight = 790
-
-    contributor_fees = contributor_weight * feerate
-    contributor_fees = 790 * 253 / 1000
-    contributor_fees = 200 sats
-
-This is an estimated fee. The peer MUST at least contribute the estimated fee,
-and MUST exceed the minimum fee in the case that their witness weight is greater
-than the estimated weight of 107 per input.
 
 ## Expected Weight of the Commitment Transaction
 
