@@ -1511,6 +1511,7 @@ reached acceptable depth.
    * [`channel_id`:`channel_id`]
    * [`u64`:`funding_satoshis`]
    * [`u32`:`funding_feerate_perkw`]
+   * [`u32`:`locktime`]
    * [`point`:`funding_pubkey`]
 
 1. type: 76 (`splice_ack`)
