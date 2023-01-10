@@ -990,6 +990,12 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
    * [`u32`:`cltv_expiry`]
    * [`1366*byte`:`onion_routing_packet`]
 
+1. `tlv_stream`: `update_add_htlc_tlvs`
+2. types:
+    1. type: 2 (`upfront_fee_msat`)
+    2. data:
+        * [`tu64`:`upfront_fee_msat`]
+     
 #### Requirements
 
 A sending node:
@@ -1002,6 +1008,12 @@ A sending node:
     node is the funder:
       - MUST be able to additionally pay for `to_local_anchor` and 
       `to_remote_anchor` above its reserve.
+    - if `upfront_fee_msat` is included in the HTLC
+      - MUST be able to additionally pay for the `upfront_fee_msat` above its
+        reserve.
+      - MUST push the `upfront_fee_msat` amount to the remote party's balance,
+        by subtracting `upfront_fee_msat` from its expected `to_local` balance
+        and adding  `upfront_fee_msat` to its expected `to_remote` balance.
     - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
     transaction, its remaining balance doesn't allow it to pay the commitment
     transaction fee when receiving or sending a future additional non-dust HTLC
