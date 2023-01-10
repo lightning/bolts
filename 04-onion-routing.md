@@ -201,6 +201,9 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
     1. type: 16 (`payment_metadata`)
     2. data:
         * [`...*byte`:`payment_metadata`]
+    1. type: 2 (`upfront_fee_to_forward`)
+    2. data:
+        * [`tu64`:`upfront_fee_to_forward`]
 
 `short_channel_id` is the ID of the outgoing channel used to route the
 message; the receiving peer should operate the other end of this channel.
@@ -227,11 +230,16 @@ The requirements ensure consistency in responding to an unexpected
 `outgoing_cltv_value`, whether it is the final node or not, to avoid
 leaking its position in the route.
 
+`upfront_fee_to_forward` is the upfront fee value, in millisatoshis, that 
+should be pushed to the next receiving peer specified within the routing
+information, or for the final destination.
+
 ### Requirements
 
 The writer:
   - For every node:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
+    - MUST include `upfront_fee_to_forward` if every hop advertises `option_upfront_fee`, otherwise MUST NOT include `upfront_fee_to_forward`.
   - For every non-final node:
     - MUST include `short_channel_id`
     - MUST NOT include `payment_data`
@@ -247,12 +255,15 @@ The writer:
 
 The reader:
   - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
+  - MUST return an error if `upfront_fee_msat` is present and `upfront_fee_to_forward` is not.
+  - MUST return an error if `upfront_fee_msat` is not present and `upfront_fee_to_forward` is.
   - if it is not the final node:
     - MUST return an error if:
       - `short_channel_id` is not present,
       - it cannot forward the HTLC to the peer indicated by the channel `short_channel_id`.
       - incoming `amount_msat` - `fee` < `amt_to_forward` (where `fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
       - `cltv_expiry` - `cltv_expiry_delta` < `outgoing_cltv_value`
+      - incoming `upfront_fee_msat` - `upfront_fee` < `upfront_fee_to_forward` (where `upfront_fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#upfront-fees))
   - if it is the final node:
     - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it
       is not present.
@@ -260,6 +271,7 @@ The reader:
       - incoming `amount_msat` < `amt_to_forward`.
       - incoming `cltv_expiry` < `outgoing_cltv_value`.
       - incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
+      - incoming `upfront_fee_msat` < `upfront_fee_to_forward`
 
 Additional requirements are specified [below](#basic-multi-part-payments).
 
@@ -273,7 +285,9 @@ Note that `amt_to_forward` is the amount for this HTLC only: a
 `total_msat` field containing a greater value is a promise by the
 ultimate sender that the rest of the payment will follow in succeeding
 HTLCs; we call these outstanding HTLCs which have the same preimage,
-an "HTLC set".
+an "HTLC set". The amount paid in `upfront_fee_to_forward` by every HTLC in 
+the set contributes to the `total_msat` paid by sender, as these amounts are
+unconditionally pushed to the receiver.
 
 `payment_metadata` is to be included in every payment part, so that
 invalid payment details can be detected as early as possible.
@@ -292,10 +306,12 @@ The writer:
          than or equal to twice `amount`.
     - otherwise:
       - MUST set `total_msat` to the amount it wishes to pay.
-    - MUST ensure that the total `amt_to_forward` of the HTLC set which arrives
-      at the payee is equal to or greater than `total_msat`.
-    - MUST NOT send another HTLC if the total `amt_to_forward` of the HTLC set
-      is already greater or equal to `total_msat`.
+    - MUST ensure that the total `amt_to_forward` + total 
+      `upfront_fee_to_forward` of the HTLC set which arrives at the payee is 
+      equal to or greater than `total_msat`.
+    - MUST NOT send another HTLC if the total `amt_to_forward` + total 
+      `upfront_fee_to_forward` of the HTLC set is already greater or equal to 
+      `total_msat`.
     - MUST include `payment_secret`.
   - otherwise:
     - MUST set `total_msat` equal to `amt_to_forward`.
@@ -309,11 +325,11 @@ The final node:
     - MUST add it to the HTLC set corresponding to that `payment_hash`.
     - SHOULD fail the entire HTLC set if `total_msat` is not the same for
       all HTLCs in the set.
-    - if the total `amt_to_forward` of this HTLC set is equal to or greater
-      than `total_msat`:
+    - if the total `amt_to_forward` + total `upfront_fee_to_forward` of this 
+      HTLC set is equal to or greater than `total_msat`:
       - SHOULD fulfill all HTLCs in the HTLC set
-    - otherwise, if the total `amt_to_forward` of this HTLC set is less than
-      `total_msat`:
+    - otherwise, if the total `amt_to_forward` + total `upfront_fee_to_forward` 
+      of this HTLC set is less than `total_msat`:
       - MUST NOT fulfill any HTLCs in the HTLC set
       - MUST fail all HTLCs in the HTLC set after some reasonable timeout.
         - SHOULD wait for at least 60 seconds after the initial HTLC.
@@ -342,6 +358,10 @@ to pay more than the `total_msat` they specified. Otherwise, nodes would be
 constrained in which paths they can take when retrying payments along specific
 paths. However, no individual HTLC may be for less than the difference between
 the total paid and `total_msat`.
+
+The total `upfront_fee_to_forward` paid to the final node (across failed and
+successful HTLC attempts) is included in the HTLC set total because these
+amounts have been unconditionally pushed to the receiver from the sender. 
 
 The restriction on sending an HTLC once the set is over the agreed total prevents the preimage being released before all
 the partial payments have arrived: that would allow any intermediate
