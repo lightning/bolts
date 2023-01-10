@@ -1445,10 +1445,10 @@ A node:
     - if `next_commitment_number` is not 1 greater than the
   commitment number of the last `commitment_signed` message the receiving
   node has sent:
-      - SHOULD send an `error` and fail the channel.
+      - SHOULD send an `error`.
     - if it has not sent `commitment_signed`, AND `next_commitment_number`
     is not equal to 1:
-      - SHOULD send an `error` and fail the channel.
+      - SHOULD send an `error`.
   - if `next_revocation_number` is equal to the commitment number of
   the last `revoke_and_ack` the receiving node sent, AND the receiving node
   hasn't already received a `closing_signed`:
@@ -1460,10 +1460,10 @@ A node:
   - otherwise:
     - if `next_revocation_number` is not equal to 1 greater than the
     commitment number of the last `revoke_and_ack` the receiving node has sent:
-      - SHOULD send an `error` and fail the channel.
+      - SHOULD send an `error`.
     - if it has not sent `revoke_and_ack`, AND `next_revocation_number`
     is not equal to 0:
-      - SHOULD send an `error` and fail the channel.
+      - SHOULD send an `error`.
 
  A receiving node:
   - if `option_static_remotekey` applies to the commitment transaction:
@@ -1472,9 +1472,10 @@ A node:
     `next_revocation_number` minus 1:
       - MUST NOT broadcast its commitment transaction.
       - SHOULD send an `error` to request the peer to fail the channel.
+    - if `your_last_per_commitment_secret` does not match the expected values:
+      - SHOULD send an `error` and fail the channel (the sending node is lying).
     - otherwise:
-      - if `your_last_per_commitment_secret` does not match the expected values:
-        - SHOULD send an `error` and fail the channel.
+      - SHOULD send an `error`.
   - otherwise, if it supports `option_data_loss_protect`:
     - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
@@ -1483,9 +1484,10 @@ A node:
       - SHOULD send an `error` to request the peer to fail the channel.
       - SHOULD store `my_current_per_commitment_point` to retrieve funds
         should the sending node broadcast its commitment transaction on-chain.
-    - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
-    do not match the expected values):
-      - SHOULD send an `error` and fail the channel.
+    - if `your_last_per_commitment_secret` does not match the expected values:
+      - SHOULD send an `error` and fail the channel (the sending node is lying).
+    - otherwise:
+      - SHOULD send an `error`.
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
