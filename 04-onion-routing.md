@@ -1027,6 +1027,15 @@ the decrypted byte stream.
 The complete amount of the multi-part payment was not received within a
 reasonable time.
 
+1. type: UPDATE|25 (`upfront_fee_insufficient`)
+2. data:
+   * [`u64`:`upfront_fee`]
+   * [`u16`:`len`]
+   * [`len*byte`:`channel_update`]
+
+The upfront fee amount was below that required by the outgoing channel from the
+processing node.
+
 ### Requirements
 
 An _erring node_:
@@ -1089,6 +1098,10 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
   - if the channel is disabled:
     - report the current channel setting for the outgoing channel.
     - return a `channel_disabled` error.
+  - if the HTLC does NOT pay sufficient upfront fee:
+    - report the incoming upfront fee amounts and the current channel setting 
+      for the outgoing chanel.
+    - return a `upfront_fee_insufficient` error.
 
 An _intermediate hop_ MUST NOT, but the _final node_:
   - if the payment hash has already been paid:
