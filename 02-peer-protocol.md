@@ -1435,65 +1435,59 @@ The sending node:
   - otherwise:
     - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret` it received
 
-A node:
-  - if `next_commitment_number` is 1 in both the `channel_reestablish` it
-    sent and received:
-    - MUST retransmit `channel_ready`.
-  - otherwise:
-    - MUST NOT retransmit `channel_ready`, but MAY send `channel_ready` with
-      a different `short_channel_id` `alias` field.
-  - upon reconnection:
-    - MUST ignore any redundant `channel_ready` it receives.
-    - if it has sent a previous `shutdown`:
-      - MUST retransmit `shutdown`.
-  - if `next_commitment_number` is equal to the commitment number of
-    the last `commitment_signed` message the receiving node has sent:
-    - MUST reuse the same commitment number for its next `commitment_signed`.
-  - otherwise:
-    - if `next_commitment_number` is not 1 greater than the commitment number
-      of the last `commitment_signed` message the receiving
-      node has sent:
-      - SHOULD send an `error` and fail the channel.
-    - if it has not sent `commitment_signed`, AND `next_commitment_number`
-      is not equal to 1:
-      - SHOULD send an `error` and fail the channel.
-  - if `next_revocation_number` is equal to the commitment number of
-    the last `revoke_and_ack` the receiving node sent, AND the receiving node
-    hasn't already received a `closing_signed`:
-    - MUST re-send the `revoke_and_ack`.
-    - if it has previously sent a `commitment_signed` that needs to be
-      retransmitted:
-      - MUST retransmit `revoke_and_ack` and `commitment_signed` in the same
-        relative order as initially transmitted.
-  - otherwise:
-    - if `next_revocation_number` is not equal to 1 greater than the
-      commitment number of the last `revoke_and_ack` the receiving node has sent:
-      - SHOULD send an `error` and fail the channel.
-    - if it has not sent `revoke_and_ack`, AND `next_revocation_number`
-      is not equal to 0:
-      - SHOULD send an `error` and fail the channel.
-
- A receiving node:
-  - if `option_static_remotekey` applies to the commitment transaction:
-    - if `next_revocation_number` is greater than expected above, AND
-      `your_last_per_commitment_secret` is correct for that
-      `next_revocation_number` minus 1:
-      - MUST NOT broadcast its commitment transaction.
-      - SHOULD send an `error` to request the peer to fail the channel.
-    - otherwise:
-      - if `your_last_per_commitment_secret` does not match the expected values:
-        - SHOULD send an `error` and fail the channel.
-  - otherwise, if it supports `option_data_loss_protect`:
-    - if `next_revocation_number` is greater than expected above, AND
-      `your_last_per_commitment_secret` is correct for that
+The receiving node:
+  - if `next_revocation_number` is greater than the commitment number of the
+    last `commitment_signed` message the receiving node has sent:
+    - if `your_last_per_commitment_secret` is correct for that
       `next_revocation_number` minus 1:
       - MUST NOT broadcast its commitment transaction.
       - SHOULD send an `error` to request the peer to fail the channel.
       - SHOULD store `my_current_per_commitment_point` to retrieve funds
         should the sending node broadcast its commitment transaction on-chain.
-    - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
-      do not match the expected values):
-      - SHOULD send an `error` and fail the channel.
+      - Note: the sending node proved that the receiving node has lost data.
+    - otherwise (`your_last_per_commitment_secret` is incorrect):
+      - SHOULD send an `error` to request the peer to fail the channel.
+      - SHOULD store `my_current_per_commitment_point` to retrieve funds
+        should the sending node broadcast its commitment transaction on-chain.
+      - Note: the receiving node may or may not have lost data, but it
+        cannot be sure based on the data provided by the sending node.
+  - if the commitment number of the last `commitment_signed` message the
+    receiving node has sent is greater than `next_revocation_number` plus 1:
+    - MUST NOT broadcast its commitment transaction.
+    - SHOULD wait for the sending node to send an `error` or reconnect.
+    - Note: the sending node seems to have lost data.
+  - if `next_commitment_number` is greater than the commitment number of the
+    last `commitment_signed` message the receiving node has sent plus 1:
+    - SHOULD send an `error` to request the peer to fail the channel.
+    - SHOULD store `my_current_per_commitment_point` to retrieve funds
+      should the sending node broadcast its commitment transaction on-chain.
+    - Note: the receiving node may or may not have lost data.
+  - if `next_commitment_number` is smaller than the commitment number of the
+    last `commitment_signed` message the receiving node has sent:
+    - MUST NOT broadcast its commitment transaction.
+    - SHOULD wait for the sending node to send an `error` or reconnect.
+    - Note: the sending node seems to have lost data.
+  - otherwise:
+    - if `next_commitment_number` is 1 in both the `channel_reestablish` it
+      sent and received:
+      - MUST retransmit `channel_ready`.
+    - otherwise:
+      - MUST NOT retransmit `channel_ready`, but MAY send `channel_ready` with
+        a different `short_channel_id` `alias` field.
+    - MUST ignore any redundant `channel_ready` it receives.
+    - if it has sent a previous `shutdown`:
+      - MUST retransmit `shutdown`.
+    - if `next_commitment_number` is equal to the commitment number of the
+      last `commitment_signed` message the receiving node has sent:
+      - MUST reuse the same commitment number for its next `commitment_signed`.
+    - if `next_revocation_number` is equal to the commitment number of the
+      last `revoke_and_ack` the receiving node sent, AND the receiving node
+      hasn't already received a `closing_signed`:
+      - MUST re-send the `revoke_and_ack`.
+    - if it has previously sent a `commitment_signed` that needs to be
+      retransmitted:
+      - MUST retransmit `revoke_and_ack` and `commitment_signed` in the same
+        relative order as initially transmitted.
 
 ### Rationale
 
