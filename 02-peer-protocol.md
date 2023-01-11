@@ -1403,6 +1403,12 @@ A node:
       - Note: a node MAY have already used the `payment_preimage` value from
         the `update_fulfill_htlc`, so the effects of `update_fulfill_htlc` are not
         completely reversed.
+    - MUST NOT assume that previously-transmitted messages were lost.
+    - if it has sent a previous `commitment_signed` message:
+      - MUST handle the case where the corresponding commitment transaction is
+        broadcast at any time by the other side.
+        - Note: this is particularly important if the node does not simply
+          retransmit the exact `update_` messages as previously sent.
   - upon reconnection:
     - if a channel is in an error state:
       - SHOULD retransmit the error packet and ignore any other packets for
@@ -1438,6 +1444,8 @@ A node:
       a different `short_channel_id` `alias` field.
   - upon reconnection:
     - MUST ignore any redundant `channel_ready` it receives.
+    - if it has sent a previous `shutdown`:
+      - MUST retransmit `shutdown`.
   - if `next_commitment_number` is equal to the commitment number of
     the last `commitment_signed` message the receiving node has sent:
     - MUST reuse the same commitment number for its next `commitment_signed`.
@@ -1486,17 +1494,6 @@ A node:
     - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
       do not match the expected values):
       - SHOULD send an `error` and fail the channel.
-
-A node:
-  - MUST NOT assume that previously-transmitted messages were lost,
-    - if it has sent a previous `commitment_signed` message:
-      - MUST handle the case where the corresponding commitment transaction is
-        broadcast at any time by the other side,
-        - Note: this is particularly important if the node does not simply
-          retransmit the exact `update_` messages as previously sent.
-  - upon reconnection:
-    - if it has sent a previous `shutdown`:
-      - MUST retransmit `shutdown`.
 
 ### Rationale
 
