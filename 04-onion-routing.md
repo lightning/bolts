@@ -1036,6 +1036,13 @@ reasonable time.
 The upfront fee amount was below that required by the outgoing channel from the
 processing node.
 
+1. type: 27 (`final_incorrect_upfront_fee`)
+2. data: 
+   * [`u64`:`upfront_fee`]
+
+The final hop's upfront fee in the HTLC doesn't match the value in the onion, 
+or does not meet the receiving node's expected upfront fee.
+
 ### Requirements
 
 An _erring node_:
@@ -1131,6 +1138,10 @@ An _intermediate hop_ MUST NOT, but the _final node_:
     - MUST return a `final_incorrect_htlc_amount` error.
   - if it returns a `channel_update`:
     - MUST set `short_channel_id` to the `short_channel_id` used by the incoming onion.
+  - if the `upfront_fee_msat` from the final node's HTLC is below `upfront_fee_to_forward`:
+    - MUST return `final_incorrect_upfront_fee` error.
+  - if the `upfront_fee_msat` does NOT pay sufficient fees: 
+    - MUST return `final_incorrect_upfront_fee` error.
 
 ### Rationale
 
