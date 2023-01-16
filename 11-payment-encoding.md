@@ -158,6 +158,9 @@ Currently defined tagged fields are:
 * `9` (5): `data_length` variable. One or more 5-bit values containing features
   supported or required for receiving this payment.
   See [Feature Bits](#feature-bits).
+* `u` (17): `data_length` 26. `upfront_fee_policy` to use for the last HTLC in the route:
+  * `upfront_base_msat` (32 bits, big-endian)
+  * `upfront_proportional_millionths` (32 bits, big-endian)
 
 ### Requirements
 
@@ -203,10 +206,15 @@ A writer:
   - MUST pad field data to a multiple of 5 bits, using 0s.
   - if a writer offers more than one of any field type, it:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
+  - if `option_upfront_fee` is advertised in `9`: 
+    - MUST set `u` to the `upfront_fee_policy` it will accept for the final HTLC in the route.
+    - SHOULD pad this value to obfuscate its location in the payment path.
+  - otherwise: 
+    - MUST NOT include a `u` field.
 
 A reader:
-  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, `s` or
-  `n` fields that do NOT have `data_length`s of 52, 52, 52 or 53, respectively.
+  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, `s`,
+  `n`, or `u` fields that do NOT have `data_length`s of 52, 52 52 or 53 or 26 respectively.
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
@@ -222,6 +230,15 @@ A reader:
     - MUST use an expiry delta of at least 18 when making the payment
   - if an `m` field is provided:
     - MUST use that as [`payment_metadata`](04-onion-routing.md#tlv_payload-payload-format)
+  - if `option_upfront_fee` is advertised in `9`: 
+    - if a valid `u` field is provided: 
+      - MUST use the `upfront_fee_policy` specified for the final hop's upfront fee payment.
+    - otherwise: 
+      - MUST fail the payment.
+  - otherwise: 
+    - if a valid `u` field is provided: 
+      - MUST fail the payment.
+
 ### Rationale
 
 The type-and-length format allows future extensions to be backward
@@ -267,6 +284,13 @@ will be ignored by readers.
 The `r` field allows limited routing assistance: as specified, it only
 allows minimum information to use private channels, however, it could also
 assist in future partial-knowledge routing.
+
+The `u` field allows the receiving party to set an upfront fee that provides 
+it with sufficient privacy from the second-to-last node which would otherwise
+be able to identify the receiving node by a zero upfront fee (as there is no 
+outgoing channel upfront fee policy for the sender to use). This field is 
+only usable when paired with `option_upfront_fee` in the invoice's feature 
+vector, so invoices that do not set both should be considered invalid.
 
 ### Security Considerations for Payment Descriptions
 
