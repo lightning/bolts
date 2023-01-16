@@ -427,6 +427,13 @@ of *relaying* payments, not *sending* payments. When making a payment
     * [`u32`:`fee_proportional_millionths`]
     * [`u64`:`htlc_maximum_msat`]
 
+1. `tlv_stream`: `channel_update_tlvs`
+2. types:
+    1. type: 1 (`upfront_fee_policy`)
+    2. data:
+        * [`u32`:`upfront_fee_base_ppm`]
+        * [`u32`:`upfront_fee_proportional_ppm`]
+
 The `channel_flags` bitfield is used to indicate the direction of the channel: it
 identifies the node that this update originated from and signals various options
 concerning the channel. The following table specifies the meaning of its
@@ -496,6 +503,20 @@ The origin node:
   - SHOULD NOT create redundant `channel_update`s
   - If it creates a new `channel_update` with updated channel parameters:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
+  - if it advertises `option_upfront_fee`: 
+    - MAY set `upfront_fee_policy` to a fee policy that it will charge upfront 
+      for HTLCs: 
+      - `upfront_fee_base_ppm` is the parts per million of its `fee_base_msat` 
+        that it will charge in upfront fees.
+      - `upfront_fee_proportional_ppm` is the parts per million of its 
+        `fee_proportional_millionths` that it will charge in upfront fees.
+    - MUST NOT set `upfront_fee_base_ppm` > 100000 ppm.
+    - MUST NOT set `upfront_fee_proportional_ppm` > 100000 ppm.
+    - MUST accept the default values of `upfront_fee_base_ppm` = 10000 and
+      `upfront_fee_proportional_ppm` as values for `upfront_fee_policiy` if it 
+      does not advertise a custom policy.
+  - otherwise: 
+    - MUST NOT set `upfront_fee_policy`
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
@@ -533,6 +554,10 @@ The receiving node:
     - SHOULD ignore this channel during route considerations.
   - otherwise:
     - SHOULD consider the `htlc_maximum_msat` when routing.
+  - if the `upfront_fee_policy`'s `upfront_fee_base_ppm` or 
+    `upfront_fee_proportional_ppm` are greater than 100000 ppm:
+    - MAY blacklist this `node_id`. 
+    - SHOULD ignore this channel during route considerations.   
 
 ### Rationale
 
@@ -569,6 +594,14 @@ at least 10 minutes to improve payment latency and reliability.
 The `must_be_one` field in `message_flags` was previously used to indicate
 the presence of the `htlc_maximum_msat` field. This field must now always
 be present, so `must_be_one` is a constant value, and ignored by receivers.
+
+Upfront fees compensate routing nodes in the case of payment failure for the 
+opportunity cost of fees that they could have otherwise earned, so they are 
+expressed as a proportion of the node's advertised routing fees. A maximum
+proportion is enforced to ensure that nodes don't advertise upfront fees that
+shift their economic incentive to failing rather than forwarding payments. A 
+default value is set to save network bandwidth on values that are likely to 
+remain unmodified for the majority of nodes.
 
 ## Query Messages
 
@@ -971,6 +1004,19 @@ The origin node:
   - SHOULD accept HTLCs that pay an older fee, for some reasonable time after
   sending `channel_update`.
     - Note: this allows for any propagation delay.
+
+## Upfront Fees
+
+### Requirements
+The origin nodes: 
+  - SHOULD accept HTLCs that pay an upfront fee equal to or greater than: 
+    - ( fee_base_msat * upfront_fee_base_ppm / 1000000 ) + ( amount_to_forward * (fee_proportional_millionths * upfront_fee_proportional_ppm / 1000000 ) / 1000000 )
+  - SHOULD accept HTLCs that pay a default of 10000 ppm upfront_fee_base_ppm
+    and upfront_fee_proportional_ppm if they did not advertise a custom policy.
+  - SHOULD accept HTLCs that pay an older fee, for some reasonable time after
+  sending `channel_update`.
+    - Note: this allows for any propagation delay.
+
 
 ## Pruning the Network View
 
