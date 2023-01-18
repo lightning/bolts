@@ -289,6 +289,14 @@ The base fee and anchor output values:
     - MUST be subtracted from the `to_local` or `to_remote`
     outputs, as specified in [Fee Calculation](#fee-calculation).
 
+The sum of all `upfront_fee_msat` values for all offered HTLCs:
+  - before the commitment transaction outputs are determined:
+    - MUST be subtracted from the `to_local` and added to the `to_remote`
+
+The sum of all `upfront_fee_msat` values for all received HTLCs: 
+  - before the commitment transaction outputs are determined:
+    - MUST be added to the `to_local` and subtracted from the `to_remote`
+
 The commitment transaction:
   - if the amount of the commitment transaction `to_local` output would be
 less than `dust_limit_satoshis` set by the transaction owner:
