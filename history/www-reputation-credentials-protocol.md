@@ -28,12 +28,12 @@ contracts counterparties. While there is a concern this risk distribution doesn'
 shenanigans of a HTLC forward (e.g offline routing hop, spontaneously congestioned channel), there is a
 major drawback as it introduces a permanent overhead fee for the network participants.
 
-In contract, another type of reputation-based solution can be introduced by formalizing a new assumption
+In contrast, another type of reputation-based solution can be introduced by formalizing a new assumption
 "Reputation incentives HTLC senders to behave-well, if there is an adequate proportion between the
 acquisition cost and the amount of resources credited in function of said reputation". This assumption is
 in fact analoguous to the one underpining routing scoring algorithms incentiving the routing hops reliability.
 A reputation system attached to the HTLC forward, not only can protect against malicious jamming entity but
-also can offer the traffic shapping tooling for node operators to improve the quality of their inbound HTLC
+also can offer the traffic shapping tool for node operators to improve the quality of their inbound HTLC
 across time.
 
 # Proposed solution
@@ -218,7 +218,7 @@ In this diagram:
 
 The credentials are wrapped inside the HTLC onion `credentials_payload`. There are two types of credentials: forward/backward.
 The forward credentials are covering the ongoing HTLC forward, they should have been counter-signed by the target routing hop
-during the dissemination phase or a previous HTLC forward/settlement pahse with the same target routing hop. The backward
+during the dissemination phase or a previous HTLC forward/settlement phase with the same target routing hop. The backward
 credentials are also wrapped into the HTLC onion, however they're not signed and should be blinded. If the settlement is successful,
 those backward credentials should be the "forward" credentials for Alice's future HTLC sends.
 
