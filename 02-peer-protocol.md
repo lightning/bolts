@@ -2322,7 +2322,9 @@ leaking information to senders trying to probe the blinded route.
 
 When a node has changes for the remote commitment, it can apply them,
 sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), and send a
-`commitment_signed` message.
+`commitment_signed` message bundle. First it will send `commitment_signed`
+for the active channel, then it will send another `commitment_signed` message
+for each splice candidate awaiting confirmation.
 
 1. type: 132 (`commitment_signed`)
 2. data:
@@ -2330,29 +2332,20 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
    * [`signature`:`signature`]
    * [`u16`:`num_htlcs`]
    * [`num_htlcs*signature`:`htlc_signature`]
-   * [`commitment_signed_tlvs`:`tlvs`]
-
-1. `tlv_stream`: `commitment_signed_tlvs`
-2. types:
-    1. type: 0 (`splice_commitsigs`)
-    2. data:
-        * [`...*commitsigs`:`sigs`]
-
-1. subtype: `commitsigs`
-2. data:
-   * [`signature`:`commit_signature`]
-   * [`u16`:`num_htlcs`]
-   * [`num_htlcs*signature`:`htlc_signature`]
+   * [`splice_channel_id`:`channel_id`]
 
 
 #### Requirements
 
 A sending node:
-  - MUST NOT send a `commitment_signed` message that does not include any
+  - MUST send channel's original `channel_id` regardless of prior splice activity.
+  - MUST send `splice_channel_id` to specify which channel tx this commitment
+is for.
+  - MUST NOT send a `commitment_signed` message bundle that does not include any
 updates or added splices.
-  - MAY send a `commitment_signed` message that only
+  - MAY send a `commitment_signed` message bundle that only
 alters the fee.
-  - MAY send a `commitment_signed` message that doesn't
+  - MAY send a `commitment_signed` message bundle that doesn't
 change the commitment transaction aside from the new revocation number
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).
@@ -2360,7 +2353,9 @@ fee changes).
     to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
-  - MUST send a `commitsigs` for each splice awaiting confirmation, in increasing feerate order.
+  - MUST first send a `commitment_signed` for the active channel then immediately
+send a `commitment_signed` for each splice awaiting confirmation, in increasing
+feerate order.
 
 A receiving node:
   - once all pending updates are applied:
@@ -2377,6 +2372,9 @@ A receiving node:
   - if there is not exactly one `commitsigs` for each splice in progress:
     - MUST fail the channel.
   - if `commit_signature`, `num_htlcs` or `htlc_signature` is not correct as specified above for each splice:
+    - MUST fail the channel.
+  - if the number of consecutive `commitment_signed` messages received is not the
+number of splice candidates plus one:
     - MUST fail the channel.
   - MUST respond with a `revoke_and_ack` message.
 
