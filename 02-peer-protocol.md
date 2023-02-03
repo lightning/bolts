@@ -2332,7 +2332,13 @@ for each splice candidate awaiting confirmation.
    * [`signature`:`signature`]
    * [`u16`:`num_htlcs`]
    * [`num_htlcs*signature`:`htlc_signature`]
-   * [`splice_channel_id`:`channel_id`]
+   * [`commitment_signed_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `commitment_signed_tlvs`
+2. types:
+    1. type: 0 (`splice_info`)
+    2. data:
+        * [`channel_id`:`splice_channel_id`]
 
 
 #### Requirements
@@ -2406,7 +2412,7 @@ splices were negotiated (since each must increase the feerate).
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
-Once the recipient of `commitment_signed` checks the signature and knows
+Once the recipient of a `commitment_signed` bundle checks the signature and knows
 it has a valid new commitment transaction, it replies with the commitment
 preimage for the previous commitment transaction in a `revoke_and_ack`
 message.
@@ -2445,6 +2451,8 @@ A node:
   - SHOULD NOT sign commitment transactions, unless it's about to broadcast
   them (due to a failed connection),
     - Note: this is to reduce the above risk.
+  - MUST send a single `revoke_and_ack` in response to a bundle of
+`commitment_signed` messages.
 
 ### Updating Fees: `update_fee`
 
