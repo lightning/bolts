@@ -211,7 +211,6 @@ The sending node:
     - MUST send even `serial_id`s
   - if is the *non-initiator*:
     - MUST send odd `serial_id`s
-  - MUST provide a best estimate for the weight of the witness for this input
 
 The receiving node:
   - MUST add all received inputs to the transaction
@@ -242,6 +241,28 @@ this input spends. Used to verify that the input is non-malleable.
 `sequence` is the sequence number of this input: it must signal
 replaceability, and the same value should be used across implementations
 to avoid on-chain fingerprinting.
+
+#### Liquidity griefing
+
+When sending `tx_add_input`, senders have no guarantee that the remote node
+will complete the protocol in a timely manner. Malicious remote nodes could
+delay messages or stop responding, which can result in a partially created
+transaction that cannot be broadcast by the honest node. If the honest node
+is locking the corresponding UTXO exclusively for this remote node, this can
+be exploited to lock up the honest node's liquidity.
+
+It is thus recommended that implementations keep UTXOs unlocked and actively
+reuse them in concurrent sessions, which guarantees that transactions created
+with honest nodes double-spend pending transactions with malicious nodes at
+no additional cost for the honest node.
+
+Unfortunately, this will also create conflicts between concurrent sessions
+with honest nodes. This is a reasonable trade-off though because:
+
+* on-chain funding attempts are relatively infrequent operations
+* honest nodes should complete the protocol quickly, reducing the risk of
+  conflicts
+* failed attempts can simply be retried at no cost
 
 ### The `tx_add_output` Message
 
@@ -538,7 +559,6 @@ message, which triggers a channel close.
 Echoing back `tx_abort` allows the peer to ack that they've seen the abort message,
 permitting the originating peer to terminate the in-flight process without
 worrying about stale messages.
-
 
 ## Channel Establishment v1
 
