@@ -24,6 +24,7 @@ operation, and closing.
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
+      * [Signing alternative feerates](#signing-alternative-feerates)
     * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
   * [Authors](#authors)
 
@@ -783,20 +784,25 @@ Once both nodes have exchanged `channel_ready` (and optionally [`announcement_si
 Changes are sent in batches: one or more `update_` messages are sent before a
 `commitment_signed` message, as in the following diagram:
 
-        +-------+                               +-------+
-        |       |--(1)---- update_add_htlc ---->|       |
-        |       |--(2)---- update_add_htlc ---->|       |
-        |       |<-(3)---- update_add_htlc -----|       |
-        |       |                               |       |
-        |       |--(4)--- commitment_signed --->|       |
-        |   A   |<-(5)---- revoke_and_ack ------|   B   |
-        |       |                               |       |
-        |       |<-(6)--- commitment_signed ----|       |
-        |       |--(7)---- revoke_and_ack ----->|       |
-        |       |                               |       |
-        |       |--(8)--- commitment_signed --->|       |
-        |       |<-(9)---- revoke_and_ack ------|       |
-        +-------+                               +-------+
+        +-------+                                           +-------+
+        |       |--(1)----       update_add_htlc        ---->|       |
+        |       |--(2)----       update_add_htlc        ---->|       |
+        |       |<-(3)----       update_add_htlc        -----|       |
+        |       |                                            |       |
+        |       |--(4)---       commitment_signed        --->|       |
+        |       |--(4a)--- alternative_commitment_signed --->|       |
+        |       |--(4b)--- alternative_commitment_signed --->|       |
+        |   A   |<-(5)----       revoke_and_ack        ------|   B   |
+        |       |                                            |       |
+        |       |<-(6)---       commitment_signed        ----|       |
+        |       |<-(6a)--- alternative_commitment_signed ----|       |
+        |       |<-(6b)--- alternative_commitment_signed ----|       |
+        |       |<-(6c)--- alternative_commitment_signed ----|       |
+        |       |--(7)----       revoke_and_ack        ----->|       |
+        |       |                                            |       |
+        |       |--(8)---       commitment_signed        --->|       |
+        |       |<-(9)----       revoke_and_ack        ------|       |
+        +-------+                                            +-------+
 
 Counter-intuitively, these updates apply to the *other node's*
 commitment transaction; the node only adds those updates to its own
@@ -1183,21 +1189,30 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
    * [`u16`:`num_htlcs`]
    * [`num_htlcs*signature`:`htlc_signature`]
 
+1. `tlv_stream`: `commitment_signed_tlvs`
+2. types:
+    1. type: 1 (`alternative_feerates`)
+    2. data:
+        * [`...*u32`:`feerates_per_kw`]
+
 #### Requirements
 
 A sending node:
   - MUST NOT send a `commitment_signed` message that does not include any
-updates.
-  - MAY send a `commitment_signed` message that only
-alters the fee.
-  - MAY send a `commitment_signed` message that doesn't
-change the commitment transaction aside from the new revocation number
-(due to dust, identical HTLC replacement, or insignificant or multiple
-fee changes).
+    updates.
+  - MAY send a `commitment_signed` message that only alters the fee.
+  - MAY send a `commitment_signed` message that doesn't change the
+    commitment transaction aside from the new revocation number (due to dust,
+    identical HTLC replacement, or insignificant or multiple fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
     to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
+  - If `option_anchors` and `option_alternative_feerates` were negotiated:
+    - MUST send `alternative_feerates` containing other feerates for which it
+      will send signatures.
+    - MUST send one `alternative_commitment_signed` for each of those feerates.
+    - SHOULD include feerates that are higher than the current commitment feerate.
   - if it has not recently received a message from the remote node:
-      - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
+    - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
 
 A receiving node:
   - once all pending updates are applied:
@@ -1205,19 +1220,21 @@ A receiving node:
       - MUST send a `warning` and close the connection, or send an
         `error` and fail the channel.
     - if `num_htlcs` is not equal to the number of HTLC outputs in the local
-    commitment transaction:
+      commitment transaction:
       - MUST send a `warning` and close the connection, or send an
         `error` and fail the channel.
   - if any `htlc_signature` is not valid for the corresponding HTLC transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
-  - MUST respond with a `revoke_and_ack` message.
+  - If the message contains `alternative_feerates`:
+    - MUST wait for the corresponding `alternative_commitment_signed`
+      before responding with a `revoke_and_ack` message.
+  - Otherwise:
+    - MUST respond with a `revoke_and_ack` message.
 
 #### Rationale
 
 There's little point offering spam updates: it implies a bug.
-
-The `num_htlcs` field is redundant, but makes the packet length check fully self-contained.
 
 The recommendation to require recent messages recognizes the reality
 that networks are unreliable: nodes might not realize their peers are
@@ -1341,6 +1358,47 @@ channel creation always pays the fees for the commitment transaction),
 it's simplest to only allow it to set fee levels; however, as the same
 fee rate applies to HTLC transactions, the receiving node must also
 care about the reasonableness of the fee.
+
+### Signing alternative feerates
+
+When a node sends `commitment_signed`, it may also sign alternative versions
+of the commitment using different feerates.
+
+1. type: 137 (`alternative_commitment_signed`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u32`:`feerate_per_kw`]
+   * [`signature`:`signature`]
+   * [`u16`:`num_htlcs`]
+   * [`num_htlcs*signature`:`htlc_signature`]
+
+#### Requirements
+
+A sending node:
+  - If `option_alternative_feerates` was negotiated:
+    - MUST send one `alternative_commitment_signed` for each feerate listed
+      in the corresponding `commitment_signed.alternative_feerates`.
+    - MUST use `SIGHASH_ALL` for the `htlc_signature`s.
+  - Otherwise:
+    - MUST NOT send `alternative_commitment_signed`.
+
+A receiving node:
+  - MUST validate signatures using the same requirements as `commitment_signed`.
+  - If this is the last expected `alternative_commitment_signed`:
+    - MUST respond with a `revoke_and_ack` message.
+
+#### Rationale
+
+When using `option_anchors`, nodes must keep a pool of utxos available
+to set the fees of commitment and HTLC transactions at broadcast time.
+This is a complex task that requires sophisticated utxo management to
+efficiently protect against malicious peers.
+
+The `option_alternative_feerates` feature reduces that complexity, by
+making it possible for nodes to have versions of HTLC transactions at
+various feerates, which may remove the need to add external inputs in
+most cases and keep them for exceptional occasions, at the expense of
+slightly more latency, bandwidth and storage usage.
 
 ## Message Retransmission
 
