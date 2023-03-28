@@ -1327,6 +1327,7 @@ for [`commitment_signed`](#commiting-updates-so-far-commitment_signed) with the 
 
 The sending node:
   - MUST send zero HTLCs.
+  - MUST remember the details of this funding transaction.
 
 The receiving node:
   - if the message has one or more HTLCs:
@@ -1340,6 +1341,10 @@ The receiving node:
 #### Rationale
 
 The first commitment transaction has no HTLCs.
+
+Once peers are ready to exchange commitment signatures, they must remember
+the details of the funding transaction to allow resuming the signatures
+exchange if a disconnection happens.
 
 ### Sharing funding signatures: `tx_signatures`
 
@@ -2313,6 +2318,12 @@ messages are), they are independent of requirements here.
    * [`32*byte`:`your_last_per_commitment_secret`]
    * [`point`:`my_current_per_commitment_point`]
 
+1. `tlv_stream`: `channel_reestablish_tlvs`
+2. types:
+    1. type: 0 (`next_funding`)
+    2. data:
+        * [`sha256`:`next_funding_txid`]
+
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
 are independent for each peer in the channel and start at 0.
@@ -2369,18 +2380,21 @@ The sending node:
     - MUST set `your_last_per_commitment_secret` to all zeroes
   - otherwise:
     - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret` it received
+  - if it has sent `commitment_signed` for an interactive transaction construction but
+    it has not received `tx_signatures`:
+    - MUST set `next_funding_txid` to the txid of that interactive transaction.
+  - otherwise:
+    - MUST NOT set `next_funding_txid`.
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
   sent and received:
     - MUST retransmit `channel_ready`.
-    - MUST retransmit `tx_signatures` if it is using channel establishment v2.
   - otherwise:
     - MUST NOT retransmit `channel_ready`, but MAY send `channel_ready` with
       a different `short_channel_id` `alias` field.
   - upon reconnection:
     - MUST ignore any redundant `channel_ready` it receives.
-    - MUST ignore any redundant `tx_signatures` it receives.
   - if `next_commitment_number` is equal to the commitment number of
   the last `commitment_signed` message the receiving node has sent:
     - MUST reuse the same commitment number for its next `commitment_signed`.
@@ -2429,6 +2443,20 @@ A node:
     - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
     do not match the expected values):
       - SHOULD send an `error` and fail the channel.
+
+A receiving node:
+  - if `next_funding_txid` is set:
+    - if `next_funding_txid` matches the latest interactive funding transaction:
+      - if it has not received `tx_signatures` for that funding transaction:
+        - MUST retransmit its `commitment_signed` for that funding transaction.
+        - if it has already received `commitment_signed` and it should sign first,
+          as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):
+          - MUST send its `tx_signatures` for that funding transaction.
+      - if it has already received `tx_signatures` for that funding transaction:
+        - MUST send its `tx_signatures` for that funding transaction.
+    - otherwise:
+      - MUST send `tx_abort` to let the sending node know that they can forget
+        this funding transaction.
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
@@ -2520,6 +2548,11 @@ however), but the disclosure of previous secret still allows
 fall-behind detection.  An implementation can offer both, however, and
 fall back to the `option_data_loss_protect` behavior if
 `option_static_remotekey` is not negotiated.
+
+`next_funding_txid` allows peers to finalize the signing steps of an
+interactive transaction construction, or safely abort that transaction
+if it was not signed by one of the peers, who has thus already removed
+it from its state.
 
 # Authors
 
