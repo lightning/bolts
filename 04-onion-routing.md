@@ -1181,16 +1181,17 @@ handling by the processing node.
    * [`u32`:`height`]
 
 The `payment_hash` is unknown to the final node, the `payment_secret` doesn't
-match the `payment_hash`, the amount for that `payment_hash` is incorrect,
+match the `payment_hash`, the amount for that `payment_hash` is too low,
 the CLTV expiry of the htlc is too close to the current block height for safe
 handling or `payment_metadata` isn't present while it should be.
 
 The `htlc_msat` parameter is superfluous, but left in for backwards
-compatibility. The value of `htlc_msat` always matches the amount specified in
-the final hop onion payload. It therefore does not have any informative value to
-the sender. A penultimate hop sending a different amount or expiry for the htlc
-is handled through `final_incorrect_cltv_expiry` and
-`final_incorrect_htlc_amount`.
+compatibility. The value of `htlc_msat` is required to be at least the value
+specified in the final hop onion payload. It therefore does not have any
+substantial informative value to the sender (though may indicate the
+penultimate node took a lower fee than expected). A penultimate hop sending an
+amount or an expiry that is too low for the htlc is handled through
+`final_incorrect_cltv_expiry` and `final_incorrect_htlc_amount`.
 
 The `height` parameter is set by the final node to the best known block height
 at the time of receiving the htlc. This can be used by the sender to distinguish
@@ -1212,13 +1213,13 @@ failures now represented by `incorrect_or_unknown_payment_details` (PERM|15).
 2. data:
    * [`u32`:`cltv_expiry`]
 
-The CLTV expiry in the HTLC doesn't match the value in the onion.
+The CLTV expiry in the HTLC is less than the value in the onion.
 
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
    * [`u64`:`incoming_htlc_amt`]
 
-The amount in the HTLC doesn't match the value in the onion.
+The amount in the HTLC is less than the value in the onion.
 
 1. type: UPDATE|20 (`channel_disabled`)
 2. data:
