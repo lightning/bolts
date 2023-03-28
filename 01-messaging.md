@@ -29,6 +29,7 @@ All data fields are unsigned big-endian unless otherwise specified.
   * [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
   * [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
   * [Appendix C: Message Extension](#appendix-c-message-extension)
+  * [Appendix D: CompactSize Test Vectors](#appendix-d-compactsize-test-vectors)
   * [Acknowledgments](#acknowledgments)
   * [References](#references)
   * [Authors](#authors)
@@ -246,6 +247,7 @@ The following convenience types are also defined:
 * `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
 * `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
 * `bigsize`: a variable-length, unsigned integer similar to Bitcoin's CompactSize encoding, but big-endian.  Described in [BigSize](#appendix-a-bigsize-test-vectors).
+* `compactsize`: a variable-length, unsigned integer exactly the same as [Bitcoin's CompactSize](https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer), used only when redefining Bitcoin types. Described in [CompactSize](#appendix-d-compactsize-test-vectors).
 
 ## Setup Messages
 
@@ -959,6 +961,228 @@ The following `init` messages are invalid:
 Note that when messages are signed, the _extension_ is part of the signed bytes.
 Nodes should store the _extension_ bytes even if they don't understand them to
 be able to correctly verify signatures.
+
+## Appendix D: CompactSize Test Vectors
+
+The following test vectors can be used to assert the correctness of a CompactSize
+implementation. The format is identical to the CompactSize encoding used in bitcoin,
+which uses a little-endian encoding of multi-byte values.
+
+Values encoded with CompactSize will produce an encoding of either 1, 3, 5, or 9
+bytes depending on the size of the integer. The encoding is a piece-wise
+function that takes a `uint64` value `x` and produces:
+```
+        uint8(x)                if x < 0xfd
+        0xfd + le16(uint16(x))  if x < 0x10000
+        0xfe + le32(uint32(x))  if x < 0x100000000
+        0xff + le64(x)          otherwise.
+```
+
+Here `+` denotes concatenation and `le16`, `le32`, and `le64` produce a
+little-endian encoding of the input for 16, 32, and 64-bit integers, respectively.
+
+A value is said to be _minimally encoded_ if it could not be encoded using
+fewer bytes. For example, a CompactSize encoding that occupies 5 bytes
+but whose value is less than 0x10000 is not minimally encoded. All values
+decoded with CompactSize should be checked to ensure they are minimally encoded.
+
+### CompactSize Decoding Tests
+
+The following is an example of how to execute the CompactSize decoding tests.
+```golang
+func testReadCompactSize(t *testing.T, test compactSizeTest) {
+        var buf [8]byte
+        r := bytes.NewReader(test.Bytes)
+        val, err := ReadCompactSize(r, &buf)
+        if err != nil && err.Error() != test.ExpErr {
+                t.Fatalf("expected decoding error: %v, got: %v",
+                        test.ExpErr, err)
+        }
+
+        // If we expected a decoding error, there's no point checking the value.
+        if test.ExpErr != "" {
+                return
+        }
+
+        if val != test.Value {
+                t.Fatalf("expected value: %d, got %d", test.Value, val)
+        }
+}
+```
+
+A correct implementation should pass against these test vectors:
+```json
+[
+    {
+        "name": "zero",
+        "value": 0,
+        "bytes": "00"
+    },
+    {
+        "name": "one byte high",
+        "value": 252,
+        "bytes": "fc"
+    },
+    {
+        "name": "two byte low",
+        "value": 253,
+        "bytes": "fdfd00"
+    },
+    {
+        "name": "two byte high",
+        "value": 65535,
+        "bytes": "fdffff"
+    },
+    {
+        "name": "four byte low",
+        "value": 65536,
+        "bytes": "fe00000100"
+    },
+    {
+        "name": "four byte high",
+        "value": 4294967295,
+        "bytes": "feffffffff"
+    },
+    {
+        "name": "eight byte low",
+        "value": 4294967296,
+        "bytes": "ff0000000001000000"
+    },
+    {
+        "name": "eight byte high",
+        "value": 18446744073709551615,
+        "bytes": "ffffffffffffffffff"
+    },
+    {
+        "name": "two byte not canonical",
+        "value": 0,
+        "bytes": "fdfc00",
+        "exp_error": "decoded compactsize is not canonical"
+    },
+    {
+        "name": "four byte not canonical",
+        "value": 0,
+        "bytes": "feffff0000",
+        "exp_error": "decoded compactsize is not canonical"
+    },
+    {
+        "name": "eight byte not canonical",
+        "value": 0,
+        "bytes": "ffffffffff00000000",
+        "exp_error": "decoded compactsize is not canonical"
+    },
+    {
+        "name": "two byte short read",
+        "value": 0,
+        "bytes": "fd00",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "four byte short read",
+        "value": 0,
+        "bytes": "feffff",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "eight byte short read",
+        "value": 0,
+        "bytes": "ffffffffff",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "one byte no read",
+        "value": 0,
+        "bytes": "",
+        "exp_error": "EOF"
+    },
+    {
+        "name": "two byte no read",
+        "value": 0,
+        "bytes": "fd",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "four byte no read",
+        "value": 0,
+        "bytes": "fe",
+        "exp_error": "unexpected EOF"
+    },
+    {
+        "name": "eight byte no read",
+        "value": 0,
+        "bytes": "ff",
+        "exp_error": "unexpected EOF"
+    }
+]
+```
+
+### CompactSize Encoding Tests
+
+The following is an example of how to execute the CompactSize encoding tests.
+```golang
+func testWriteCompactSize(t *testing.T, test compactSizeTest) {
+        var (
+                w   bytes.Buffer
+                buf [8]byte
+        )
+        err := WriteCompactSize(&w, test.Value, &buf)
+        if err != nil {
+                t.Fatalf("unable to encode %d as compactsize: %v",
+                        test.Value, err)
+        }
+
+        if bytes.Compare(w.Bytes(), test.Bytes) != 0 {
+                t.Fatalf("expected bytes: %v, got %v",
+                        test.Bytes, w.Bytes())
+        }
+}
+```
+
+A correct implementation should pass against the following test vectors:
+```json
+[
+    {
+        "name": "zero",
+        "value": 0,
+        "bytes": "00"
+    },
+    {
+        "name": "one byte high",
+        "value": 252,
+        "bytes": "fc"
+    },
+    {
+        "name": "two byte low",
+        "value": 253,
+        "bytes": "fdfd00"
+    },
+    {
+        "name": "two byte high",
+        "value": 65535,
+        "bytes": "fdffff"
+    },
+    {
+        "name": "four byte low",
+        "value": 65536,
+        "bytes": "fe00000100"
+    },
+    {
+        "name": "four byte high",
+        "value": 4294967295,
+        "bytes": "feffffffff"
+    },
+    {
+        "name": "eight byte low",
+        "value": 4294967296,
+        "bytes": "ff0000000001000000"
+    },
+    {
+        "name": "eight byte high",
+        "value": 18446744073709551615,
+        "bytes": "ffffffffffffffffff"
+    }
+]
+```
 
 ## Acknowledgments
 
