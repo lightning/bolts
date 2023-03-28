@@ -249,7 +249,7 @@ optional) features will have _odd_ feature bits, while incompatible features
 will have _even_ feature bits
 (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
 
-A delay of 12-blocks is used when forgetting a channel on funding output spend
+A delay of 12 blocks is used when forgetting a channel on funding output spend
 as to permit a new `channel_announcement` to propagate which indicates this
 channel was spliced.
 
@@ -289,7 +289,7 @@ The following `address descriptor` types are defined:
        * version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt))
          onion service addresses; Encodes:
          `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where
-         `checksum = sha3(".onion checksum" | pubkey || version)[:2]`.
+         `checksum = sha3(".onion checksum" || pubkey || version)[:2]`.
    * `5`: DNS hostname; data = `[1:hostname_len][hostname_len:hostname][2:port]` (length up to 258)
        * `hostname` bytes MUST be ASCII characters.
        * Non-ASCII characters MUST be encoded using Punycode:
