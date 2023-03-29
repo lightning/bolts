@@ -388,14 +388,9 @@ the byte size of the input and output counts on the transaction to one (1).
     * [`channel_id`:`channel_id`]
     * [`sha256`:`txid`]
     * [`u16`:`num_witnesses`]
-    * [`num_witnesses*witness_stack`:`witnesses`]
+    * [`num_witnesses*witness`:`witnesses`]
 
-1. subtype: `witness_stack`
-2. data:
-    * [`u16`:`num_witness_elements`]
-    * [`num_witness_elements*witness_element`:`witness_elements`]
-
-1. subtype: `witness_element`
+1. subtype: `witness`
 2. data:
     * [`u16`:`len`]
     * [`len*byte`:`witness_data`]
@@ -413,11 +408,11 @@ The sending node:
 
 The receiving node:
   - MUST fail the negotiation if:
-    - the message contains an empty `witness_stack`
+    - the message contains an empty `witness`
     - the number of `witnesses` does not equal the number of inputs
       added by the sending node
     - the `txid` does not match the txid of the transaction
-    - the witnesses are non-standard
+    - the `witnesses` are non-standard
   - SHOULD apply the `witnesses` to the transaction and broadcast it
   - MUST reply with their `tx_signatures` if not already transmitted
 
@@ -427,8 +422,8 @@ A strict ordering is used to decide which peer sends `tx_signatures` first.
 This prevents deadlocks where each peer is waiting for the other peer to
 send `tx_signatures`, and enables multiparty tx collaboration.
 
-`witness_data` is the data for a witness element in a witness stack, not
-prefixed with its length (since it is already specified in the `len` field).
+The `witness_data` is encoded as per bitcoin's wire protocol (a CompactSize number
+of elements, with each element a CompactSize length and that many bytes following).
 
 While the `minimum fee` is calculated and verified at `tx_complete` conclusion,
 it is possible for the fee for the exchanged witness data to be underpaid.
@@ -1363,7 +1358,7 @@ The sending node:
     - MUST NOT send a `tx_signatures` message
 
 The receiving node:
-  - if the `witness_stack` weight lowers the effective `feerate`
+  - if the `witness` weight lowers the effective `feerate`
     below the the *opener*'s feerate for the funding transaction:
     - SHOULD broadcast their commitment transaction, closing the channel.
   - SHOULD apply `witnesses` to the funding transaction and broadcast it

@@ -2940,17 +2940,10 @@ Opener's fees and change:
       channel_id: xxx,
       txid: "5ca4e657c1aa9d069ea4a5d712045d233a7d7c52738cb02993637289e6386057",
       num_witnesses: 1,
-      witness_stack[{
-	num_input_witness: 2,
-	witness_element:[
-	{
-	  len: 32,
-	  witness: "68656c6c6f2074686572652c2074686973206973206120626974636f6e212121"
-	},{
-	  len: 39,
-	  witness: "82012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff87"
-	}]
-     }]
+      witness[{
+        len: 74,
+        witness_data: "022068656c6c6f2074686572652c2074686973206973206120626974636f6e2121212782012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff87"
+      }]
   }
 ```
 
@@ -2961,17 +2954,10 @@ Opener's fees and change:
       channel_id: xxx,
       txid: "5ca4e657c1aa9d069ea4a5d712045d233a7d7c52738cb02993637289e6386057",
       num_witnesses: 1,
-      witness_stack[{
-	num_input_witness: 2,
-	witness_element:[
-	{
-	  len: 71,
-	  witness: "304402207de9ba56bb9f641372e805782575ee840a899e61021c8b1572b3ec1d5b5950e9022069e9ba998915dae193d3c25cb89b5e64370e6a3a7755e7f31cf6d7cbc2a49f6d01",
-	},{
-	  len: 33,
-	  witness: "034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484"
-	}]
-     }]
+      witness[{
+        len: 107,
+        witness_data: "0247304402207de9ba56bb9f641372e805782575ee840a899e61021c8b1572b3ec1d5b5950e9022069e9ba998915dae193d3c25cb89b5e64370e6a3a7755e7f31cf6d7cbc2a49f6d0121034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484"
+      }]
   }
 ```
 
