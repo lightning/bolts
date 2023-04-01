@@ -212,8 +212,6 @@ A reader:
   - if the `9` field contains unknown _even_ bits that are non-zero:
     - MUST fail the payment.
 	- SHOULD indicate the unknown bit to the user.
-  - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed
-  description.
   - if a valid `n` field is provided:
     - MUST use the `n` field to validate the signature instead of performing signature recovery.
   - if there is a valid `s` field:
