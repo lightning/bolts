@@ -1467,6 +1467,15 @@ even, of course!).
     1. type: 4 (`encrypted_recipient_data`)
     2. data:
         * [`...*byte`:`encrypted_recipient_data`]
+    1. type: 64 (`invoice_request`)
+    2. data:
+        * [`tlv_invoice_request`:`invreq`]
+    1. type: 66 (`invoice`)
+    2. data:
+        * [`tlv_invoice`:`inv`]
+    1. type: 68 (`invoice_error`)
+    2. data:
+        * [`tlv_invoice_error`:`inverr`]
 
 1. subtype: `blinded_path`
 2. data:
