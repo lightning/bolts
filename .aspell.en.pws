@@ -388,6 +388,14 @@ IFDUP
 sats
 anysegwit
 onionmsg
+unrequested
+Merkle
+whitespace
+TLVs
+LnLeaf
+LnNonce
+LnBranch
+payinfo
 griefing
 unspendable
 pkh
