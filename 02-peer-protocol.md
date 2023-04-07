@@ -1609,15 +1609,28 @@ through if this happens).
 
 ## Splice Completion
 
+### The `splice_locked` Message
+
+1. type: 77 (`splice_locked`)
+2. data:
+   * [`channel_id`:`channel_id`]
+
+`channel_id` is the pre-splice channel's `channel_id`.
+
 Each node:
 - if any splice transaction reaches depth 6:
   - MUST send `splice_locked`.
 
 Once a node has received and sent `splice_locked`:
+  - Until sending OR receiving of `revoke_and_ack`
+    - MUST ignore `announcement_signatures` messages where `short_channel_id`
+      matches the pre-splice short channel id.
+    - MUST ignore `commitment_signed` messages where `splice_channel_id`
+      does not match the `channel_id` of the confirmed splice.
   - MUST consider the successful splice to be the new funding
     transaction for all future `commitment_signed` and splice operations.
   - MUST discard the previous funding transaction and other splice operations.
-  - MUST send a new `commitment_signed` (with no `splice_commitsigs`).
+  - MUST send a new `commitment_signed` bundle (with no splice commitsigs bundle).
 
 On reconnection:
   - MUST retransmit the last `splice_locked` if the peer did not
@@ -1859,20 +1872,20 @@ the closing transaction will likely never reach miners.
 Once both nodes have exchanged `channel_ready` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hashed Time Locked Contracts.
 
 Changes are sent in batches: one or more `update_` messages are sent before a
-`commitment_signed` message, as in the following diagram:
+`commitment_signed` message bundle, as in the following diagram:
 
         +-------+                               +-------+
         |       |--(1)---- update_add_htlc ---->|       |
         |       |--(2)---- update_add_htlc ---->|       |
         |       |<-(3)---- update_add_htlc -----|       |
         |       |                               |       |
-        |       |--(4)--- commitment_signed --->|       |
+        |       |--(4)- commitment_signed(s) -->|       |
         |   A   |<-(5)---- revoke_and_ack ------|   B   |
         |       |                               |       |
-        |       |<-(6)--- commitment_signed ----|       |
+        |       |<-(6)- commitment_signed(s) ---|       |
         |       |--(7)---- revoke_and_ack ----->|       |
         |       |                               |       |
-        |       |--(8)--- commitment_signed --->|       |
+        |       |--(8)- commitment_signed(s) -->|       |
         |       |<-(9)---- revoke_and_ack ------|       |
         +-------+                               +-------+
 
@@ -2353,7 +2366,7 @@ A sending node:
   - MUST send `splice_channel_id` to specify which channel tx this commitment
 is for.
   - MUST NOT send a `commitment_signed` message bundle that does not include any
-updates or added splices.
+updates.
   - MAY send a `commitment_signed` message bundle that only
 alters the fee.
   - MAY send a `commitment_signed` message bundle that doesn't
@@ -2364,7 +2377,10 @@ fee changes).
     to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
-  - MUST first send a `commitment_signed` for the active channel then immediately
+  - if during an active splice negotiation
+      - MUST send a single `commitment_signed` for the splice candidate.
+  - else
+      - MUST first send a `commitment_signed` for the active channel then immediately
 send a `commitment_signed` for each splice awaiting confirmation, in increasing
 feerate order.
 
@@ -2384,10 +2400,11 @@ A receiving node:
     - MUST fail the channel.
   - if `commit_signature`, `num_htlcs` or `htlc_signature` is not correct as specified above for each splice:
     - MUST fail the channel.
-  - if the number of consecutive `commitment_signed` messages received is not the
-number of splice candidates plus one:
-    - MUST fail the channel.
-  - MUST respond with a `revoke_and_ack` message.
+  - if not during an active splice negotiation
+    - if the number of consecutive `commitment_signed` messages received is not
+      the number of splice candidates plus one:
+      - MUST fail the channel.
+    - MUST respond with a `revoke_and_ack` message.
 
 #### Rationale
 
