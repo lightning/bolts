@@ -1577,13 +1577,18 @@ Upon receipt of consecutive `tx_complete`s, each node:
 - MUST replace the zero-value funding output amount with the total channel capacity.
 - MUST calculate the channel balance for each side:
   - Subtract any outstanding HTLCs offered by that side.
-- if either side has added an output other than the new channel funding output:
+- If either side has added an output other than the new channel funding output:
   - MUST fail the negotiation if the balance for that side is less than 1% of the total channel capacity.
 - SHOULD NOT fail if the splice transaction is nonstandard.
-- MUST increment the commitment number and send `commitment_signed`, including the commitment signatures for the splice transaction(s).
+- MUST send a single `commitment_signed` for the splice transaction.
+  - Peer MUST NOT reply with `revoke_and_ack`
 
-- Upon receipt of `revoke_and_ack` for the previous commitment:
-  - MUST send `tx_signatures` for the splice transaction.
+- If recipient's sum(tx_add_input.amount) < peer's sum(tx_add_input.amount); or
+if recipient's sum(tx_add_input.amount) == peer's sum(tx_add_input.amount) and
+recipient is the `initiator` of the splice:
+  - SHOULD send `tx_signatures` first for the splice transaction.
+- else
+  - MAY send `tx_signatures` first.
 
 - Upon receipt of `tx_signatures` for the splice transaction:
   - MUST consider splice negotiation complete.
