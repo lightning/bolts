@@ -416,6 +416,9 @@ The receiving node:
   - SHOULD apply the `witnesses` to the transaction and broadcast it
   - MUST reply with their `tx_signatures` if not already transmitted
 
+Both nodes:
+  - MUST sign the transaction using SIGHASH_ALL
+
 #### Rationale
 
 A strict ordering is used to decide which peer sends `tx_signatures` first.
