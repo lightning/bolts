@@ -429,7 +429,7 @@ completed.
 2. types:
     1. type: 0 (`funding_output_contribution`)
     2. data:
-        * [`tu64`:`satoshis`]
+        * [`s64`:`satoshis`]
 
 #### Requirements
 
@@ -475,7 +475,7 @@ not contributing to the funding output.
 2. types:
     1. type: 0 (`funding_output_contribution`)
     2. data:
-        * [`tu64`:`satoshis`]
+        * [`s64`:`satoshis`]
 
 #### Requirements
 

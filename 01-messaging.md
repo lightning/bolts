@@ -29,6 +29,7 @@ All data fields are unsigned big-endian unless otherwise specified.
   * [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
   * [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
   * [Appendix C: Message Extension](#appendix-c-message-extension)
+  * [Appendix D: Signed Integers Test Vectors](#appendix-d-signed-integers-test-vectors)
   * [Acknowledgments](#acknowledgments)
   * [References](#references)
   * [Authors](#authors)
@@ -220,9 +221,16 @@ receiver to parse individual elements from `value`.
 Various fundamental types are referred to in the message specifications:
 
 * `byte`: an 8-bit byte
+* `s8`: an 8-bit signed integer
 * `u16`: a 2 byte unsigned integer
+* `s16`: a 2 byte signed integer
 * `u32`: a 4 byte unsigned integer
+* `s32`: a 4 byte signed integer
 * `u64`: an 8 byte unsigned integer
+* `s64`: an 8 byte signed integer
+
+Signed integers use standard big-endian two's complement representation
+(see test vectors [below](#appendix-d-signed-integers-test-vectors)).
 
 For the final value in TLV records, truncated integers may be used. Leading zeros in
 truncated integers MUST be omitted:
@@ -966,6 +974,108 @@ The following `init` messages are invalid:
 Note that when messages are signed, the _extension_ is part of the signed bytes.
 Nodes should store the _extension_ bytes even if they don't understand them to
 be able to correctly verify signatures.
+
+## Appendix D: Signed Integers Test Vectors
+
+The following test vector show how signed integers (`s8`, `s16`, `s32`
+and `s64`) are encoded using big-endian two's complement.
+
+```json
+[
+    {
+        "value": 0,
+        "bytes": "00"
+    },
+    {
+        "value": 42,
+        "bytes": "2a"
+    },
+    {
+        "value": -42,
+        "bytes": "d6"
+    },
+    {
+        "value": 127,
+        "bytes": "7f"
+    },
+    {
+        "value": -128,
+        "bytes": "80"
+    },
+    {
+        "value": 128,
+        "bytes": "0080"
+    },
+    {
+        "value": -129,
+        "bytes": "ff7f"
+    },
+    {
+        "value": 15000,
+        "bytes": "3a98"
+    },
+    {
+        "value": -15000,
+        "bytes": "c568"
+    },
+    {
+        "value": 32767,
+        "bytes": "7fff"
+    },
+    {
+        "value": -32768,
+        "bytes": "8000"
+    },
+    {
+        "value": 32768,
+        "bytes": "00008000"
+    },
+    {
+        "value": -32769,
+        "bytes": "ffff7fff"
+    },
+    {
+        "value": 21000000,
+        "bytes": "01406f40"
+    },
+    {
+        "value": -21000000,
+        "bytes": "febf90c0"
+    },
+    {
+        "value": 2147483647,
+        "bytes": "7fffffff"
+    },
+    {
+        "value": -2147483648,
+        "bytes": "80000000"
+    },
+    {
+        "value": 2147483648,
+        "bytes": "0000000080000000"
+    },
+    {
+        "value": -2147483649,
+        "bytes": "ffffffff7fffffff"
+    },
+    {
+        "value": 500000000000,
+        "bytes": "000000746a528800"
+    },
+    {
+        "value": -500000000000,
+        "bytes": "ffffff8b95ad7800"
+    },
+    {
+        "value": 9223372036854775807,
+        "bytes": "7fffffffffffffff"
+    },
+    {
+        "value": -9223372036854775808,
+        "bytes": "8000000000000000"
+    }
+]
+```
 
 ## Acknowledgments
 
