@@ -262,6 +262,10 @@ The writer of the TLV `payload`:
       - MUST include the `blinding_point` provided by the recipient in `current_blinding_point`
     - If it is the final node:
       - MUST include `amt_to_forward`, `outgoing_cltv_value` and `total_amount_msat`.
+      - The value set for `outgoing_cltv_value`: 
+        - MUST use the current block height as a baseline value. 
+        - if a [random offset](07-routing-gossip.md#recommendations-for-routing) was added to improve privacy:
+          - SHOULD add the offset to the baseline value.
     - MUST NOT include any other tlv field.
   - For every node outside of a blinded route:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
