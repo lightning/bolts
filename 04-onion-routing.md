@@ -262,6 +262,9 @@ The writer of the TLV `payload`:
       - MUST include the `blinding_point` provided by the recipient in `current_blinding_point`
     - If it is the final node:
       - MUST include `amt_to_forward`, `outgoing_cltv_value` and `total_amount_msat`.
+      - `outgoing_cltv_value` MUST be set to any additional CLTV delta which was added in addition
+        to the required amount for the full blinded path for privacy. This may be zero. This MUST
+        NOT include any additional amount added to compensate for a block during payment relay.
     - MUST NOT include any other tlv field.
   - For every node outside of a blinded route:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
@@ -310,7 +313,7 @@ The reader:
       - MUST return an error if the payload contains other tlv fields than `encrypted_recipient_data`, `current_blinding_point`, `amt_to_forward`, `outgoing_cltv_value` and `total_amount_msat`.
       - MUST return an error if `amt_to_forward`, `outgoing_cltv_value` or `total_amount_msat` are not present.
       - MUST return an error if `amt_to_forward` is below what it expects for the payment.
-      - MUST return an error if incoming `cltv_expiry` < `outgoing_cltv_value`.
+      - MUST return an error if incoming `cltv_expiry` < `outgoing_cltv_value` + `min_final_cltv_expiry_delta`.
       - MUST return an error if incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
   - Otherwise (it is not part of a blinded route):
     - MUST return an error if `blinding_point` is set in the incoming `update_add_htlc` or `current_blinding_point` is present.
