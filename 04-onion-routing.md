@@ -254,7 +254,7 @@ The creator of `encrypted_recipient_data` (usually, the recipient of payment):
     - `total_fee_proportional_millionths(n+1) = ((total_fee_proportional_millionths(n) + fee_proportional_millionths(n+1)) * 1000000 + total_fee_proportional_millionths(n) * fee_proportional_millionths(n+1) + 1000000 - 1) / 1000000`
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
 
-The writer of `tlv_payload`:
+The writer of the TLV `payload`:
 
   - For every node inside a blinded route:
     - MUST include the `encrypted_recipient_data` provided by the recipient
