@@ -270,7 +270,7 @@ transmits the following information to the sender (most likely via an invoice):
   * `fee_proportional_millionths`: 1001
   * `htlc_minimum_msat`: 1000
   * `cltv_expiry_delta`: 288
-  * `max_cltv_expiry`: 1200
+  * `max_cltv_expiry`: 1200 (may be conveyed via invoice expiration, assuming 10 minute blocks)
   * `allowed_features`: empty
 * Encrypted data for blinded nodes:
   * `encrypted_payload(alice)`:
@@ -308,8 +308,11 @@ Erin uses the aggregated route relay parameters to compute how much should be se
 
 * `amount = 100000 + 201 + (1001 * 100000 + 1000000 - 1) / 1000000 = 100302 msat`
 
-Erin chooses a final expiry of 1100, which is below Alice's `max_cltv_expiry`, and computes the
-expiry that should be sent to Carol:
+Erin chooses a final expiry of 1100, which is below Alice's `max_cltv_expiry`. This value may be
+chosen by adding a random cltv offset to the current block height as described in
+[Recommendations for Routing](../07-routing-gossip.md#recommendations-for-routing).
+
+Erin computes the expiry that should be sent to Carol:
 
 * `expiry = 1100 + 288 = 1388`
 
