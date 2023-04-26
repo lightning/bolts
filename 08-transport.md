@@ -18,6 +18,7 @@ of a node.
     * [Handshake State](#handshake-state)
     * [Handshake State Initialization](#handshake-state-initialization)
     * [Handshake Exchange](#handshake-exchange)
+  * [Alternate Transport Layers: WebSocket](#websocket)
   * [Lightning Message Specification](#lightning-message-specification)
     * [Encrypting and Sending Messages](#encrypting-and-sending-messages)
     * [Receiving and Decrypting Messages](#receiving-and-decrypting-messages)
@@ -402,6 +403,34 @@ construction, and 16 bytes for a final authenticating tag.
 10. `rn = 0, sn = 0`
      * The sending and receiving nonces are initialized to 0.
 
+## Alternate Transport Layers: WebSocket
+
+Normally the transport protocol defined here is performed over TCP/IP,
+but it can also be performed over other underlying transports, such as
+the WebSocket protocol as specified in
+RFC6455<sup>[4](#reference-4)</sup> on ports so-advertized (in the
+[node_announcement message](07-routing-gossip.md#the-node_announcement-message).
+
+A client may connect to this port node and initiate a WebSocket; and
+operate the protocol over binary WebSocket frames instead of raw TCP/IP.
+
+### Requirements
+
+The initiator:
+- MAY attempt to initiate an unencrypted WebSocket as specified in RFC6455<sup>[4](#reference-4)</sup>:
+  - MUST abort the connection attempt if WebSocket upgrade fails.
+  - MUST begin the [Handshake Exchange](#handshake-exchange) as initiator 
+    as soon as upgrade succeeds.
+
+The responder:
+- if it supports WebSocket connections on an address:
+  - SHOULD advertise it using a type 6 address its node announcement.
+  - MUST abort the connection attempt if WebSocket upgrade fails.
+
+Both nodes, after upgrade:
+  - MUST use binary frames to send and receive messages.
+  - MUST NOT rely on WebSocket framing for message semantics.
+
 ## Lightning Message Specification
 
 At the conclusion of Act Three, both sides have derived the encryption keys, which
@@ -779,6 +808,7 @@ TODO(roasbeef); fin
 1. <a id="reference-1">https://tools.ietf.org/html/rfc8439</a>
 2. <a id="reference-2">http://noiseprotocol.org/noise.html</a>
 3. <a id="reference-3">https://tools.ietf.org/html/rfc5869</a>
+4. <a id="reference-4">https://tools.ietf.org/html/rfc6455</a>
 
 # Authors
 

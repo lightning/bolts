@@ -294,6 +294,10 @@ The following `address descriptor` types are defined:
        * `hostname` bytes MUST be ASCII characters.
        * Non-ASCII characters MUST be encoded using Punycode:
          https://en.wikipedia.org/wiki/Punycode
+   * `6`: WebSocket address; data = `[1:hostname_len][hostname_len:hostname][2:port]` (length up to 258)
+       * `hostname` bytes MUST be ASCII characters.
+       * Non-ASCII characters MUST be encoded using Punycode:
+         https://en.wikipedia.org/wiki/Punycode
 
 ### Requirements
 
@@ -315,7 +319,7 @@ The origin node:
   - MUST place address descriptors in ascending order.
   - SHOULD NOT place any zero-typed address descriptors anywhere.
   - SHOULD use placement only for aligning fields that follow `addresses`.
-  - MUST NOT create a `type 1`, `type 2` or `type 5` address descriptor with
+  - MUST NOT create a `type 1`, `type 2`, `type 5` or `type 6` address descriptor with
   `port` equal to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
@@ -323,6 +327,7 @@ The origin node:
   bits it sets.
   - SHOULD not announce a Tor v2 onion service.
   - MUST NOT announce more than one `type 5` DNS hostname.
+  - MUST NOT announce more than one `type 6` DNS hostname.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -361,6 +366,9 @@ any future fields appended to the end):
     - SHOULD insinuate their self-signed origins.
   - SHOULD ignore Tor v2 onion services.
   - if more than one `type 5` address is announced:
+    - SHOULD ignore the additional data.
+    - MUST not forward the `node_announcement`.
+  - if more than one `type 6` address is announced:
     - SHOULD ignore the additional data.
     - MUST not forward the `node_announcement`.
 
