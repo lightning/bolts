@@ -6,16 +6,16 @@
 # Outputs:
 #
 # Standard message types:
-#   msgtype,<msgname>,<value>[,<option>]
-#   msgdata,<msgname>,<fieldname>,<typename>,[<count>][,<option>]
+#   msgtype,<msgname>,<value>
+#   msgdata,<msgname>,<fieldname>,<typename>,[<count>]
 #
 # TLV types:
-#   tlvtype,<tlvstreamname>,<tlvname>,<value>[,<option>]
-#   tlvdata,<tlvstreamname>,<tlvname>,<fieldname>,<typename>,[<count>][,<option>]
+#   tlvtype,<tlvstreamname>,<tlvname>,<value>
+#   tlvdata,<tlvstreamname>,<tlvname>,<fieldname>,<typename>,[<count>]
 #
 # Subtypes:
-#   subtype,<msgname>[,<option>]
-#   subtypedata,<msgname>,<fieldname>,<typename>,[<count>][,<option>]
+#   subtype,<msgname>
+#   subtypedata,<msgname>,<fieldname>,<typename>,[<count>]
 
 from optparse import OptionParser
 import sys
@@ -26,11 +26,11 @@ import fileinput
 typeline = re.compile(
     '(1\.|\*) type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z0-9_]+)`\)( \(`?(?P<option>[^)`]*)`\))?')
 tlvline = re.compile(
-    '(1\.|\*) `tlv_stream`: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
+    '(1\.|\*) `tlv_stream`: `(?P<name>[A-Za-z0-9_]+)`')
 subtypeline = re.compile(
-    '(1\.|\*) subtype: `(?P<name>[A-Za-z0-9_]+)`( \(`?(?P<option>[^)`]*)`\))?')
+    '(1\.|\*) subtype: `(?P<name>[A-Za-z0-9_]+)`')
 dataline = re.compile(
-    '\s+([0-9]+\.|\*) \[`(?P<typefield>[-._a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]( \(`?(?P<option>[^)`]*)`?\))?')
+    '\s+([0-9]+\.|\*) \[`(?P<typefield>[-._a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]')
 datastartline = re.compile(
     '(2\.|\*) data:')
 tlvtypesline = re.compile(
@@ -45,13 +45,9 @@ def next_line(args, lines):
         yield i, line.rstrip()
 
 
-# Helper to print a line to output with optional ,option
-def print_csv(output, fmt, option):
-    print(fmt, file=output, end='')
-    if option:
-        print(',{}'.format(option), file=output)
-    else:
-        print('', file=output)
+# Helper to print a line to output
+def print_csv(output, fmt):
+    print(fmt, file=output)
 
 
 # 1. type: 17 (`error`) (`optionXXX`)
@@ -59,16 +55,16 @@ def print_csv(output, fmt, option):
 #    * [`short_channel_id`:`channel_id`]
 #    * [`u16`:`num_inputs`]
 #    * [`num_inputs*sha256`:`input_info`]
-#    * [`u32`:`len`] (optionYYY)
-#    * [`len*byte`:`data`] (optionYYY)
+#    * [`u32`:`len`]
+#    * [`len*byte`:`data`]
 #
 # output:
 #   msgtype,error,17,optionXXX
 #   msgdata,error,channel_id,short_channel_id,
 #   msgdata,error,num_inputs,u16,
 #   msgdata,error,input_info,sha256,num_inputs
-#   msgdata,error,len,u32,,optionYYY
-#   msgdata,error,data,byte,len,optionYYY
+#   msgdata,error,len,u32,
+#   msgdata,error,data,byte,len
 #
 # 1. type: PERM|NODE|3 (`required_node_feature_missing`)
 #
@@ -88,7 +84,7 @@ def print_csv(output, fmt, option):
 #   msgdata,query_short_channel_ids,len,u16,
 #   msgdata,query_short_channel_ids,encoded_short_ids,byte,len
 #   msgdata,query_short_channel_ids,tlvs,query_short_channel_ids_tlvs,
-def parse_type(genline, output, name, value, option, in_tlv=None):
+def parse_type(genline, output, name, value, in_tlv=None):
     _, line = next(genline)
 
     if in_tlv:
@@ -98,7 +94,7 @@ def parse_type(genline, output, name, value, option, in_tlv=None):
         type_prefix='msgtype'
         data_prefix='msgdata'
 
-    print_csv(output, '{},{},{}'.format(type_prefix, name, value), option)
+    print_csv(output, '{},{},{}'.format(type_prefix, name, value))
 
     # Expect a data: line before values, if any
     if not datastartline.fullmatch(line.lstrip()):
@@ -117,8 +113,7 @@ def parse_type(genline, output, name, value, option, in_tlv=None):
 
         print_csv(output,
                   "{},{},{},{},{}"
-                  .format(data_prefix, name, match.group('name'), typename, num),
-                  match.group('option'))
+                  .format(data_prefix, name, match.group('name'), typename, num))
 
     
 # 1. tlvs: `query_short_channel_ids_tlvs`
@@ -132,7 +127,7 @@ def parse_type(genline, output, name, value, option, in_tlv=None):
 #  tlvtype,query_short_channel_ids_tlvs,query_flags,1
 #  tlvdata,query_short_channel_ids_tlvs,query_flags,encoding_type,byte,
 #  tlvdata,query_short_channel_ids_tlvs,query_flags,encoded_query_flags,byte,...
-def parse_tlv(genline, output, name, option):
+def parse_tlv(genline, output, name):
     i, line = next(genline)
 
     # Expect a types: line after tlvs.
@@ -146,7 +141,7 @@ def parse_tlv(genline, output, name, option):
         if not match:
             break
 
-        _, line = parse_type(genline, output, match.group('name'), match.group('value'), match.group('option'), name)
+        _, line = parse_type(genline, output, match.group('name'), match.group('value'), name)
 
     
 # 1. subtype: `input_info`
@@ -159,14 +154,14 @@ def parse_tlv(genline, output, name, option):
 #  subtypedata,input_info,satoshis,u64,
 #  subtypedata,input_info,prevtx_txid,sha256,
 
-def parse_subtype(genline, output, name, option):
+def parse_subtype(genline, output, name):
     i, line = next(genline)
 
     # Expect a data: line after subtype.
     if not datastartline.fullmatch(line):
         raise ValueError('{}: Expected "2. data:" line'.format(i))
 
-    print_csv(output, 'subtype,{}'.format(name), option)
+    print_csv(output, 'subtype,{}'.format(name))
 
     while True:
         i, line = next(genline)
@@ -181,8 +176,7 @@ def parse_subtype(genline, output, name, option):
 
         print_csv(output,
                   "{},{},{},{},{}"
-                  .format('subtypedata', name, match.group('name'), typename, num),
-                  match.group('option'))
+                  .format('subtypedata', name, match.group('name'), typename, num))
 
     
 def main(options, args=None, output=sys.stdout, lines=None):
@@ -193,15 +187,15 @@ def main(options, args=None, output=sys.stdout, lines=None):
 
             match = typeline.fullmatch(line)
             if match:
-                parse_type(genline, output, match.group('name'), match.group('value'), match.group('option'))
+                parse_type(genline, output, match.group('name'), match.group('value'))
                 continue
             match = tlvline.fullmatch(line)
             if match:
-                parse_tlv(genline, output, match.group('name'), match.group('option'))
+                parse_tlv(genline, output, match.group('name'))
                 continue
             match = subtypeline.fullmatch(line)
             if match:
-                parse_subtype(genline, output, match.group('name'), match.group('option'))
+                parse_subtype(genline, output, match.group('name'))
                 continue
     except StopIteration:
         pass
