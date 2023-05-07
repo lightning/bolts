@@ -1,5 +1,5 @@
 {
-  "comment": "A testcase for a variable length hop_payload. The third payload is 275 bytes long.",
+  "comment": "A testcase for a variable length hop_payload. The third payload is 275 bytes long. All the payloads already have the variable length encoded.",
   "generate": {
     "session_key": "4141414141414141414141414141414141414141414141414141414141414141",
     "associated_data": "4242424242424242424242424242424242424242424242424242424242424242",
