@@ -224,12 +224,12 @@ Various fundamental types are referred to in the message specifications:
 * `u32`: a 4 byte unsigned integer
 * `u64`: an 8 byte unsigned integer
 
-Inside TLV records which contain a single value, leading zeros in
-integers can be omitted:
+For the final value in TLV records, truncated integers may be used. Leading zeros in
+truncated integers MUST be omitted:
 
-* `tu16`: a 0 to 2 byte unsigned integer
-* `tu32`: a 0 to 4 byte unsigned integer
-* `tu64`: a 0 to 8 byte unsigned integer
+* `tu16`: a 0 to 2 byte truncated unsigned integer
+* `tu32`: a 0 to 4 byte truncated unsigned integer
+* `tu64`: a 0 to 8 byte truncated unsigned integer
 
 When used to encode amounts, the previous fields MUST comply with the upper
 bound of 21 million BTC:
