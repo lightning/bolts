@@ -358,7 +358,6 @@ A sending node:
     - MAY set `channel_id` to all zero to indicate all channels.
   - when sending `warning`:
     - MAY set `channel_id` to all zero if the warning is not related to a specific channel.
-  - MAY close the connection after sending.
   - MAY send an empty `data` field.
   - when failure was caused by an invalid signature check:
     - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
@@ -371,8 +370,6 @@ The receiving node:
       - MUST fail the channel referred to by `channel_id`, if that channel is with the sending node.
   - upon receiving `warning`:
     - SHOULD log the message for later diagnosis.
-    - MAY disconnect.
-    - MAY reconnect after some delay to retry.
     - MAY attempt `shutdown` if permitted at this point.
   - if no existing channel is referred to by `channel_id`:
     - MUST ignore the message.
