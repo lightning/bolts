@@ -1488,7 +1488,6 @@ The creator of `encrypted_recipient_data` (usually, the recipient of the onion):
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
   - MUST NOT include `short_channel_id`, `payment_relay` or `payment_constraints` in any `encrypted_data_tlv`
   - MUST include `encrypted_data_tlv.next_node_id` for each non-final node.
-  - MUST NOT include any other fields in `encrypted_data_tlv` for any non-final node.
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
 
 The writer:
@@ -1499,7 +1498,7 @@ The writer:
 - SHOULD set `onion_message_packet` `len` to 1366 or 32834.
 - SHOULD retry via a different path if it expects a response and doesn't receive one after a reasonable period.
 - For the non-final nodes' `onionmsg_tlv`:
-  - MUST NOT set `reply_path` 
+  - MUST NOT set fields other than `encrypted_recipient_data`.
 - For the final node's `onionmsg_tlv`:
   - if the final node is permitted to reply:
     - MUST set `reply_path` `blinding` to the initial blinding factor for the `first_node_id`
@@ -1538,7 +1537,7 @@ The reader:
   - otherwise (unknown or unset `path_id`):
     - if the onion message is a reply to an onion message which contained a `path_id`:
       - MUST respond (or not respond) exactly as if it did not send the initial onion message.
-  - if the `onionmsg_tlv` contains other tlv fields than `encrypted_recipient_data` and `reply_path`:
+  - if the `onionmsg_tlv` contains more than one payload field:
     - MUST ignore the message.
   - if it wants to send a reply:
     - MUST create an onion message using `reply_path`.
