@@ -1412,13 +1412,13 @@ The _origin node_:
 Onion messages allow peers to use existing connections to query for
 invoices (see [BOLT 12](12-offer-encoding.md)).  Like gossip messages,
 they are not associated with a particular local channel.  Like HTLCs,
-they use [onion messages](#onion-message-payload-format) protocol for
+they use [onion messages](#onion-messages) protocol for
 end-to-end encryption.
 
 Onion messages use the same form as HTLC `onion_packet`, with a
 slightly more flexible format: instead of 1300 byte payloads, the
 payload length is implied by the total length (minus 66 bytes for the
-header and tailer).  The `onionmsg_payloads` themselves are the same
+header and trailing bytes).  The `onionmsg_payloads` themselves are the same
 as the `hop_payloads` format, except there is no "legacy" length: a 0
 `length` would mean an empty `onionmsg_payload`.
 
@@ -1452,7 +1452,7 @@ For consistency, all onion messages use [Route Blinding](#route-blinding).
    * `filler`
 
 The `onionmsg_tlv` itself is a TLV: an intermediate node expects an
-`encrypted_tlv_stream` which it can decrypt into an `encrypted_data_tlv`
+`encrypted_data` which it can decrypt into an `encrypted_data_tlv`
 using the `blinding` which it is handed along with the onion message.
 
 Field numbers 64 and above are reserved for payloads for the final
@@ -1497,8 +1497,7 @@ The writer:
 - MUST construct the `onion_message_packet` `onionmsg_payloads` as detailed above using Sphinx.
 - MUST NOT use any `associated_data` in the Sphinx construcion.
 - SHOULD set `onion_message_packet` `len` to 1366 or 32834.
-- SHOULD retry via a different path if it expects a response and
-  doesn't receive one after a reasonable period.
+- SHOULD retry via a different path if it expects a response and doesn't receive one after a reasonable period.
 - For the non-final nodes' `onionmsg_tlv`:
   - MUST NOT set `reply_path` 
 - For the final node's `onionmsg_tlv`:
@@ -1511,7 +1510,6 @@ The writer:
       - MAY use `path_id` to contain a secret so it can recognize use of this `reply_path`.
   - otherwise:
     - MUST NOT set `reply_path`.
-- SHOULD retry via a different route if it expects a response and doesn't receive one after a reasonable period.
 
 
 The reader:
@@ -1523,7 +1521,7 @@ The reader:
 - if `encrypted_data_tlv` contains `allowed_features`:
   - MUST ignore the message if:
     - `encrypted_data_tlv.allowed_features.features` contains an unknown feature bit (even if it is odd).
-    - the payment uses a feature not included in `encrypted_data_tlv.allowed_features.features`.
+    - the message uses a feature not included in `encrypted_data_tlv.allowed_features.features`.
 - if it is not the final node according to the onion encryption:
   - if the `onionmsg_tlv` contains other tlv fields than `encrypted_recipient_data`:
     - MUST ignore the message.
@@ -1570,7 +1568,7 @@ implementations a little, and makes it more difficult to distinguish
 onion messages.
 
 `len` allows larger messages to be sent than the standard 1300 bytes
-allowed for an HTLC onion, but this should be used sparingly as it is
+allowed for an HTLC onion, but this should be used sparingly as it
 reduces the anonymity set, hence the recommendation that it either looks
 like an HTLC onion, or if larger, be a fixed size.
 
