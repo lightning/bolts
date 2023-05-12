@@ -369,7 +369,9 @@ construction, and 16 bytes for a final authenticating tag.
        receiving messages for the duration of the session, are generated.
 7. `rn = 0, sn = 0`
      * The sending and receiving nonces are initialized to 0.
-8. Send `m = 0 || c || t` over the network buffer.
+8. `rck = sck = ck`
+     * The sending and receiving chaining keys are initialized the same.
+9. Send `m = 0 || c || t` over the network buffer.
 
 **Receiver Actions:**
 
@@ -401,6 +403,8 @@ construction, and 16 bytes for a final authenticating tag.
        receiving messages for the duration of the session, are generated.
 10. `rn = 0, sn = 0`
      * The sending and receiving nonces are initialized to 0.
+11. `rck = sck = ck`
+     * The sending and receiving chaining keys are initialized the same.
 
 ## Lightning Message Specification
 
@@ -488,14 +492,15 @@ Changing keys regularly and forgetting previous keys is useful to
 prevent the decryption of old messages, in the case of later key leakage (i.e.
 backwards secrecy).
 
-Key rotation is performed for _each_ key (`sk` and `rk`) _individually_. A key
+Key rotation is performed for _each_ key (`sk` and `rk`) _individually_,
+using `sck` and `rck` respectively.  A key
 is to be rotated after a party encrypts or decrypts 1000 times with it (i.e. every 500 messages).
 This can be properly accounted for by rotating the key once the nonce dedicated
-to it exceeds 1000.
+to it reaches 1000.
 
 Key rotation for a key `k` is performed according to the following steps:
 
-1. Let `ck` be the chaining key obtained at the end of Act Three.
+1. Let `ck` be the chaining key (i.e. `rck` for `rk` or `sck` for `sk`)
 2. `ck', k' = HKDF(ck, k)`
 3. Reset the nonce for the key to `n = 0`.
 4. `k = k'`
