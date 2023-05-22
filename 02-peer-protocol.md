@@ -1015,10 +1015,11 @@ A sending node:
     buffer" can handle twice the current `feerate_per_kw` to ensure predictability
     between implementations.
   - if it is _not responsible_ for paying the Bitcoin fee:
-    - SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to
-    its commitment transaction, it cannot pay the fee for the updated local or
-    remote transaction at the current `feerate_per_kw` while maintaining its
-    channel reserve.
+    - MAY offer `amount_msat` where, once the remote node adds that HTLC to its
+    commitment transaction, it goes below its channel reserve to pay the fee for
+    the updated local or remote transaction at the current `feerate_per_kw`. The
+    sending node should limit how much of the channel reserve can be used to pay
+    the fee to ensure that the receiving node always has some funds at stake.
   - MUST offer `amount_msat` greater than 0.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
@@ -1093,6 +1094,14 @@ reach a state where it is unable to send or receive any non-dust HTLC while
 maintaining its channel reserve (because of the increased weight of the
 commitment transaction), resulting in a degraded channel. See [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728)
 for more details.
+
+When the node _responsible_ for paying the Bitcoin fee is below or just
+slightly above its channel reserve, the other node may allow it to dip
+into the channel reserve to pay the fee for an incoming HTLC. This is
+effectively the same as temporarily shrinking the channel reserve. The
+node _not responsible_ for paying the Bitcoin fee must ensure that the
+effective channel reserve is still large enough to incentivize the other
+node to behave honestly.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
 
