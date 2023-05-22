@@ -72,8 +72,6 @@
   },
   {
     "comment": "invoice_request test: offer_node_id = Alice (privkey 0x414141...), offer_description = 'A Mathematical Treatise', offer_amount = 100, offer_currency = 'USD', invreq_payer_id = Bob (privkey 0x424242...), invreq_metadata = 0x0000000000000000",
-    "signature_tag": "lightninginvoicerequestsignature",
-    "H(signature_tag,msg)": "aefe3aa88a69772c246dcaef75ed3e7566c08ecc4e9f995233526a5651fc34cd",
     "bolt12": "lnr1qqyqqqqqqqqqqqqqqcp4256ypqqkgzshgysy6ct5dpjk6ct5d93kzmpq23ex2ct5d9ek293pqthvwfzadd7jejes8q9lhc4rvjxd022zv5l44g6qah82ru5rdpnpjkppqvjx204vgdzgsqpvcp4mldl3plscny0rt707gvpdh6ndydfacz43euzqhrurageg3n7kafgsek6gz3e9w52parv8gs2hlxzk95tzeswywffxlkeyhml0hh46kndmwf4m6xma3tkq2lu04qz3slje2rfthc89vss",
     "tlv": "invoice_request",
     "first-tlv": "00080000000000000000",
@@ -131,6 +129,9 @@
         "H(`LnBranch`,2ac9b0261d644027939d9a7bd055cb2468b79d92c6811d56a300c6b8ff97c14d432097bd1a848ab41eee3695a2c5932c4aea987b27b1a61e58ac950ecce1214a)": "608407c18ad9a94d9ea2bcdbe170b6c20c462a7833a197621c916f78cf18e624"
       }
     ],
-    "merkle": "608407c18ad9a94d9ea2bcdbe170b6c20c462a7833a197621c916f78cf18e624"
+    "merkle": "608407c18ad9a94d9ea2bcdbe170b6c20c462a7833a197621c916f78cf18e624",
+    "signature_tag": "lightninginvoice_requestsignature",
+    "H(signature_tag,merkle)": "aefe3aa88a69772c246dcaef75ed3e7566c08ecc4e9f995233526a5651fc34cd",
+    "signature": "b8f83ea3288cfd6ea510cdb481472575141e8d8744157f98562d162cc1c472526fdb24befefbdebab4dbb726bbd1b7d8aec057f8fa805187e5950d2bbe0e5642"
   }
 ]
