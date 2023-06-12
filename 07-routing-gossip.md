@@ -806,8 +806,8 @@ The receiver of `query_channel_range`:
     - MUST set `sync_complete` to `true`.
 
 If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
-- if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
-- if bit 1 in `query_option_flags` is set, the receiver MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
+- if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_channel_id`s in `encoded_short_ids`
+- if bit 1 in `query_option_flags` is set, the receiver MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_channel_id`s in `encoded_short_ids`
 
 #### Rationale
 
