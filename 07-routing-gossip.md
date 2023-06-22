@@ -474,6 +474,7 @@ The origin node:
   - MUST set `htlc_maximum_msat` to the maximum value it will send through this channel for a single HTLC.
     - MUST set this to less than or equal to the channel capacity.
     - MUST set this to less than or equal to `max_htlc_value_in_flight_msat` it received from the peer.
+    - MUST set this to greater than or equal to `htlc_minimum_msat`.
   - MUST set `must_be_one` in `message_flags` to 1.
   - MUST set bits in `channel_flags` and `message_flags` that are not assigned a meaning to 0.
   - MAY create and send a `channel_update` with the `disable` bit set to 1, to
@@ -489,6 +490,7 @@ The origin node:
   an incoming HTLC's `cltv_expiry`.
   - MUST set `htlc_minimum_msat` to the minimum HTLC value (in millisatoshi)
   that the channel peer will accept.
+    - MUST set `htlc_minimum_msat` to less than or equal to `htlc_maximum_msat`.
   - MUST set `fee_base_msat` to the base fee (in millisatoshi) it will charge
   for any HTLC.
   - MUST set `fee_proportional_millionths` to the amount (in millionths of a
@@ -528,6 +530,8 @@ The receiving node:
     - otherwise:
       - SHOULD queue the message for rebroadcasting.
       - MAY choose NOT to for messages longer than the minimum expected length.
+  - if `htlc_maximum_msat` < `htlc_minimum_msat`:
+    - SHOULD ignore this channel during route considerations.
   - if `htlc_maximum_msat` is greater than channel capacity:
     - MAY blacklist this `node_id`
     - SHOULD ignore this channel during route considerations.
