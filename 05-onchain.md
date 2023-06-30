@@ -606,19 +606,10 @@ to arrive at a reasonable fee.
 
 A node which broadcasts an HTLC-success or HTLC-timeout transaction for a
 commitment transaction:
-  1. if `option_anchor_outputs` applies:
-    - SHOULD combine it with inputs contributing sufficient fee to ensure
-      timely inclusion in a block.
-    - MAY combine it with other transactions.
-  2. if `option_anchors_zero_fee_htlc_tx` applies:
+  1. if `option_anchors_zero_fee_htlc_tx` applies:
     - MUST combine it with inputs contributing sufficient fee to ensure timely
       inclusion in a block.
     - MAY combine it with other transactions.
-
-Note that `option_anchors_zero_fee_htlc_tx` has a stronger requirement for
-adding inputs to the final transactions than `option_anchor_outputs`, since the
-HTLC-success and HTLC-timeout transactions won't propagate without additional
-inputs added.
 
 # General Requirements
 
