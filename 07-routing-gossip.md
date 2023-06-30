@@ -889,10 +889,6 @@ generated directly by the node itself, so they should ignore filters.
 If a node requires an initial sync of gossip messages, it will be flagged
 in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
 
-Note that the `initial_routing_sync` feature is overridden (and should
-be considered equal to 0) by the `gossip_queries` feature if the
-latter is negotiated via `init`.
-
 ### Requirements
 
 A node:
