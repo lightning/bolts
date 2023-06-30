@@ -597,7 +597,7 @@ HTLC signatures received from the peer, as this allows HTLC transactions to be c
 other transactions.  The local signature MUST use `SIGHASH_ALL`, otherwise
 anyone can attach additional inputs and outputs to the tx.
 
-If `option_anchors_zero_fee_htlc_tx` applies, then the HTLC-timeout and
+If `option_anchors` applies, then the HTLC-timeout and
 HTLC-success transactions are signed with the input and output having the same
 value. This means they have a zero fee and MUST be combined with other inputs
 to arrive at a reasonable fee.
@@ -606,7 +606,7 @@ to arrive at a reasonable fee.
 
 A node which broadcasts an HTLC-success or HTLC-timeout transaction for a
 commitment transaction:
-  1. if `option_anchors_zero_fee_htlc_tx` applies:
+  1. if `option_anchors` applies:
     - MUST combine it with inputs contributing sufficient fee to ensure timely
       inclusion in a block.
     - MAY combine it with other transactions.
