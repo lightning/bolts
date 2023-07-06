@@ -1566,6 +1566,9 @@ The initiator:
 - MUST `tx_add_output` a zero-value output which pays to the two funding keys using the higher of the two `generation` fields.
 - MUST pay for the common fields.
 
+Each node:
+- MUST pay for their own added inputs and outputs.
+
 Upon receipt of consecutive `tx_complete`s, each node:
 - MUST fail negotiation if there is not exactly one input spending the current funding transaction.
 - MUST fail negotiation if there is not exactly one output with zero value paying to the two funding keys (a.k.a. the new channel funding output)
