@@ -1046,7 +1046,8 @@ A sending node:
         HTLCs it has forwarded.
   - otherwise: 
     - if `endorsed` is present and non-zero for the corresponding incoming HTLC
-      AND the incoming peer is considered to have sufficient local reputation: 
+      AND the incoming peer is considered to have sufficient local reputation
+      (see [Local Reputation](recommendations/local-resource-conservation.md#local-reputation)): 
       - SHOULD set `endorsed` to `1`
     - otherwise: 
       - SHOULD set `endorsed` to `0`.
@@ -1078,7 +1079,8 @@ A receiving node:
     - MUST use the corresponding blinded private key to decrypt the `onion_routing_packet` (see [Route Blinding](04-onion-routing.md#route-blinding))
   - if `endorsed` is not provided OR `endorsed` is zero:
     - MAY choose to limit the liquidity and slots available to forward the 
-      corresponding outgoing HTLC in `onion_routing_packet`, if any.
+      corresponding outgoing HTLC in `onion_routing_packet`, if any 
+      (see [Resource Bucketing](recommendations/local-resource-conservation.md#resource-bucketing)): 
 
 The `onion_routing_packet` contains an obfuscated list of hops and instructions for each hop along the path.
 It commits to the HTLC by setting the `payment_hash` as associated data, i.e. includes the `payment_hash` in the computation of HMACs.
