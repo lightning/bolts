@@ -1144,14 +1144,16 @@ A node:
   - When failing an incoming HTLC:
     - If `current_blinding_point` is set in the onion payload and it is not the
       final node:
-      - MUST send an `update_fail_htlc` error using the
-        `invalid_onion_blinding` failure code with the `sha256_of_onion`
-        of the onion it received, for any local or downstream errors.
+      - MUST send an `update_fail_htlc` error using the `invalid_onion_blinding`
+        failure code for any local or downstream errors.
+      - SHOULD use the `sha256_of_onion` of the onion it received.
+      - MAY use an all zero `sha256_of_onion`.
       - SHOULD add a random delay before sending `update_fail_htlc`.
     - If `blinding_point` is set in the incoming `update_add_htlc`:
       - MUST send an `update_fail_malformed_htlc` error using the
-        `invalid_onion_blinding` failure code with the `sha256_of_onion`
-        of the onion it received, for any local or downstream errors.
+        `invalid_onion_blinding` failure code for any local or downstream errors.
+      - SHOULD use the `sha256_of_onion` of the onion it received.
+      - MAY use an all zero `sha256_of_onion`.
 
 A receiving node:
   - if the `id` does not correspond to an HTLC in its current commitment transaction:
@@ -1166,7 +1168,7 @@ A receiving node:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
   - if the `sha256_of_onion` in `update_fail_malformed_htlc` doesn't match the
-  onion it sent:
+  onion it sent and is not all zero:
     - MAY retry or choose an alternate error response.
   - otherwise, a receiving node which has an outgoing HTLC canceled by `update_fail_malformed_htlc`:
     - MUST return an error in the `update_fail_htlc` sent to the link which
