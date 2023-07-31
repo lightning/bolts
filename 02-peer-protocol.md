@@ -835,12 +835,11 @@ The sender of `closing_complete` (aka. "the closer"):
 
 The receiver of `closing_complete` (aka. "the closee"):
   - if either `signature_with_closee_output` or `signature_without_closee_output` is not valid for the closing transactions specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
-    - SHOULD send a `warning` and close the connection, or send an
-      `error` and fail the channel.
+    - MUST either send a `warning` and close the connection, or send an `error` and fail the channel.
   - Otherwise:
     - MUST select one of the signatures (and thus, transactions) to respond to.
-	- SHOULD sign and broadcast that transaction.
-    - SHOULD send `closing_sig`.
+	- MUST sign and broadcast that transaction.
+    - MUST send `closing_sig`.
 
 The sender of `closing_sig`:
   - if it selected `signature_with_closee_output` to broadcast:
@@ -851,7 +850,7 @@ The sender of `closing_sig`:
 	- MUST set `signature` to a valid signature on that transaction.
 
 The receiver of `closing_sig`:
-  - SHOULD broadcast the transaction indicated by `has_closee_output`.
+  - MUST broadcast the transaction indicated by `has_closee_output`.
 
 ### Rationale
 
