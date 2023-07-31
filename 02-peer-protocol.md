@@ -592,14 +592,17 @@ Closing happens in two stages:
         |       | <complete all pending HTLCs> |       |
         |   A   |                 ...          |   B   |
         |       |                              |       |
-        |       |--(3)-- closing_complete Fee->|       |
-        |       |<-(4)-- closing_sig ----------|       |
+        |       |--(3a)- closing_complete Fee->|       |
+        |       |<-(3b)- closing_complete Fee--|       |
+        |       |<-(4a)- closing_sig ----------|       |
+        |       |--(4b)- closing_sig --------->|       |
         +-------+                              +-------+
 
 ### Closing Initiation: `shutdown`
 
 Either node (or both) can send a `shutdown` message to initiate closing,
-along with the `scriptpubkey` it wants to be paid to.
+along with the `scriptpubkey` it wants to be paid to.  This can be
+sent multiple times.
 
 1. type: 38 (`shutdown`)
 2. data:
@@ -808,7 +811,7 @@ This process will be repeated every time a `shutdown` message is received, which
 1. type: 41 (`closing_sig`)
 2. data:
    * [`channel_id`:`channel_id`]
-   * [`u8`: `closee_output`]
+   * [`u8`: `has_closee_output`]
    * [`signature`:`signature`]
 
 #### Requirements
@@ -828,7 +831,7 @@ The sender of `closing_complete` (aka. "the closer"):
 	- MUST set `signature_without_closee_output` to a valid signature of a transaction with only a closer output.
   - Otherwise: (`has_closer_output` is 0):
     - MUST set `signature_with_closee_output` to a valid signature of a transaction with only the closee output.
-	- MUST set `signature_without_closee_output` to a valid signature of a transaction with only the null output.
+	- MUST set `signature_without_closee_output` to a valid signature of a transaction with only the null output as described in [BOLT 3](03-transactions.md#closing-transaction).
 
 The receiver of `closing_complete` (aka. "the closee"):
   - if either `signature_with_closee_output` or `signature_without_closee_output` is not valid for the closing transactions specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
@@ -841,14 +844,14 @@ The receiver of `closing_complete` (aka. "the closee"):
 
 The sender of `closing_sig`:
   - if it selected `signature_with_closee_output` to broadcast:
-    - MUST set `closee_output` to 1.
+    - MUST set `has_closee_output` to 1.
 	- MUST set `signature` to a valid signature on that transaction.
   - otherwise (it selected `signature_without_closee_output`):
-    - MUST set `closee_output` to 0.
+    - MUST set `has_closee_output` to 0.
 	- MUST set `signature` to a valid signature on that transaction.
 
 The receiver of `closing_sig`:
-  - SHOULD broadcast the transaction indicated by `closee_output`.
+  - SHOULD broadcast the transaction indicated by `has_closee_output`.
 
 ### Rationale
 

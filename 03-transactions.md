@@ -415,7 +415,7 @@ Two closing transactions are always produced: one `with_closee_output` one `with
 	* `txout` script: as specified in that closee's `scriptpubkey` in its `shutdown` message
   * The null output:
     * `txout` amount: 0
-	* `txout` script: `OP_RETURN` (106).
+	* `txout` script: `feeeee` `OP_RETURN` (102 101 101 101 101 101 106).
 
 ### Requirements
 
@@ -423,6 +423,12 @@ Each node offering a signature:
   - MUST round each output down to whole satoshis.
   - MUST subtract the fee given by `fee_satoshis` from the closer output.
 
+
+### Rationale
+
+The case where both sides omit their outputs due to a de-minimus channel is never expected to happen, however it is
+documented here for completeness, and serves to avoid an polluting the unspent outputs.  Unfortunately, the transaction
+has to be at least 65 bytes to propagate, so the `OP_RETURN` includes padding.
 
 ## Fees
 
