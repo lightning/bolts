@@ -1495,8 +1495,8 @@ even, of course!).
 The creator of `encrypted_recipient_data` (usually, the recipient of the onion):
 
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
-  - MUST NOT include `short_channel_id`, `payment_relay` or `payment_constraints` in any `encrypted_data_tlv`
-  - MUST include `encrypted_data_tlv.next_node_id` for each non-final node.
+  - MUST NOT include `payment_relay` or `payment_constraints` in any `encrypted_data_tlv`
+  - MUST include either `short_channel_id` or `next_node_id` in `encrypted_data_tlv` for each non-final node.
   - MUST NOT include any other fields in `encrypted_data_tlv` for any non-final node.
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
 
@@ -1539,7 +1539,8 @@ The reader:
   - if the `encrypted_data_tlv` contains `path_id`:
     - MUST ignore the message.
   - otherwise:
-    - SHOULD forward the message using `onion_message` to the next peer indicated by `next_node_id`.
+    - SHOULD forward the message using `onion_message` to the next peer indicated by either `next_node_id`
+      or the channel counterparty with `short_channel_id`.
     - if it forwards the message:
       - MUST set `blinding` in the forwarded `onion_message` to the next blinding as calculated in [Route Blinding](#route-blinding).
 - otherwise (it is the final node):
