@@ -177,7 +177,7 @@ A writer:
   - MAY include one `x` field.
     - if `x` is included:
       - SHOULD use the minimum `data_length` possible.
-  - MUST include one `c` field (`min_final_cltv_expiry_delta`).
+  - MAY include one `c` field (`min_final_cltv_expiry_delta`).
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
     - SHOULD use the minimum `data_length` possible.
