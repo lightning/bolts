@@ -255,6 +255,7 @@ The following convenience types are also defined:
 * `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
 * `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
 * `bigsize`: a variable-length, unsigned integer similar to Bitcoin's CompactSize encoding, but big-endian.  Described in [BigSize](#appendix-a-bigsize-test-vectors).
+* `utf8`: a byte as part of a UTF-8 string.  A writer MUST ensure an array of these is a valid UTF-8 string, a reader MAY reject any messages containing an array of these which is not a valid UTF-8 string.
 
 ## Setup Messages
 
