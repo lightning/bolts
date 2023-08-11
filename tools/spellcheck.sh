@@ -63,8 +63,7 @@ do
 	WORDS=$(sed -e 's/ [lL][nN]\([bB][cC]\|[tT][bB]\)[0-9munpxMUNP]*1[qpzry9x8gf2tvdw0s3jn54khce6mua7lQPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]\+//g' \
             -e 's/\]([-#a-zA-Z0-9_.]*)//g' \
 	    -e '/^```/,/^```/d' \
-	    -e 's/`[a-zA-Z0-9_]*`//g' \
-	    -e 's/\* \[`[_a-z0-9*]\+`://g' \
+	    -e 's/`[a-zA-Z0-9_*.(),]*`//g' \
 	    -e 's/0x[a-fA-F0-9 ]\+//g' \
 	    -e 's/[a-fA-F0-9]\{20,\}//g' \
 	    -e 's/^    .*_htlcs//g' \
