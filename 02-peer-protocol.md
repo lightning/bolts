@@ -208,10 +208,8 @@ arbitrary combination (they represent the persistent features which
 affect the channel operation).
 
 The currently defined basic types are:
-  - no features (no bits set)
   - `option_static_remotekey` (bit 12)
-  - `option_anchor_outputs` and `option_static_remotekey` (bits 20 and 12)
-  - `option_anchors_zero_fee_htlc_tx` and `option_static_remotekey` (bits 22 and 12)
+  - `option_anchors` and `option_static_remotekey` (bits 22 and 12)
 
 Each basic type has the following variations allowed:
   - `option_scid_alias` (bit 46)
@@ -435,14 +433,10 @@ Both peers:
   - if `channel_type` was present in both `open_channel` and `accept_channel`:
     - This is the `channel_type` (they must be equal, required above)
   - otherwise:
-    - if `option_anchors_zero_fee_htlc_tx` was negotiated:
-      - the `channel_type` is `option_anchors_zero_fee_htlc_tx` and `option_static_remotekey` (bits 22 and 12)
-    - otherwise, if `option_anchor_outputs` was negotiated:
-      - the `channel_type` is `option_anchor_outputs` and `option_static_remotekey` (bits 20 and 12)
-    - otherwise, if `option_static_remotekey` was negotiated:
-      - the `channel_type` is `option_static_remotekey` (bit 12)
+    - if `option_anchors` was negotiated:
+      - the `channel_type` is `option_anchors` and `option_static_remotekey` (bits 22 and 12)
     - otherwise:
-      - the `channel_type` is empty
+      - the `channel_type` is `option_static_remotekey` (bit 12)
   - MUST use that `channel_type` for all commitment transactions.
 
 The sender MUST set:
@@ -459,17 +453,16 @@ The recipient:
 
 #### Rationale
 
-We decide on `option_static_remotekey`, `option_anchor_outputs` or
-`option_anchors_zero_fee_htlc_tx` at this point when we first have to generate
+We decide on
+`option_anchors` at this point when we first have to generate
 the commitment transaction. The feature bits that were communicated in the
 `init` message exchange for the current connection determine the channel
 commitment format for the total lifetime of the channel. Even if a later
 reconnection does not negotiate this parameter, this channel will continue to
-use `option_static_remotekey`, `option_anchor_outputs` or
-`option_anchors_zero_fee_htlc_tx`; we don't support "downgrading".
+use `option_static_remotekey` or
+`option_anchors`; we don't support "downgrading".
 
-`option_anchors_zero_fee_htlc_tx` is considered superior to
-`option_anchor_outputs`, which again is considered superior to
+`option_anchors` is considered superior to
 `option_static_remotekey`, and the superior one is favored if more than one
 is negotiated.
 
@@ -1443,13 +1436,7 @@ The sending node:
   next `commitment_signed` it expects to receive.
   - MUST set `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
-  - if `option_static_remotekey` applies to the commitment
-    transaction:
-    - MUST set `my_current_per_commitment_point` to a valid point.
-  - otherwise:
-    - MUST set `my_current_per_commitment_point` to its commitment point for
-      the last signed commitment it received from its channel peer (i.e. the commitment_point
-      corresponding to the commitment transaction the sender would use to unilaterally close).
+  - MUST set `my_current_per_commitment_point` to a valid point.
   - if `next_revocation_number` equals 0:
     - MUST set `your_last_per_commitment_secret` to all zeroes
   - otherwise:
@@ -1492,25 +1479,14 @@ A node:
       - SHOULD send an `error` and fail the channel.
 
  A receiving node:
-  - if `option_static_remotekey` applies to the commitment transaction:
-    - if `next_revocation_number` is greater than expected above, AND
+  - MUST ignore `my_current_per_commitment_point`, but MAY require it to be a valid point.
+  - if `next_revocation_number` is greater than expected above, AND
     `your_last_per_commitment_secret` is correct for that
     `next_revocation_number` minus 1:
-      - MUST NOT broadcast its commitment transaction.
-      - SHOULD send an `error` to request the peer to fail the channel.
-    - otherwise:
-      - if `your_last_per_commitment_secret` does not match the expected values:
-        - SHOULD send an `error` and fail the channel.
-  - otherwise, if it supports `option_data_loss_protect`:
-    - if `next_revocation_number` is greater than expected above, AND
-    `your_last_per_commitment_secret` is correct for that
-    `next_revocation_number` minus 1:
-      - MUST NOT broadcast its commitment transaction.
-      - SHOULD send an `error` to request the peer to fail the channel.
-      - SHOULD store `my_current_per_commitment_point` to retrieve funds
-        should the sending node broadcast its commitment transaction on-chain.
-    - otherwise (`your_last_per_commitment_secret` or `my_current_per_commitment_point`
-    do not match the expected values):
+    - MUST NOT broadcast its commitment transaction.
+    - SHOULD send an `error` to request the peer to fail the channel.
+  - otherwise:
+    - if `your_last_per_commitment_secret` does not match the expected values:
       - SHOULD send an `error` and fail the channel.
 
 A node:
@@ -1582,27 +1558,15 @@ Similarly, for the fundee's `funding_signed` message: it's better to
 remember a channel that never opens (and times out) than to let the
 funder open it while the fundee has forgotten it.
 
-`option_data_loss_protect` was added to allow a node, which has somehow fallen
-behind (e.g. has been restored from old backup), to detect that it has fallen
+A node, which has somehow fallen
+behind (e.g. has been restored from old backup), can detect that it has fallen
 behind. A fallen-behind node must know it cannot broadcast its current
 commitment transaction — which would lead to total loss of funds — as the
 remote node can prove it knows the revocation preimage. The `error` returned by
 the fallen-behind node should make the other node drop its current commitment
 transaction to the chain. The other node should wait for that `error` to give
 the fallen-behind node an opportunity to fix its state first (e.g by restarting
-with a different backup). If the fallen-behind node doesn't have the latest
-backup, this will, at least, allow it to recover non-HTLC funds, if the
-`my_current_per_commitment_point` is valid. However, this also means the
-fallen-behind node has revealed this fact (though not provably: it could be lying),
-and the other node could use this to broadcast a previous state.
-
-`option_static_remotekey` removes the changing `to_remote` key,
-so the `my_current_per_commitment_point` is unnecessary and thus
-ignored (for parsing simplicity, it remains and must be a valid point,
-however), but the disclosure of previous secret still allows
-fall-behind detection.  An implementation can offer both, however, and
-fall back to the `option_data_loss_protect` behavior if
-`option_static_remotekey` is not negotiated.
+with a different backup).
 
 # Authors
 

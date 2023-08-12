@@ -576,10 +576,6 @@ be present, so `must_be_one` is a constant value, and ignored by receivers.
 
 ## Query Messages
 
-Negotiating the `gossip_queries` option via `init` enables a number
-of extended queries for gossip synchronization.  These explicitly
-request what gossip should be received.
-
 There are several messages which contain a long array of
 `short_channel_id`s (called `encoded_short_ids`) so we include an encoding byte
 which allows for different encoding schemes to be defined in the future, if they
@@ -602,7 +598,7 @@ Nodes can signal that they support extended gossip queries with the `gossip_quer
 
 ### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
-1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
+1. type: 261 (`query_short_channel_ids`)
 2. data:
     * [`chain_hash`:`chain_hash`]
     * [`u16`:`len`]
@@ -628,7 +624,7 @@ Nodes can signal that they support extended gossip queries with the `gossip_quer
 
 Query flags must be minimally encoded, which means that one flag will be encoded with a single byte.
 
-1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
+1. type: 262 (`reply_short_channel_ids_end`)
 2. data:
     * [`chain_hash`:`chain_hash`]
     * [`byte`:`full_information`]
@@ -712,7 +708,7 @@ timeouts.  It also causes a natural ratelimiting of queries.
 
 ### The `query_channel_range` and `reply_channel_range` Messages
 
-1. type: 263 (`query_channel_range`) (`gossip_queries`)
+1. type: 263 (`query_channel_range`)
 2. data:
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
@@ -734,7 +730,7 @@ timeouts.  It also causes a natural ratelimiting of queries.
 
 Though it is possible, it would not be very useful to ask for checksums without asking for timestamps too: the receiving node may have an older `channel_update` with a different checksum, asking for it would be useless. And if a `channel_update` checksum is actually 0 (which is quite unlikely) it will not be queried.
 
-1. type: 264 (`reply_channel_range`) (`gossip_queries`)
+1. type: 264 (`reply_channel_range`)
 2. data:
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_blocknum`]
@@ -829,16 +825,15 @@ The addition of timestamp and checksum fields allow a peer to omit querying for 
 
 ### The `gossip_timestamp_filter` Message
 
-1. type: 265 (`gossip_timestamp_filter`) (`gossip_queries`)
+1. type: 265 (`gossip_timestamp_filter`)
 2. data:
     * [`chain_hash`:`chain_hash`]
     * [`u32`:`first_timestamp`]
     * [`u32`:`timestamp_range`]
 
 This message allows a node to constrain future gossip messages to
-a specific range.  A node which wants any gossip messages would have
-to send this, otherwise `gossip_queries` negotiation means no gossip
-messages would be received.
+a specific range.  A node which wants any gossip messages has
+to send this, otherwise no gossip messages would be received.
 
 Note that this filter replaces any previous one, so it can be used
 multiple times to change the gossip from a peer.
@@ -894,30 +889,10 @@ generated directly by the node itself, so they should ignore filters.
 If a node requires an initial sync of gossip messages, it will be flagged
 in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
 
-Note that the `initial_routing_sync` feature is overridden (and should
-be considered equal to 0) by the `gossip_queries` feature if the
-latter is negotiated via `init`.
-
-Note that `gossip_queries` does not work with older nodes, so the
-value of `initial_routing_sync` is still important to control
-interactions with them.
-
 ### Requirements
 
 A node:
-  - if the `gossip_queries` feature is negotiated:
-    - MUST NOT relay any gossip messages it did not generate itself, unless explicitly requested.
-  - otherwise:
-    - if it requires a full copy of the peer's routing state:
-      - SHOULD set the `initial_routing_sync` flag to 1.
-    - upon receiving an `init` message with the `initial_routing_sync` flag set to
-    1:
-      - SHOULD send gossip messages for all known channels and nodes, as if they were just
-      received.
-    - if the `initial_routing_sync` flag is set to 0, OR if the initial sync was
-    completed:
-      - SHOULD resume normal operation, as specified in the following
-      [Rebroadcasting](#rebroadcasting) section.
+  - MUST NOT relay any gossip messages it did not generate itself, unless explicitly requested.
 
 ## Rebroadcasting
 
@@ -937,8 +912,7 @@ A receiving node:
         for its peers.
 
 A node:
-  - if the `gossip_queries` feature is negotiated:
-    - MUST not send gossip it did not generate itself, until it receives `gossip_timestamp_filter`.
+  - MUST not send gossip it did not generate itself, until it receives `gossip_timestamp_filter`.
   - SHOULD flush outgoing gossip messages once every 60 seconds, independently of
   the arrival times of the messages.
     - Note: this results in staggered announcements that are unique (not
@@ -947,9 +921,6 @@ A node:
       and did not specify the `chain_hash` of this gossip message.
   - MAY re-announce its channels regularly.
     - Note: this is discouraged, in order to keep the resource requirements low.
-  - upon connection establishment:
-    - SHOULD send all `channel_announcement` messages, followed by the latest
-    `node_announcement` AND `channel_update` messages.
 
 ### Rationale
 
@@ -959,11 +930,6 @@ updates from the origin node. This list of gossip messages will be flushed at
 regular intervals; such a store-and-delayed-forward broadcast is called a
 _staggered broadcast_. Also, such batching forms a natural rate
 limit with low overhead.
-
-The sending of all gossip on reconnection is naive, but simple,
-and allows bootstrapping for new nodes as well as updating for nodes that
-have been offline for some time.  The `gossip_queries` option
-allows for more refined synchronization.
 
 ## HTLC Fees
 

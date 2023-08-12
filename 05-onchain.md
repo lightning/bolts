@@ -376,9 +376,7 @@ commitment transaction; hence, the local node is required to handle both.
 In the case of data loss, a local node may reach a state where it doesn't
 recognize all of the *remote node's* commitment transaction HTLC outputs. It can
 detect the data loss state, because it has signed the transaction, and the
-commitment number is greater than expected. If both nodes support
-`option_data_loss_protect`, the local node will possess the remote's
-`per_commitment_point`, and thus can derive its own `remotepubkey` for the
+commitment number is greater than expected. It can derive its own `remotepubkey` for the
 transaction, in order to salvage its own funds. Note: in this scenario, the node
 will be unable to salvage the HTLCs.
 
@@ -599,7 +597,7 @@ HTLC signatures received from the peer, as this allows HTLC transactions to be c
 other transactions.  The local signature MUST use `SIGHASH_ALL`, otherwise
 anyone can attach additional inputs and outputs to the tx.
 
-If `option_anchors_zero_fee_htlc_tx` applies, then the HTLC-timeout and
+If `option_anchors` applies, then the HTLC-timeout and
 HTLC-success transactions are signed with the input and output having the same
 value. This means they have a zero fee and MUST be combined with other inputs
 to arrive at a reasonable fee.
@@ -608,19 +606,10 @@ to arrive at a reasonable fee.
 
 A node which broadcasts an HTLC-success or HTLC-timeout transaction for a
 commitment transaction:
-  1. if `option_anchor_outputs` applies:
-    - SHOULD combine it with inputs contributing sufficient fee to ensure
-      timely inclusion in a block.
-    - MAY combine it with other transactions.
-  2. if `option_anchors_zero_fee_htlc_tx` applies:
+  1. if `option_anchors` applies:
     - MUST combine it with inputs contributing sufficient fee to ensure timely
       inclusion in a block.
     - MAY combine it with other transactions.
-
-Note that `option_anchors_zero_fee_htlc_tx` has a stronger requirement for
-adding inputs to the final transactions than `option_anchor_outputs`, since the
-HTLC-success and HTLC-timeout transactions won't propagate without additional
-inputs added.
 
 # General Requirements
 
