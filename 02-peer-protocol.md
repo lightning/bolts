@@ -363,15 +363,15 @@ The sender:
 
 The receiver:
   - if `minimum_depth` is unreasonably large:
-    - MAY reject the channel.
+    - MAY fail the channel.
   - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
-    - MUST reject the channel.
+    - MUST fail the channel.
   - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:
-    - MUST reject the channel.
+    - MUST fail the channel.
   - if `channel_type` is set, and `channel_type` was set in `open_channel`, and they are not equal types:
-    - MUST reject the channel.
+    - MUST fail the channel.
   - if `option_channel_type` was negotiated but the message doesn't include a `channel_type`:
-    - MAY reject the channel.
+    - MAY fail the channel.
 
 Other fields have the same requirements as their counterparts in `open_channel`.
 
