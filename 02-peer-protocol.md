@@ -25,6 +25,7 @@ operation, and closing.
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
     * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
+      * [Upgrading Channels](#upgrading-channels)
   * [Authors](#authors)
 
 # Channel
@@ -1464,12 +1465,31 @@ messages are), they are independent of requirements here.
    * [`u64`:`next_revocation_number`]
    * [`32*byte`:`your_last_per_commitment_secret`]
    * [`point`:`my_current_per_commitment_point`]
+   * [`channel_reestablish_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `channel_reestablish_tlvs`
+2. types:
+    1. type: 1 (`next_to_send`)
+    2. data:
+        * [`tu64`:`commitment_number`]
+    1. type: 3 (`desired_channel_type`)
+    2. data:
+        * [`...*byte`:`type`]
+    1. type: 5 (`current_channel_type`)
+    2. data:
+        * [`...*byte`:`type`]
+    1. type: 7 (`upgradable_channel_type`)
+    2. data:
+        * [`...*byte`:`type`]
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
 are independent for each peer in the channel and start at 0.
 They're only explicitly relayed to the other node in the case of
 re-establishment, otherwise they are implicit.
+
+See [Upgrading Channels](#upgrading-channels) for the requirements
+of some of the optional fields.
 
 ### Requirements
 
@@ -1670,6 +1690,78 @@ however), but the disclosure of previous secret still allows
 fall-behind detection.  An implementation can offer both, however, and
 fall back to the `option_data_loss_protect` behavior if
 `option_static_remotekey` is not negotiated.
+
+### Upgrading Channels
+
+Upgrading channels (e.g. enabling `option_static_remotekey` for a
+channel where it was not negotiated originally) is possible at
+reconnection time if both implementations support it.
+
+For simplicity, upgrades are proposed by the original initiator of the
+channel, and can only occur on channels with no pending updates and no
+retransmissions on reconnection.  This can be achieved explicitly
+using the [quiescence protocol](#channel-quiescence).
+
+In case of disconnection where one peer doesn't receive
+`channel_reestablish` it's possible that one peer will consider the
+channel upgraded and the other not.  But this will eventually be
+resolved: the channel cannot progress until both sides have received
+`channel_reestablish` anyway.
+
+#### Requirements
+
+A node sending `channel_reestablish`, if it supports upgrading channels:
+  - MUST set `next_to_send` the commitment number of the next `commitment_signed` it expects to send.
+  - if it initiated the channel:
+    - MUST set `desired_channel_type` to the defined channel type it wants for the channel.
+  - otherwise:
+    - MUST set `current_channel_type` to the current channel type of the channel.
+    - If it sets `upgradable_channel_type`:
+      - MUST set it to a defined channel type it could change to.
+
+A node receiving `channel_reestablish`:
+  - if it has to retransmit `commitment_signed` or `revoke_and_ack`:
+    - MUST consider the channel type change failed.
+  - if `next_to_send` is missing, or not equal to the `next_commitment_number` it sent:
+    - MUST consider the channel type change failed.
+  - if updates are pending on either sides' commitment transaction:
+    - MUST consider the channel type change failed.
+  - otherwise:
+    - if `desired_channel_type` matches `current_channel_type` or `upgradable_channel_type`:
+      - MUST consider the channel type to be `desired_channel_type`.
+    - otherwise:
+      - MUST consider the channel type change failed.
+      - if there is a `current_channel_type` field:
+        - MUST consider the channel type to be `current_channel_type`.
+
+#### Rationale
+
+The new `next_to_send` counter is needed to indicate that the peer
+sent a new set of updates and `commitment_signed` which we didn't see
+before disconnection (i.e. retransmissions are incoming).  Existing logic
+already tells us if we need to send retransmissions.
+
+If reconnection is aborted, there are four possibilities: both side
+receive the `channel_reestablish` and are upgraded, neither side
+receives the `channel_reestablish` and neither are upgraded, and the
+two cases where one side is upgraded and the other is not.  Note that
+this is fine as long as it is resolved before any channel operations
+are attempted (all of which require successful exchange of
+`channel_reestablish` messages).
+
+On reconnect, if only the initiator is upgraded, it will reflect this
+upgrade in the next `desired_channel_type`, causing the non-initiator to
+upgrade.  If only the non-initiator is upgraded, it will be reflected
+in `current_channel_type` and the initiator will consider itself upgraded.
+
+There can be desynchronization across multiple upgrades.  Both A and B nodes
+start on channel_type T1, A sets `desired_channel_type` T2, receives
+`channel_reestablish` from B which has `upgradable_channel_type` T2, but B
+doesn't receive `channel_reestablish`.  On reconnect, A tries
+to upgrade again, setting `desired_channel_type` to T3, which is not equal
+to B's `upgradable_channel_type` so fails.  This is why, on such a failed upgrade, the
+initiator considers the `current_channel_type` given by the non-initiator to
+be canonical.
 
 # Authors
 
