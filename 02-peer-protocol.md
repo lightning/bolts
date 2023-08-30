@@ -1693,14 +1693,14 @@ fall back to the `option_data_loss_protect` behavior if
 
 ### Upgrading Channels
 
-Upgrading channels (e.g. enabling `option_static_remotekey` for a
+Upgrading channels (e.g. enabling `option_static_remotekey` or `option_anchors` for a
 channel where it was not negotiated originally) is possible at
 reconnection time if both implementations support it.
 
 For simplicity, upgrades are proposed by the original initiator of the
 channel, and can only occur on channels with no pending updates and no
 retransmissions on reconnection.  This can be achieved explicitly
-using the [quiescence protocol](#channel-quiescence).
+using the quiescence protocol, when implemented.
 
 In case of disconnection where one peer doesn't receive
 `channel_reestablish` it's possible that one peer will consider the
@@ -1710,7 +1710,7 @@ resolved: the channel cannot progress until both sides have received
 
 #### Requirements
 
-A node sending `channel_reestablish`, if it supports upgrading channels:
+A node sending `channel_reestablish`, if `option_upgradable` is negotiated:
   - MUST set `next_to_send` the commitment number of the next `commitment_signed` it expects to send.
   - if it initiated the channel:
     - MUST set `desired_channel_type` to the defined channel type it wants for the channel.
@@ -1719,7 +1719,7 @@ A node sending `channel_reestablish`, if it supports upgrading channels:
     - If it sets `upgradable_channel_type`:
       - MUST set it to a defined channel type it could change to.
 
-A node receiving `channel_reestablish`:
+A node receiving `channel_reestablish`, if `option_upgradable` is negotiated:
   - if it has to retransmit `commitment_signed` or `revoke_and_ack`:
     - MUST consider the channel type change failed.
   - if `next_to_send` is missing, or not equal to the `next_commitment_number` it sent:

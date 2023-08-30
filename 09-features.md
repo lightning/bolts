@@ -49,6 +49,7 @@ The Context column decodes as follows:
 | 46/47 | `option_scid_alias`               | Supply channel aliases for routing                        | IN       |                           | [BOLT #2][bolt02-channel-ready]                                       |
 | 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                           | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
 | 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | IN       | `option_scid_alias`       | [BOLT #2][bolt02-channel-ready]                                       |
+| 58/59 | `option_upgradable`               | Understands upgrade protocol on reconnect                 | IN       |                           | [BOLT #2][bolt02-upgrading-channels]                                   |
 
 ## Definitions
 
@@ -101,6 +102,7 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 
 [bolt02-retransmit]: 02-peer-protocol.md#message-retransmission
 [bolt02-open]: 02-peer-protocol.md#the-open_channel-message
+[bolt02-upgrading-channels]: 02-peer-protocol.md#upgrading-channels
 [bolt03-htlc-tx]: 03-transactions.md#htlc-timeout-and-htlc-success-transactions
 [bolt02-shutdown]: 02-peer-protocol.md#closing-initiation-shutdown
 [bolt02-channel-ready]: 02-peer-protocol.md#the-channel_ready-message
