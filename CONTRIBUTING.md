@@ -35,7 +35,11 @@ escape into the wild).
 also they can be used to find appropriate peers.
 
 Feature bits are always assigned in pairs, even if it doesn't make sense
-for them to ever be compulsory.
+for them to ever be compulsory.  The feature bit is self-assigned in the
+title of the PR, to make it easier for others to self-assign.  Until the PR
+is merged into the spec, experimental implementations should use the proposed
+feature bit +100; they can accept both feature bits once it is merged (if
+the protocol does not change!).
 
 Almost every spec change should have a feature bit associated; in the past
 we have grouped feature bits, then we couldn't disable a single feature
