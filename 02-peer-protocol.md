@@ -157,9 +157,9 @@ payment. `htlc_minimum_msat` indicates the smallest value HTLC this
 node will accept.
 
 `max_htlc_value_in_flight_msat` is a cap on total value of outstanding
-HTLCs, which allows a node to limit its exposure to HTLCs; similarly,
-`max_accepted_htlcs` limits the number of outstanding HTLCs the other
-node can offer.
+HTLCs offered by the remote node, which allows the local node to limit its
+exposure to HTLCs; similarly, `max_accepted_htlcs` limits the number of
+outstanding HTLCs the remote node can offer.
 
 `feerate_per_kw` indicates the initial fee rate in satoshi per 1000-weight
 (i.e. 1/4 the more normally-used 'satoshi per 1000 vbytes') that this
@@ -1071,7 +1071,7 @@ A sending node:
   - if result would be offering more than the remote's
   `max_accepted_htlcs` HTLCs, in the remote commitment transaction:
     - MUST NOT add an HTLC.
-  - if the sum of total offered HTLCs would exceed the remote's
+  - if the total value of offered HTLCs would exceed the remote's
 `max_htlc_value_in_flight_msat`:
     - MUST NOT add an HTLC.
   - for the first HTLC it offers:
