@@ -346,7 +346,7 @@
   {
     "description": "unknown odd field",
     "valid": true,
-    "bolt12": "lno1pgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvxg",
+    "bolt12": "lno1pgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvxfppf5x2mrvdamk7unvvs",
     "field info": "type 33 is 'helloworld'",
     "fields": [
       {
