@@ -82,38 +82,10 @@ to skip to the Design Overview section to save time
 ### Channel Opening Parameters
 As described in BOLT 2, during the channel opening procedure there are a number
 of parameters specified in the `open_channel` and `accept_channel` messages that
-remain static over the lifetime of the channel. An exhaustive list of these is
-provided below:
-
-TODO: clean up this table
-| | open|accept|open2|accept2|dyncomm|
-|-| -------------- | ---------------- | --------------- | ---------------- |-|
-|chain_hash|x||x||unnecessary|
-|temporary_channel_id|x|x|x|x|real_channel_id|
-|funding_feerate_per_kw|||x||kickoff_feerate|
-|commitment_feerate_perkw|x||x||x|
-|funding_satoshis|x||x|x|x|
-|push_msat|x||||?|
-|dust_limit_satoshis|x|x|x|x|x|
-|max_htlc_value_in_flight_msat|x|x|x|x|x|
-|channel_reserve_satoshis|x|x|||x|
-|htlc_minimum_msat|x|x|x|x|x|
-|minimum_depth||x||x|0|
-|to_self_delay|x|x|x|x|x|
-|max_accepted_htlcs|x|x|x|x|x|
-|funding_pubkey|x|x|x|x|x|
-|revocation_basepoint|x|x|x|x|?|
-|payment_basepoint|x|x|x|x|?|
-|delayed_payment_basepoint|x|x|x|x|?|
-|htlc_basepoint|x|x|x|x|?|
-|first_per_commitment_point|x|x|x|x|?|
-|channel_flags|x||x|||
-|upfront_shutdown|x|x|x|x||
-|channel_type|x|x|x|x|x|
-
-A subset of these are updatable using other messages defined in the protocol.
-However, after accounting for the channel parameters that can be changed there
-is a list of parameters which remain unchangeable which we list below.
+remain static over the lifetime of the channel. A subset of these are updatable
+using other messages defined in the protocol. However, after accounting for the
+channel parameters that can be changed there is a list of parameters which
+remain unchangeable, which we list below.
 
 - dust_limit_satoshis
 - max_htlc_value_in_flight_msat
@@ -131,12 +103,12 @@ is a list of parameters which remain unchangeable which we list below.
 - upfront_shutdown
 - channel_type
 
-After some analysis during the development of this proposal it is determined
-that many of these values don't make sense to rotate. There is no value and
-additional administrative costs to rotating the basepoints of a channel.
-Additionally, changing the upfront_shutdown script over the lifetime of the
-channel is self-defeating and so we exclude it as well. The list of channel
-parameters remaining after we filter out these values is thus.
+After some analysis during the development of this proposal, we determined that
+many of the basepoint values don't make sense to rotate. There is no obvious
+value in doing so and it carries additional administrative costs to rotate them.
+Finally, changing the upfront_shutdown script over the lifetime of the channel
+is self-defeating and so we exclude it as well. The list of channel parameters
+remaining after we filter out these values is thus.
 
 - dust_limit_satoshis
 - max_htlc_value_in_flight_msat
@@ -225,13 +197,20 @@ always be necessary, but it is certainly necessary for using this proposal to
 convert existing channels into Taproot channels.
 
 # Specification
+There are two phases to this channel upgrade process: proposal and execution.
+During the proposal phase the only goal is to agree on a set of updates to the
+current channel state machine. During the execution phase, we apply the updates
+to the channel state machine, exchanging the necessary information to be able
+to apply those updates
 
-## Proposal Messages
+## Proposal Phase
+
+### Proposal Messages
 
 Three new messages are introduced that are common to all dynamic commitment
 flows. They let each side propose what they want to change about the channel.
 
-### `dyn_begin_propose`
+#### `dyn_begin_propose`
 
 This message is sent when a node wants to begin the dynamic commitment
 negotiation process. This is a signaling message, similar to `shutdown` in the
@@ -245,7 +224,7 @@ cooperative close flow.
 Only the least-significant-bit of `begin_propose_flags` is defined, the `reject`
 bit.
 
-#### Requirements
+##### Requirements
 
 The sending node:
   - MUST set `channel_id` to a valid channel they have with the recipient.
@@ -272,13 +251,16 @@ The receiving node:
     - MUST reply with `dyn_begin_propose` either rejecting or accepting the
       negotiation request.
 
-#### Rationale
+##### Rationale
 
 This has similar semantics to the `shutdown` message where the channel comes to
-a state where updates may only be removed. The `reject` bit is necessary to
-avoid having to reconnect in order to have a useable channel state again.
+a state where updates may only be removed.  Since, for simplicity, we require
+there to be no outstanding HTLCs on the commitment during the following
+negotiation, we must first signal that no new HTLCs may be added. The `reject`
+bit is necessary to avoid having to reconnect in order to have a useable channel
+state again.
 
-### `dyn_propose`
+#### `dyn_propose`
 
 This message is sent when neither side owes the other either a `revoke_and_ack`
 or `commitment_signed` message and each side's commitment has no HTLCs. For now,
@@ -307,11 +289,35 @@ overall message flow looks like this:
 
 1. `tlv_stream`: `dyn_propose_tlvs`
 2. types:
-    1. type: 0 (`to_self_delay`)
+    1. type: 0 (`dust_limit_satoshis`)
     2. data:
-        * [`u16`:`recipients_new_self_delay`]
+        * [`u64`:`dust_limit_satoshis`]
+    1. type: 2 (`max_htlc_value_in_flight_msat`)
+    2. data:
+        * [`u64`:`senders_max_htlc_value_in_flight_msat`]
+    1. type: 4 (`channel_reserve_satoshis`)
+    2. data:
+        * [`u64`:`recipients_channel_reserve_satoshis`]
+    1. type: 6 (`htlc_minimum_msat`)
+    2. data:
+        * [`u64`:`senders_htlc_minimum_msat`]
+    1. type: 8 (`to_self_delay`)
+    2. data:
+        * [`u16`:`recipients_to_self_delay`]
+    1. type: 10 (`max_accepted_htlcs`)
+    2. data:
+        * [`u16`:`senders_max_accepted_htlcs`]
+    1. type: 12 (`funding_pubkey`)
+    2. data:
+        * [`point`:`senders_funding_pubkey`]
+    1. type: 14 (`channel_type`)
+    2. data:
+        * [`...*byte`:`channel_type`]
+    1. type: 16 (`kickoff_feerate`)
+    2. data:
+        * [`...*u32`:`kickoff_feerate_per_kw`]
 
-#### Requirements
+##### Requirements
 
 The sending node:
   - MUST set `channel_id` to an existing one it has with the recipient.
@@ -329,7 +335,7 @@ The receiving node:
   - else:
     - MUST send a `dyn_propose_reply` without the `reject` bit set.
 
-#### Rationale
+##### Rationale
 
 The requirement to not allow trimming outputs is just to make the dynamic
 commitment flow as uninvasive as possible to the commitment transaction. A
@@ -340,7 +346,7 @@ The requirement for a node to remember what it last _sent_ and for it to
 remember what it _accepted_ is necessary to recover on reestablish. See the
 reestablish section for more details.
 
-### `dyn_propose_reply`
+#### `dyn_propose_reply`
 
 This message is sent in response to a `dyn_propose`. It may either accept or
 reject the `dyn_propose`. If it rejects a `dyn_propose`, it allows the
@@ -357,7 +363,7 @@ the `reject` bit.
 The least-significant bit of `propose_reply_flags` is defined as the `reject`
 bit.
 
-#### Requirements
+##### Requirements
 
 The sending node:
   - MUST set `channel_id` to a valid channel they have with the recipient.
@@ -383,7 +389,7 @@ A node:
     bit set:
     - MUST increment their `propose_height`.
 
-#### Rationale
+##### Rationale
 
 The `propose_height` starts at 0 for a channel and is incremented by 1 every
 time the dynamic commitment proposal phase completes for a channel. See the
@@ -442,7 +448,7 @@ message.
 
 This section describes how dynamic commitments can upgrade regular channels to
 simple taproot channels. The regular dynamic proposal phase is executed followed
-by a signing phase.  A channel-type of `option_taproot` will be included in
+by a signing phase. A `channel_type` of `option_taproot` will be included in
 `dyn_propose` and both sides must agree on it. The funder of the channel will
 also propose a set of feerates to use for an intermediate "kickoff" transaction.
 
