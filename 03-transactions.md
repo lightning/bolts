@@ -421,12 +421,6 @@ Each node offering a signature:
   - MUST subtract the fee given by `fee_satoshis` from the closer output.
 
 
-### Rationale
-
-The case where both sides omit their outputs due to a de-minimus channel is never expected to happen, however it is
-documented here for completeness, and serves to avoid an polluting the unspent outputs.  Unfortunately, the transaction
-has to be at least 65 bytes to propagate, so the `OP_RETURN` includes padding.
-
 ## Fees
 
 ### Fee Calculation
@@ -544,6 +538,7 @@ Bitcoin Core defines the following dust thresholds:
 - pay to witness pubkey hash (p2wpkh): 294 satoshis
 - pay to witness script hash (p2wsh): 330 satoshis
 - unknown segwit versions: 354 satoshis
+- `OP_RETURN` outputs: these are never dust
 
 The rationale of this calculation (implemented [here](https://github.com/bitcoin/bitcoin/blob/0.21/src/policy/policy.cpp))
 is explained in the following sections.
