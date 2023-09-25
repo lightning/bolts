@@ -255,6 +255,8 @@ Once authentication is complete, the first message reveals the features supporte
 
 [BOLT #9](09-features.md) specifies lists of features. Each feature is generally represented by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.  For historical reasons, features are divided into global and local feature bitmasks.
 
+We refer to a feature as *offered* if a peer set it in the `init` message for the current connection (as either even or odd), and *negotiated* if both peers offered it.
+
 The `features` field MUST be padded to bytes with 0s.
 
 1. type: 16 (`init`)
