@@ -194,11 +194,14 @@ always be necessary, but it is certainly necessary for using this proposal to
 convert existing channels into Taproot channels.
 
 # Specification
-There are two phases to this channel upgrade process: proposal and execution.
-During the proposal phase the only goal is to agree on a set of updates to the
-current channel state machine. During the execution phase, we apply the updates
-to the channel state machine, exchanging the necessary information to be able
-to apply those updates
+There are three phases to this channel upgrade process: proposal, flushing, and
+execution. During the proposal phase the only goal is to agree on a set of
+updates to the current channel state machine. During the flushing phase, we
+proceed with channel operation, allowing only `update_fulfill_htlc` and
+`update_fail_htlc` messages until all HTLCs have been cleared, similar to
+`shutdown`. During the execution phase, we apply the updates to the channel
+state machine, exchanging the necessary information to be able to apply those
+updates.
 
 ## Proposal Phase
 
@@ -279,7 +282,7 @@ This message is always sent by the initiator and MAY be sent by the responder
         |       |<-(4)------ dyn_ack -----------|       |
         +-------+                               +-------+
 
-1. type: 113 (`dyn_propose`)
+1. type: 111 (`dyn_propose`)
 2. data:
    * [`32*byte`:`channel_id`]
    * [`u8`:`initiator`]
@@ -326,6 +329,9 @@ The sending node:
     - SHOULD close the connection if it exceeds an acceptable time frame.
   - if it is the `initiator`:
     - MUST set `initiator` to 1
+    - if it sets `channel_type` and the `channel_type` conversion requires
+      re-anchoring (see appendix for conversions that require re-anchoring)
+      - MUST set `kickoff_feerate`
   - if it is the `responder`:
     - MUST set `initiator` to 0
     - MUST NOT set the `channel_type` TLV
@@ -337,25 +343,26 @@ The sending node:
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the sender:
     - MUST send an `error` and close the connection.
-  - if it will not accept **any** dynamic commitment negotiation:
-    - MUST send a `dyn_reject` **with an empty TLV stream**
-  - if it does not agree with one or more parameters:
-    - MUST send a `dyn_reject` with the set TLV records it rejects
   - if it wishes to update additional parameters as part of the *same* dynamic
     commitment negotiation AND has not yet sent a `dyn_ack` message:
     - MUST send a `dyn_propose` with its desired parameters
     - MUST NOT send a `dyn_propose` after a `dyn_ack` for the same negotiation
     - MUST send a `dyn_ack` to accept the parameters it was sent
-
-
-TODO: go through the rest of this and make it consistent
+    - MUST NOT send a `dyn_reject`
 
 ##### Rationale
 
-The requirement to not allow trimming outputs is just to make the dynamic
-commitment flow as uninvasive as possible to the commitment transaction. A
-similar requirement should be added for any new parameter such as the
-`channel_reserve`.
+The set of parameters used in this message to renegotiate channel parameters
+can't violate the invariants set out in BOLT 2. This is because we are simply
+trying change channel parameters without a close event. BOLT 2 specifies
+constraints on these parameters to make sure they are internally consistent and
+secure in all contexts.
+
+Since the initiator is the one that is responsible for paying the fees for the
+kickoff transaction if it is required (like for certain `channel_type` changes),
+it follows that the responder cannot change the `channel_type`. Since the
+`kickoff_feerate` is solely for these scenarios it follows that it should only
+be set when the `channel_type` is set.
 
 The requirement for a node to remember what it last _sent_ and for it to
 remember what it _accepted_ is necessary to recover on reestablish. See the
@@ -363,46 +370,36 @@ reestablish section for more details.
 
 #### `dyn_ack`
 
-This message is sent in response to a `dyn_propose`. It may either accept or
-reject the `dyn_propose`. If it rejects a `dyn_propose`, it allows the
-counterparty to send another `dyn_propose` to try again. If for some reason,
-negotiation is taking too long, it is possible to exit this phase by
-reconnecting as long as the exiting node hasn't sent `dyn_propose_reply` without
-the `reject` bit.
+This message is sent in response to a `dyn_propose` indicating that it has
+accepted the proposal.
 
-1. type: 115 (`dyn_propose_reply`)
+1. type: 113 (`dyn_ack`)
 2. data:
    * [`32*byte`:`channel_id`]
-   * [`byte`: `propose_reply_flags`]
-
-The least-significant bit of `propose_reply_flags` is defined as the `reject`
-bit.
 
 ##### Requirements
 
 The sending node:
-  - MUST set `channel_id` to a valid channel they have with the recipient.
-  - MUST set undefined bits in `propose_reply_flags` to 0.
-  - MUST set the `reject` bit in `propose_reply_flags` if they are rejecting the
-    newest `dyn_propose`.
-  - MUST NOT send this message if there is no outstanding `dyn_propose` from the
-    counterparty.
-  - if the `reject` bit is not set:
-    - MUST remember the related `dyn_propose` parameters and the local and
-      remote commitment heights for the next `propose_height`.
+  - MUST set `channel_id` to a valid channel it has with the recipient.
+  - MUST NOT send this message if it has not received a `dyn_propose`
+  - MUST NOT send this message if it has already sent a `dyn_ack` for the
+    current negotiation.
+  - MUST NOT send this message if it has already sent a `dyn_reject` for the
+    current negotiation.
+  - MUST remember the parameters of `dyn_propose` message to which the `dyn_ack`
+    is responding for the next `propose_height`.
+  - MUST remember the local and remote commitment heights for the next
+    `propose_height`.
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the peer:
-    - MUST close the connection.
+    - MUST send an `error` and close the connection.
   - if there isn't an outstanding `dyn_propose` it has sent:
     - MUST send an `error` and fail the channel.
-  - if the `reject` bit was set:
-    - MUST forget its last sent `dyn_propose` parameters.
 
 A node:
-  - once it has both sent and received `dyn_propose_reply` without the `reject`
-    bit set:
-    - MUST increment their `propose_height`.
+  - once it has both sent and received `dyn_ack`
+    - MUST increment its `propose_height`.
 
 ##### Rationale
 
@@ -411,8 +408,69 @@ time the dynamic commitment proposal phase completes for a channel. See the
 reestablish section for why this is needed.
 
 #### `dyn_reject`
+
+This message is sent in response to a `dyn_propose` indicating that it rejects
+the proposal.
+
+1. type: 115 (`dyn_reject`)
+2. data:
+    * [`32*byte`:`channel_id`]
+
+1. `tlv_stream`: `dyn_propose_tlvs`
+2. types: See `dyn_propose` for TLV breakdown
+
 ##### Requirements
+
+The sending node:
+  - MUST set `channel_id` to a valid channel it has with the recipient.
+  - MUST NOT send this message if it has not received a `dyn_propose`
+  - MUST NOT send this message if it has already sent a `dyn_ack` for the
+    current negotiation.
+  - MUST NOT send this message if it has already sent a `dyn_reject` for the
+    current negotiation.
+  - if it will not accept **any** dynamic commitment negotiation:
+    - SHOULD send a `dyn_reject` **with an empty TLV stream**
+  - if it does not agree with one or more parameters:
+    - MUST send a `dyn_reject` with the set TLV records it rejects
+  - if it has sent a `dyn_propose` in the current negotiation
+    - MUST forget its last sent `dyn_propose` parameters
+  - MUST forget the parameters of the `dyn_propose` message to which the
+    `dyn_reject` is responding.
+
+The receiving node:
+  - if `channel_id` does not match an existing channel it has with the peer
+    - MUST close the connection
+  - if there isn't an outstanding `dyn_propose` it has sent
+    - MUST send an `error` and fail the channel
+  - MUST forget its last sent `dyn_propose` parameters.
+  - if the TLV stream is empty
+    - SHOULD NOT re-attempt another dynamic commitment negotation for the
+      remaining lifecycle of the connection
+  - if the TLV stream is NOT empty
+    - MAY re-attempt another dynamic commitment negotiation
+    - if a dynamic commitment negotiation is re-attempted:
+      - SHOULD relax any parameters that were specified in the TLV stream of
+        the `dyn_reject` message.
+      - if no sensible interpretation of "relax" exists:
+        - SHOULD NOT re-attempt a dynamic commitment negotiation with this
+          parameter set.
+
 ##### Rationale
+
+By sending back the TLVs that a node explicitly rejects makes it easier to come
+to an agreement on a proposal that will work. By not sending back any TLVs in
+the `dyn_reject`, a node signals it is not interested in moving the negotiation
+forward at all and further negotiation should not be attempted.
+
+## Flushing Phase
+
+TODO: describe flushing
+
+## Execution Phase
+
+TODO: incorporate prior proposal into this section
+
+# ORIGINAL UNINCORPORATED PROPOSAL TEXT FOLLOWS AFTER THIS POINT
 
 ## Reestablish
 
@@ -429,8 +487,8 @@ A new TLV that denotes the node's current `propose_height` is included.
 #### Requirements
 
 The sending node:
-  - MUST set `propose_height` to the number of dynamic proposal negotiations it
-    has completed. The point at which it is incremented is described in the
+  - MUST set `propose_height` to the number of dynamic commitment negotiations
+    it has completed. The point at which it is incremented is described in the
     `dyn_propose_reply` section.
 
 The receiving node:
@@ -703,7 +761,7 @@ attached to either side for fee-bumping.
 ##### Requirements
 
 The sending node (the fundee):
-  - MUST set `channel_id` to a valid channel they have with the recipient.
+  - MUST set `channel_id` to a valid channel it has with the recipient.
   - MUST NOT send this message before receiving the peer's `commitment_signed`.
 
 The receiving node (the funder):
