@@ -51,46 +51,44 @@ and privacy capabilities afforded by the 2021 Taproot Soft Fork. With further
 aspirations to be able to deploy Point Time-Lock Contracts (PTLCs) to the
 Lightning Network, the sooner that network participants can upgrade to STCs the
 more we will have the necessary network infrastructure to be able to make
-effective PTLCs when the protocols for them are specified.
+effective use of PTLCs when the protocols for them are specified.
 
-Due to the design of STCs and the fact that they are designed to make full use
-of the capabilities afforded by Schnorr Signatures, there is no way to construct
-a valid `channel_announcement` message that references the output corresponding
-to the nodes' joint public key. As such, even if we were to directly spend an
+Due to the design of STCs and the fact that they take full advantage of the
+capabilities afforded by Schnorr Signatures, there is no way to construct a
+valid `channel_announcement` message that references the output corresponding to
+the nodes' joint public key. As such, even if we were to directly spend an
 existing channel point to a new STC channel point, and even with the provision
 in BOLT 7 to delay graph pruning by 12 blocks after the channel point is spent,
 we have no way to make the STC known to the network at the time of writing of
 this proposal.
 
 Concurrently with this proposal is a proposal for a new gossip system that is
-capable of understanding announcements of the new STCs. However, in an effort to
-allow nodes to upgrade to STCs without impacting the rest of the network, the
-rest of the network would already need to be capable of understanding messages
-from this new gossip system, the pervasive deployment of which remains far in
-the future. To remove this disincentive of these channel upgrades to the
-involved parties, this proposal to enable the change of these channel parameters
-(including channel types) without requiring channel closure and reopening is
-submitted.
+capable of understanding the announcements of new STCs. However, even with a new
+gossip system capable of understanding the STC construction and announcement,
+it will take quite some time for such a system to be broadly deployed across the
+Lightning Network. In the interim, to remove this disincentive of these channel
+upgrades to the involved parties, this proposal to enable the change of these
+channel parameters (including channel types) without requiring channel closure
+and reopening is submitted.
 
 ## Preliminaries
-This proposal includes a detailed section on the preliminaries to document to
-reviewers and posterity some of the rationale for the design that is presented
-later. If you are a Bitcoin and Lightning Network protocol expert or you are
-uninterested in the thought process behind what is presented here, you may wish
-to skip to the Design Overview section to save time
+This proposal includes a detailed section on the preliminaries to document some
+of the rationale for the design that is presented later. If you are a Bitcoin
+and Lightning Network protocol expert or you are uninterested in the thought
+process behind what is presented here, you may wish to skip to the Design
+Overview section to save time.
 
 ### Channel Opening Parameters
 As described in BOLT 2, during the channel opening procedure there are a number
 of parameters specified in the `open_channel` and `accept_channel` messages that
 remain static over the lifetime of the channel. A subset of these are updatable
 using other messages defined in the protocol. However, after accounting for the
-channel parameters that can be changed there is a list of parameters which
-remain unchangeable, which we list below.
+channel parameters that can be changed using existing mechanisms, there remains
+a list of parameters which are unchangeable. We list these below:
 
 - dust_limit_satoshis
 - max_htlc_value_in_flight_msat
 - channel_reserve_satoshis
-- htlc_minimum_msat
 - to_self_delay
 - max_accepted_htlcs
 - funding_pubkey
@@ -104,16 +102,15 @@ remain unchangeable, which we list below.
 - channel_type
 
 After some analysis during the development of this proposal, we determined that
-many of the basepoint values don't make sense to rotate. There is no obvious
-value in doing so and it carries additional administrative costs to rotate them.
-Finally, changing the upfront_shutdown script over the lifetime of the channel
-is self-defeating and so we exclude it as well. The list of channel parameters
-remaining after we filter out these values is thus.
+the basepoint values don't make sense to rotate. There is no obvious value in
+doing so and it carries additional administrative costs to rotate them. Finally,
+changing the upfront_shutdown script over the lifetime of the channel is
+self-defeating and so we exclude it as well. The list of channel parameters
+remaining after we filter out these values is thus:
 
 - dust_limit_satoshis
 - max_htlc_value_in_flight_msat
 - channel_reserve_satoshis
-- htlc_minimum_msat
 - to_self_delay
 - max_accepted_htlcs
 - funding_pubkey
@@ -205,86 +202,87 @@ to apply those updates
 
 ## Proposal Phase
 
+### Node Roles
+
+In every dynamic commitment negotiation, there are two roles: the `initiator`
+and the `responder`. It is necessary for both nodes to agree on which node is
+the `initiator` and which node is the `responder`. This is important because if
+the dynamic commitment negotiation results in a re-anchoring step (described
+later), it is the initiator that is responsible for paying the fees for the
+kickoff transaction.
+
+### Negotiation TLVs
+
+The following TLVs are used throughout the negotiation phase of the protocol
+and are common to all messages in the negotiation phase.
+
+#### dust_limit_satoshis
+- type: 0
+  data:
+    * [`u64`:`dust_limit_satoshis`]
+
+#### max_htlc_value_in_flight_msat
+- type: 1
+  data:
+    * [`u64`:`senders_max_htlc_value_in_flight_msat`]
+
+#### channel_reserve_satoshis
+- type: 2
+  data:
+    * [`u64`:`recipients_channel_reserve_satoshis`]
+
+#### to_self_delay
+- type: 3
+  data:
+    * [`u16`:`recipients_to_self_delay`]
+
+#### max_accepted_htlcs
+- type: 4
+  data:
+    * [`u16`:`senders_max_accepted_htlcs`]
+
+#### funding_pubkey
+- type: 5
+  data:
+    * [`point`:`senders_funding_pubkey`]
+
+#### channel_type
+- type: 6
+  data:
+    * [`...*byte`:`channel_type`]
+
+#### kickoff_feerate_per_kw
+- type: 7
+  data:
+    * [`...*u32`:`kickoff_feerate_per_kw`] <!-- TODO: is this right? -->
+
+
 ### Proposal Messages
 
 Three new messages are introduced that are common to all dynamic commitment
-flows. They let each side propose what they want to change about the channel.
-
-#### `dyn_begin_propose`
-
-This message is sent when a node wants to begin the dynamic commitment
-negotiation process. This is a signaling message, similar to `shutdown` in the
-cooperative close flow.
-
-1. type: 111 (`dyn_begin_propose`)
-2. data:
-   * [`32*byte`:`channel_id`]
-   * [`byte`: `begin_propose_flags`]
-
-Only the least-significant-bit of `begin_propose_flags` is defined, the `reject`
-bit.
-
-##### Requirements
-
-The sending node:
-  - MUST set `channel_id` to a valid channel they have with the recipient.
-  - MUST set undefined bits in `begin_propose_flags` to 0.
-  - MUST set the `reject` bit in `begin_propose_flags` if they are rejecting the
-    dynamic commitment negotiation request.
-  - MUST NOT send `update_add_htlc` messages after sending this unless one of
-    the following is true:
-    - dynamic commitment negotiation has finished
-    - a `dyn_begin_propose` with the `reject` bit has been received.
-    - a reconnection has occurred.
-  - MUST only send one `dyn_begin_propose` during a single negotiation.
-  - MUST fail to forward additional incoming HTLCs from the peer.
-
-The receiving node:
-  - if `channel_id` does not match an existing channel it has with the peer:
-    - MUST close the connection.
-  - if the `reject` bit is set, but it hasn't sent a `dyn_begin_propose`:
-    - MUST send an `error` and fail the channel.
-  - if an `update_add_htlc` is received after this point and negotiation hasn't
-    finished or terminated:
-    - MUST send an `error` and fail the channel.
-  - if it has not already sent `dyn_begin_propose` in this round of negotiation:
-    - MUST reply with `dyn_begin_propose` either rejecting or accepting the
-      negotiation request.
-
-##### Rationale
-
-This has similar semantics to the `shutdown` message where the channel comes to
-a state where updates may only be removed.  Since, for simplicity, we require
-there to be no outstanding HTLCs on the commitment during the following
-negotiation, we must first signal that no new HTLCs may be added. The `reject`
-bit is necessary to avoid having to reconnect in order to have a useable channel
-state again.
+flows. They let each channel party propose which channel parameters they wish to
+change as well as accept or reject the proposal made by their counterparty.
 
 #### `dyn_propose`
 
-This message is sent when neither side owes the other either a `revoke_and_ack`
-or `commitment_signed` message and each side's commitment has no HTLCs. For now,
-only the `recipients_new_self_delay` parameter is defined in negotiation. After
-negotiation completes, commitment signatures will use these parameters. The
-overall message flow looks like this:
+This message is sent to initiate the negotiation of a dynamic commitment
+upgrade. The overall protocol flow looks similar to what is depicted below.
+This message is always sent by the initiator and MAY be sent by the responder
 
         +-------+                               +-------+
-        |       |--(1)---dyn_begin_propose ---->|       |
+        |       |--(1)---- dyn_propose -------->|       |
         |       |                               |       |
-        |       |<-(2)---dyn_begin_propose------|       |
-        |       |                               |       |
-        |       |--(3)----- dyn_propose ------->|       |
+        |       |<-(2)---- dyn_propose ---------|       |
         |   A   |                               |   B   |
-        |       |<-(4)----- dyn_propose --------|       |
+        |       |--(3)------ dyn_ack ---------->|       |
         |       |                               |       |
-        |       |--(5)--- dyn_propose_reply --->|       |
-        |       |                               |       |
-        |       |<-(6)--- dyn_propose_reply ----|       |
+        |       |<-(4)------ dyn_ack -----------|       |
         +-------+                               +-------+
 
 1. type: 113 (`dyn_propose`)
 2. data:
    * [`32*byte`:`channel_id`]
+   * [`u8`:`initiator`]
    * [`dyn_propose_tlvs`:`tlvs`]
 
 1. `tlv_stream`: `dyn_propose_tlvs`
@@ -292,48 +290,65 @@ overall message flow looks like this:
     1. type: 0 (`dust_limit_satoshis`)
     2. data:
         * [`u64`:`dust_limit_satoshis`]
-    1. type: 2 (`max_htlc_value_in_flight_msat`)
+    1. type: 1 (`max_htlc_value_in_flight_msat`)
     2. data:
         * [`u64`:`senders_max_htlc_value_in_flight_msat`]
-    1. type: 4 (`channel_reserve_satoshis`)
+    1. type: 2 (`channel_reserve_satoshis`)
     2. data:
         * [`u64`:`recipients_channel_reserve_satoshis`]
-    1. type: 6 (`htlc_minimum_msat`)
-    2. data:
-        * [`u64`:`senders_htlc_minimum_msat`]
-    1. type: 8 (`to_self_delay`)
+    1. type: 3 (`to_self_delay`)
     2. data:
         * [`u16`:`recipients_to_self_delay`]
-    1. type: 10 (`max_accepted_htlcs`)
+    1. type: 4 (`max_accepted_htlcs`)
     2. data:
         * [`u16`:`senders_max_accepted_htlcs`]
-    1. type: 12 (`funding_pubkey`)
+    1. type: 5 (`funding_pubkey`)
     2. data:
         * [`point`:`senders_funding_pubkey`]
-    1. type: 14 (`channel_type`)
+    1. type: 6 (`channel_type`)
     2. data:
         * [`...*byte`:`channel_type`]
-    1. type: 16 (`kickoff_feerate`)
+    1. type: 7 (`kickoff_feerate`)
     2. data:
         * [`...*u32`:`kickoff_feerate_per_kw`]
 
 ##### Requirements
 
+TODO: handle edge case where both nodes send `dyn_propose` as `initiator`
+
 The sending node:
   - MUST set `channel_id` to an existing one it has with the recipient.
-  - MUST NOT send a `dyn_propose` if a prior one is waiting for
-    `dyn_propose_reply`.
+  - MUST NOT send a set of TLV parameters that would violate the requirements
+    of the identically named parameters in BOLT 2
   - MUST remember its last sent `dyn_propose` parameters.
-  - MUST send this message as soon as both side's commitment transaction is free
-    of any HTLCs and both sides have sent `dyn_begin_propose`.
+  - if it is currently waiting for a response (`dyn_ack` or `dyn_reject`):
+    - MUST NOT send another `dyn_propose`
+    - SHOULD close the connection if it exceeds an acceptable time frame.
+  - if it is the `initiator`:
+    - MUST set `initiator` to 1
+  - if it is the `responder`:
+    - MUST set `initiator` to 0
+    - MUST NOT set the `channel_type` TLV
+    - MUST NOT set the `kickoff_feerate` TLV
+    - MUST NOT send a set of TLV parameters that would violate the requirements
+      of the identically named parameters in BOLT 2 **assuming** the acceptance
+      of the parameters it received in the `initiator`'s `dyn_propose` message.
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the sender:
     - MUST send an `error` and close the connection.
-  - if it does not agree with a parameter:
-    - MUST send a `dyn_propose_reply` with the `reject` bit set.
-  - else:
-    - MUST send a `dyn_propose_reply` without the `reject` bit set.
+  - if it will not accept **any** dynamic commitment negotiation:
+    - MUST send a `dyn_reject` **with an empty TLV stream**
+  - if it does not agree with one or more parameters:
+    - MUST send a `dyn_reject` with the set TLV records it rejects
+  - if it wishes to update additional parameters as part of the *same* dynamic
+    commitment negotiation AND has not yet sent a `dyn_ack` message:
+    - MUST send a `dyn_propose` with its desired parameters
+    - MUST NOT send a `dyn_propose` after a `dyn_ack` for the same negotiation
+    - MUST send a `dyn_ack` to accept the parameters it was sent
+
+
+TODO: go through the rest of this and make it consistent
 
 ##### Rationale
 
@@ -346,7 +361,7 @@ The requirement for a node to remember what it last _sent_ and for it to
 remember what it _accepted_ is necessary to recover on reestablish. See the
 reestablish section for more details.
 
-#### `dyn_propose_reply`
+#### `dyn_ack`
 
 This message is sent in response to a `dyn_propose`. It may either accept or
 reject the `dyn_propose`. If it rejects a `dyn_propose`, it allows the
@@ -394,6 +409,10 @@ A node:
 The `propose_height` starts at 0 for a channel and is incremented by 1 every
 time the dynamic commitment proposal phase completes for a channel. See the
 reestablish section for why this is needed.
+
+#### `dyn_reject`
+##### Requirements
+##### Rationale
 
 ## Reestablish
 
