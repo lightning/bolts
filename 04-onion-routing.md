@@ -62,6 +62,7 @@ A node:
   * [Returning Errors](#returning-errors)
     * [Failure Messages](#failure-messages)
     * [Receiving Failure Codes](#receiving-failure-codes)
+  * [`max_htlc_cltv` Selection](#max-htlc-cltv-selection)
   * [Onion Messages](#onion-messages)
   * [Test Vector](#test-vector)
     * [Returning Errors](#returning-errors)
@@ -1333,7 +1334,7 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
   - if the `cltv_expiry` is unreasonably near the present:
     - report the current channel setting for the outgoing channel.
     - return an `expiry_too_soon` error.
-  - if the `cltv_expiry` is unreasonably far in the future:
+  - if the `cltv_expiry` is more than `max_htlc_cltv` in the future:
     - return an `expiry_too_far` error.
   - if the channel is disabled:
     - report the current channel setting for the outgoing channel.
@@ -1580,6 +1581,10 @@ Onion messages don't explicitly require a channel, but for
 spam-reduction a node may choose to ratelimit such peers, especially
 messages it is asked to forward.
 
+## `max_htlc_cltv` Selection
+
+This `max_htlc_ctlv` value is defined as 2016 blocks, based on historical value
+deployed by Lightning implementations.
 
 # Test Vector
 
