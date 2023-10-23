@@ -462,16 +462,6 @@ to an agreement on a proposal that will work. By not sending back any TLVs in
 the `dyn_reject`, a node signals it is not interested in moving the negotiation
 forward at all and further negotiation should not be attempted.
 
-## Flushing Phase
-
-TODO: describe flushing
-
-## Execution Phase
-
-TODO: incorporate prior proposal into this section
-
-# ORIGINAL UNINCORPORATED PROPOSAL TEXT FOLLOWS AFTER THIS POINT
-
 ## Reestablish
 
 ### `channel_reestablish`
@@ -489,7 +479,7 @@ A new TLV that denotes the node's current `propose_height` is included.
 The sending node:
   - MUST set `propose_height` to the number of dynamic commitment negotiations
     it has completed. The point at which it is incremented is described in the
-    `dyn_propose_reply` section.
+    `dyn_ack` section.
 
 The receiving node:
   - if the received `propose_height` equals its own `propose_height`:
@@ -513,15 +503,25 @@ The receiving node:
 
 #### Rationale
 
-If both sides have sent and received `dyn_propose_reply` without the `reject`
-bit before the connection closed, it is simple to continue. If one side has sent
-and received `dyn_propose_reply` without the `reject` bit and the other side has
-only sent `dyn_propose_reply`, the flow is recoverable on reconnection as the
-side that hasn't received `dyn_propose_reply` knows that the other side accepted
-their last sent `dyn_propose` based on the `propose_height` in the reestablish
+If both sides have sent and received `dyn_ack` before the connection closed, it
+is simple to continue. If one side has sent and received `dyn_ack` the other
+side has only sent `dyn_ack`, the flow is recoverable on reconnection as the
+side that hasn't received `dyn_ack` knows that the other side accepted their
+last sent `dyn_propose` based on the `propose_height` in the reestablish
 message.
 
-## Musig2 Taproot
+## Flushing Phase
+
+Once the Negotiation Phase is complete, the channel enters a Flushing Phase
+similar to the procedure that occurs during `shutdown`. During this phase, no
+new HTLCs may be added by either party, but they may be removed, either by a
+fulfill or fail operation. Once all HTLCs have been cleared from both sides of
+the channel, and the `revoke_and_ack`'s have been exchanged to commit to this
+empty state, we enter the execution phase.
+
+## Execution Phase
+
+### * -> Musig2 Taproot
 
 This section describes how dynamic commitments can upgrade regular channels to
 simple taproot channels. The regular dynamic proposal phase is executed followed
@@ -529,7 +529,7 @@ by a signing phase. A `channel_type` of `option_taproot` will be included in
 `dyn_propose` and both sides must agree on it. The funder of the channel will
 also propose a set of feerates to use for an intermediate "kickoff" transaction.
 
-### Extensions to `dyn_propose`:
+#### Extensions to `dyn_propose`:
 
 1. `tlv_stream`: `dyn_propose_tlvs`
 2. types:
@@ -583,9 +583,9 @@ The funder sends multiple fee-rates in order to be deal with high-fee
 environments. Without this, the channel may not be able to upgrade commitment
 types until the fee environment changes.
 
-### Extensions to `dyn_propose_reply`:
+### Extensions to `dyn_ack`:
 
-1. `tlv_stream`: `dyn_propose_reply_tlvs`
+1. `tlv_stream`: `dyn_ack_tlvs`
 2. types:
     1. type: 0 (`local_musig2_pubnonce`)
     2. data:
@@ -724,7 +724,7 @@ version 1 witness script:
 The new funding output has a value of the original funding output minus the sum
 of 660 satoshis and this kickoff transaction's fee. It is encumbered by a
 version 1 witness script where `taproot_funding_key1/taproot_funding_key2` are
-from `dyn_propose_reply`:
+from `dyn_ack`:
 * `OP_1 funding_key`
 * where:
   * `funding_key = combined_funding_key + tagged_hash("TapTweak", combined_funding_key)*G`
@@ -832,7 +832,7 @@ section per the simple-taproot-channels proposal.
 The sending node:
   - MUST set `next_local_nonce` if the sender sees it has persisted a
     `channel_type` of `option_simple_taproot` from the `dyn_propose` /
-    `dyn_propose_reply` negotiation steps.
+    `dyn_ack` negotiation steps.
   - MUST set `num_sent_commit_sigs` to the number of `commitment_signed` it has
     sent for this negotiation session.
   - MUST set `num_recv_commit_sigs` to the number of `commitment_signed` it has
