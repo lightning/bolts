@@ -255,7 +255,7 @@ and are common to all messages in the negotiation phase.
 #### kickoff_feerate_per_kw
 - type: 7
   data:
-    * [`...*u32`:`kickoff_feerate_per_kw`] <!-- TODO: is this right? -->
+    * [`u32`:`kickoff_feerate_per_kw`]
 
 
 ### Proposal Messages
@@ -608,7 +608,20 @@ output_.
         |       |<-(6)---- revoke_and_ack ------|       |
         +-------+                               +-------+
 
-TODO: Explain why this message ordering is important
+##### Rationale
+
+The commitment signed message has to be issued first to ensure that the money
+locked to the new funding output (created by the kickoff transaction) can be
+unilaterally recovered. If the `kickoff_sig` were sent first, the receiver could
+stop responding and broadcast the kickoff transaction, burning the funds for
+both parties. If the channel balance is overwhelmingly imbalanced towards the
+side issuing the `kickoff_sig`, this could be costly to the victim while being
+comparatively cheap for the attacker.
+
+Similarly, if we `revoke_and_ack` prior to receiving a `kickoff_sig` then we
+may have a situation where we remove our ability to broadcast the old commitment
+transaction before the path to the new commitment transaction has been fully
+signed.
 
 #### Building the Kickoff Transaction
 
@@ -726,20 +739,28 @@ attached to either side for fee-bumping.
 
 ##### Requirements
 
-The sending node (the fundee):
+The sending node:
   - MUST set `channel_id` to a valid channel it has with the recipient.
   - MUST NOT send this message before receiving the peer's `commitment_signed`.
 
-The receiving node (the funder):
+The receiving node:
   - MUST send an `error` and fail the channel if `channel_id` does not match an
     existing channel it has with the sender.
   - MUST send an `error` and fail the channel if `signature` is not valid for
     the kickoff transaction as constructed above OR non-compliant with the
     LOW-S-standard rule. <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>
+  - MUST NOT send a `revoke_and_ack` for the final pre-dynamic commitment
+    transaction until it has received a valid `kickoff_sig`
 
 ##### Rationale
 
-TODO: Explain some shit here
+The `kickoff_sig` cannot be issued until the `commitment_signed` message has
+been received to prevent griefing by broadcasting a kickoff for which there is
+no exit. The `revoke_and_ack` for the last pre-dynamic commitment has to wait
+for the `kickoff_sig` because if the last commitment built off of the original
+funding output is revoked before the `kickoff_sig` has been received, then if
+a peer becomes non-cooperative from that point forward, funds are effectively
+burned.
 
 ### Additional Requirements: ~Musig2 Taproot -> Musig2 Taproot
 
