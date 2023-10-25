@@ -15,34 +15,35 @@ TODO
 ## Abstract
 This document describes a protocol for changing channel parameters that were
 negotiated at the conception of the channel. Implementation of the protocol
-described in this document will enable channel peers to re-negotiate channel
-terms as if the channel was being opened for the first time while avoiding UTXO
-churn whenever possible and therefore preserving the continuity of identity for
-the channel whose terms are being changed.
+described in this document will enable channel peers to re-negotiate and update
+channel terms as if the channel was being opened for the first time while
+avoiding UTXO churn whenever possible and therefore preserving the continuity of
+identity for the channel whose terms are being changed.
 
 ## Motivation
 It is well understood that closing channels is a costly thing to do. Not only is
-it costly from a chain fees perspective where we pay for moving the funds from
-the channel UTXO back to the main wallet collection, it is also costly from a
+it costly from a chain fees perspective (where we pay for moving the funds from
+the channel UTXO back to the main wallet collection), it is also costly from a
 service availability and reputation perspective.
 
-After channels are closed they are no longer usable for forwarding HTLC traffic
+After channels are closed, they are no longer usable for forwarding HTLC traffic
 and even if we were to immediately replace the channel with another equally
 capable one, the closure event is visible to the entire network. Since routes
 are computed by the source, the network-wide visibility of channel closures
 directly impacts whether or not the sender will be able to use a channel.
 
-Beyond that, one of the pathfinding heuristics that is broadly used to assess
-channel reliability is the length of time a channel has existed. The longevity
-of a channel is therefore a key asset that any running Lightning node should
-want to preserve, if possible.
+Beyond that, one of the pathfinding heuristics that is frequently used to assess
+channel reliability is the channel age. The longevity of a channel is therefore
+a key asset that any running Lightning node should want to preserve, if
+possible.
 
 It follows from the above that we should try to minimize channel closure events
-when we can manage to do so. This motivates part of this proposal. Prior to this
-extension BOLT, there is no way to change some of the channel parameters
-established in the `{open|accept}_channel` messages without resorting to a full
-channel closure. This limitation can be remediated by introducing a protocol to
-renegotiate these parameters.
+when we can manage to do so. This is the main motivation of this proposal. Prior
+to this extension BOLT, there hasn't been a way to change some of the channel
+parameters established in the `{open|accept}_channel` messages without resorting
+to a full channel closure, even if the channel counterparty consents. This
+limitation can be remediated by introducing a protocol to renegotiate these 
+parameters.
 
 Notable in particular is that one of the channel parameters that we wish to
 renegotiate is the the `channel_type` itself. With the advent of Simple Taproot
@@ -51,25 +52,25 @@ and privacy capabilities afforded by the 2021 Taproot Soft Fork. With further
 aspirations to be able to deploy Point Time-Lock Contracts (PTLCs) to the
 Lightning Network, the sooner that network participants can upgrade to STCs the
 more we will have the necessary network infrastructure to be able to make
-effective use of PTLCs when the protocols for them are specified.
+effective use of PTLCs when the protocols for them are ready for deployment.
 
-Due to the design of STCs and the fact that they take full advantage of the
+Due to the design of STCs, and the fact that they take full advantage of the
 capabilities afforded by Schnorr Signatures, there is no way to construct a
 valid `channel_announcement` message that references the output corresponding to
 the nodes' joint public key. As such, even if we were to directly spend an
-existing channel point to a new STC channel point, and even with the provision
+existing funding output to a new STC funding output, and even with the provision
 in BOLT 7 to delay graph pruning by 12 blocks after the channel point is spent,
 we have no way to make the STC known to the network at the time of writing of
 this proposal.
 
-Concurrently with this proposal is a proposal for a new gossip system that is
-capable of understanding the announcements of new STCs. However, even with a new
-gossip system capable of understanding the STC construction and announcement,
-it will take quite some time for such a system to be broadly deployed across the
-Lightning Network. In the interim, to remove this disincentive of these channel
-upgrades to the involved parties, this proposal to enable the change of these
-channel parameters (including channel types) without requiring channel closure
-and reopening is submitted.
+Concurrent with th writing of this proposal is another proposal for a new gossip
+system that is capable of understanding the announcements of new STCs. However,
+even with a new gossip system capable of understanding the STC construction and
+announcement, it will take quite some time for such a system to be broadly
+deployed across the Lightning Network. In the interim, to remove this
+disincentive of these channel upgrades to the involved parties, this proposal to
+enable the change of these channel parameters (including channel types) without
+requiring channel turnover is submitted.
 
 ## Preliminaries
 This proposal includes a detailed section on the preliminaries to document some
@@ -114,7 +115,6 @@ remaining after we filter out these values is thus:
 - to_self_delay
 - max_accepted_htlcs
 - funding_pubkey
-- channel_flags
 - channel_type
 
 The design presented later is intended to allow for arbitrary changes to these
@@ -313,7 +313,7 @@ This message is always sent by the initiator and MAY be sent by the responder
         * [`...*byte`:`channel_type`]
     1. type: 7 (`kickoff_feerate`)
     2. data:
-        * [`...*u32`:`kickoff_feerate_per_kw`]
+        * [`u32`:`kickoff_feerate_per_kw`]
 
 ##### Requirements
 
@@ -470,33 +470,33 @@ A new TLV that denotes the node's current `propose_height` is included.
 
 1. `tlv_stream`: `channel_reestablish_tlvs`
 2. types:
-    1. type: 20 (`propose_height`)
+    1. type: 20 (`dyn_height`)
     2. data:
-        * [`u64`:`propose_height`]
+        * [`u64`:`dyn_height`]
 
 #### Requirements
 
 The sending node:
-  - MUST set `propose_height` to the number of dynamic commitment negotiations
+  - MUST set `dyn_height` to the number of dynamic commitment negotiations
     it has completed. The point at which it is incremented is described in the
     `dyn_ack` section.
 
 The receiving node:
-  - if the received `propose_height` equals its own `propose_height`:
+  - if the received `dyn_height` equals its own `dyn_height`:
     - MUST forget any stored proposal state for `propose_height`+1 in case
       negotiation didn't complete. Can continue using the channel.
     - SHOULD forget any state that is unnecessary for heights <=
       `propose_height`.
-  - if the received `propose_height` is 1 greater than its own `propose_height`:
+  - if the received `dyn_height` is 1 greater than its own `dyn_height`:
     - if it does not have any remote parameters stored for the received
-      `propose_height`:
+      `dyn_height`:
       - MUST send an `error` and fail the channel. The remote node is either
-        lying about the `propose_height` or the recipient has lost data since
+        lying about the `dyn_height` or the recipient has lost data since
         its not possible to advance the height without the recipient storing the
         remote's parameters.
     - resume using the channel with its last-sent `dyn_propose` and the stored
       `dyn_propose` parameters and increment its `propose_height`.
-  - if the received `propose_height` is 1 less than its own `propose_height`:
+  - if the received `dyn_height` is 1 less than its own `dyn_height`:
     - resume using the channel with the new parameters.
   - else:
     - MUST send an `error` and fail the channel. State was lost.
@@ -507,7 +507,7 @@ If both sides have sent and received `dyn_ack` before the connection closed, it
 is simple to continue. If one side has sent and received `dyn_ack` the other
 side has only sent `dyn_ack`, the flow is recoverable on reconnection as the
 side that hasn't received `dyn_ack` knows that the other side accepted their
-last sent `dyn_propose` based on the `propose_height` in the reestablish
+last sent `dyn_propose` based on the `dyn_height` in the reestablish
 message.
 
 ## Flushing Phase
@@ -516,186 +516,94 @@ Once the Negotiation Phase is complete, the channel enters a Flushing Phase
 similar to the procedure that occurs during `shutdown`. During this phase, no
 new HTLCs may be added by either party, but they may be removed, either by a
 fulfill or fail operation. Once all HTLCs have been cleared from both sides of
-the channel, and the `revoke_and_ack`'s have been exchanged to commit to this
-empty state, we enter the execution phase.
+the channel, and both channel parties have irrevocably committed to this empty
+state, we enter the execution phase.
 
 ## Execution Phase
 
-### * -> Musig2 Taproot
+There are three fundamental types of execution paths following the flushing of
+HTLCs:
+1. Rules Change - No additional state change is required, the next state will be
+expected to follow the new rules that have been negotiated. Channel may resume
+normal operation.
+2. Commitment Update - Additional state change is required, a new commitment
+transaction is expected to be exchanged at this point, following the expected
+parameters. Nodes will exchange `commitment_signed` and `revoke_and_ack`s for
+transactions agreeing to the new rules, then Channel may resume normal
+operation.
+3. Funding Output Update - Signatures for a transaction that spends the original
+funding output into a new funding output will be exchanged.
+  - NOTE FOR REVIEWERS: This transaction is currently symmetric which burdens
+  us with the constraint that a reanchoring step can only be done once over the
+  lifetime of the channel. If we want to be able to securely do this multiple
+  times, we must make kickoff transactions revocable, and therefore asymmetric,
+  and therefore must start issuing commitment signatures in pairs. See Appendix
+  for details.
 
-This section describes how dynamic commitments can upgrade regular channels to
-simple taproot channels. The regular dynamic proposal phase is executed followed
-by a signing phase. A `channel_type` of `option_taproot` will be included in
-`dyn_propose` and both sides must agree on it. The funder of the channel will
-also propose a set of feerates to use for an intermediate "kickoff" transaction.
+For execution we try and have the smallest execution overhead. The option that
+is selected from the list above will be the one with the highest number that is
+triggered by the below rules: Funding Output Update > Commitment Update > Rules
+Change.
 
-#### Extensions to `dyn_propose`:
+- If either channel party changes `dust_limit_satoshis`: Rules Change
+- If either channel party changes `channel_reserve_satoshis`: Rules Change
+- If either channel party changes `to_self_delay`: Commitment Update
+- If either channel party changes `max_accepted_htlcs`: Rules Change
+- If either channel party changes `funding_pubkey`: Funding Output Update
+- If new `channel_type` requires different funding output script than the old
+`channel_type`: Funding Output Update
 
-1. `tlv_stream`: `dyn_propose_tlvs`
-2. types:
-    1. type: 2 (`channel_type`)
-    2. data:
-        * [`...*byte`:`type`]
-    1. type: 4 (`kickoff_feerates`)
-    2. data:
-        * [`...u32`:`kickoff_feerate_per_kw`]
-    1. type: 6 (`taproot_funding_key`)
-    2. data:
-        * [`point`:`funding_key`]
+### Rules Change
 
-#### Requirements
+If all that is required to execute the terms of the dynamic commitment
+negotiation is a rules change, then channel operation may resume as normal
+under the new rules as soon as both channel parties have irrevocably committed
+to a state with no HTLC outputs.
 
-The sending node:
-  - if it is the funder:
-    - MUST only send `kickoff_feerate` if they can pay for each kickoff
-      transaction fee and the anchor outputs, while adhering to the
-      `channel_reserve` restriction.
-  - MUST set `taproot_funding_key` to a valid secp256k1 compressed public key.
-  - SHOULD use a sufficient number of `kickoff_feerates` to be prepared for
-    worst-case fee environment scenarios.
+### Commitment Update
 
-The receiving node:
-  - if it is the fundee:
-    - MUST reject the `dyn_propose` if the funder cannot pay for each kickoff
-      transaction fee and the anchor outputs.
-    - MUST reject the `dyn_propose` if, after calculating the amount of the new
-      funding output, the new commmitment transaction would not be able to pay
-      for any outputs at the current commitment feerate.
-  - MUST reject the `dyn_propose` if `taproot_funding_key` is not a valid
-    secp256k1 compressed public key.
-  - MAY reject the `dyn_propose` if it does not agree with the `channel_type`
-  - MAY reject the `dyn_propose` if there are too many `kickoff_feerates` such
-    that it would be a burden to track the potential confirmation of each
-    kickoff and commitment transaction pair.
+If an update to the commitment transaction is required to execute the terms of
+the dynamic commitment negotiation, then once both channel parties have
+irrevocably committed to a state with no HTLC outputs, new commitment signatures
+MUST be exchanged. This requires both parties to send `commitment_signed`
+messages that adhere to the new channel parameters. Once a node has received
+a `commitment_signed` in accordance with the new channel parameters, it MUST
+issue a `revoke_and_ack` as it normally would. Once both nodes have done this,
+normal channel operation is resumed.
 
-#### Rationale
+### Funding Output Change: General Protocol
 
-The `dyn_propose` renegotiates the funding keys as otherwise signatures for the
-funding keys would be exchanged in both the ECDSA and Schnorr contexts. This can
-lead to an attack outlined in [BIP340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki#alternative-signing).
-Renegotiating funding keys avoids this issue. Note that the various basepoints
-exchanged in `open_channel` and `accept_channel` are not renegotiated. Because
-the private keys _change_ with each commitment transaction they sign due to the
-`per_commitment_point` construction, the basepoints can be used in both ECDSA
-and Schnorr contexts.
+If a Funding Output Change is required, then once both channel parties have
+irrevocably committed to a state with no HTLC outputs, new commitment signatures
+AND kickoff signatures MUST be exchanged. To accomplish this the following steps
+are taken:
 
-The funder sends multiple fee-rates in order to be deal with high-fee
-environments. Without this, the channel may not be able to upgrade commitment
-types until the fee environment changes.
+1. Build kickoff transaction
+1. Build commitment transaction that spends kickoff output
+1. Issue a `commitment_signed` message _according to new channel parameters_
+1. Upon receipt of the remote party's `commitment_signed` message, issue a
+`kickoff_sig` message.
+1. Upon receipt of the remote party's `kickoff_sig` message, issue a
+`revoke_and_ack` for the _final commitment_ built off of the _original funding
+output_.
 
-### Extensions to `dyn_ack`:
+#### Message flow to upgrade a channel to simple-taproot:
 
-1. `tlv_stream`: `dyn_ack_tlvs`
-2. types:
-    1. type: 0 (`local_musig2_pubnonce`)
-    2. data:
-        * [`66*byte`:`nonces`]
+        +-------+                               +-------+
+        |       |--(1)---- commit_signed------->|       |
+        |       |<-(2)---- commit_signed -------|       |
+        |       |<-(3)----- kickoff_sig --------|       |
+        |   A   |--(4)----- kickoff_sig ------->|   B   |
+        |       |                               |       |
+        |       |--(5)---- revoke_and_ack ----->|       |
+        |       |<-(6)---- revoke_and_ack ------|       |
+        +-------+                               +-------+
 
-#### Requirements
+TODO: Explain why this message ordering is important
 
-The sending node:
-  - if it is accepting a `channel_type` of `simple_taproot_channel`:
-    - MUST set `local_musig2_pubnonce` to the nonce that it will use to verify
-      local commitments.
+#### Building the Kickoff Transaction
 
-The receiving node:
-  - MUST send an `error` and fail the channel if `local_musig2_pubnonce` cannot
-    be parsed as two compressed secp256k1 points.
-
-### Signing Phase
-
-The signing phase is after the negotiation phase. The original funding output
-spends to an intermediate transaction that pays to a v1 witness script with an
-aggregated musig2 key derived from both parties `taproot_funding_key` sent in
-`dyn_propose`. As in the simple-taproot-channels proposal, the
-`commitment_signed`, `revoke_and_ack`, and `channel_reestablish` messages
-include nonces.
-
-#### Commitment Transaction
-
-* version: 2
-* locktime: upper 8 bits are 0x20, lower 24 bits are the lower 24 bits of the
-  obscured commitment number
-* txin count: 1
-  * `txin[0]` outpoint: the matching kickoff transaction's musig2 funding
-    outpoint.
-  * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits
-    of the obscured commitment number
-  * `txin[0]` script bytes: 0
-  * `txin[0]` witness: `<key_path_sig>`
-
-The 48-bit commitment number is computed by `XOR` as described in BOLT#03.
-
-#### Commitment Transaction Construction
-
-1. Initialize the commitment transaction version and locktime.
-2. Initialize the commitment transaction input.
-3. Calculate which committed HTLCs need to be trimmed.
-4. Calculate the commitment transaction fee via
-  commitment feerate * `commitment_transaction_weight`/1000, making sure to
-  round down. Subtract this from the funder's output.
-5. Subtract four times the fixed anchor size of 330 satoshis from the funder's
-  output. Two of the anchors are from the commitment transaction and two are
-  from the kickoff transaction.
-6. Subtract the matching kickoff transaction's fee from the funder's output.
-7. For every offered HTLC, if it is not trimmed, add an offered HTLC output.
-8. For every received HTLC, if it is not trimmed, add a received HTLC output.
-9. If the `to_local` output is greater or equal to the dust limit, add a
-  `to_local` output.
-10. If the `to_remote` output is greater or equal to the dust limit, add a
-  `to_remote` output.
-11. If `to_local` exists or there are untrimmed HTLCs, add a `to_local_anchor`.
-12. If `to_remote` exists or there are untrimmed HTLCs, add a
-  `to_remote_anchor`. The `to_remote_anchor` uses the remote party's
-  `taproot_funding_key`.
-13. Sort the outputs into BIP 69+CLTV order.
-
-#### commitment_signed
-
-The `commitment_signed` message does not change, but adds a nonce in the TLV
-section per the simple-taproot-channels proposal. It changes what it signs in
-the following ways:
-
-1. `tlv_stream`: `commit_sig_tlvs`
-2. types:
-    1. type: 2 (`partial_signature_with_nonce`)
-    2. data:
-        * [`98*byte`:`partial_signature || public_nonce`]
-    1. type: 4 (`local_musig2_pubnonce`)
-    2. data:
-        * [`66*byte`: `nonces`]
-
-##### Requirements
-
-The sending node:
-  - MUST NOT increment the commitment number when signing.
-  - MUST sign for any negotiated parameters that modified the commitment
-    transaction (e.g. `to_self_delay`).
-
-The receiving node:
-  - MUST send an `error` and fail the channel if the signature does not sign the
-    commitment transaction as constructed above.
-  - MUST send an `error` and fail the channel if `partial_signature` is not a
-    valid Schnorr signature.
-  - MUST send an `error` and fail the channel if `public_nonce` cannot be parsed
-    as two compressed secp256k1 points.
-  - MUST send an `error` and fail the chanel if `local_musig2_pubnonce` cannot
-    be parsed as two compressed secp256k1 points.
-
-##### Rationale
-
-The commitment number is not incremented while signing because if there are N
-kickoff transactions and the N-2 kickoff transaction confirms, then
-implementations will need to rewind their commitment number to N-2. We avoid
-this complexity by keeping the commitment numbers static until the signing phase
-is complete.
-
-A set of local nonces is included because each signed commitment transaction
-shares the same commitment number as the pre-dynamic-commitment commitment
-transaction. For this reason, `revoke_and_ack` is omitted and thus local nonces
-need to be sent in `commitment_signed`.
-
-#### Kickoff Transaction(s)
+##### Kickoff Transaction Structure
 
 * version: 2
 * locktime: 0
@@ -730,7 +638,7 @@ from `dyn_ack`:
   * `funding_key = combined_funding_key + tagged_hash("TapTweak", combined_funding_key)*G`
   * `combined_funding_key = musig2.KeyAgg(musig2.KeySort(taproot_funding_key1, taproot_funding_key2))`
 
-#### Kickoff Transaction Construction
+##### Kickoff Transaction Construction Algorithm
 
 1. Initialize the commitment transaction version and locktime.
 2. Initialize the commitment transaction input.
@@ -743,7 +651,56 @@ from `dyn_ack`:
 7. Add an anchor output for each party.
 8. Sort the outputs into BIP 69+CLTV order.
 
-#### kickoff_sig
+#### Building the Commitment Transaction
+
+##### Commitment Transaction Structure
+
+* version: 2
+* locktime: upper 8 bits are 0x20, lower 24 bits are the lower 24 bits of the
+  obscured commitment number
+* txin count: 1
+  * `txin[0]` outpoint: the matching kickoff transaction's funding outpoint.
+  * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits
+    of the obscured commitment number
+  * `txin[0]` script bytes: 0
+  * `txin[0]` witness: `<key_path_sig>`
+
+The 48-bit commitment number is computed by `XOR` as described in BOLT#03.
+
+##### Commitment Transaction Construction Algorithm
+
+1. Initialize the commitment transaction version and locktime.
+2. Initialize the commitment transaction input.
+3. Calculate which committed HTLCs need to be trimmed.
+4. Calculate the commitment transaction fee via
+  commitment feerate * `commitment_transaction_weight`/1000, making sure to
+  round down. Subtract this from the funder's output.
+5. Subtract four times the fixed anchor size of 330 satoshis from the funder's
+  output. Two of the anchors are from the commitment transaction and two are
+  from the kickoff transaction.
+6. Subtract the matching kickoff transaction's fee from the funder's output.
+7. For every offered HTLC, if it is not trimmed, add an offered HTLC output.
+8. For every received HTLC, if it is not trimmed, add a received HTLC output.
+9. If the `to_local` output is greater or equal to the dust limit, add a
+  `to_local` output.
+10. If the `to_remote` output is greater or equal to the dust limit, add a
+  `to_remote` output.
+11. If `to_local` exists or there are untrimmed HTLCs, add a `to_local_anchor`.
+12. If `to_remote` exists or there are untrimmed HTLCs, add a
+  `to_remote_anchor`. The `to_remote_anchor` uses the remote party's
+  `taproot_funding_key`.
+13. Sort the outputs into BIP 69+CLTV order.
+
+#### Issuing the `commitment_signed` message
+
+Commitment signed messages are exchanged as normal with the exception of a
+different construction procedure detailed in the prior step. NOTE: "as normal"
+means that this message MUST include all TLVs that would be required for
+the updated `channel_type` e.g. Musig2 Taproot.
+
+#### Issuing the `kickoff_sig` message
+
+##### kickoff_sig
 
 The kickoff_sig is a message containing a signature that the fundee sends to the
 funder who then combines it with their own signature to spend from the original
@@ -781,86 +738,85 @@ Even though only the funder is able to broadcast the kickoff transaction, we
 include anchors such that the fundee can broadcast fee-bumping transactions if
 they notice any of the kickoff transactions in the mempool.
 
-#### Message flow to upgrade a channel to simple-taproot:
+### Additional Requirements: ~Musig2 Taproot -> Musig2 Taproot
 
-        +-------+                               +-------+
-        |       |--(1)---- commit_signed------->|       |
-        |       |                               |       |
-        |   A   |<-(2)---- commit_signed -------|   B   |
-        |       |<-(3)----- kickoff_sig --------|       |
-        |       |                               |       |
-        |       |--(4)---- commit_signed------->|       |
-        |       |<-(5)---- commit_signed -------|       |
-        |       |<-(6)----- kickoff_sig --------|       |
-        +-------+                               +-------+
+This section describes how dynamic commitments can upgrade regular channels to
+simple taproot channels. The regular dynamic proposal phase is executed followed
+by a signing phase. A `channel_type` of `option_taproot` will be included in
+`dyn_propose` and both sides must agree on it. The initiator of the upgrade will
+also propose a feerate to use for an intermediate "kickoff" transaction.
 
-The above message ordering is important. If `kickoff_sig` is sent before
-`commit_sig`, a griefing attack is possible:
+#### Extensions to `dyn_propose`:
 
-        +-------+                               +-------+
-        |   A   |<-(1)----- kickoff_sig --------|   B   |
-        +-------+                               +-------+
-
-Here, A stops sending messages and instead immediately broadcasts the kickoff
-transaction.  Since neither side has exchanged `commitment_signed`, the new
-funding output is unclaimable and is effectively burned. The majority of the
-channel could be in B's outputs, making the loss of funds disproportionately on
-B's side.
-
-### Reestablish during simple-taproot upgrade
-
-#### channel_reestablish
-
-The `channel_reestablish` message does not change, but adds a nonce in the TLV
-section per the simple-taproot-channels proposal.
-
-1. `tlv_stream`: `channel_reestablish_tlvs`
+1. `tlv_stream`: `dyn_propose_tlvs`
 2. types:
-    1. type: 4 (`next_local_nonce`)
+    1. type: 5 (`funding_pubkey`)
     2. data:
-        * [`66*byte`:`public_nonce`]
-    1. type: 6 (`num_sent_commit_sigs`)
+        * [`point`:`senders_funding_pubkey`]
+    1. type: 6 (`channel_type`)
     2. data:
-        * [`u16`:`num_sigs`]
-    1. type: 8 (`num_recv_commit_sigs`)
+        * [`...*byte`:`type`]
+    1. type: 7 (`kickoff_feerate`)
     2. data:
-        * [`u16`:`num_sigs`]
-    1. type: 10 (`num_kickoff_sigs`)
-    2. data:
-        * [`u16`:`num_sigs`]
+        * [`u32`:`kickoff_feerate_per_kw`]
+
+#### Requirements
 
 The sending node:
-  - MUST set `next_local_nonce` if the sender sees it has persisted a
-    `channel_type` of `option_simple_taproot` from the `dyn_propose` /
-    `dyn_ack` negotiation steps.
-  - MUST set `num_sent_commit_sigs` to the number of `commitment_signed` it has
-    sent for this negotiation session.
-  - MUST set `num_recv_commit_sigs` to the number of `commitment_signed` it has
-    received for this negotiation session.
-  - if it is the funder:
-    - MUST set `num_kickoff_sigs` to the number of `kickoff_sig` messages it has
-      received.
-  - otherwise (it is the fundee):
-    - MUST set `num_kickoff_sigs` to the number of `kickoff_sig` messages it has
-      sent.
+  - if it is the initiator:
+    - MUST only send `kickoff_feerate` if they can pay for the kickoff
+      transaction fee and the anchor outputs, while adhering to the
+      `channel_reserve` restriction.
+  - MUST set `taproot_funding_key` to a valid secp256k1 compressed public key.
+  - SHOULD use a sufficiently high `kickoff_feerate` to be prepared for
+    worst-case fee environment scenarios.
+    - *NOTE FOR REVIEWERS*: We can also add a message to update the kickoff fee
+    rate if we have revocable kickoffs, similar to `update_fee` for commitment
+    transactions to make sure the kickoff has a sufficient fee to enter the
+    mempool. Anchors can be used to fee bump the kickoff beyond the min mempool
+    fee. Revocable kickoffs are possible but significantly increase the design
+    complexity.
 
 The receiving node:
-  - MUST send an `error` and fail the channel if `next_local_nonce` cannot be
-    parsed as two compressed secp256k1 points.
-  - if its sent `num_sent_commit_sigs` is one greater than the received
-    `num_recv_commit_sigs`:
-    - MUST retransmit the missing `commitment_signed`.
-  - if it is the fundee:
-    - if its sent `num_kickoff_sigs` is one greater than the received
-      `num_kickoff_sigs`:
-      - MUST retransmit the missing `kickoff_sig`.
-  - if messages were retransmitted:
-    - MUST continue with the rest of the signing flow until a `kickoff_sig` has
-      been sent for each fee-rate in `kickoff_feerates`.
+  - if it is the responder:
+    - MUST reject the `dyn_propose` if the initiator cannot pay for the kickoff
+      transaction fee and the anchor outputs.
+    - MUST reject the `dyn_propose` if, after calculating the amount of the new
+      funding output, the new commmitment transaction would not be able to pay
+      for any outputs at the current commitment feerate.
+  - MUST reject the `dyn_propose` if `taproot_funding_key` is not a valid
+    secp256k1 compressed public key.
+  - MAY reject the `dyn_propose` if it does not agree with the `channel_type`
 
-The signing phase is complete when the funder's sent `num_kickoff_sigs` is equal
-to the fundee's sent `num_kickoff_sigs` and is also equal to the number of
-fee-rates in `kickoff_feerates` from the persisted `dyn_propose` parameters.
+#### Rationale
+
+The `dyn_propose` renegotiates the funding keys as otherwise signatures for the
+funding keys would be exchanged in both the ECDSA and Schnorr contexts. This can
+lead to an attack outlined in [BIP340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki#alternative-signing).
+Renegotiating funding keys avoids this issue. Note that the various basepoints
+exchanged in `open_channel` and `accept_channel` are not renegotiated. Because
+the private keys _change_ with each commitment transaction they sign due to the
+`per_commitment_point` construction, the basepoints can be used in both ECDSA
+and Schnorr contexts.
+
+#### Extensions to `dyn_ack`:
+
+1. `tlv_stream`: `dyn_ack_tlvs`
+2. types:
+    1. type: 0 (`local_musig2_pubnonce`)
+    2. data:
+        * [`66*byte`:`nonces`]
+
+#### Requirements
+
+The sending node:
+  - if it is accepting a `channel_type` of `simple_taproot_channel`:
+    - MUST set `local_musig2_pubnonce` to the nonce that it will use to verify
+      local commitments.
+
+The receiving node:
+  - MUST send an `error` and fail the channel if `local_musig2_pubnonce` cannot
+    be parsed as two compressed secp256k1 points.
 
 # Appendix
 
@@ -1062,7 +1018,7 @@ transactions.
       - to_local_anchor: 43 bytes
       - to_remote_anchor: 43 bytes
     - lock_time: 4 bytes
-  
+
   - Multiplying non-witness data by 4 gives a weight of:
     - commitment_transaction_weight = 223vbytes * 4 = 892WU
   - Adding the witness data:
