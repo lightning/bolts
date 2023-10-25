@@ -42,15 +42,15 @@ when we can manage to do so. This is the main motivation of this proposal. Prior
 to this extension BOLT, there hasn't been a way to change some of the channel
 parameters established in the `{open|accept}_channel` messages without resorting
 to a full channel closure, even if the channel counterparty consents. This
-limitation can be remediated by introducing a protocol to renegotiate these 
+limitation can be remediated by introducing a protocol to renegotiate these
 parameters.
 
-Notable in particular is that one of the channel parameters that we wish to
+Notable in particular, is that one of the channel parameters we wish to
 renegotiate is the the `channel_type` itself. With the advent of Simple Taproot
 Channels (STCs), we have the opportunity to take advantage of the cost savings
-and privacy capabilities afforded by the 2021 Taproot Soft Fork. With further
+and privacy capabilities afforded by the 2021 Taproot Soft Fork, with further
 aspirations to be able to deploy Point Time-Lock Contracts (PTLCs) to the
-Lightning Network, the sooner that network participants can upgrade to STCs the
+Lightning Network. The sooner that network participants can upgrade to STCs the
 more we will have the necessary network infrastructure to be able to make
 effective use of PTLCs when the protocols for them are ready for deployment.
 
@@ -60,17 +60,17 @@ valid `channel_announcement` message that references the output corresponding to
 the nodes' joint public key. As such, even if we were to directly spend an
 existing funding output to a new STC funding output, and even with the provision
 in BOLT 7 to delay graph pruning by 12 blocks after the channel point is spent,
-we have no way to make the STC known to the network at the time of writing of
+we have no way of advertising the STC to the network at the time of writing of
 this proposal.
 
-Concurrent with th writing of this proposal is another proposal for a new gossip
+That said, there is a development effort, concurrent with this, for a new gossip
 system that is capable of understanding the announcements of new STCs. However,
 even with a new gossip system capable of understanding the STC construction and
 announcement, it will take quite some time for such a system to be broadly
-deployed across the Lightning Network. In the interim, to remove this
-disincentive of these channel upgrades to the involved parties, this proposal to
-enable the change of these channel parameters (including channel types) without
-requiring channel turnover is submitted.
+deployed across the Lightning Network. In the interim, to combat the
+disincentive of upgrading to STCs, this proposal to enable the change of these
+channel parameters (including channel types) without requiring channel turnover
+is submitted.
 
 ## Preliminaries
 This proposal includes a detailed section on the preliminaries to document some
@@ -117,7 +117,7 @@ remaining after we filter out these values is thus:
 - funding_pubkey
 - channel_type
 
-The design presented later is intended to allow for arbitrary changes to these
+The design presented here is intended to allow for arbitrary changes to these
 values that currently have no facilities for change in any other way.
 
 ### Gossip Verification
@@ -129,16 +129,17 @@ ownership of the UTXO and its viability as a routing edge for payment senders.
 
 BOLT 7 details all of the specifics of this message and how it is computed but
 one of the notable aspects of this process is that the receivers of these gossip
-messages verify that the UTXO being referenced for underwriting the existence of
-a channel must be a P2WSH output with a pre-defined script using the
-participants' public keys, specified in BOLT 3. This will present issues for us
-which will become clearer in the next section.
+messages verify that the UTXO underwriting the channel must be a P2WSH output
+with a pre-defined script using the participants' public keys, specified in
+BOLT 3. This will present issues for us which will become clearer in the next
+section.
 
-While alternative Gossip systems are being designed, they have not been deployed
-in any known implementation of the Lightning Network Protocol and even if they
-were there will be a prolonged period of time wherein some nodes on the network
-will remain unable to process messages of this variety, rendering useless any
-channels that are confined to being announced in this manner.
+While alternative gossip systems that can describe STCs are being designed, they
+have not been deployed in any known implementation of the Lightning Network
+Protocol and even when such a design is implemented, there will be a prolonged
+period of time wherein a substantial number of nodes on the network will remain
+unable to process messages of this variety, rendering useless any channels that
+can only be announced in this manner.
 
 ### Taproot
 This brings us to talking about what channel constructions are actually
@@ -157,13 +158,10 @@ it is for our purposes here.
 While Taproot channels are useful, they present some novel challenges with
 respect to network-wide interoperability. Notably, a useful Taproot channel
 construction must by definition make use of the new Taproot output type, which
-is not and cannot be a P2WSH output of the format detailed in BOLT 3 for the
+does not and cannot use the output script format detailed in BOLT 3 for the
 funding output. Pairing this fact with what we described in the previous
 section, it is necessarily the case that the funding output of a Taproot channel
 cannot be properly announced by the current gossip system.
-
-With this background out of the way we are finally fully primed to understand
-the nuances of the design.
 
 ## Design Overview
 The main goal of this proposal is to be able to change all of the historically
@@ -174,17 +172,16 @@ channel. This is a tall order.
 
 Most of these parameters can be changed by simply expressing the desire to
 change them, and should the recipient agree, we apply these changes, and
-exchange new commitment transactions making any necessary adjustments implied
+exchange new commitment transactions making any necessary adjustments prescribed
 by the channel parameter changes.
 
 The exception to this is certain changes to the channel type. As detailed in the
 preliminaries, the funding output of a Taproot transaction is fundamentally
 different from the funding output of the other channel types that are currently
-defined. This means that we conceptually must spend the funding output of the
-original channel into a new Taproot output before we have a functioning Taproot
-channel.
+defined. This means that we must spend the funding output of the original
+channel into a new Taproot output before we have a functioning Taproot channel.
 
-The key insight in this design is that we extend the conception of a commitment
+The key insight in this design is that we extend the concept of a commitment
 transaction to include the possibility of a pair of transactions wherein we have
 a "kickoff transaction" that is comprised of a single input (the original
 funding output) and a single output (the new funding output) and then building
@@ -196,12 +193,13 @@ convert existing channels into Taproot channels.
 # Specification
 There are three phases to this channel upgrade process: proposal, flushing, and
 execution. During the proposal phase the only goal is to agree on a set of
-updates to the current channel state machine. During the flushing phase, we
+updates to the current channel state machine. Assuming an agreement can be
+reached, we will proceed to the other two phases. During the flushing phase, we
 proceed with channel operation, allowing only `update_fulfill_htlc` and
 `update_fail_htlc` messages until all HTLCs have been cleared, similar to
-`shutdown`. During the execution phase, we apply the updates to the channel
-state machine, exchanging the necessary information to be able to apply those
-updates.
+`shutdown`. Finally, during the execution phase, we apply the updates to the
+channel state machine, exchanging the necessary information to be able to apply
+those updates.
 
 ## Proposal Phase
 
@@ -211,7 +209,7 @@ In every dynamic commitment negotiation, there are two roles: the `initiator`
 and the `responder`. It is necessary for both nodes to agree on which node is
 the `initiator` and which node is the `responder`. This is important because if
 the dynamic commitment negotiation results in a re-anchoring step (described
-later), it is the initiator that is responsible for paying the fees for the
+later), it is the `initiator` that is responsible for paying the fees for the
 kickoff transaction.
 
 ### Negotiation TLVs
@@ -268,9 +266,9 @@ change as well as accept or reject the proposal made by their counterparty.
 
 #### `dyn_propose`
 
-This message is sent to initiate the negotiation of a dynamic commitment
+This message is sent to negotiate the parameters of a dynamic commitment
 upgrade. The overall protocol flow looks similar to what is depicted below.
-This message is always sent by the initiator and MAY be sent by the responder
+This message is always sent by the `initiator` and the `responder`.
 
         +-------+                               +-------+
         |       |--(1)---- dyn_propose -------->|       |
@@ -322,7 +320,7 @@ TODO: handle edge case where both nodes send `dyn_propose` as `initiator`
 The sending node:
   - MUST set `channel_id` to an existing one it has with the recipient.
   - MUST NOT send a set of TLV parameters that would violate the requirements
-    of the identically named parameters in BOLT 2
+    of the identically named parameters in BOLT 2 or associated extensions.
   - MUST remember its last sent `dyn_propose` parameters.
   - if it is currently waiting for a response (`dyn_ack` or `dyn_reject`):
     - MUST NOT send another `dyn_propose`
@@ -334,7 +332,8 @@ The sending node:
       - MUST set `kickoff_feerate`
   - if it is the `responder`:
     - MUST set `initiator` to 0
-    - MUST NOT set the `channel_type` TLV
+    - MUST set the `channel_type` TLV to the same value as the one sent by the
+    `initiator`
     - MUST NOT set the `kickoff_feerate` TLV
     - MUST NOT send a set of TLV parameters that would violate the requirements
       of the identically named parameters in BOLT 2 **assuming** the acceptance
@@ -342,13 +341,17 @@ The sending node:
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the sender:
-    - MUST send an `error` and close the connection.
+    - SHOULD send an `error` and close the connection.
   - if it wishes to update additional parameters as part of the *same* dynamic
     commitment negotiation AND has not yet sent a `dyn_ack` message:
     - MUST send a `dyn_propose` with its desired parameters
     - MUST NOT send a `dyn_propose` after a `dyn_ack` for the same negotiation
     - MUST send a `dyn_ack` to accept the parameters it was sent
     - MUST NOT send a `dyn_reject`
+
+_NOTE FOR REVIEWERS_: These messages all interact with each other, so feedback
+is welcome for how to restructure this section so that the invariants it
+prescribes are found in the most intuitive place.
 
 ##### Rationale
 
@@ -358,11 +361,11 @@ trying change channel parameters without a close event. BOLT 2 specifies
 constraints on these parameters to make sure they are internally consistent and
 secure in all contexts.
 
-Since the initiator is the one that is responsible for paying the fees for the
+Since the `initiator` is the one that is responsible for paying the fees for the
 kickoff transaction if it is required (like for certain `channel_type` changes),
-it follows that the responder cannot change the `channel_type`. Since the
-`kickoff_feerate` is solely for these scenarios it follows that it should only
-be set when the `channel_type` is set.
+it follows that the `responder` cannot change the `channel_type`. Since the
+`kickoff_feerate` paid by the `initiator`, it should be set only if the sender
+is the `initiator`.
 
 The requirement for a node to remember what it last _sent_ and for it to
 remember what it _accepted_ is necessary to recover on reestablish. See the
@@ -517,7 +520,7 @@ similar to the procedure that occurs during `shutdown`. During this phase, no
 new HTLCs may be added by either party, but they may be removed, either by a
 fulfill or fail operation. Once all HTLCs have been cleared from both sides of
 the channel, and both channel parties have irrevocably committed to this empty
-state, we enter the execution phase.
+state, we enter the Execution Phase.
 
 ## Execution Phase
 
@@ -591,11 +594,17 @@ output_.
 
         +-------+                               +-------+
         |       |--(1)---- commit_signed------->|       |
+        |       |                               |       |
         |       |<-(2)---- commit_signed -------|       |
+        |       |                               |       |
+        |       |                               |       |
         |       |<-(3)----- kickoff_sig --------|       |
-        |   A   |--(4)----- kickoff_sig ------->|   B   |
+        |   A   |                               |   B   |
+        |       |--(4)----- kickoff_sig ------->|       |
+        |       |                               |       |
         |       |                               |       |
         |       |--(5)---- revoke_and_ack ----->|       |
+        |       |                               |       |
         |       |<-(6)---- revoke_and_ack ------|       |
         +-------+                               +-------+
 
@@ -730,23 +739,17 @@ The receiving node (the funder):
 
 ##### Rationale
 
-To avoid the fundee griefing the funder by broadcasting the highest-fee kickoff
-transaction, only the fundee sends `kickoff_sig`. This ensures that only the
-funder can broadcast the kickoff transaction.
-
-Even though only the funder is able to broadcast the kickoff transaction, we
-include anchors such that the fundee can broadcast fee-bumping transactions if
-they notice any of the kickoff transactions in the mempool.
+TODO: Explain some shit here
 
 ### Additional Requirements: ~Musig2 Taproot -> Musig2 Taproot
 
 This section describes how dynamic commitments can upgrade regular channels to
 simple taproot channels. The regular dynamic proposal phase is executed followed
 by a signing phase. A `channel_type` of `option_taproot` will be included in
-`dyn_propose` and both sides must agree on it. The initiator of the upgrade will
-also propose a feerate to use for an intermediate "kickoff" transaction.
+`dyn_propose` and both sides must agree on it. The `initiator` of the upgrade
+will also propose a feerate to use for an intermediate "kickoff" transaction.
 
-#### Extensions to `dyn_propose`:
+#### Required `dyn_propose` TLVs:
 
 1. `tlv_stream`: `dyn_propose_tlvs`
 2. types:
@@ -763,7 +766,7 @@ also propose a feerate to use for an intermediate "kickoff" transaction.
 #### Requirements
 
 The sending node:
-  - if it is the initiator:
+  - if it is the `initiator`:
     - MUST only send `kickoff_feerate` if they can pay for the kickoff
       transaction fee and the anchor outputs, while adhering to the
       `channel_reserve` restriction.
@@ -778,8 +781,8 @@ The sending node:
     complexity.
 
 The receiving node:
-  - if it is the responder:
-    - MUST reject the `dyn_propose` if the initiator cannot pay for the kickoff
+  - if it is the `responder`:
+    - MUST reject the `dyn_propose` if the `initiator` cannot pay for the kickoff
       transaction fee and the anchor outputs.
     - MUST reject the `dyn_propose` if, after calculating the amount of the new
       funding output, the new commmitment transaction would not be able to pay
@@ -856,9 +859,13 @@ local party's anchor, the remote party's anchor, and the new funding output. All
 three of these outputs can be spent immediately.  A malicious counterparty can
 pin the kickoff transaction by:
   - spending from their anchor output to create a descendant chain of 25
-    transactions
-  - then spending from the new funding output, "using up" the CPFP Carve-out
-    slot designated for the honest party.
+    transactions _AND_
+  - spending from the new funding output using the new commitment transaction,
+    "using up" the CPFP Carve-out slot designated for the honest party.
+_NOTE FOR REVIEWERS_: The semantics of CPFP carve-out are not entirely clear
+as to whether or not there is only _one_ CPFP-Carve-Out "slot" or if the only
+two requirements are the 40kWU limit and a single unconfirmed ancestor. If we
+have more than one "slot" available, this is no longer a concern.
 
 Depending on fee conditions, it may not be possible for the honest party to get
 these transactions confirmed until the mempool clears up.
@@ -867,8 +874,8 @@ If we were to get rid of the kickoff transaction's anchor outputs, the problem
 still arises. A malicious counterparty could still pin the kickoff transaction
 by:
   - broadcasting the commitment transaction
-  - spending from their anchor output and creating a descendant chain of 25
-    transactions
+  - spending from their commitment anchor output and creating a descendant chain
+    of 25 transactions
 
 The honest party is unable to use their anchor on the commitment transaction as:
   - the descendant limit of 25 transactions has been hit
@@ -879,17 +886,12 @@ The honest party is unable to use their anchor on the commitment transaction as:
 
 The above pinning scenarios highlight the complexity of second-layer protocols
 and mempool restrictions. In this proposal, pinning is _still_ possible, but
-risk is mitigated because:
-  - the kickoff transaction MUST confirm before HTLCs can be added to the
-    commitment transaction
-  - no HTLCs exist on the commitment transaction while the kickoff transaction
-    is unconfirmed
+risk can be controlled if nodes reduce their max_htlc_value_in_flight_msat
+values while the kickoff transaction is unconfirmed
 
-If we allowed adding HTLCs _before_ the kickoff transaction confirmed on-chain,
-the pinning attack would now have a tangible benefit: the ability to steal the
-value of an HTLC. The second requirement above is very similar to the first
-requirement: by disallowing HTLCs when `dyn_propose` is sent, we ensure that the
-counterparty has no incentive to pin the kickoff transaction.
+If we allow adding HTLCs _before_ the kickoff transaction confirmed on-chain,
+the pinning attack has a tangible benefit: the ability to steal the value of an
+HTLC.
 
 ## Weights
 
