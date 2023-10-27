@@ -418,9 +418,7 @@ the proposal.
 1. type: 115 (`dyn_reject`)
 2. data:
     * [`32*byte`:`channel_id`]
-
-1. `tlv_stream`: `dyn_propose_tlvs`
-2. types: See `dyn_propose` for TLV breakdown
+    * [`...*byte`:`update_rejections`]
 
 ##### Requirements
 
@@ -432,9 +430,13 @@ The sending node:
   - MUST NOT send this message if it has already sent a `dyn_reject` for the
     current negotiation.
   - if it will not accept **any** dynamic commitment negotiation:
-    - SHOULD send a `dyn_reject` **with an empty TLV stream**
+    - SHOULD send a `dyn_reject` with zero value for `update_rejections`
   - if it does not agree with one or more parameters:
-    - MUST send a `dyn_reject` with the set TLV records it rejects
+    - MUST send a `dyn_reject` with the bit index (using the same layout as
+      feature negotiation) set corresponding to the TLV type number.
+      - Example: an objection to the `dust_limit` would be encoded as
+        0b00000001, an objection to `max_value_in_flight` would be encoded as
+        0b00000010, and an objection to both would be encoded as 0b00000011.
   - if it has sent a `dyn_propose` in the current negotiation
     - MUST forget its last sent `dyn_propose` parameters
   - MUST forget the parameters of the `dyn_propose` message to which the
@@ -446,14 +448,14 @@ The receiving node:
   - if there isn't an outstanding `dyn_propose` it has sent
     - MUST send an `error` and fail the channel
   - MUST forget its last sent `dyn_propose` parameters.
-  - if the TLV stream is empty
+  - if the `update_rejections` is a zero value
     - SHOULD NOT re-attempt another dynamic commitment negotation for the
       remaining lifecycle of the connection
-  - if the TLV stream is NOT empty
+  - if the `update_rejections` is a non-zero value:
     - MAY re-attempt another dynamic commitment negotiation
     - if a dynamic commitment negotiation is re-attempted:
-      - SHOULD relax any parameters that were specified in the TLV stream of
-        the `dyn_reject` message.
+      - SHOULD relax the parameters whose TLV types match the bits that were set
+        in the `update_rejections` value.
       - if no sensible interpretation of "relax" exists:
         - SHOULD NOT re-attempt a dynamic commitment negotiation with this
           parameter set.
