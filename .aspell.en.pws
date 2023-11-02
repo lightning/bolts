@@ -286,6 +286,13 @@ pico
 mainnet
 testnet
 icecream
+extractable
+de
+anonymize
+Punycode
+rck
+sck
+zeroconf
 swiss
 lollypop
 UTC
@@ -394,3 +401,5 @@ pkh
 kB
 unblind
 unblinded
+accepter
+kiloweight
