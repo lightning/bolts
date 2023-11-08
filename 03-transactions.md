@@ -11,13 +11,18 @@ This details the exact format of on-chain transactions, which both sides need to
     * [Commitment Transaction](#commitment-transaction)
         * [Commitment Transaction Outputs](#commitment-transaction-outputs)
           * [`to_local` Output](#to_local-output)
+            * [`to_local` Leased channel (`option_will_fund`)](#to-local-leased-channel-option_will_fund)
           * [`to_remote` Output](#to_remote-output)
+            * [`to_remote` Leased channel (`option_will_fund`)](#to-remote-leased-channel-option_will_fund)
           * [`to_local_anchor` and `to_remote_anchor`](#to_local_anchor-and-to_remote_anchor-output-option_anchor_outputs)
           * [Offered HTLC Outputs](#offered-htlc-outputs)
+            * [Leasee Offered HTLC Outputs (`option_will_fund`)](#leasee-offered-htlc-outputs-option_will_fund)
           * [Received HTLC Outputs](#received-htlc-outputs)
+            * [Leasee Received HTLC Outputs (`option_will_fund`)](#leasee-received-htlc-outputs-option_will_fund)
         * [Trimmed Outputs](#trimmed-outputs)
     * [HTLC-timeout and HTLC-success Transactions](#htlc-timeout-and-htlc-success-transactions)
-	* [Closing Transaction](#closing-transaction)
+        * [Lease Locked Success and Timeout Transactions (`option-will-fund`)](#lease-locked-success-and-timeout-transactions-option_will_fund)
+    * [Closing Transaction](#closing-transaction)
     * [Fees](#fees)
         * [Fee Calculation](#fee-calculation)
         * [Fee Payment](#fee-payment)
@@ -128,29 +133,27 @@ If a revoked commitment transaction is published, the other party can spend this
 
     <revocation_sig> 1
 
-##### Leased channel (`option_will_fund`)
+##### `to_local` Leased channel (`option_will_fund`)
 
-If a `lease` applies to the channel, the `to_local` output of the `accepter`
-ensures the `leasor` funds are not spendable until the lease expires.
-
-In a leased channel, the `to_local` output that pays the `accepter` node
-is modified so that its CSV is equal to the greater of the
-`to_self_delay` or the `lease_end` - `blockheight`.
+If a `lease` applies to the channel, the `to_local` output of the 
+`leasor`'s commitment transaction is encumbered with a CLTV set to 
+the `lease_end`.
 
     OP_IF
         # Penalty transaction
         <revocationpubkey>
     OP_ELSE
-        MAX(`to_self_delay`, `lease_end` - `blockheight`)
+    	<lease_end> OP_CHECKLOCKTIMEVERIFY OP_DROP
+        `to_self_delay`
         OP_CHECKSEQUENCEVERIFY
         OP_DROP
         <local_delayedpubkey>
     OP_ENDIF
     OP_CHECKSIG
 
-The output is spent by an input with `nSequence` field set to
-MAX(`to_self_delay`, `lease_end` - `blockheight`)
-(which can only be valid after that duration has passed) and witness:
+The output is spent by a transaction with `nLocktime` field set to
+`lease_end`, containing an input with `nSequence` set to `to_self_delay` 
+and witness:
 
     <local_delayedsig> <>
 
@@ -167,19 +170,24 @@ The output is spent by an input with `nSequence` field set to `1` and witness:
 Otherwise, this output is a simple P2WPKH to `remotepubkey`. Note: the remote's commitment transaction uses your `localpubkey` for their
 `to_remote` output to yourself.
 
-##### Leased channel (`option_will_fund`)
+##### `to_remote` Leased channel (`option_will_fund`)
 
-FIXME: convert from CSV to CLTV!
+If a `lease` applies to the channel, the `to_remote` output 
+of the `lessor`'s commitment transaction is 
+encumbered with a CLTV set to the `lease_end`. This ensures
+the `leasor`'s funds are not spendable until the lease expires.
 
-If a `lease` applies to the channel, the `to_remote` output of the `initiator`
-ensures the `leasor` funds are not spendable until the lease expires.
+    <lease_end> OP_CHECKLOCKTIMEVERIFY OP_DROP
+    <remotepubkey> 
+    # NOTE: if `option_anchors` applies, the following line is included
+    OP_CHECKSIGVERIFY 1 OP_CHECKSEQUENCEVERIFY
 
-    <remote_pubkey> OP_CHECKSIGVERIFY MAX(1, lease_end - blockheight) OP_CHECKSEQUENCEVERIFY
-
-The output is spent by an input with `nSequence` field set to
-MAX(`1`, `lease_end` - `blockheight`) and witness:
+The output is spent by a transaction with `nLocktime` field set to
+`lease_end` and witness:
 
     <remote_sig>
+
+If `option_anchors`, the input's `nSequence` field is set to `1`.
 
 #### `to_local_anchor` and `to_remote_anchor` Output (option_anchors)
 
@@ -246,8 +254,6 @@ Or, with `option_anchors`:
             # To remote node with preimage.
             OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
             OP_CHECKSIG
-	    *iff `option_will_fund` and offered to lessor + has active lease (`lease_end` - `blockheight` > 1)
-            `lease_end` - `blockheight` OP_CHECKSEQUENCEVERIFY OP_DROP
         OP_ENDIF
         1 OP_CHECKSEQUENCEVERIFY OP_DROP
     OP_ENDIF
@@ -264,6 +270,45 @@ If a revoked commitment transaction is published, the remote node can spend this
     <revocation_sig> <revocationpubkey>
 
 The sending node can use the HTLC-timeout transaction to timeout the HTLC once the HTLC is expired, as shown below. This is the only way that the local node can timeout the HTLC, and this branch requires `<remotehtlcsig>`, which ensures that the local node cannot prematurely timeout the HTLC since the HTLC-timeout transaction has `cltv_expiry` as its specified `locktime`. The local node must also wait `to_self_delay` before accessing these funds, allowing for the remote node to claim these funds if the transaction has been revoked.
+
+### Leasee Offered HTLC Outputs (`option_will_fund`)
+
+If a `lease` applies to the channel, the leasee's `to_remote` clause of a
+commitment transaction now spends to a second transaction, termed the
+lease-timeout transaction. The funds are sent into this second stage 
+transaction, identical to how the lessor's funds are in an offered 
+HTLC output. This ensures the `lessor`'s funds are not 
+accessible until `lease_end`.
+
+    # To remote node with revocation key
+    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
+    OP_IF
+        OP_CHECKSIG
+    OP_ELSE
+        <remote_htlcpubkey> OP_SWAP OP_SIZE 32 OP_EQUAL
+        OP_NOTIF
+            # To local node via HTLC-timeout transaction (timelocked).
+            OP_DROP 2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
+        OP_ELSE
+            # To remote node via lease-locked success transaction (timelocked).
+            OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
+            2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
+            OP_CHECKSIG
+        OP_ENDIF
+	# NOTE: if `option_anchors` applies, the following line is included
+        1 OP_CHECKSEQUENCEVERIFY OP_DROP
+    OP_ENDIF
+
+
+Note that if `option_anchors` applies, the nSequence field of
+the spending input must be `1`.
+
+To redeem the remote funds, the lease-locked transaction is used as detailed below.
+This is the only way that the remote node can spend funds, since this branch requires
+ `<localhtlcsig>`, which ensures that the remote node must wait until `lease_end`
+before accessing these funds. The remote node cannot access their channel funds
+until the lease has ended.
+
 
 #### Received HTLC Outputs
 
@@ -318,6 +363,44 @@ If a revoked commitment transaction is published, the remote node can spend this
     <revocation_sig> <revocationpubkey>
 
 To redeem the HTLC, the HTLC-success transaction is used as detailed below. This is the only way that the local node can spend the HTLC, since this branch requires `<remotehtlcsig>`, which ensures that the local node must wait `to_self_delay` before accessing these funds allowing for the remote node to claim these funds if the transaction has been revoked.
+
+
+### Leasee Received HTLC Outputs (`option_will_fund`)
+
+If a `lease` applies to the channel, the leasee's `to_remote` clause of a
+commitment transaction now spends to a second transaction, termed the
+lease-locked timeout transaction. The funds are sent into this second stage 
+transaction, identical to how the lessor's funds are in an offered 
+HTLC output. This ensures the `lessor`'s funds are not 
+accessible until `lease_end`.
+
+    # To remote node with revocation key
+    OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
+    OP_IF
+        OP_CHECKSIG
+    OP_ELSE
+        <remote_htlcpubkey> OP_SWAP OP_SIZE 32 OP_EQUAL
+        OP_IF
+            # To local node via HTLC-success transaction.
+            OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
+            2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
+	    # NOTE: if `option_anchors` applies, the following line is included
+            1 OP_CHECKSEQUENCEVERIFY OP_DROP
+        OP_ELSE
+            # To remote node via lease locked-timeout transaction (timelocked).
+            OP_DROP 2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
+        OP_ENDIF
+    OP_ENDIF
+
+
+Note that if `option_anchors` applies, the nSequence field of
+the spending input must be `1`.
+
+To redeem the remote funds, the lease-locked transaction is used as detailed below.
+This is the only way that the remote node can spend funds, since this branch requires
+ `<localhtlcsig>`, which ensures that the remote node must wait until `lease_end`
+before accessing these funds. 
+
 
 ### Trimmed Outputs
 
@@ -391,6 +474,35 @@ The witness script for the output is:
     OP_CHECKSIG
 
 To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1`, and to collect the output, the local node uses an input with nSequence `to_self_delay` and a witness stack `<local_delayedsig> 0`.
+
+### Lease Locked Success and Timeout Transactions (`option_will_fund`)
+
+The lease locked transactions are almost identical, the only difference is the
+witness stack elements: lease locked success contains the preimage of the HTLC.
+
+Note: lease locked transactions are not spendable by a penalty transaction, as
+they hold funds that belong to the non-closing peer.
+
+* version: 2
+* locktime: `lease_end`
+* txin count: 1
+   * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the lease locked transaction
+   * `txin[0]` sequence: `0` (set to `1` for `option_anchors`)
+   * `txin[0]` script bytes: `0`
+   * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for lease locked-success, `0 <remotehtlcsig> <localhtlcsig> <>` for lease locked-timeout
+* txout count: 1
+   * `txout[0]` amount: the HTLC `amount_msat` divided by 1000 (rounding down) minus fees in satoshis (see [Fee Calculation](#fee-calculation))
+   * `txout[0]` script: version-0 P2WSH with witness script as shown below
+* if `option_anchors` applies to this commitment transaction, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used as described in [BOLT #5](05-onchain.md#generation-of-htlc-transactions).
+
+The witness script for the output is:
+
+    `lease_end`
+    OP_CHECKSEQUENCEVERIFY
+    OP_DROP
+    <remote_htlcpubkey>
+    OP_CHECKSIG
+
 
 ## Closing Transaction
 
