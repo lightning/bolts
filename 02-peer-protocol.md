@@ -533,6 +533,10 @@ they may obtain incoming liquidity at no cost).
 A sending node:
   - MUST NOT have already transmitted `tx_signatures`
   - SHOULD forget the current negotiation and reset their state.
+  - MAY send an empty `data` field.
+  - when failure was caused by an invalid signature check:
+    - SHOULD include the raw, hex-encoded transaction in reply to a
+      `tx_signatures` or `commitment_signed` message.
 
 A receiving node:
   - if they have already sent `tx_signatures` to the peer:
@@ -542,6 +546,10 @@ A receiving node:
     - SHOULD forget the current negotiation and reset their state.
   - if they have not sent `tx_abort`:
     - MUST echo back `tx_abort`
+  - if `data` is not composed solely of printable ASCII characters (For
+    reference: the printable character set includes byte values 32 through
+    126, inclusive):
+    - SHOULD NOT print out `data` verbatim.
 
 #### Rationale
 
