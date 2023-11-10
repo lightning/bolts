@@ -231,7 +231,7 @@ Each node must know the set of the transaction inputs. The *non-initiator*
 MAY omit this message.
 
 `serial_id` is a randomly chosen number which uniquely identifies this input.
-Inputs in the constructed transaction are sorted by `serial_id`.
+Inputs in the constructed transaction MUST be sorted by `serial_id`.
 
 `prevtx` is the serialized transaction that contains the output
 this input spends. Used to verify that the input is non-malleable.
@@ -304,7 +304,7 @@ The receiving node:
 Each node must know the set of the transaction outputs.
 
 `serial_id` is a randomly chosen number which uniquely identifies this output.
-Outputs in the constructed transaction are sorted by `serial_id`.
+Outputs in the constructed transaction MUST be sorted by `serial_id`.
 
 `sats` is the satoshi value of the output.
 
