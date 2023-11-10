@@ -359,7 +359,9 @@ The nodes:
 The receiving node:
   - MUST use the negotiated inputs and outputs to construct a transaction
   - MUST fail the negotiation if:
-    - the peer's total input satoshis is less than their outputs
+    - the peer's total input satoshis is less than their outputs. One MUST
+      account for the peer's portion of the funding output when verifying
+      compliance with this requirement.
     - the peer's paid feerate does not meet or exceed the agreed `feerate`
       (based on the `minimum fee`).
     - if is the *non-initiator*:
