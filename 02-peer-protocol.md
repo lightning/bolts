@@ -1371,13 +1371,13 @@ The sending node:
     - MUST NOT send a `tx_signatures` message
 
 The receiving node:
+  - if has already sent or received a `channel_ready` message for this
+    channel:
+    - MUST ignore this message
   - if the `witness` weight lowers the effective `feerate`
     below the *opener*'s feerate for the funding transaction:
     - SHOULD broadcast their commitment transaction, closing the channel.
   - SHOULD apply `witnesses` to the funding transaction and broadcast it
-  - if has already sent or received a `channel_ready` message for this
-    channel:
-    - MUST ignore this message
 
 #### Rationale
 
@@ -1385,10 +1385,10 @@ A peer sends their `tx_signatures` after receiving a valid `commitment_signed`
 message, following the order specified in the [`tx_signatures` section](#the-tx_signatures-message).
 
 In the case where a peer provides valid witness data that causes their paid
-feerate to fall beneath the `open_channel2.funding_feerate_perkw`, the protocol
-should be aborted and the channel should be double-spent when there is a
-productive opportunity to do so. This should disincentivize peers from
-underpaying fees.
+feerate to fall beneath the `open_channel2.funding_feerate_perkw`, the channel
+should be considered failed and the channel should be double-spent when
+there is a productive opportunity to do so. This should disincentivize
+peers from underpaying fees.
 
 ### Fee bumping: `tx_init_rbf` and `tx_ack_rbf`
 
