@@ -407,6 +407,7 @@ The sending node:
   - MUST order the `witnesses` by the `serial_id` of the input they
     correspond to
   - `num_witnesses`s MUST equal the number of inputs they added
+  - MUST use the `SIGHASH_ALL` (0x01) flag on each signature
 
 The receiving node:
   - MUST fail the negotiation if:
@@ -415,11 +416,9 @@ The receiving node:
       added by the sending node
     - the `txid` does not match the txid of the transaction
     - the `witnesses` are non-standard
+    - a signature uses a flag that is not `SIGHASH_ALL` (0x01)
   - SHOULD apply the `witnesses` to the transaction and broadcast it
   - MUST reply with their `tx_signatures` if not already transmitted
-
-Both nodes:
-  - MUST sign the transaction using SIGHASH_ALL
 
 #### Rationale
 
