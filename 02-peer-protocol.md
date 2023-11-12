@@ -1317,8 +1317,8 @@ Upon receipt of consecutive `tx_complete`s, the receiving node:
     - MUST fail the negotiation if:
       - the transaction's total fees is less than the last
         successfully negotiated transaction's fees
-      - the transaction does not share a common input with all previous
-        funding transactions
+      - the transaction does not share at least one input with
+        each previous funding transaction
   - if it has sent `require_confirmed_inputs` in `open_channel2` or `accept_channel2`:
     - MUST fail the negotiation if:
       - one of the inputs added by the other peer is unconfirmed
