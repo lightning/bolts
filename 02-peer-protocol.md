@@ -1374,8 +1374,12 @@ The receiving node:
     channel:
     - MUST ignore this message
   - if the `witness` weight lowers the effective `feerate`
-    below the *opener*'s feerate for the funding transaction:
-    - SHOULD broadcast their commitment transaction, closing the channel.
+    below the *opener*'s feerate for the funding transaction and the effective
+    `feerate` is determined by the receiving node to be insufficient for
+    getting the transaction confirmed in a timely manner:
+    - SHOULD broadcast their commitment transaction, closing the channel
+    - SHOULD double-spend their channel inputs when there is a productive
+      opportunity to do so; effectively canceling this channel open
   - SHOULD apply `witnesses` to the funding transaction and broadcast it
 
 #### Rationale
