@@ -846,6 +846,54 @@ The receiving node:
 
 # Appendix
 
+## NOTE FOR REVIEWERS: Dropping the Flush Requirement
+
+This proposal currently requires that the HTLCs on the channel are flushed
+before new channel parameters are applied. To drop this requirement we will need
+to be able to apply each of these channel parameter changes to channels with
+in-flight HTLCs. The following possible issues arise of the channel still has
+HTLCs on it when we try to change parameters
+
+### `dust_limit_satoshis`
+If this parameter changes with live HTLCs it can result in pruning or unpruning
+HTLCs from the commitment transaction when the next one is signed. We can either
+handle this by immediately signing a new commitment transaction and revoking the
+old one, or we can let the pruning/unpruning take place on the next channel
+state change.
+
+### `max_htlc_value_in_flight_msat`
+If this parameter changes with live HTLCs it can result in the new ceiling being
+too low for the current in-flight amount. If this occurs we can either reject
+the negotiation, or we can apply it immediately and then only use it to gate new
+HTLC adds.
+
+### `channel_reserve_satoshis`
+If this parameter changes with live HTLCs there are no repercussions.
+
+### `to_self_delay`
+If this parameter changes with live HTLCs we will need to sign a new commitment
+transaction similar to without live HTLCs, however, it will also require using
+the new `to_self_delay` in all of the HTLC signatures in the `commitment_signed`
+message.
+
+### `max_accepted_htlcs`
+Similar to the `max_htlc_value_in_flight_msat`, if the current number of live
+HTLCs on the commitment transaction exceeds the new threshold, we still only
+need to apply the check on a new HTLC add.
+
+### `funding_pubkey`
+Changing the funding pubkey requires a re-anchoring step but does not impact the
+commitment transaction itself. There are no repercussions here because the
+result is the same as if we changed the `funding_pubkey` and then added HTLCs
+to the channel.
+
+### `channel_type`
+It is not out of the question that future channel types could make certain
+`channel_type` conversions untenable (PTLCs), however, with the change from
+option_anchor to STCs and the change from option_static_remote_key to either of
+those behave exactly like changes to `funding_pubkey` for the purposes of doing
+it with live HTLCs.
+
 ## Pinning
 
 ![Cannot display image](./dynamic-commits/kickoff%20pinning.png "Kickoff transaction pinned")
