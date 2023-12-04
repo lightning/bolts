@@ -191,15 +191,12 @@ always be necessary, but it is certainly necessary for using this proposal to
 convert existing channels into Taproot channels.
 
 # Specification
-There are three phases to this channel upgrade process: proposal, flushing, and
-execution. During the proposal phase the only goal is to agree on a set of
-updates to the current channel state machine. Assuming an agreement can be
-reached, we will proceed to the other two phases. During the flushing phase, we
-proceed with channel operation, allowing only `update_fulfill_htlc` and
-`update_fail_htlc` messages until all HTLCs have been cleared, similar to
-`shutdown`. Finally, during the execution phase, we apply the updates to the
-channel state machine, exchanging the necessary information to be able to apply
-those updates.
+There are two phases to this channel upgrade process: proposal, and execution.
+During the proposal phase the only goal is to agree on a set of updates to the
+current channel state machine. Assuming an agreement can be reached, we will
+proceed to the execution phase. During the execution phase, we apply the updates
+to the channel state machine, exchanging the necessary information to be able to
+apply those updates.
 
 ## Proposal Phase
 
@@ -515,19 +512,9 @@ side that hasn't received `dyn_ack` knows that the other side accepted their
 last sent `dyn_propose` based on the `dyn_height` in the reestablish
 message.
 
-## Flushing Phase
-
-Once the Negotiation Phase is complete, the channel enters a Flushing Phase
-similar to the procedure that occurs during `shutdown`. During this phase, no
-new HTLCs may be added by either party, but they may be removed, either by a
-fulfill or fail operation. Once all HTLCs have been cleared from both sides of
-the channel, and both channel parties have irrevocably committed to this empty
-state, we enter the Execution Phase.
-
 ## Execution Phase
 
-There are three fundamental types of execution paths following the flushing of
-HTLCs:
+There are three fundamental types of execution paths:
 1. Rules Change - No additional state change is required, the next state will be
 expected to follow the new rules that have been negotiated. Channel may resume
 normal operation.
@@ -550,7 +537,8 @@ is selected from the list above will be the one with the highest number that is
 triggered by the below rules: Funding Output Update > Commitment Update > Rules
 Change.
 
-- If either channel party changes `dust_limit_satoshis`: Rules Change
+- If either channel party changes `dust_limit_satoshis`: Commitment Update
+- If either channel party changes `max_htlc_value_in_flight_msat`: Rules Change
 - If either channel party changes `channel_reserve_satoshis`: Rules Change
 - If either channel party changes `to_self_delay`: Commitment Update
 - If either channel party changes `max_accepted_htlcs`: Rules Change
@@ -562,8 +550,10 @@ Change.
 
 If all that is required to execute the terms of the dynamic commitment
 negotiation is a rules change, then channel operation may resume as normal
-under the new rules as soon as both channel parties have irrevocably committed
-to a state with no HTLC outputs.
+under the new rules. It is possible that the current channel state would violate
+the constraints specified by the new rules. When we execute a rules change, only
+new channel states will be evaluated against the new rules. As long as the new
+channel state moves towards the constraint boundary, it will be accepted.
 
 ### Commitment Update
 
@@ -845,54 +835,6 @@ The receiving node:
     be parsed as two compressed secp256k1 points.
 
 # Appendix
-
-## NOTE FOR REVIEWERS: Dropping the Flush Requirement
-
-This proposal currently requires that the HTLCs on the channel are flushed
-before new channel parameters are applied. To drop this requirement we will need
-to be able to apply each of these channel parameter changes to channels with
-in-flight HTLCs. The following possible issues arise of the channel still has
-HTLCs on it when we try to change parameters
-
-### `dust_limit_satoshis`
-If this parameter changes with live HTLCs it can result in pruning or unpruning
-HTLCs from the commitment transaction when the next one is signed. We can either
-handle this by immediately signing a new commitment transaction and revoking the
-old one, or we can let the pruning/unpruning take place on the next channel
-state change.
-
-### `max_htlc_value_in_flight_msat`
-If this parameter changes with live HTLCs it can result in the new ceiling being
-too low for the current in-flight amount. If this occurs we can either reject
-the negotiation, or we can apply it immediately and then only use it to gate new
-HTLC adds.
-
-### `channel_reserve_satoshis`
-If this parameter changes with live HTLCs there are no repercussions.
-
-### `to_self_delay`
-If this parameter changes with live HTLCs we will need to sign a new commitment
-transaction similar to without live HTLCs, however, it will also require using
-the new `to_self_delay` in all of the HTLC signatures in the `commitment_signed`
-message.
-
-### `max_accepted_htlcs`
-Similar to the `max_htlc_value_in_flight_msat`, if the current number of live
-HTLCs on the commitment transaction exceeds the new threshold, we still only
-need to apply the check on a new HTLC add.
-
-### `funding_pubkey`
-Changing the funding pubkey requires a re-anchoring step but does not impact the
-commitment transaction itself. There are no repercussions here because the
-result is the same as if we changed the `funding_pubkey` and then added HTLCs
-to the channel.
-
-### `channel_type`
-It is not out of the question that future channel types could make certain
-`channel_type` conversions untenable (PTLCs), however, with the change from
-option_anchor to STCs and the change from option_static_remote_key to either of
-those behave exactly like changes to `funding_pubkey` for the purposes of doing
-it with live HTLCs.
 
 ## Pinning
 
