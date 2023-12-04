@@ -200,6 +200,10 @@ apply those updates.
 
 ## Proposal Phase
 
+As a prerequisite to the proposal phase of a Dynamic Commitment negotiation, the
+channel must be in a [quiesced](https://github.com/lightning/bolts/pull/869)
+state.
+
 ### Node Roles
 
 In every dynamic commitment negotiation, there are two roles: the `initiator`
