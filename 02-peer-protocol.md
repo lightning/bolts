@@ -451,6 +451,7 @@ completed.
     1. type: 0 (`funding_output_contribution`)
     2. data:
         * [`s64`:`satoshis`]
+   1. type: 2 (`require_confirmed_inputs`)
 
 #### Requirements
 
@@ -459,6 +460,8 @@ The sender:
     of the previously constructed transaction, rounded down.
   - If it contributes to the transaction's funding output:
     - MUST set `funding_output_contribution`
+  - If it requires the receiving node to only use confirmed inputs:
+    - MUST set `require_confirmed_inputs`
 
 The recipient:
   - MUST respond either with `tx_abort` or with `tx_ack_rbf`
@@ -466,6 +469,8 @@ The recipient:
     - the `feerate` is not greater than or equal to 25/24 times `feerate`
       of the last successfully constructed transaction
   - MAY send `tx_abort` for any reason
+  - MUST fail the negotiation if:
+    - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
 
 #### Rationale
 
@@ -492,21 +497,27 @@ not contributing to the funding output.
    * [`channel_id`:`channel_id`]
    * [`tx_ack_rbf_tlvs`:`tlvs`]
 
+
 1. `tlv_stream`: `tx_ack_rbf_tlvs`
 2. types:
     1. type: 0 (`funding_output_contribution`)
     2. data:
         * [`s64`:`satoshis`]
+   1. type: 2 (`require_confirmed_inputs`)
 
 #### Requirements
 
 The sender:
   - If it contributes to the transaction's funding output:
     - MUST set `funding_output_contribution`
+  - If it requires the receiving node to only use confirmed inputs:
+    - MUST set `require_confirmed_inputs`
 
 The recipient:
   - MUST respond with `tx_abort` or with a `tx_add_input` message,
     restarting the interactive tx collaboration protocol.
+  - MUST fail the negotiation if:
+    - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
 
 #### Rationale
 
@@ -1286,7 +1297,8 @@ protocol, with the following additional caveats.
 ##### Requirements
 
 The sending node:
-  - if the receiver set `require_confirmed_inputs` in `open_channel2` or `accept_channel2`:
+  - if the receiver set `require_confirmed_inputs` in `open_channel2`,
+    `accept_channel2`, `tx_init_rbf` or `tx_ack_rbf`:
     - MUST NOT send a `tx_add_input` that contains an unconfirmed input
 
 #### The `tx_add_output` Message
@@ -1318,7 +1330,8 @@ Upon receipt of consecutive `tx_complete`s, the receiving node:
         successfully negotiated transaction's fees
       - the transaction does not share at least one input with
         each previous funding transaction
-  - if it has sent `require_confirmed_inputs` in `open_channel2` or `accept_channel2`:
+  - if it has sent `require_confirmed_inputs` in `open_channel2`,
+    `accept_channel2`, `tx_init_rbf` or `tx_ack_rbf`:
     - MUST fail the negotiation if:
       - one of the inputs added by the other peer is unconfirmed
 
