@@ -247,7 +247,7 @@ channels described above and adds a safety margin in case nodes update their rel
 
 Alice uses the same values for both channels for simplicity's sake. Alice can now compute aggregate
 values for the complete route (iteratively starting from the end of the route), using integer
-arithmetric to compute `ceil(a/b)` as `(a+b-1)/b` (we round values up, otherwise the sender may
+arithmetic to compute `ceil(a/b)` as `(a+b-1)/b` (we round values up, otherwise the sender may
 receive slightly less than intended):
 
 * `route_fee_base_msat(n+1) = (fee_base_msat(n+1) * 1000000 + route_fee_base_msat(n) * (1000000 + fee_proportional_millionths(n+1)) + 1000000 - 1) / 1000000`
@@ -458,7 +458,7 @@ periodically refresh them.
 
 ### Recipient pays fees
 
-It may be unfair to make payers pay more fees to accomodate the recipient's wish for anonymity.
+It may be unfair to make payers pay more fees to accommodate the recipient's wish for anonymity.
 It should instead be the recipient that pays the fees of the blinded hops (and the payer pays the
 fees to reach the introduction point).
 
