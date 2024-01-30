@@ -812,7 +812,7 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 	var nextHmac [hmacSize]byte
         
         // Our starting packet needs to be filled out with random bytes, we
-        // generate some determinstically using the session private key.
+        // generate some deterministically using the session private key.
         paddingKey := generateKey("pad", sessionKey.Serialize()
         paddingBytes := generateCipherStream(paddingKey, routingInfoSize)
         copy(mixHeader[:], paddingBytes)
@@ -1500,7 +1500,7 @@ The writer:
 
 - MUST set the `onion_message_packet` `version` to 0.
 - MUST construct the `onion_message_packet` `onionmsg_payloads` as detailed above using Sphinx.
-- MUST NOT use any `associated_data` in the Sphinx construcion.
+- MUST NOT use any `associated_data` in the Sphinx construction.
 - SHOULD set `onion_message_packet` `len` to 1366 or 32834.
 - SHOULD retry via a different path if it expects a response and doesn't receive one after a reasonable period.
 - For the non-final nodes' `onionmsg_tlv`:
