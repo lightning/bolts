@@ -65,10 +65,14 @@ The origin node:
     unless indicated that it must set the odd feature bit instead.
   * MUST NOT set feature bits it does not support.
   * MUST NOT set feature bits in fields not specified by the table above.
+  * MUST NOT set both the optional and mandatory bits.
   * MUST set all transitive feature dependencies.
+  * MUST support:
+    * `var_onion_optin`
 
-The origin node MUST support:
-  * `var_onion_optin`
+The receiving node:
+  * if both the optional and the mandatory feature bits in a pair are set,
+  the feature should be treated as mandatory.
 
 The requirements for receiving specific bits are defined in the linked sections in the table above.
 The requirements for feature bits that are not defined

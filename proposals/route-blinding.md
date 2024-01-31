@@ -247,17 +247,18 @@ channels described above and adds a safety margin in case nodes update their rel
 
 Alice uses the same values for both channels for simplicity's sake. Alice can now compute aggregate
 values for the complete route (iteratively starting from the end of the route), using integer
-arithmetric to compute `ceil(a/b)` as `(a+b-1)/b` (we round values up, otherwise the sender may
+arithmetic to compute `ceil(a/b)` as `(a+b-1)/b` (we round values up, otherwise the sender may
 receive slightly less than intended):
 
 * `route_fee_base_msat(n+1) = (fee_base_msat(n+1) * 1000000 + route_fee_base_msat(n) * (1000000 + fee_proportional_millionths(n+1)) + 1000000 - 1) / 1000000`
 * `route_fee_proportional_millionths(n+1) = ((route_fee_proportional_millionths(n) + fee_proportional_millionths(n+1)) * 1000000 + route_fee_proportional_millionths(n) * fee_proportional_millionths(n+1) + 1000000 - 1) / 1000000`
 
-This yields the following values:
+Alice wants to use a `min_final_cltv_expiry_delta` of 12 blocks, which she adds to the route's
+total `cltv_expiry_delta`. This yields the following values:
 
 * `route_fee_base_msat`: 201
 * `route_fee_proportional_millionths`: 1001
-* `route_cltv_expiry_delta`: 288
+* `route_cltv_expiry_delta`: 300
 
 Let's assume the current block height is 1000. Alice wants the route to be used in the next 200
 blocks, so she sets `max_cltv_expiry = 1200` and adds `cltv_expiry_delta` for each hop. Alice then
@@ -269,8 +270,8 @@ transmits the following information to the sender (most likely via an invoice):
   * `fee_base_msat`: 201
   * `fee_proportional_millionths`: 1001
   * `htlc_minimum_msat`: 1000
-  * `cltv_expiry_delta`: 288
-  * `max_cltv_expiry`: 1200
+  * `cltv_expiry_delta`: 300
+  * `max_cltv_expiry`: 1200 (may be conveyed via invoice expiration, assuming 10 minute blocks)
   * `allowed_features`: empty
 * Encrypted data for blinded nodes:
   * `encrypted_payload(alice)`:
@@ -281,13 +282,13 @@ transmits the following information to the sender (most likely via an invoice):
     * `fee_base_msat`: 100
     * `fee_proportional_millionths`: 500
     * `htlc_minimum_msat`: 1000
-    * `max_cltv_expiry`: 1344
+    * `max_cltv_expiry`: 1356
   * `encrypted_payload(carol)`:
     * `outgoing_channel_id`: `scid_carol_bob`
     * `fee_base_msat`: 100
     * `fee_proportional_millionths`: 500
     * `htlc_minimum_msat`: 1000
-    * `max_cltv_expiry`: 1488
+    * `max_cltv_expiry`: 1500
 
 Note that the introduction point (Carol) uses the real `node_id`, not the blinded one, because the
 sender needs to be able to locate this introduction point and find a route to it. The sender will
@@ -308,10 +309,13 @@ Erin uses the aggregated route relay parameters to compute how much should be se
 
 * `amount = 100000 + 201 + (1001 * 100000 + 1000000 - 1) / 1000000 = 100302 msat`
 
-Erin chooses a final expiry of 1100, which is below Alice's `max_cltv_expiry`, and computes the
-expiry that should be sent to Carol:
+Erin chooses a final expiry of 1100, which is below Alice's `max_cltv_expiry`. This value may be
+chosen by adding a random cltv offset to the current block height as described in
+[Recommendations for Routing](../07-routing-gossip.md#recommendations-for-routing).
 
-* `expiry = 1100 + 288 = 1388`
+Erin computes the expiry that should be sent to Carol:
+
+* `expiry = 1100 + 300 = 1400`
 
 When a node in the blinded route receives an htlc, the onion will not contain the `amt_to_forward`
 or `outgoing_cltv_value`. They will have to compute them based on the fields contained in their
@@ -320,12 +324,12 @@ or `outgoing_cltv_value`. They will have to compute them based on the fields con
 For example, here is how Carol will compute the values for the htlc she relays to Bob:
 
 * `amount = ((100302 - fee_base_msat) * 1000000 + 1000000 + fee_proportional_millionths - 1) / (1000000 + fee_proportional_millionths) = 100152 msat`
-* `expiry = 1388 - cltv_expiry_delta = 1244`
+* `expiry = 1400 - cltv_expiry_delta = 1256`
 
 And here is how Bob computes the values for the htlc he relays to Alice:
 
 * `amount = ((100152 - fee_base_msat) * 1000000 + 1000000 + fee_proportional_millionths - 1) / (1000000 + fee_proportional_millionths) = 100002 msat`
-* `expiry = 1244 - cltv_expiry_delta = 1100`
+* `expiry = 1256 - cltv_expiry_delta = 1112`
 
 Note that as the rounding errors aggregate, the recipient will receive slightly more than what was
 expected. The sender includes `amt_to_forward` in the onion payload for the recipient to let them
@@ -339,24 +343,24 @@ The messages exchanged will contain the following values:
       |             update_add_htlc                |              update_add_htlc                          |             update_add_htlc                          |             update_add_htlc                |
       |     +--------------------------------+     |      +------------------------------------------+     |     +------------------------------------------+     |     +--------------------------------+     |
       |     |  amount: 100322 msat           |     |      |  amount: 100302 msat                     |     |     |  amount: 100152 msat                     |     |     |  amount: 100002 msat           |     |
-      |     |  expiry: 1412                  |     |      |  expiry: 1388                            |     |     |  expiry: 1244                            |     |     |  expiry: 1100                  |     |
+      |     |  expiry: 1424                  |     |      |  expiry: 1400                            |     |     |  expiry: 1256                            |     |     |  expiry: 1112                  |     |
       |     |  onion_routing_packet:         |     |      |  onion_routing_packet:                   |     |     |  onion_routing_packet:                   |     |     |  onion_routing_packet:         |     |
       |     | +----------------------------+ |     |      | +--------------------------------------+ |     |     | +--------------------------------------+ |     |     | +----------------------------+ |     |
       | --> | | amount_fwd: 100302 msat    | | --> | -->  | | blinding_eph_key: E(carol)           | | --> | --> | | encrypted_data:                      | | --> | --> | | amount_fwd: 100000 msat    | | --> |
-      |     | | outgoing_expiry: 1388      | |     |      | | encrypted_data:                      | |     |     | | +----------------------------------+ | |     |     | | outgoing_expiry: 1100      | |     |
+      |     | | outgoing_expiry: 1400      | |     |      | | encrypted_data:                      | |     |     | | +----------------------------------+ | |     |     | | outgoing_expiry: 1112      | |     |
       |     | | scid: scid_dave_to_carol   | |     |      | | +----------------------------------+ | |     |     | | | scid: scid_bob_to_alice          | | |     |     | | encrypted_data:            | |     |
       |     | +----------------------------+ |     |      | | | scid: scid_carol_to_bob          | | |     |     | | | fee_base_msat: 100               | | |     |     | | +-----------------------+  | |     |
       |     | | blinding_eph_key: E(carol) | |     |      | | | fee_base_msat: 100               | | |     |     | | | fee_proportional_millionths: 500 | | |     |     | | | path_id: preimage     |  | |     |
       |     | | encrypted_data(carol)      | |     |      | | | fee_proportional_millionths: 500 | | |     |     | | | htlc_minimum_msat: 1000          | | |     |     | | | max_cltv_expiry: 1200 |  | |     |
       |     | +----------------------------+ |     |      | | | htlc_minimum_msat: 1000          | | |     |     | | | cltv_expiry_delta: 144           | | |     |     | | +-----------------------+  | |     |
-      |     | | encrypted_data(bob)        | |     |      | | | cltv_expiry_delta: 144           | | |     |     | | | max_cltv_expiry: 1344            | | |     |     | +----------------------------+ |     |
-      |     | +----------------------------+ |     |      | | | max_cltv_expiry: 1488            | | |     |     | | +----------------------------------+ | |     |     |  tlv_extension                 |     |
+      |     | | encrypted_data(bob)        | |     |      | | | cltv_expiry_delta: 144           | | |     |     | | | max_cltv_expiry: 1356            | | |     |     | +----------------------------+ |     |
+      |     | +----------------------------+ |     |      | | | max_cltv_expiry: 1500            | | |     |     | | +----------------------------------+ | |     |     |  tlv_extension                 |     |
       |     | | amount_fwd: 100000 msat    | |     |      | | +----------------------------------+ | |     |     | +--------------------------------------+ |     |     | +----------------------------+ |     |
-      |     | | outgoing_expiry: 1100      | |     |      | +--------------------------------------+ |     |     | | amount_fwd: 100000 msat              | |     |     | | blinding_eph_key: E(alice) | |     |
-      |     | | encrypted_data(alice)      | |     |      | | encrypted_data(bob)                  | |     |     | | outgoing_expiry: 1100                | |     |     | +----------------------------+ |     |
+      |     | | outgoing_expiry: 1112      | |     |      | +--------------------------------------+ |     |     | | amount_fwd: 100000 msat              | |     |     | | blinding_eph_key: E(alice) | |     |
+      |     | | encrypted_data(alice)      | |     |      | | encrypted_data(bob)                  | |     |     | | outgoing_expiry: 1112                | |     |     | +----------------------------+ |     |
       |     | +----------------------------+ |     |      | +--------------------------------------+ |     |     | | encrypted_data(alice)                | |     |     +--------------------------------+     |
       |     +--------------------------------+     |      | | amount_fwd: 100000 msat              | |     |     | +--------------------------------------+ |     |                                            |
-      |                                            |      | | outgoing_expiry: 1100                | |     |     |  tlv_extension                           |     |                                            |
+      |                                            |      | | outgoing_expiry: 1112                | |     |     |  tlv_extension                           |     |                                            |
       |                                            |      | | encrypted_data(alice)                | |     |     | +--------------------------------------+ |     |                                            |
       |                                            |      | +--------------------------------------+ |     |     | | blinding_eph_key: E(bob)             | |     |                                            |
       |                                            |      +------------------------------------------+     |     | +--------------------------------------+ |     |                                            |
@@ -455,7 +459,7 @@ periodically refresh them.
 
 ### Recipient pays fees
 
-It may be unfair to make payers pay more fees to accomodate the recipient's wish for anonymity.
+It may be unfair to make payers pay more fees to accommodate the recipient's wish for anonymity.
 It should instead be the recipient that pays the fees of the blinded hops (and the payer pays the
 fees to reach the introduction point).
 
