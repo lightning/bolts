@@ -229,7 +229,7 @@ The sending node:
   - MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.
   - MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid secp256k1 pubkeys in compressed format.
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
-  - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
+  - SHOULD set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
   - MUST set undefined bits in `channel_flags` to 0.
   - if both nodes advertised the `option_upfront_shutdown_script` feature:
     - MUST include `upfront_shutdown_script` with either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey` (ie. `0x0000`).
@@ -268,6 +268,7 @@ The receiving node MAY fail the channel if:
   - it considers `channel_reserve_satoshis` too large.
   - it considers `max_accepted_htlcs` too small.
   - it considers `dust_limit_satoshis` too large.
+  - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
 
 The receiving node MUST fail the channel if:
   - the `chain_hash` value is set to a hash of a chain that is unknown to the receiver.
@@ -277,7 +278,6 @@ The receiving node MUST fail the channel if:
   - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
 are not valid secp256k1 pubkeys in compressed format.
-  - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
   - `dust_limit_satoshis` is smaller than `354 satoshis` (see [BOLT 3](03-transactions.md#dust-limits)).
   - the funder's amount for the initial commitment transaction is not sufficient for full [fee payment](03-transactions.md#fee-payment).
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
@@ -301,9 +301,9 @@ The `feerate_per_kw` is generally only of concern to the sender (who pays the fe
 
 Separating the `htlc_basepoint` from the `payment_basepoint` improves security: a node needs the secret associated with the `htlc_basepoint` to produce HTLC signatures for the protocol, but the secret for the `payment_basepoint` can be in cold storage.
 
-The requirement that `channel_reserve_satoshis` is not considered dust
+The recommendation that `channel_reserve_satoshis` is not considered dust
 according to `dust_limit_satoshis` eliminates cases where all outputs
-would be eliminated as dust.  The similar requirements in
+would be eliminated as dust.  The similar recommendations in
 `accept_channel` ensure that both sides' `channel_reserve_satoshis`
 are above both `dust_limit_satoshis`.
 
@@ -356,8 +356,8 @@ The sender:
     - MUST set `minimum_depth` to zero.
   - otherwise:
     - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
-  - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
-  - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
+  - SHOULD set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
+  - SHOULD set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
   - if `option_channel_type` was negotiated:
     - MUST set `channel_type` to the `channel_type` from `open_channel`
 
@@ -365,9 +365,9 @@ The receiver:
   - if `minimum_depth` is unreasonably large:
     - MAY fail the channel.
   - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
-    - MUST fail the channel.
+    - MAY fail the channel.
   - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:
-    - MUST fail the channel.
+    - MAY fail the channel.
   - if `channel_type` is set, and `channel_type` was set in `open_channel`, and they are not equal types:
     - MUST fail the channel.
   - if `option_channel_type` was negotiated but the message doesn't include a `channel_type`:
