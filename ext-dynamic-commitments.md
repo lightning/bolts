@@ -910,6 +910,39 @@ If we allow adding HTLCs _before_ the kickoff transaction confirmed on-chain,
 the pinning attack has a tangible benefit: the ability to steal the value of an
 HTLC.
 
+### Asymmetric Kickoffs
+
+The above proposal specifies a process wherein we can reanchor the funding
+output exactly once. This is because even if we revoke all commitment
+transactions built off of the first kickoff transaction, we still are vulnerable
+to griefing if we do not revoke the kickoff transaction itself. In this case
+one party may choose to burn all funds in a channel by broadcasting the kickoff
+transaction when no unrevoked commitment transactions remain. To deal with this
+we can either only reanchor once, as proposed above, allowing us to guarantee we
+will never encounter a situation where there are no valid commitment
+transactions, or we can make the kickoff transactions revocable.
+
+To make them revocable we can reuse the same scheme that we use for commitment
+transactions. In this case Alice's kickoff transaction would allow Bob to claim
+all funds if Bob knows Alice's revocation secret. Similarly, Alice could claim
+all channel funds if Bob broadcasts his kickoff transaction and Alice knows
+Bob's revocation secret.
+
+An unfortunate consequence of this scheme is that since we now have two possible
+"new" funding outputs (one for each of the potential kickoff transactions), we
+now have to send all of our commitment signatures in pairs. At any given time
+there would be four valid commitment transactions:
+
+1. Alice's commitment built off of Alice's kickoff
+2. Alice's commitment built off of Bob's kickoff
+3. Bob's commitment built off of Alice's kickoff
+4. Bob's commitment built off of Bob's kickoff
+
+_NOTE FOR REVIEWERS_: There may be an opportunity to make the kickoff
+transactions symmetric while still allowing them to be revocable using adaptor
+signature tricks, but this will require more research from those with a deeper
+understanding of the cryptographic primitives.
+
 ## Weights
 
 Since DER-encoded signatures vary in size, we assume a worst-case signature size
