@@ -10,6 +10,7 @@
   * [Invoice Requests](#invoice-requests)
   * [Invoices](#invoices)
   * [Invoice Errors](#invoice-errors)
+  * [Offer Requests](#offer-requests)
 
 # Limitations of BOLT 11
 
@@ -823,6 +824,26 @@ indicate alternate currencies.  ("I will send you 10c!").  Then the
 sender of the invoice would have to guess how many msat that was,
 and could use the `invoice_error` to indicate if the recipient disagreed
 with the conversion so the sender can send a new invoice.
+
+# Offer Requests
+
+`bitcoin:` URIs with a query paraketer key (case-insensitive) of `omlookup`
+indicate that an offer should be requested over onion messages. The value in
+the query parameter should be a hex-encoded `blinded_path` which represents a
+(FIXME: Use a specific name here for blinded paths for onion messages)
+recipient to send an `offer_request`-containing onion message to. These URIs
+only make sense in the context of a BIP XXXX resolution, where a sender is
+resolving a `name`/`domain` pair to payment instructions.
+
+## Requirements
+The sender of an `offer_request`-containing onion message:
+ * MUST set `name` and `domain` to printable ASCII charachters only,
+ * MUST set `domain` to a canonically-encoded domain name, ending in a "."
+
+The recipient of an `offer_request`-containing onion message:
+ * if the `name` and `domain` describe a recipient it is responsible for, SHOULD
+   reply with an `offer_response`-containing onion message with the same `name`
+   and `domain`.
 
 # FIXME: Possible future extensions:
 

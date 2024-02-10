@@ -1482,6 +1482,19 @@ even, of course!).
     1. type: 68 (`invoice_error`)
     2. data:
         * [`tlv_invoice_error`:`inverr`]
+    1. type: 70 (`offer_request`)
+    2. data:
+        * [`u8`:`name_len`]
+        * [`name_len*byte`:`name`]
+        * [`u8`:`domain_len`]
+        * [`name_len*byte`:`domain`]
+    1. type: 72 (`offer_response`)
+    2. data:
+        * [`u8`:`name_len`]
+        * [`name_len*byte`:`name`]
+        * [`u8`:`domain_len`]
+        * [`name_len*byte`:`domain`]
+        * [`tlv_offer`:`offer`]
 
 1. subtype: `blinded_path`
 2. data:
