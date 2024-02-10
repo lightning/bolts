@@ -186,6 +186,12 @@ distinct TLV ranges.
 
 The human-readable prefix for offers is `lno`.
 
+If a URI scheme is desired, offers should be encoded in standard `bitcoin:`
+URIs as defined in BIP 21, as query parameter with a key of `b12` and a value
+of the ASCII encoding defined above. Both the key and value are
+case-independent and, for compactness, should be uppercase for URIs which are
+encoded in QR codes.
+
 ## TLV Fields for Offers
 
 1. `tlv_stream`: `offer`
