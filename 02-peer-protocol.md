@@ -1536,7 +1536,7 @@ The sender of `splice`:
   - MUST NOT send a splice message with `funding_feerate_perkw` which is less than 1.25 the previous `funding_feerate_perkw` (rounded down).
 
 The receiver of `splice`:
-- SHOULD fail the connection if there is an ongoing splice, and the `funding_feerate_perkw` is not at least 1.25 the previous `funding_feerate_perkw` (rounded down).
+- SHOULD fail the connection if there is an pending splice, and the `funding_feerate_perkw` is not at least 1.25 the previous `funding_feerate_perkw` (rounded down).
 - MUST respond with `splice_ack` containing its own `funding_pubkey`.
 - MUST begin splice negotiation.
 
@@ -1683,7 +1683,7 @@ A sending node:
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
   - MUST NOT send multiple `shutdown` messages.
-  - if there is an ongoing splice:
+  - if there is an pending splice:
     - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
   - if no HTLCs remain in either commitment transaction (including dust HTLCs)
