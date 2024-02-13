@@ -205,6 +205,7 @@ This message contains a transaction input.
 
 The sending node:
   - MUST add all sent inputs to the transaction
+  - MUST only send confirmed inputs
   - MUST use a unique `serial_id` for each input currently added to the
     transaction
   - MUST set `sequence` to be less than or equal to 4294967293 (`0xFFFFFFFD`)
