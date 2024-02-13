@@ -1500,7 +1500,7 @@ Operation returns to normal once negotiation is done (while waiting
 for the splice transaction(s) to confirm).
 
 The splice is finally terminated when both sides send
-`splice_complete` to indicate that one of the splice transactions
+`splice_locked` to indicate that one of the splice transactions
 reached acceptable depth.
 
 ### The `splice` Message
