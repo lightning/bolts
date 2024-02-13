@@ -1507,8 +1507,8 @@ reached acceptable depth.
 
 1. type: 74 (`splice`)
 2. data:
-   * [`chain_hash`:`chain_hash`]
    * [`channel_id`:`channel_id`]
+   * [`chain_hash`:`chain_hash`]
    * [`s64`:`relative_amount`]
    * [`u32`:`funding_feerate_perkw`]
    * [`u32`:`locktime`]
@@ -1516,8 +1516,8 @@ reached acceptable depth.
 
 1. type: 76 (`splice_ack`)
 2. data:
-   * [`chain_hash`:`chain_hash`]
    * [`channel_id`:`channel_id`]
+   * [`chain_hash`:`chain_hash`]
    * [`s64`:`relative_amount`]
    * [`point`:`funding_pubkey`]
 
