@@ -2738,8 +2738,11 @@ A receiving node:
       - if it has already received `tx_signatures` for that funding transaction:
         - MUST send its `tx_signatures` for that funding transaction.
     - otherwise:
-      - MUST send `tx_abort` to let the sending node know that they can forget
-        this funding transaction.
+      - if `next_funding_txid` matches the latest confirmed function transaction:
+        - MUST re-send `splice_locked`
+      - otherwise:
+        - MUST send `tx_abort` to let the sending node know that they can forget
+          this funding transaction.
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
