@@ -1506,7 +1506,7 @@ reached acceptable depth.
 
 ### The `splice` Message
 
-1. type: 74 (`splice`)
+1. type: 80 (`splice`)
 2. data:
    * [`channel_id`:`channel_id`]
    * [`chain_hash`:`chain_hash`]
@@ -1515,7 +1515,7 @@ reached acceptable depth.
    * [`u32`:`locktime`]
    * [`point`:`funding_pubkey`]
 
-1. type: 76 (`splice_ack`)
+1. type: 81 (`splice_ack`)
 2. data:
    * [`channel_id`:`channel_id`]
    * [`chain_hash`:`chain_hash`]
