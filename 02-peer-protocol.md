@@ -1552,7 +1552,7 @@ consider to be overpaying).
 
 ## Splice Negotiation
 
-The splice negotiation is very similar to the `init_rbf` negotiation:
+The splice negotiation is very similar to the `tx_init_rbf` negotiation:
 both sides alternate sending `tx_add_input` and `tx_add_output` until
 they both send consecutive `tx_complete`.
 
