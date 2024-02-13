@@ -1531,7 +1531,7 @@ intend to remove.
 
 The sender of `splice`:
 - MUST have successfully initiated quiescence.
-- MUST NOT send `splice` before sending and receiving `funding_locked`.
+- MUST NOT send `splice` before sending and receiving `channel_ready`.
 - MUST NOT send `splice` while a splice is being negotiated.
 - If any splice is in progress:
   - MUST NOT send a splice message with `funding_feerate_perkw` which is less than 1.25 the previous `funding_feerate_perkw` (rounded down).
