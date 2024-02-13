@@ -1509,7 +1509,7 @@ reached acceptable depth.
 2. data:
    * [`chain_hash`:`chain_hash`]
    * [`channel_id`:`channel_id`]
-   * [`u64`:`funding_satoshis`]
+   * [`s64`:`relative_amount`]
    * [`u32`:`funding_feerate_perkw`]
    * [`u32`:`locktime`]
    * [`point`:`funding_pubkey`]
@@ -1518,7 +1518,7 @@ reached acceptable depth.
 2. data:
    * [`chain_hash`:`chain_hash`]
    * [`channel_id`:`channel_id`]
-   * [`u64`:`funding_satoshis`]
+   * [`s64`:`relative_amount`]
    * [`point`:`funding_pubkey`]
 
 `funding_satoshis` is the amount the sender is putting into the
