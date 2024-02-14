@@ -468,7 +468,7 @@ may contain the following TLV fields:
         * [`short_channel_id`:`short_channel_id`]
     1. type: 4 (`next_node_id`)
     2. data:
-        * [`point`:`node_id`]
+        * [`sciddir_or_pubkey`:`node_id`]
     1. type: 6 (`path_id`)
     2. data:
         * [`...*byte`:`data`]
@@ -1476,7 +1476,7 @@ even, of course!).
 
 1. subtype: `blinded_path`
 2. data:
-   * [`point`:`first_node_id`]
+   * [`sciddir_or_pubkey`:`first_node_id`]
    * [`point`:`blinding`]
    * [`byte`:`num_hops`]
    * [`num_hops*onionmsg_hop`:`path`]
