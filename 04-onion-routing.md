@@ -1583,7 +1583,7 @@ messages it is asked to forward.
 
 ## `max_htlc_cltv` Selection
 
-This `max_htlc_ctlv` value is defined as 2016 blocks, based on historical value
+This `max_htlc_cltv` value is defined as 2016 blocks, based on historical value
 deployed by Lightning implementations.
 
 # Test Vector
