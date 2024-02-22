@@ -244,7 +244,8 @@ leaking its position in the route.
 The creator of `encrypted_recipient_data` (usually, the recipient of payment):
 
   - MUST create `encrypted_data_tlv` for each node in the blinded route (including itself).
-  - MUST include `encrypted_data_tlv.short_channel_id` and `encrypted_data_tlv.payment_relay` for each non-final node.
+  - MUST include `encrypted_data_tlv.payment_relay` for each non-final node.
+  - MUST include exactly one of `encrypted_data_tlv.short_channel_id` or `encrypted_data_tlv.next_node_id` for each non-final node.
   - MUST set `encrypted_data_tlv.payment_constraints` for each non-final node:
     - `max_cltv_expiry` to the largest block height at which the route is allowed to be used, starting
     from the final node and adding `encrypted_data_tlv.payment_relay.cltv_expiry_delta` at each hop.
@@ -1473,10 +1474,19 @@ even, of course!).
     1. type: 4 (`encrypted_recipient_data`)
     2. data:
         * [`...*byte`:`encrypted_recipient_data`]
+    1. type: 64 (`invoice_request`)
+    2. data:
+        * [`tlv_invoice_request`:`invreq`]
+    1. type: 66 (`invoice`)
+    2. data:
+        * [`tlv_invoice`:`inv`]
+    1. type: 68 (`invoice_error`)
+    2. data:
+        * [`tlv_invoice_error`:`inverr`]
 
 1. subtype: `blinded_path`
 2. data:
-   * [`point`:`first_node_id`]
+   * [`sciddir_or_pubkey`:`first_node_id`]
    * [`point`:`blinding`]
    * [`byte`:`num_hops`]
    * [`num_hops*onionmsg_hop`:`path`]
@@ -1533,7 +1543,8 @@ The reader:
   - if the `encrypted_data_tlv` contains `path_id`:
     - MUST ignore the message.
   - otherwise:
-    - SHOULD forward the message using `onion_message` to the next peer indicated by `next_node_id`.
+    - SHOULD forward the message using `onion_message` to the next peer indicated by either `next_node_id`
+      or the channel counterparty with `short_channel_id`.
     - if it forwards the message:
       - MUST set `blinding` in the forwarded `onion_message` to the next blinding as calculated in [Route Blinding](#route-blinding).
 - otherwise (it is the final node):
