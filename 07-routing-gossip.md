@@ -1069,7 +1069,7 @@ channel:
 3. C: 30 blocks
 4. D: 40 blocks
 
-C also uses a `min_final_cltv_expiry_delta` of 9 (the default) when requesting
+C also uses a `min_final_cltv_expiry_delta` of 18 (the default) when requesting
 payments.
 
 Also, each node has a set fee scheme that it uses for each of its
@@ -1093,16 +1093,16 @@ The network will see eight `channel_update` messages:
 
 **B->C.** If B were to send 4,999,999 millisatoshi directly to C, it would
 neither charge itself a fee nor add its own `cltv_expiry_delta`, so it would
-use C's requested `min_final_cltv_expiry_delta` of 9. Presumably it would also add a
+use C's requested `min_final_cltv_expiry_delta` of 18. Presumably it would also add a
 _shadow route_ to give an extra CLTV of 42. Additionally, it could add extra
 CLTV deltas at other hops, as these values represent a minimum, but chooses not
 to do so here, for the sake of simplicity:
 
    * `amount_msat`: 4999999
-   * `cltv_expiry`: current-block-height + 9 + 42
+   * `cltv_expiry`: current-block-height + 18 + 42
    * `onion_routing_packet`:
      * `amt_to_forward` = 4999999
-     * `outgoing_cltv_value` = current-block-height + 9 + 42
+     * `outgoing_cltv_value` = current-block-height + 18 + 42
 
 **A->B->C.** If A were to send 4,999,999 millisatoshi to C via B, it needs to
 pay B the fee it specified in the B->C `channel_update`, calculated as
@@ -1113,14 +1113,14 @@ per [HTLC Fees](#htlc-fees):
         200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
 Similarly, it would need to add B->C's `channel_update` `cltv_expiry_delta` (20), C's
-requested `min_final_cltv_expiry_delta` (9), and the cost for the _shadow route_ (42).
+requested `min_final_cltv_expiry_delta` (18), and the cost for the _shadow route_ (42).
 Thus, A->B's `update_add_htlc` message would be:
 
    * `amount_msat`: 5010198
-   * `cltv_expiry`: current-block-height + 20 + 9 + 42
+   * `cltv_expiry`: current-block-height + 20 + 18 + 42
    * `onion_routing_packet`:
      * `amt_to_forward` = 4999999
-     * `outgoing_cltv_value` = current-block-height + 9 + 42
+     * `outgoing_cltv_value` = current-block-height + 18 + 42
 
 B->C's `update_add_htlc` would be the same as B->C's direct payment above.
 
@@ -1128,10 +1128,10 @@ B->C's `update_add_htlc` would be the same as B->C's direct payment above.
 A->D's `update_add_htlc` message would be:
 
    * `amount_msat`: 5020398
-   * `cltv_expiry`: current-block-height + 40 + 9 + 42
+   * `cltv_expiry`: current-block-height + 40 + 18 + 42
    * `onion_routing_packet`:
      * `amt_to_forward` = 4999999
-     * `outgoing_cltv_value` = current-block-height + 9 + 42
+     * `outgoing_cltv_value` = current-block-height + 18 + 42
 
 And D->C's `update_add_htlc` would again be the same as B->C's direct payment
 above.
