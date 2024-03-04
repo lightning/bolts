@@ -42,7 +42,7 @@ Here we use "user" as shorthand for the individual user's lightning
 node and "merchant" as the shorthand for the node of someone who is
 selling or has sold something.
 
-There are two basic payment flows supported by BOLT 12:
+There are three basic payment flows supported by BOLT 12:
 
 The general user-pays-merchant flow is:
 1. A merchant publishes an *offer*, such as on a web page or a QR code.
@@ -58,6 +58,18 @@ The merchant-pays-user flow (e.g. ATM or refund):
 3. The merchant confirms the *invoice_node_id* to ensure it's about to pay the correct
    person, and makes a payment to the invoice.
 
+The pay-mobile-user flow (e.g. paying a friend back to their mobile node):
+1. The mobile user supplies some always-online node with a static (i.e. 
+   `payment_hash`-less) invoice to return on its behalf. This always-online node may 
+   be the mobile user's channel counterparty, wallet vendor, or another node on the 
+   network that it has an out-of-band relationship with.
+2. The mobile user publishes an offer that contains blinded paths that terminate
+   at the always-online node.
+3. The payer sends an `invoice_request` to the always-online node, who replies with the static
+   invoice previously provided by the mobile user and forwards the `invoice_request` to the mobile
+   user in case they happen to be online.
+4. The payer makes a payment to the mobile user as indicated by the invoice.
+
 ## Payment Proofs and Payer Proofs
 
 Note that the normal lightning "proof of payment" can only demonstrate that an
@@ -69,6 +81,9 @@ Providing a key in *invoice_request* allows the payer to prove that they were th
 to request the invoice.  In addition, the Merkle construction of the BOLT 12
 invoice signature allows the user to reveal invoice fields in case
 of a dispute selectively.
+
+Payers will not get proofs in the case that they received a static invoice from the 
+payee, see the pay-mobile-user flow above.
 
 # Encoding
 
@@ -126,7 +141,7 @@ Each form is signed using one or more *signature TLV elements*: TLV
 types 240 through 1000 (inclusive).  For these,
 the tag is "lightning" || `messagename` || `fieldname`, and `msg` is the
 Merkle-root; "lightning" is the literal 9-byte ASCII string,
-`messagename` is the name of the TLV stream being signed (i.e. "invoice_request" or "invoice") and the `fieldname` is the TLV field containing the
+`messagename` is the name of the TLV stream being signed (i.e. "invoice_request", "invoice", or "static_invoice") and the `fieldname` is the TLV field containing the
 signature (e.g. "signature").
 
 The formulation of the Merkle tree is similar to that proposed in
@@ -261,8 +276,9 @@ A writer of an offer:
       after midnight 1 January 1970, UTC that invoice_request should not be
       attempted.
   - if it is connected only by private channels:
-    - MUST include `offer_paths` containing one or more paths to the node from
-      publicly reachable nodes.
+    - MUST include `offer_paths` containing one or more paths to the node
+      that will reply to the `invoice_request`, using introduction nodes that are
+      publicly reachable.
   - otherwise:
     - MAY include `offer_paths`.
   - if it includes `offer_paths`:
@@ -282,6 +298,8 @@ A writer of an offer:
       - MUST set `offer_quantity_max` to 0.
   - otherwise:
     - MUST NOT set `offer_quantity_max`.
+  - if it is often-offline and the invoice may be provided by another node on their behalf:
+    - MUST NOT include more than 1 chain in `offer_chains`.
 
 A reader of an offer:
   - if the offer contains any TLV fields outside the inclusive ranges: 1 to 79 and 1000000000 to 1999999999:
@@ -543,6 +561,9 @@ The reader:
   - if `invreq_bip_353_name` is present:
     - MUST reject the invoice request if `name` or `domain` contain any bytes which are not
       `0`-`9`, `a`-`z`, `A`-`Z`, `-`, `_` or `.`.
+  - if receiving the `invoice_request` on behalf of an often-offline payee:
+    - SHOULD forward the `invoice_request` to the payee
+    - SHOULD reply with the static invoice previously provided by the payee
 
 ## Rationale
 
@@ -573,10 +594,11 @@ The requirement to use `offer_paths` if present, ensures a node does not reveal 
 
 # Invoices
 
-Invoices are a payment request, and when the payment is made, 
-the payment preimage can be combined with the invoice to form a cryptographic receipt.
+Invoices are a payment request. If `invoice_payment_hash` is set, then when the
+payment is made, the payment preimage can be combined with the invoice to form a
+cryptographic receipt.
 
-The recipient sends an `invoice` in response to an `invoice_request` using
+The recipient creates an `invoice` for responding to an `invoice_request` using
 the `onion_message` `invoice` field.
 
 1. `tlv_stream`: `invoice`
@@ -671,6 +693,9 @@ the `onion_message` `invoice` field.
     1. type: 176 (`invoice_node_id`)
     2. data:
         * [`point`:`node_id`]
+    1. type: 178 (`static_invoice_message_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -709,17 +734,28 @@ may (due to capacity limits on a single channel) require it.
 A writer of an invoice:
   - MUST set `invoice_created_at` to the number of seconds since Midnight 1
     January 1970, UTC when the invoice was created.
-  - MUST set `invoice_amount` to the minimum amount it will accept, in units of 
-    the minimal lightning-payable unit (e.g. milli-satoshis for bitcoin) for
-    `invreq_chain`.
-  - if the invoice is in response to an `invoice_request`:
+  - if `invoice_payment_hash` is set and the invoice is in response to an `invoice_request`:
     - MUST copy all non-signature fields from the invoice request (including unknown fields).
     - if `invreq_amount` is present:
       - MUST set `invoice_amount` to `invreq_amount`
     - otherwise:
       - MUST set `invoice_amount` to the *expected amount*.
-  - MUST set `invoice_payment_hash` to the SHA256 hash of the
-    `payment_preimage` that will be given in return for payment.
+    - if the expiry for accepting payment is not 7200 seconds after `invoice_created_at`:
+      - MUST set `invoice_relative_expiry`.`seconds_from_creation` to the number of
+        seconds after `invoice_created_at` that payment of this invoice should not be attempted.
+  - if the invoice is intended to be provided by a node other than the recipient (i.e. a static
+    invoice):
+      - MUST NOT set `invoice_payment_hash`.
+      - MUST NOT set `invoice_amount`.
+      - MUST include `static_invoice_message_paths` containing at least two paths to
+        the recipient.
+      - MUST NOT set any `invoice_request` TLV fields
+      - if the expiry for accepting payment is not 2 weeks after `invoice_created_at`:
+        - MUST set `invoice_relative_expiry`.`seconds_from_creation` to the number of
+          seconds after `invoice_created_at` that payment of this invoice should not be attempted.
+  - otherwise:
+      - MUST set `invoice_payment_hash` to the SHA256 hash of the
+        `payment_preimage` that will be given in return for payment.
   - if `offer_issuer_id` is present:
     - MUST set `invoice_node_id` to the `offer_issuer_id`
   - otherwise, if `offer_paths` is present:
@@ -730,9 +766,6 @@ A writer of an invoice:
     - MUST set `invoice_features`.`features` bit `MPP/compulsory`
   - or if it allows multiple parts to pay the invoice:
     - MUST set `invoice_features`.`features` bit `MPP/optional`
-  - if the expiry for accepting payment is not 7200 seconds after `invoice_created_at`:
-    - MUST set `invoice_relative_expiry`.`seconds_from_creation` to the number of
-      seconds after `invoice_created_at` that payment of this invoice should not be attempted.
   - if it accepts onchain payments:
     - MAY specify `invoice_fallbacks`
     - SHOULD specify `invoice_fallbacks` in order of most-preferred to least-preferred
@@ -745,11 +778,11 @@ A writer of an invoice:
     - MUST include `invoice_blindedpay` with exactly one `blinded_payinfo` for each `blinded_path` in `paths`, in order.
     - MUST set `features` in each `blinded_payinfo` to match `encrypted_data_tlv`.`allowed_features` (or empty, if no `allowed_features`).
     - SHOULD ignore any payment which does not use one of the paths.
+  - if providing invoices on behalf of an often offline recipient:
+    - MAY reuse the previous invoice.
 
 A reader of an invoice:
-  - MUST reject the invoice if `invoice_amount` is not present.
   - MUST reject the invoice if `invoice_created_at` is not present.
-  - MUST reject the invoice if `invoice_payment_hash` is not present.
   - MUST reject the invoice if `invoice_node_id` is not present.
   - if `invreq_chain` is not present:
     - MUST reject the invoice if bitcoin is not a supported chain.
@@ -771,7 +804,9 @@ A reader of an invoice:
     - MUST NOT use the corresponding `invoice_paths`.`path` if `payinfo`.`features` has any unknown even bits set.
     - MUST reject the invoice if this leaves no usable paths.
   - if the invoice is a response to an `invoice_request`:
-    - MUST reject the invoice if all fields in ranges 0 to 159 and 1000000000 to 2999999999 (inclusive) do not exactly match the invoice request.
+    - if `invoice_payment_hash` is set:
+      - MUST reject the invoice if `invoice_amount` is not present.
+      - MUST reject the invoice if all fields in ranges 0 to 159 and 1000000000 to 2999999999 (inclusive) do not exactly match the invoice request.
     - if `offer_issuer_id` is present (invoice_request for an offer):
       - MUST reject the invoice if `invoice_node_id` is not equal to `offer_issuer_id`
     - otherwise, if `offer_paths` is present (invoice_request for an offer without id):
@@ -800,6 +835,10 @@ A reader of an invoice:
     - MUST reject the invoice if it arrived via a blinded path.
   - otherwise (derived from an offer):
     - MUST reject the invoice if it did not arrive via invoice request `onionmsg_tlv` `reply_path`.
+  - if `invoice_payment_hash` is unset:
+    - MUST reject the invoice if `static_invoice_message_paths` is not present or is empty.
+    - MUST pay asynchronously using the `held_htlc_available` onion message
+      flow, where the onion message is sent over `static_invoice_message_paths`.
 
 ## Rationale
 
