@@ -42,7 +42,7 @@ Here we use "user" as shorthand for the individual user's lightning
 node and "merchant" as the shorthand for the node of someone who is
 selling or has sold something.
 
-There are two basic payment flows supported by BOLT 12:
+There are three basic payment flows supported by BOLT 12:
 
 The general user-pays-merchant flow is:
 1. A merchant publishes an *offer*, such as on a web page or a QR code.
@@ -59,6 +59,19 @@ The merchant-pays-user flow (e.g. ATM or refund):
 3. The merchant confirms the *invoice_node_id* to ensure it's about to pay the correct
    person, and makes a payment to the invoice.
 
+The pay-mobile-user flow (e.g. paying a friend back to their mobile node):
+1. The mobile user supplies some always-online node with a static keysend (i.e.
+   `payment_hash`-less) invoice to return on its behalf. This always-online node
+   may be the mobile user's channel counterparty, wallet vendor, or another node
+   on the network that it has an out-of-band relationship with.
+2. The mobile user publishes an offer that contains blinded paths that terminate
+   at the always-online node.
+3. The payer sends an `invoice_request` to the always-online node, who replies
+   with the static keysend invoice previously provided by the mobile user if the
+   mobile user is offline. If they are online, the `invoice_request` is forwarded
+   to the mobile user as usual.
+4. The payer makes a payment to the mobile user as indicated by the invoice.
+
 ## Payment Proofs and Payer Proofs
 
 Note that the normal lightning "proof of payment" can only demonstrate that an
@@ -70,6 +83,9 @@ Providing a key in *invoice_request* allows the payer to prove that they were th
 to request the invoice.  In addition, the Merkle construction of the BOLT 12
 invoice signature allows the user to reveal invoice fields in case
 of a dispute selectively.
+
+Payers will not get proofs in the case that they received a static keysend
+invoice from the payee, see the pay-mobile-user flow above.
 
 # Encoding
 
@@ -224,6 +240,17 @@ The human-readable prefix for offers is `lno`.
     2. data:
         * [`point`:`node_id`]
 
+## Offer Features
+
+| Bits | Description                      | Name                     |
+|------|----------------------------------|--------------------------|
+| 0    | Async payment receive support    | async_receive/compulsory |
+| 1    | Async payment receive support    | async_receive/optional   |
+
+Indicates that the payee is often offline and the invoice MUST (0) or MAY (1) be
+paid asynchronously if the payee is offline at the time of payment, i.e. via the
+`held_htlc_available` onion message flow.
+
 ## Requirements For Offers
 
 A writer of an offer:
@@ -255,8 +282,9 @@ A writer of an offer:
       after midnight 1 January 1970, UTC that invoice_request should not be
       attempted.
   - if it is connected only by private channels:
-    - MUST include `offer_paths` containing one or more paths to the node from
-      publicly reachable nodes.
+    - MUST include `offer_paths` containing one or more paths to the node
+      that will reply to the `invoice_request`, using introduction nodes that are
+      publicly reachable.
   - otherwise:
     - MAY include `offer_paths`.
   - if it includes `offer_paths`:
@@ -409,6 +437,20 @@ for [Signature Calculation](#signature-calculation).
     2. data:
         * [`bip340sig`:`sig`]
 
+## Invoice Request Features
+
+| Bits | Description                      | Name             |
+|------|----------------------------------|------------------|
+| 1    | Supports paying keysend invoices | keysend/optional |
+
+Setting `keysend` indicates that the payer supports receiving a
+`payment_hash`-less invoice in response to their `invoice_request`, and
+subsequently setting `keysend_payment_preimage` in their payment onion.
+
+Useful if the payee is often offline and the invoice is being returned on
+their behalf by another node, to avoid trusting that other node to not reuse a
+`payment_hash`.
+
 ## Requirements for Invoice Requests
 
 The writer:
@@ -486,7 +528,14 @@ The reader:
     - MUST fail the request if bitcoin is not a supported chain.
   - otherwise:
     - MUST fail the request if `invreq_chain`.`chain` is not a supported chain.
-
+  - if `offer_features` supports `async_receive`:
+    - if the payee is online:
+      - MUST forward the `invoice_request` to the payee
+    - otherwise (payee is offline):
+      - if `invreq_features` supports `keysend`:
+        - MUST reply with the static keysend invoice previously provided by the payee
+      - otherwise:
+        - MUST reply with `invoice_error`
 
 ## Rationale
 
@@ -515,10 +564,11 @@ informative for the payer to know how the sender claims
 
 # Invoices
 
-Invoices are a payment request, and when the payment is made, 
-it can be combined with the invoice to form a cryptographic receipt.
+Invoices are a payment request. If `invoice_payment_hash` is set, then when the
+payment is made, the payment preimage can be combined with the invoice to form a
+cryptographic receipt.
 
-The recipient sends an `invoice` in response to an `invoice_request` using
+The recipient creates an `invoice` for responding to an `invoice_request` using
 the `onion_message` `invoice` field.
 
 1. `tlv_stream`: `invoice`
@@ -604,6 +654,9 @@ the `onion_message` `invoice` field.
     1. type: 176 (`invoice_node_id`)
     2. data:
         * [`point`:`node_id`]
+    1. type: 178 (`invoice_message_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -645,18 +698,24 @@ A writer of an invoice:
   - MUST set `invoice_amount` to the minimum amount it will accept, in units of 
     the minimal lightning-payable unit (e.g. milli-satoshis for bitcoin) for
     `invreq_chain`.
-  - if the invoice is in response to an `invoice_request`:
+  - if `invoice_payment_hash` is set and the invoice is in response to an `invoice_request`:
     - MUST copy all non-signature fields from the `invoice_request` (including unknown fields).
     - if `invreq_amount` is present:
       - MUST set `invoice_amount` to `invreq_amount`
     - otherwise:
       - MUST set `invoice_amount` to the *expected amount*.
-  - otherwise (invoice not requested, e.g. for user to scan directly):
+  - otherwise if the invoice was not requested (e.g. for user to scan directly):
     - MUST set `invreq_chain` as it would for an invoice_request.
     - MUST set `offer_description` as it would for an offer.
     - MUST NOT set `invreq_payer_id` or `offer_node_id`.
-  - MUST set `invoice_payment_hash` to the SHA256 hash of the
-    `payment_preimage` that will be given in return for payment.
+  - if the invoice is intended to be provided by a node other than the recipient:
+      - MUST set `invreq_chain` as it would for an invoice_request.
+      - MUST NOT set `invoice_payment_hash`.
+      - MUST include `invoice_message_paths` containing at least two paths to
+        the recipient, where the penultimate hop supports `option_om_mailbox`.
+  - otherwise:
+      - MUST set `invoice_payment_hash` to the SHA256 hash of the
+        `payment_preimage` that will be given in return for payment.
   - if `offer_node_id` is present:
     - MUST set `invoice_node_id` to `offer_node_id`.
   - otherwise:
@@ -682,15 +741,16 @@ A writer of an invoice:
     - MUST include `invoice_blindedpay` with exactly one `blinded_payinfo` for each `blinded_path` in `paths`, in order.
     - MUST set `features` in each `blinded_payinfo` to match `encrypted_data_tlv`.`allowed_features` (or empty, if no `allowed_features`).
     - SHOULD ignore any payment which does not use one of the paths.
-  - if `offer_node_id` is present, and `invreq_payer_id` is identical to a previous `invoice_request`:
-    - MAY simply reuse the previous invoice.
+  - if `offer_node_id` is present, and `invreq_payer_id` is identical to a previous `invoice_request`, or if providing invoices on behalf of an often offline recipient:
+    - MAY reuse the previous invoice.
   - otherwise:
     - MUST NOT reuse a previous invoice.
 
 A reader of an invoice:
   - MUST reject the invoice if `invoice_amount` is not present.
   - MUST reject the invoice if `invoice_created_at` is not present.
-  - MUST reject the invoice if `invoice_payment_hash` is not present.
+  - if keysend was not supported in `invreq_features`:
+    - MUST reject the invoice if `invoice_payment_hash` is not present.
   - MUST reject the invoice if `invoice_node_id` is not present.
   - if `invoice_features` contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
@@ -706,8 +766,9 @@ A reader of an invoice:
   - For each `invoice_blindedpay`.`payinfo`:
     - MUST NOT use the corresponding `invoice_paths`.`path` if `payinfo`.`features` has any unknown even bits set.
     - MUST reject the invoice if this leaves no usable paths.
-  - if the invoice is a response to an `invoice_request`:
+  - if `invoice_payment_hash` is set and the invoice is a response to an `invoice_request`:
     - MUST reject the invoice if all fields less than type 160 do not exactly match the `invoice_request`.
+  - else if the invoice is a response to an `invoice_request`:
     - if `offer_node_id` is present (invoice_request for an offer):
       - MUST reject the invoice if `invoice_node_id` is not equal to `offer_node_id`.
     - otherwise (invoice_request without an offer):
@@ -727,6 +788,9 @@ A reader of an invoice:
     - MUST ignore any `fallback_address` for which `version` is greater than 16.
     - MUST ignore any `fallback_address` for which `address` is less than 2 or greater than 40 bytes.
     - MUST ignore any `fallback_address` for which `address` does not meet known requirements for the given `version`
+  - if `invoice_payment_hash` is unset:
+    - MUST pay asynchronously using the `held_htlc_available` onion message
+      flow, where the onion message is sent over `invoice_message_paths`
 
 ## Rationale
 

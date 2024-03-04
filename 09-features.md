@@ -51,10 +51,15 @@ The Context column decodes as follows:
 | 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                           | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
 | 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | IN       | `option_scid_alias`       | [BOLT #2][bolt02-channel-ready]                                       |
 | 52/53 | `option_htlc_hold`               | Hold HTLCs and forward on receipt of an onion message     | IN       | `option_onion_messages`                                   |
+| 53/54 | `option_om_mailbox`               | Store-and-forward onion messages for often-offline peers | IN       | `option_onion_messages`   |                                                                       |
 
 ## Definitions
 
 We define `option_anchors` as `option_anchor_outputs || option_anchors_zero_fee_htlc_tx`.
+
+We define `option_om_mailbox` as the ability to store an onion message on behalf
+of an offline peer, and forward it once the peer comes online (subject to rate
+limiting).
 
 ## Requirements
 

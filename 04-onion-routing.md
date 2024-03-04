@@ -213,6 +213,9 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
     1. type: 18 (`total_amount_msat`)
     2. data:
         * [`tu64`:`total_msat`]
+    1. type: 5482373484 (`keysend_payment_preimage`)
+    2. data:
+        * [`32*byte`:`payment_preimage`]
 
 `short_channel_id` is the ID of the outgoing channel used to route the
 message; the receiving peer should operate the other end of this channel.
@@ -238,6 +241,10 @@ origin node has an obsolete `cltv_expiry_delta` value.
 The requirements ensure consistency in responding to an unexpected
 `outgoing_cltv_value`, whether it is the final node or not, to avoid
 leaking its position in the route.
+
+`keysend_payment_preimage` is the payment preimage provided by the sender in the
+case that the recipient is often-offline and another node provided a keysend
+BOLT 12 invoice on their behalf.
 
 ### Requirements
 
@@ -269,6 +276,12 @@ The writer of the TLV `payload`:
         - MUST use the current block height as a baseline value. 
         - if a [random offset](07-routing-gossip.md#recommendations-for-routing) was added to improve privacy:
           - SHOULD add the offset to the baseline value.
+      - if paying to a keysend invoice:
+        - MUST set `keysend_payment_preimage` to randomly generated unique bytes.
+        - MUST set `update_add_htlc.payment_hash` to match the SHA256 hash of
+          `keysend_payment_preimage`.
+      - otherwise:
+        - MUST NOT set `keysend_payment_preimage`.
     - MUST NOT include any other tlv field.
   - For every node outside of a blinded route:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
@@ -319,6 +332,7 @@ The reader:
       - MUST return an error if `amt_to_forward` is below what it expects for the payment.
       - MUST return an error if incoming `cltv_expiry` < `outgoing_cltv_value`.
       - MUST return an error if incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
+      - MUST use `keysend_payment_preimage` when claiming the HTLC, if present
   - Otherwise (it is not part of a blinded route):
     - MUST return an error if `blinding_point` is set in the incoming `update_add_htlc` or `current_blinding_point` is present.
     - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
