@@ -245,6 +245,7 @@ The creator of `encrypted_recipient_data` (usually, the recipient of payment):
 
   - MUST create `encrypted_data_tlv` for each node in the blinded route (including itself).
   - MUST include `encrypted_data_tlv.short_channel_id` and `encrypted_data_tlv.payment_relay` for each non-final node.
+  - MUST NOT include `encrypted_data_tlv.next_node_id`.
   - MUST set `encrypted_data_tlv.payment_constraints` for each non-final node:
     - `max_cltv_expiry` to the largest block height at which the route is allowed to be used, starting
     from the final node and adding `encrypted_data_tlv.payment_relay.cltv_expiry_delta` at each hop.
@@ -304,6 +305,7 @@ The reader:
       - MUST process the message as if it were present and contained an empty array.
     - MUST return an error if:
       - `encrypted_recipient_data.allowed_features.features` contains an unknown feature bit (even if it is odd).
+      - `encrypted_recipient_data` contains both `short_channel_id` and `next_node_id`.
       - the payment uses a feature not included in `encrypted_recipient_data.allowed_features.features`.
     - If it is not the final node:
       - MUST return an error if the payload contains other tlv fields than `encrypted_recipient_data` and `current_blinding_point`.
