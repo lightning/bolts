@@ -1341,7 +1341,7 @@ This message is exchanged by both peers. It contains the signatures for
 the first commitment transaction.
 
 Rationale and Requirements are the same as listed below,
-for [`commitment_signed`](#commiting-updates-so-far-commitment_signed) with the following additions.
+for [`commitment_signed`](#committing-updates-so-far-commitment_signed) with the following additions.
 
 #### Requirements
 
