@@ -494,6 +494,75 @@ every message maximally).
 Finally, the usage of periodic `ping` messages serves to promote frequent key
 rotations as specified within [BOLT #8](08-transport.md).
 
+### Peer storage
+
+## The `peer_storage` and `your_peer_storage` Messages
+
+Nodes that advertise the `option_provide_storage` feature offer storing
+arbitrary data for their peers. The data stored must not exceed 65531 bytes,
+which lets it fit in lightning messages.
+
+Nodes that advertise the `option_want_storage` feature want to have their
+data stored by their peers that support `option_provide_storage`.
+
+Nodes can verify that their `option_provide_storage` peers correctly store
+their data at each reconnection, by comparing the contents of the
+retrieved data with the last one they sent. However, nodes should not expect
+their peers to always have their latest data available.
+
+Nodes ask their peers to store data using the `peer_storage` message & expect peers to return them latest data using `your_peer_storage` message:
+
+1. type: 7 (`peer_storage`)
+2. data:
+   * [`u16`: `length`]
+   * [`length*byte`:`blob`]
+
+
+1. type: 9 (`your_peer_storage`)
+2. data:
+   * [`u16`: `length`]
+   * [`length*byte`:`blob`]
+
+
+Requirements:
+
+The sender of `peer_storage`:
+  - MUST offer `option_want_storage`.
+  - MAY send `peer_storage` whenever necessary (usually, everytime their configuration changes)
+  - MUST limit its `blob` to 65531 bytes.
+  - MUST encrypt the data in a way that can be validated when received.
+
+
+The receiver of `peer_storage`:
+  - If it offered `option_provide_storage`:
+    - if it has an open channel with the sender:
+      - MUST store the message.
+    - MAY store anyway (e.g. might get paid for the service).
+
+- If it does store the message:
+  - MAY delay storage to ratelimit peer to no more than one update per second.
+  - MUST respond with `your_peer_storage` containing `blob` after it is stored.
+  - MUST replace the old `blob` with the latest received.
+  - MUST send `your_peer_storage` again after reconnection.
+- Otherwise:
+  - MUST NOT respond with `your_peer_storage`
+
+The sender of `your_peer_storage`:
+  - MUST include the last `blob` it stored for that peer.
+  - when all channels with that peer are closed:
+    - SHOULD wait at least 2016 blocks before deleting the `blob`.
+
+The receiver of `your_peer_storage`:
+  - when it receives `your_peer_storage` with an outdated or irrelevant data:
+    - MAY send a warning.
+
+Rationale:
+If a peer supports `option_provide_storage` and we have a channel with it, we can send a `peer_storage` message with any `blob` so that peer can store it locally in their node. Everytime a node receives a `peer_storage` message, It needs to update the `blob` for the sender.
+
+Upon receiving `peer_storage` nodes should immediately respond with the latest `your_peer_storage`, which could work as an ack to the peer.
+
+Nodes supporting `option_want_storage`, should send a `peer_storage` message whenever they wish to update the `blob` stored with their peers. This `blob` can be used to distribute encrypted data, which could be helpful in restoring the node.
+
 ## Appendix A: BigSize Test Vectors
 
 The following test vectors can be used to assert the correctness of a BigSize
