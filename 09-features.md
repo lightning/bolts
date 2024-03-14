@@ -6,6 +6,8 @@ the `channel_announcement` and `node_announcement` messages ([BOLT
 #7](07-routing-gossip.md)).  The flags are tracked separately, since
 new flags will likely be added over time.
 
+Some features were introduced and became so widespread they are `ASSUMED` to be present by all nodes, and can be safely ignored (and the semantics are only defined in prior revisions of this spec).
+
 Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1,
 an _even_ bit). They are generally assigned in pairs so that features
 can be introduced as optional (_odd_ bits) and later upgraded to be compulsory
