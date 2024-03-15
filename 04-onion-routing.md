@@ -188,6 +188,9 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
 
 1. `tlv_stream`: `payload`
 2. types:
+    1. type: 1 (`invoice_request`)
+    2. data:
+        * [`...*byte`:`invoice_request_tlv_stream`]
     1. type: 2 (`amt_to_forward`)
     2. data:
         * [`tu64`:`amt_to_forward`]
@@ -242,8 +245,10 @@ The requirements ensure consistency in responding to an unexpected
 `outgoing_cltv_value`, whether it is the final node or not, to avoid
 leaking its position in the route.
 
-`sender_provided_payment_preimage` is set in the case that the recipient is 
-often-offline and another node provided a static BOLT 12 invoice on their behalf.
+`sender_provided_payment_preimage` and `invoice_request` are set in the case 
+that the recipient is often-offline and another node provided a static BOLT 12 
+invoice on their behalf, where `invoice_request` is the sender's originl 
+invoice request corresponding to this HTLC.
 
 ### Requirements
 
@@ -279,6 +284,10 @@ The writer of the TLV `payload`:
         - MUST set `sender_provided_payment_preimage` to randomly generated unique bytes.
         - MUST set `update_add_htlc.payment_hash` to match the SHA256 hash of
           `sender_provided_payment_preimage`.
+        - if the `payment_onion_invreq` feature is set in the invoice:
+          - MUST or MAY set `invoice_request` to the BOLT 12 invoice request
+            corresponding to this HTLC, based on whether `payment_onion_invreq`
+            is optional or compulsory.
       - otherwise:
         - MUST NOT set `sender_provided_payment_preimage`.
     - MUST NOT include any other tlv field.
