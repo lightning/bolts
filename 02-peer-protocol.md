@@ -44,6 +44,7 @@ operation, and closing.
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
     * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
+    * [Funding Lease Fee](#funding-lease-fee)
   * [Authors](#authors)
 
 # Channel
@@ -1171,6 +1172,11 @@ This message initiates the v2 channel establishment workflow.
    2. data:
         * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
+   1. type: 3 (`request_funds`)
+   2. data:
+        * [`u64`:`requested_sats`]
+        * [`u16`:`lease_duration`]
+        * [`u32`:`lease_expiry`]
 
 Rationale and Requirements are the same as for [`open_channel`](#the-open_channel-message),
 with the following additions.
@@ -1185,11 +1191,20 @@ The sending node:
   - MUST set `funding_feerate_perkw` to the feerate for this transaction
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If it wants the receiving node to contribute to the funding transaction
+    using `option_will_fund`:
+    - MUST set `lease_duration` to one of the lease durations offered by the
+      receiving node in `init` or `node_announcement`.
+    - MUST set `requested_sats` to the amount of sats it wants to pay for at
+      the advertised `lease_rate`.
+    - MUST set `lease_expiry` to be `lease_duration` blocks in the future.
 
 The receiving node:
   - MAY fail the negotiation if:
     - the `locktime` is unacceptable
     - the `funding_feerate_perkw` is unacceptable
+    - `request_funds.lease_duration` does not match a duration it advertised.
+    - `request_funds.lease_expiry` is too far in the past or in the future.
   - MUST fail the negotiation if:
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
 
@@ -1258,6 +1273,14 @@ acceptance of the new channel.
    2. data:
         * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
+   1. type: 3 (`will_fund`)
+   2. data:
+        * [`signature`:`signature`]
+        * [`u16`:`funding_weight`]
+        * [`u16`:`lease_fee_basis`]
+        * [`u32`:`lease_fee_base_sat`]
+        * [`u16`:`max_channel_fee_basis`]
+        * [`u32`:`max_channel_fee_base_msat`]        
 
 Rationale and Requirements are the same as listed above,
 for [`accept_channel`](#the-accept_channel-message) with the following
@@ -1270,10 +1293,36 @@ The accepting node:
   - MAY respond with a `funding_satoshis` value of zero.
   - If it requires the opening node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If the `request_funds` tlv was sent in `open_channel2`:
+    - If it does not want to contribute funds or to be paid for its
+      funding contributions:
+      - SHOULD omit the `will_fund` tlv.
+    - Otherwise, if it decides to be paid for its contributions:
+      - MUST include the `will_fund` tlv.
+      - MUST set `funding_satoshis` to a value greater than `0`.
+      - MAY set `funding_satoshis` less or more than `requested_sats`.
+      - MUST fill the `will_fund` tlv with values from the `lease_rate`
+        that matches the `lease_duration` from `request_funds`.
+      - MUST set `signature` to the ECDSA signature of the SHA256 hash
+        of the corresponding `lease_witness` using the `node_id` key.
 
 The receiving node:
+  - MAY fail the negotiation if:
+    - It sent `request_funds` and `will_fund` is set and:
+      - `funding_satoshis` is smaller than requested.
+  - SHOULD fail the negotiation if:
+    - It sent `request_funds` and `will_fund` is set and:
+      - `funding_weight` is too high.
+      - `lease_fee_basis` is too high.
+      - `lease_fee_base_sat` is too high.
+      - `max_channel_fee_basis` is too high.
+      - `max_channel_fee_base_msat` is too high.
   - MUST fail the negotiation if:
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
+    - `will_fund` is set but `request_funds` was not sent in `open_channel2`.
+    - `will_fund` is set but the `signature` is invalid.
+  - MUST pay fees for the `option_will_fund` amount (if any) as detailed in the
+    [funding lease fee section](funding-lease-fee).
 
 #### Rationale
 
@@ -1285,6 +1334,14 @@ Instead, the channel reserve is fixed at 1% of the total channel balance
 (`open_channel2`.`funding_satoshis` + `accept_channel2`.`funding_satoshis`)
 rounded down to the nearest whole satoshi or the `dust_limit_satoshis`,
 whichever is greater.
+
+If the opener sent `request_funds` in their `open_channel2` message, the
+accepter node may choose to contribute funds, but they don't have to.
+
+If the accepter node has run out of available funds, they should either fail
+the negotiation or reply with a `funding_satoshis` set to `0` and omit the
+`will_fund` TLV, allowing the opener to decide whether they want to proceed
+anyway or fail the negotiation.
 
 ### Funding Composition
 
@@ -2577,6 +2634,70 @@ fall back to the `option_data_loss_protect` behavior if
 interactive transaction construction, or safely abort that transaction
 if it was not signed by one of the peers, who has thus already removed
 it from its state.
+
+## Funding Lease Fee
+
+When `request_funds` and `will_fund` have been set in `open_channel2` and
+`accept_channel2`, the opener must pay fees to the accepter for the funding
+they provide to the channel based on the agreed upon `lease_rate`.
+
+The lease fee is taken from the opener's funding inputs and added to the
+accepter's channel balance during the funding flow. The opener must contribute
+enough funds to cover `open_channel2.funding_satoshis`, the lease fee, and the
+on-chain fees for the weight of the funding transaction they're responsible for.
+
+The lease fee has three components:
+
+* a fixed amount: `lease_fee_base_sat`
+* a proportional amount based on the accepter's funding contribution:
+  * `paid_funding_contribution = min(accept_channel2.funding_satoshis, open_channel2.requested_sats)`
+  * `lease_fee_proportional_sat = paid_funding_contribution * lease_fee_basis / 10_000`
+* a contribution to the on-chain fees paid by the accepter:
+  * `lease_fee_mining_sat = funding_weight * funding_feerate_perkw / 1000`
+
+The lease fee is then `lease_fee_total = lease_fee_base_sat + lease_fee_proportional_sat + lease_fee_mining_sat`.
+
+### Example
+
+A node contributes `500_000 sats` to a channel and requests `1_000_000 sats`
+from its peer, at a feerate of `2500 sat/kw`. The total weight of their inputs
+and outputs in the funding transaction is 720. More details about transaction
+weight can be found in the [interactive-tx section](interactive-transaction-construction).
+
+The accepter contributes `1_100_000 sats` with the following `lease_rate`:
+
+	funding_weight = 444
+	lease_fee_base_sat = 233 sats
+	lease_fee_basis = 22
+
+The lease fee is:
+
+	lease_fee_base_sat = 233 sats
+	lease_fee_proportional_sat = min(1_000_000, 1_100_000) * 22 / 10_000 = 2200 sats
+	lease_fee_mining_sat = 444 * 2500 / 1000 = 1110 sats
+	lease_fee_total = 3543 sats
+
+The outputs to the peers in the commitment transaction will be
+
+	to-opener:     500_000 sats
+	to-accepter: 1_103_543 sats
+
+The miner fee for the opener will be `720 * 2500 / 1000 = 1800 sats`.
+
+Minimum funds that the opener must contribute to the funding transaction:
+
+	open_channel2.funding_satoshis: 500_000 sats
+	lease fee:                        3_543 sats
+	miner fee:                        1_800 sats
+	total required contribution:    505_343 sats
+
+Minimum funds that the accepter must contribute to the funding transaction:
+
+	accept_channel2.funding_satoshis: 1_100_000 sats
+	miner fee [1]:                        1_110 sats
+	total required contribution:      1_101_110 sats
+
+[1] assumes `funding_weight = 444` is their total weight for this transaction.
 
 # Authors
 

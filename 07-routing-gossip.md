@@ -270,6 +270,32 @@ nodes not associated with an already known channel are ignored.
    * [`32*byte`:`alias`]
    * [`u16`:`addrlen`]
    * [`addrlen*byte`:`addresses`]
+   * [`node_announcement_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `node_announcement_tlvs`
+2. types:
+   1. type: 1 (`option_will_fund`)
+   2. data:
+       * [`...*16*byte`:`lease_rates`]
+
+1. subtype: `lease_rate`
+2. data:
+   * [`u16`:`lease_duration`]
+   * [`u16`:`funding_weight`]
+   * [`u16`:`lease_fee_basis`]
+   * [`u32`:`lease_fee_base_sat`]
+   * [`u16`:`max_channel_fee_basis`]
+   * [`u32`:`max_channel_fee_base_msat`]
+
+1. subtype: `lease_witness`
+2. data:
+   * [`16*byte`:`0x6f7074696f6e5f77696c6c5f66756e64`]
+   * [`u16`:`funding_script_size`]
+   * [`funding_script_size`:`funding_script`]
+   * [`u16`:`lease_duration`]
+   * [`u32`:`lease_expiry`]
+   * [`u16`:`max_channel_fee_basis`]
+   * [`u32`:`max_channel_fee_base_msat`]
 
 `timestamp` allows for the ordering of messages, in the case of multiple
 announcements. `rgb_color` and `alias` allow intelligence services to assign
@@ -279,6 +305,14 @@ nodes colors like black and cool monikers like 'IRATEMONK' and 'WISTFULTOLL'.
 connections: it contains a series of `address descriptor`s for connecting to the
 node. The first byte describes the address type and is followed by the
 appropriate number of bytes for that type.
+
+`lease_rates` allows nodes to announce their willingness to provide funding to
+other nodes for a fee. They also commit to a maximum routing fee they will charge
+for transmitting funds over the channel for the duration of the funding lease.
+
+`lease_witness` contains the data that is signed when committing to a funding
+lease. It starts with `option_will_fund` in ASCII to ensure that this signature
+cannot be used in a different context.
 
 The following `address descriptor` types are defined:
 
@@ -323,6 +357,21 @@ The origin node:
   bits it sets.
   - SHOULD not announce a Tor v2 onion service.
   - MUST NOT announce more than one `type 5` DNS hostname.
+  - If it includes `option_will_fund`:
+    - MUST set `lease_duration` to the number of blocks during which the lease
+      will be active.
+    - SHOULD include one `lease_rate` for each lease duration it supports.
+    - MUST set `lease_fee_base_sat` to the base fee (in satoshi) it will charge.
+    - MUST set `lease_fee_basis` to the amount it will charge per contributed
+      satoshi (in basis points, ie 1/10_000).
+    - MUST set `funding_weight` to the transaction weight that will be charged.
+      It ensures that the funding node is refunded for some of the on-chain
+      fees it will pay to contribute the requested funds to a channel.
+    - MUST set `max_channel_fee_base_msat` to the maximum `fee_base_msat` it
+      will use in its `channel_update` while the lease is active.
+    - MUST set `max_channel_fee_basis` to match (when converted from basis
+      points to millionths) the maximum `fee_proportional_millionths` it will
+      use in its `channel_update` while the lease is active.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -376,6 +425,11 @@ New address types may be added in the future; as address descriptors have
 to be ordered in ascending order, unknown ones can be safely ignored.
 Additional fields beyond `addresses` may also be added in the future—with
 optional padding within `addresses`, if they require certain alignment.
+
+When using `option_will_fund`, a `signature` will be provided over the
+`lease_witness`. This provides the buyer with a proof in case the seller
+does not honor the lease terms, for example by updating the routing fees
+of their `channel_update` to a greater value than the `lease_rate`.
 
 ### Security Considerations for Node Aliases
 
@@ -498,6 +552,11 @@ The origin node:
   - SHOULD NOT create redundant `channel_update`s
   - If it creates a new `channel_update` with updated channel parameters:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
+  - If it is the seller of a currently active lease on this channel (`option_will_fund`):
+    - MUST NOT set `fee_base_msat` greater than `max_channel_fee_base_msat`
+      (as committed to in `accept_channel2.will_fund.signature`).
+    - MUST NOT set `fee_proportional_millionths` greater than `max_channel_fee_basis` * 100
+      (as committed to in `accept_channel2.will_fund.signature`).
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
