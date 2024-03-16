@@ -31,6 +31,8 @@ use 'lightning:' as a prefix before the BOLT-11 encoding (note: not
 as per BIP-21, with the key 'lightning' and the value equal to the BOLT-11
 encoding.
 
+MIME type identifier 'application/lightning-invoice' is recommended for BOLT-11 encoded content.
+
 ## Requirements
 
 A writer:
