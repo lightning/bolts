@@ -423,8 +423,8 @@ of *relaying* payments, not *sending* payments. When making a payment
     * [`byte`:`channel_flags`]
     * [`u16`:`cltv_expiry_delta`]
     * [`u64`:`htlc_minimum_msat`]
-    * [`u32`:`fee_base_msat`]
-    * [`u32`:`fee_proportional_millionths`]
+    * [`i32`:`fee_base_msat`]
+    * [`i32`:`fee_proportional_millionths`]
     * [`u64`:`htlc_maximum_msat`]
 
 The `channel_flags` bitfield is used to indicate the direction of the channel: it
