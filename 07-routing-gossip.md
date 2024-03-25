@@ -575,6 +575,12 @@ be present, so `must_be_one` is a constant value, and ignored by receivers.
 
 ## Query Messages
 
+Understanding of messages used to be indicated with the `gossip_queries`
+feature bit; now these messages are universally supported, that feature has
+now been slightly repurposed.  Not offering this feature means a node is not
+worth querying for gossip: either they do not store the entire gossip map, or
+they are only connected to a single peer (this one).
+
 There are several messages which contain a long array of
 `short_channel_id`s (called `encoded_short_ids`) so we include an encoding byte
 which allows for different encoding schemes to be defined in the future, if they
@@ -638,6 +644,7 @@ from `reply_channel_range`.
 #### Requirements
 
 The sender:
+  - SHOULD NOT send this to a peer which does not offer `gossip_queries`.
   - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that the `short_channel_id`s refer to.
@@ -778,6 +785,7 @@ This allows querying for channels within specific blocks.
 #### Requirements
 
 The sender of `query_channel_range`:
+  - SHOULD NOT send this to a peer which does not offer `gossip_queries`.
   - MUST NOT send this if it has sent a previous `query_channel_range` to this peer and not received all `reply_channel_range` replies.
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that it wants the `reply_channel_range` to refer to
@@ -842,6 +850,8 @@ multiple times to change the gossip from a peer.
 The sender:
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
   that it wants the gossip to refer to.
+  - If the receiver does not offer `gossip_queries`:
+    - SHOULD set `first_timestamp` to 0xFFFFFFFF and `timestamp_range` to 0.
 
 The receiver:
   - SHOULD send all gossip messages whose `timestamp` is greater or
