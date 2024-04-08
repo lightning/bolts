@@ -28,7 +28,6 @@ To support channel and node discovery, three *gossip messages* are supported:
   * [The `node_announcement` Message](#the-node_announcement-message)
   * [The `channel_update` Message](#the-channel_update-message)
   * [Query Messages](#query-messages)
-  * [Initial Sync](#initial-sync)
   * [Rebroadcasting](#rebroadcasting)
   * [HTLC Fees](#htlc-fees)
   * [Pruning the Network View](#pruning-the-network-view)
@@ -893,15 +892,6 @@ have many peers (eg. setting `first_timestamp` to `0xFFFFFFFF` after the
 first few peers, in the assumption that propagation is adequate).
 This assumption of adequate propagation does not apply for gossip messages
 generated directly by the node itself, so they should ignore filters.
-
-## Initial Sync
-
-If a node requires an initial sync of gossip messages, it will be flagged
-in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
-
-Note that the `initial_routing_sync` feature is overridden (and should
-be considered equal to 0) by the `gossip_queries` feature if the
-latter is negotiated via `init`.
 
 ### Requirements
 
