@@ -33,7 +33,6 @@ The Context column decodes as follows:
 | Bits  | Name                              | Description                                               | Context  | Dependencies              | Link                                                                  |
 |-------|-----------------------------------|-----------------------------------------------------------|----------|---------------------------|-----------------------------------------------------------------------|
 | 0/1   | `option_data_loss_protect`        | ASSUMED                                                   |          |                           |                                                                       |
-| 3     | `initial_routing_sync`            | Sending node needs a complete routing information dump    | I        |                           | [BOLT #7][bolt07-sync]                                                |
 | 4/5   | `option_upfront_shutdown_script`  | Commits to a shutdown scriptpubkey when opening channel   | IN       |                           | [BOLT #2][bolt02-open]                                                |
 | 6/7   | `gossip_queries`                  | Peer has useful gossip to share                           |          |                           |                                                                       |
 | 8/9   | `var_onion_optin`                 | ASSUMED                                                   |          |                           |                                                                       |
@@ -78,10 +77,6 @@ The requirements for feature bits that are not defined
 above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 
 ## Rationale
-
-There is no _even_ bit for `initial_routing_sync`, as there would be little
-point: a local node can't determine if a remote node complies, and it must
-interpret the flag, as defined in the initial spec.
 
 Note that for feature flags which are available in both the `node_announcement`
 and [BOLT 11](11-payment-encoding.md) invoice contexts, the features as set in
