@@ -742,7 +742,7 @@ affect the channel operation).
 
 The currently defined basic types are:
   - `option_static_remotekey` (bit 12)
-  - `option_anchors_zero_fee_htlc_tx` and `option_static_remotekey` (bits 22 and 12)
+  - `option_anchors` and `option_static_remotekey` (bits 22 and 12)
 
 Each basic type has the following variations allowed:
   - `option_scid_alias` (bit 46)
@@ -968,8 +968,8 @@ Both peers:
   - if `channel_type` was present in both `open_channel` and `accept_channel`:
     - This is the `channel_type` (they must be equal, required above)
   - otherwise:
-    - if `option_anchors_zero_fee_htlc_tx` was negotiated:
-      - the `channel_type` is `option_anchors_zero_fee_htlc_tx` and `option_static_remotekey` (bits 22 and 12)
+    - if `option_anchors` was negotiated:
+      - the `channel_type` is `option_anchors` and `option_static_remotekey` (bits 22 and 12)
     - otherwise:
       - the `channel_type` is `option_static_remotekey` (bit 12)
   - MUST use that `channel_type` for all commitment transactions.
@@ -989,15 +989,15 @@ The recipient:
 #### Rationale
 
 We decide on
-`option_anchors_zero_fee_htlc_tx` at this point when we first have to generate
+`option_anchors` at this point when we first have to generate
 the commitment transaction. The feature bits that were communicated in the
 `init` message exchange for the current connection determine the channel
 commitment format for the total lifetime of the channel. Even if a later
 reconnection does not negotiate this parameter, this channel will continue to
 use `option_static_remotekey` or
-`option_anchors_zero_fee_htlc_tx`; we don't support "downgrading".
+`option_anchors`; we don't support "downgrading".
 
-`option_anchors_zero_fee_htlc_tx` is considered superior to
+`option_anchors` is considered superior to
 `option_static_remotekey`, and the superior one is favored if more than one
 is negotiated.
 
