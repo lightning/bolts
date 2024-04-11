@@ -276,11 +276,13 @@ nodes not associated with an already known channel are ignored.
 2. types:
    1. type: 1 (`option_will_fund`)
    2. data:
-       * [`...*16*byte`:`lease_rates`]
+       * [`...*24*byte`:`lease_rates`]
 
 1. subtype: `lease_rate`
 2. data:
    * [`u16`:`lease_duration`]
+   * [`u32`:`min_lease_amount_sat`]
+   * [`u32`:`max_lease_amount_sat`]
    * [`u16`:`funding_weight`]
    * [`u16`:`lease_fee_basis`]
    * [`u32`:`lease_fee_base_sat`]
@@ -360,7 +362,11 @@ The origin node:
   - If it includes `option_will_fund`:
     - MUST set `lease_duration` to the number of blocks during which the lease
       will be active.
+    - MUST set `min_lease_amount_sat` and `max_lease_amount_sat` to the minimum
+      and maximum amount it will contribute at this rate.
     - SHOULD include one `lease_rate` for each lease duration it supports.
+    - SHOULD include one `lease_rate` for each amount range it supports.
+    - MUST NOT include more than ten `lease_rate`s.
     - MUST set `lease_fee_base_sat` to the base fee (in satoshi) it will charge.
     - MUST set `lease_fee_basis` to the amount it will charge per contributed
       satoshi (in basis points, ie 1/10_000).
@@ -411,6 +417,8 @@ any future fields appended to the end):
   - SHOULD ignore Tor v2 onion services.
   - if more than one `type 5` address is announced:
     - SHOULD ignore the additional data.
+    - MUST not forward the `node_announcement`.
+  - if more than ten `lease_rate`s are included:
     - MUST not forward the `node_announcement`.
 
 ### Rationale

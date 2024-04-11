@@ -285,7 +285,7 @@ The `features` field MUST be padded to bytes with 0s.
         * [`...*byte`:`data`]
     1. type: 5 (`option_will_fund`)
     2. data:
-        * [`...*16*byte`:`lease_rates`]
+        * [`...*24*byte`:`lease_rates`]
 
 The optional `networks` indicates the chains the node is interested in.
 The optional `remote_addr` can be used to circumvent NAT issues.
