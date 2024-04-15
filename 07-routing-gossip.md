@@ -33,6 +33,7 @@ To support channel and node discovery, three *gossip messages* are supported:
   * [HTLC Fees](#htlc-fees)
   * [Pruning the Network View](#pruning-the-network-view)
   * [Recommendations for Routing](#recommendations-for-routing)
+  * [Liquidity Ads](#liquidity-ads)
   * [References](#references)
 
 ## Definition of `short_channel_id`
@@ -270,6 +271,13 @@ nodes not associated with an already known channel are ignored.
    * [`32*byte`:`alias`]
    * [`u16`:`addrlen`]
    * [`addrlen*byte`:`addresses`]
+   * [`node_announcement_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `node_announcement_tlvs`
+2. types:
+    1. type: 1 (`option_will_fund`)
+    2. data:
+        * [`will_fund_lease_rates`:`will_fund_lease_rates`]
 
 `timestamp` allows for the ordering of messages, in the case of multiple
 announcements. `rgb_color` and `alias` allow intelligence services to assign
@@ -279,6 +287,10 @@ nodes colors like black and cool monikers like 'IRATEMONK' and 'WISTFULTOLL'.
 connections: it contains a series of `address descriptor`s for connecting to the
 node. The first byte describes the address type and is followed by the
 appropriate number of bytes for that type.
+
+`option_will_fund` allows nodes to announce their willingness to provide funding
+to other nodes using one of the included lease rates, as described in the
+[liquidity ads section](#liquidity-ads).
 
 The following `address descriptor` types are defined:
 
@@ -323,6 +335,10 @@ The origin node:
   bits it sets.
   - SHOULD not announce a Tor v2 onion service.
   - MUST NOT announce more than one `type 5` DNS hostname.
+  - If it includes `option_will_fund`:
+    - MAY include multiple lease types, if it supports them.
+    - MAY include multiple lease rates for every lease type it supports.
+    - SHOULD NOT include more than 10 different lease rates.
 
 The receiving node:
   - if `node_id` is NOT a valid compressed public key:
@@ -498,6 +514,11 @@ The origin node:
   - SHOULD NOT create redundant `channel_update`s
   - If it creates a new `channel_update` with updated channel parameters:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
+  - If it is the seller of a currently active `duration_based_funding_lease` on this channel:
+    - MUST NOT set `fee_base_msat` greater than `max_channel_fee_base_msat`
+      (as committed to in `will_fund.signature`).
+    - MUST NOT set `fee_proportional_millionths` greater than `max_channel_fee_basis * 100`
+      (as committed to in `will_fund.signature`).
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
@@ -1136,6 +1157,200 @@ A->D's `update_add_htlc` message would be:
 And D->C's `update_add_htlc` would again be the same as B->C's direct payment
 above.
 
+## Liquidity Ads
+
+Liquidity ads allow nodes to announce their willingness to provide funding to
+other nodes for a fee. Sellers advertise various rates for the liquidity they
+are selling depending on the guarantees offered to buyers.
+
+1. subtype: `will_fund_lease_rates`
+2. data:
+    * [`will_fund_lease_rates_tlvs`:`lease_rates`]
+
+1. `tlv_stream`: `will_fund_lease_rates_tlvs`
+2. types:
+    1. type: 1 (`basic_funding_leases`)
+    2. data:
+        * [`...*basic_funding_lease`:`funding_lease_rates`]
+    1. type: 3 (`duration_based_funding_leases`)
+    2. data:
+        * [`...*duration_based_funding_lease`:`funding_lease_rates`]
+
+1. subtype: `request_funds`
+2. data:
+    * [`u64`:`requested_sats`]
+    * [`byte`:`lease_type`]
+    * [`funding_lease`:`funding_lease`]
+
+1. `lease_type`: 1 (`basic_funding_lease`)
+2. data:
+    * [`u32`:`min_lease_amount_sat`]
+    * [`u32`:`max_lease_amount_sat`]
+    * [`funding_lease_fee`:`funding_lease_fee`]
+
+1. `lease_type`: 3 (`duration_based_funding_lease`)
+2. data:
+    * [`u16`:`lease_duration`]
+    * [`u32`:`min_lease_amount_sat`]
+    * [`u32`:`max_lease_amount_sat`]
+    * [`funding_lease_fee`:`funding_lease_fee`]
+    * [`u16`:`max_channel_fee_basis`]
+    * [`u32`:`max_channel_fee_base_msat`]
+
+1. subtype: `funding_lease_fee`
+2. data:
+    * [`u16`:`funding_weight`]
+    * [`u16`:`lease_fee_basis`]
+    * [`u32`:`lease_fee_base_sat`]
+
+1. subtype: `will_fund`
+2. data:
+    * [`byte`:`lease_witness_type`]
+    * [`lease_witness`:`lease_witness`]
+    * [`signature`:`signature`]
+
+1. `lease_witness_type`: 1 (`basic_funding_lease_witness`)
+2. data:
+    * [`u16`:`funding_script_size`]
+    * [`funding_script_size`:`funding_script`]
+
+1. `lease_witness_type`: 3 (`duration_based_funding_lease_witness`)
+2. data:
+    * [`u32`:`lease_expiry`]
+    * [`u16`:`funding_script_size`]
+    * [`funding_script_size`:`funding_script`]
+    * [`u16`:`max_channel_fee_basis`]
+    * [`u32`:`max_channel_fee_base_msat`]
+
+Sellers may offer multiple `lease_type`s, described in the following sections.
+Buyers select a specific lease offered by the seller and use `request_funds`
+to purchase that lease. Sellers answer with `will_fund` containing a signature
+that commits to the lease parameters included in the `lease_witness`.
+
+### The `basic_funding_lease` type
+
+A `basic_funding_lease` does not provide any guarantee that the seller won't
+close the channel or increase their routing fees after the purchase, if the
+liquidity isn't actually used.
+
+The `funding_lease_fee` is paid as detailed in the `funding_lease_fee` section
+below.
+
+The seller provides an ECDSA signature in `will_fund` using the private key
+associated with their `node_id`. The data signed is:
+
+    SHA256("basic_funding_lease" || basic_funding_lease_witness)
+
+We use a tagged hash to ensure that this signature cannot be used in a
+different context.
+
+#### Requirements
+
+A node selling a `basic_funding_lease`:
+  - MUST set `min_lease_amount_sat` and `max_lease_amount_sat` to the minimum
+    and maximum amount it will contribute at this rate.
+  - MUST set `lease_fee_base_sat` to the base fee (in satoshi) it will charge.
+  - MUST set `lease_fee_basis` to the amount it will charge per contributed
+    satoshi (in basis points, ie 1/10_000).
+  - MUST set `funding_weight` to the transaction weight that will be charged.
+    It ensures that the funding node is refunded for some of the on-chain
+    fees it will pay to contribute the requested funds to a channel.
+
+### The `duration_based_funding_lease` type
+
+A `duration_based_funding_lease` commits to a duration during which the seller
+will not remove the funds nor increase their routing fees above the maximum
+values provided in the lease. It is impossible to actually prevent them from
+doing so, but the signature they provide in `will_fund` can be used to prove
+that they cheated.
+
+The `funding_lease_fee` is paid as detailed in the `funding_lease_fee` section
+below.
+
+The seller provides an ECDSA signature in `will_fund` using the private key
+associated with their `node_id`. The data signed is:
+
+    SHA256("duration_based_funding_lease" || duration_based_funding_lease_witness)
+
+We use a tagged hash to ensure that this signature cannot be used in a
+different context.
+
+#### Requirements
+
+A node selling a `duration_based_funding_lease`:
+  - MUST set `lease_duration` to the number of blocks during which the lease
+    will be active.
+  - MUST set `max_channel_fee_base_msat` to the maximum `fee_base_msat` it
+    will use in its `channel_update` while the lease is active.
+  - MUST set `max_channel_fee_basis` to match (when converted from basis
+    points to millionths) the maximum `fee_proportional_millionths` it will
+    use in its `channel_update` while the lease is active.
+
+### Paying the `funding_lease_fee`
+
+When `request_funds` and `will_fund` have been exchanged, the buyer must pay
+fees to the seller for the funding they provide to the channel based on the
+agreed upon `funding_lease_fee`.
+
+The lease fee is taken from the buyer's funding inputs and added to the
+seller's channel balance during the funding flow. The buyer must contribute
+enough funds to cover their channel balance, the lease fee, and the on-chain
+fees for the weight of the funding transaction they're responsible for.
+
+The lease fee has three components:
+
+* a fixed amount: `lease_fee_base_sat`
+* a proportional amount based on the seller's `funding_amount`:
+  * `paid_funding_contribution = min(funding_amount, request_funds.requested_sats)`
+  * `lease_fee_proportional_sat = paid_funding_contribution * lease_fee_basis / 10_000`
+* a contribution to the on-chain fees paid by the seller:
+  * `lease_fee_mining_sat = funding_weight * funding_feerate_perkw / 1000`
+
+The lease fee is then `lease_fee_total = lease_fee_base_sat + lease_fee_proportional_sat + lease_fee_mining_sat`.
+
+#### Example
+
+A node contributes `500_000 sats` to a channel and requests `1_000_000 sats`
+from its peer, at a feerate of `2500 sat/kw`. The total weight of their inputs
+and outputs in the funding transaction is 720. More details about transaction
+weight can be found in the [interactive-tx section](02-peer-protocol.md#interactive-transaction-construction).
+
+The seller contributes `1_100_000 sats` with the following `lease_rate`:
+
+	funding_weight = 444
+	lease_fee_base_sat = 233 sats
+	lease_fee_basis = 22
+
+The lease fee is:
+
+	lease_fee_base_sat = 233 sats
+	lease_fee_proportional_sat = min(1_000_000, 1_100_000) * 22 / 10_000 = 2200 sats
+	lease_fee_mining_sat = 444 * 2500 / 1000 = 1110 sats
+	lease_fee_total = 3543 sats
+
+The outputs to the peers in the commitment transaction will be
+
+	to-buyer:     500_000 sats
+	to-seller: 1_103_543 sats
+
+The miner fee for the buyer will be `720 * 2500 / 1000 = 1800 sats`.
+
+Minimum funds that the buyer must contribute to the funding transaction:
+
+	open_channel2.funding_satoshis: 500_000 sats
+	lease fee:                        3_543 sats
+	miner fee:                        1_800 sats
+	total required contribution:    505_343 sats
+
+Minimum funds that the seller must contribute to the funding transaction:
+
+	accept_channel2.funding_satoshis: 1_100_000 sats
+	miner fee [1]:                        1_110 sats
+	total required contribution:      1_101_110 sats
+
+[1] assumes `funding_weight = 444` is their total weight for this transaction.
+
+## References
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
