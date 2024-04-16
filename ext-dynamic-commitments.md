@@ -395,9 +395,9 @@ The sending node:
   - MUST NOT send this message if it has already sent a `dyn_reject` for the
     current negotiation.
   - MUST remember the parameters of `dyn_propose` message to which the `dyn_ack`
-    is responding for the next `propose_height`.
+    is responding for the next `dyn_height`.
   - MUST remember the local and remote commitment heights for the next
-    `propose_height`.
+    `dyn_height`.
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the peer:
@@ -407,12 +407,12 @@ The receiving node:
 
 A node:
   - once it has sent or received `dyn_ack`
-    - MUST increment its `propose_height`.
+    - MUST increment its `dyn_height`.
     - MUST proceed to the Execution Phase.
 
 ##### Rationale
 
-The `propose_height` starts at 0 for a channel and is incremented by 1 every
+The `dyn_height` starts at 0 for a channel and is incremented by 1 every
 time the dynamic commitment proposal phase completes for a channel. See the
 reestablish section for why this is needed.
 
@@ -478,7 +478,7 @@ attempted.
 
 ### `channel_reestablish`
 
-A new TLV that denotes the node's current `propose_height` is included.
+A new TLV that denotes the node's current `dyn_height` is included.
 
 1. `tlv_stream`: `channel_reestablish_tlvs`
 2. types:
@@ -495,10 +495,10 @@ The sending node:
 
 The receiving node:
   - if the received `dyn_height` equals its own `dyn_height`:
-    - MUST forget any stored proposal state for `propose_height`+1 in case
+    - MUST forget any stored proposal state for `dyn_height`+1 in case
       negotiation didn't complete. Can continue using the channel.
     - SHOULD forget any state that is unnecessary for heights <=
-      `propose_height`.
+      `dyn_height`.
   - if the received `dyn_height` is 1 greater than its own `dyn_height`:
     - if it does not have any remote parameters stored for the received
       `dyn_height`:
@@ -507,7 +507,7 @@ The receiving node:
         its not possible to advance the height without the recipient storing the
         remote's parameters.
     - resume using the channel with its last-sent `dyn_propose` and the stored
-      `dyn_propose` parameters and increment its `propose_height`.
+      `dyn_propose` parameters and increment its `dyn_height`.
   - if the received `dyn_height` is 1 less than its own `dyn_height`:
     - resume using the channel with the new parameters.
   - else:
