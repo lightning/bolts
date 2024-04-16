@@ -1057,8 +1057,15 @@ The _erring node_:
 The _origin node_:
   - once the return message has been decrypted:
     - SHOULD store a copy of the message.
-    - SHOULD continue decrypting, until the loop has been repeated 20 times.
+    - SHOULD continue decrypting, until the loop has been repeated 27 times
+    (maximum route length of tlv payload type).
     - SHOULD use constant `ammag` and `um` keys to obfuscate the route length.
+
+### Rationale
+
+The requirements for the _origin node_ should help hide the payment sender. By
+continuing decrypting 27 times (dummy decryption cycles after the error is found)
+no information can be obtained via timing analysis.
 
 ## Failure Messages
 
