@@ -220,7 +220,8 @@ and the `responder`. It is necessary for both nodes to agree on which node is
 the `initiator` and which node is the `responder`. This is important because if
 the dynamic commitment negotiation results in a re-anchoring step (described
 later), it is the `initiator` that is responsible for paying the fees for the
-kickoff transaction.
+kickoff transaction. The `initiator` is determined by who has the `initiator`
+role established by the quiescence process.
 
 ### Negotiation TLVs
 
@@ -285,23 +286,18 @@ change as well as accept or reject the proposal made by their counterparty.
 #### `dyn_propose`
 
 This message is sent to negotiate the parameters of a dynamic commitment
-upgrade. The overall protocol flow looks similar to what is depicted below.
-This message is always sent by the `initiator` and the `responder`.
+upgrade. The overall protocol flow is depicted below. This message is always
+sent by the `initiator`.
 
         +-------+                               +-------+
-        |       |--(1)---- dyn_propose -------->|       |
-        |       |                               |       |
-        |       |<-(2)---- dyn_propose ---------|       |
+        |       |--(1)------ dyn_propose ------>|       |
         |   A   |                               |   B   |
-        |       |--(3)------ dyn_ack ---------->|       |
-        |       |                               |       |
-        |       |<-(4)------ dyn_ack -----------|       |
+        |       |<-(4)---{dyn_ack|dyn_reject}---|       |
         +-------+                               +-------+
 
 1. type: 111 (`dyn_propose`)
 2. data:
    * [`32*byte`:`channel_id`]
-   * [`u8`:`initiator`]
    * [`dyn_propose_tlvs`:`tlvs`]
 
 1. `tlv_stream`: `dyn_propose_tlvs`
@@ -333,39 +329,30 @@ This message is always sent by the `initiator` and the `responder`.
 
 ##### Requirements
 
-TODO: handle edge case where both nodes send `dyn_propose` as `initiator`
-
 The sending node:
+  - MUST be the `initiator` established in the preceding quiescence protocol.
   - MUST set `channel_id` to an existing one it has with the recipient.
   - MUST NOT send a set of TLV parameters that would violate the requirements
     of the identically named parameters in BOLT 2 or associated extensions.
   - MUST remember its last sent `dyn_propose` parameters.
   - if it is currently waiting for a response (`dyn_ack` or `dyn_reject`):
-    - MUST NOT send another `dyn_propose`
+    - MUST NOT send another `dyn_propose`.
     - SHOULD close the connection if it exceeds an acceptable time frame.
-  - if it is the `initiator`:
-    - MUST set `initiator` to 1
-    - if it sets `channel_type` and the `channel_type` conversion requires
-      re-anchoring (see appendix for conversions that require re-anchoring)
-      - MUST set `kickoff_feerate`
-  - if it is the `responder`:
-    - MUST set `initiator` to 0
-    - MUST set the `channel_type` TLV to the same value as the one sent by the
-    `initiator`
-    - MUST NOT set the `kickoff_feerate` TLV
-    - MUST NOT send a set of TLV parameters that would violate the requirements
-      of the identically named parameters in BOLT 2 **assuming** the acceptance
-      of the parameters it received in the `initiator`'s `dyn_propose` message.
+  - if it sets `channel_type` and the `channel_type` conversion requires
+    re-anchoring (see appendix for conversions that require re-anchoring):
+    - MUST set `kickoff_feerate`.
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the sender:
     - SHOULD send an `error` and close the connection.
-  - if it wishes to update additional parameters as part of the *same* dynamic
-    commitment negotiation AND has not yet sent a `dyn_ack` message:
-    - MUST send a `dyn_propose` with its desired parameters
-    - MUST NOT send a `dyn_propose` after a `dyn_ack` for the same negotiation
-    - MUST send a `dyn_ack` to accept the parameters it was sent
-    - MUST NOT send a `dyn_reject`
+  - MUST respond with either a `dyn_ack` or `dyn_reject`.
+  - if the TLV parameters of the `dyn_propose` are acceptable and the receiver
+    intends to execute those parameter changes:
+    - MUST respond with `dyn_ack`.
+    - MUST remember its last received `dyn_propose` parameters.
+  - if the TLV parameters of the `dyn_propose` are NOT acceptable and the
+    receiver refuses to execute those parameter changes:
+    - MUST respond with `dyn_reject`.
 
 _NOTE FOR REVIEWERS_: These messages all interact with each other, so feedback
 is welcome for how to restructure this section so that the invariants it
@@ -419,8 +406,9 @@ The receiving node:
     - MUST send an `error` and fail the channel.
 
 A node:
-  - once it has both sent and received `dyn_ack`
+  - once it has sent or received `dyn_ack`
     - MUST increment its `propose_height`.
+    - MUST proceed to the Execution Phase.
 
 ##### Rationale
 
@@ -481,9 +469,10 @@ The receiving node:
 ##### Rationale
 
 By sending back the TLVs that a node explicitly rejects makes it easier to come
-to an agreement on a proposal that will work. By not sending back any TLVs in
-the `dyn_reject`, a node signals it is not interested in moving the negotiation
-forward at all and further negotiation should not be attempted.
+to an agreement on a proposal that will work. By sending back a zero value for
+`update_rejections`, a node signals it is not interested in moving any dynamic
+commitment negotiation forward at all and further negotiation should not be
+attempted.
 
 ## Reestablish
 
