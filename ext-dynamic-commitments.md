@@ -12,7 +12,9 @@ Created: TODO
 TODO
 
 # Introduction
+
 ## Abstract
+
 This document describes a protocol for changing channel parameters that were
 negotiated at the conception of the channel. Implementation of the protocol
 described in this document will enable channel peers to re-negotiate and update
@@ -21,6 +23,7 @@ avoiding UTXO churn whenever possible and therefore preserving the continuity of
 identity for the channel whose terms are being changed.
 
 ## Motivation
+
 It is well understood that closing channels is a costly thing to do. Not only is
 it costly from a chain fees perspective (where we pay for moving the funds from
 the channel UTXO back to the main wallet collection), it is also costly from a
@@ -73,6 +76,7 @@ channel parameters (including channel types) without requiring channel turnover
 is submitted.
 
 ## Preliminaries
+
 This proposal includes a detailed section on the preliminaries to document some
 of the rationale for the design that is presented later. If you are a Bitcoin
 and Lightning Network protocol expert or you are uninterested in the thought
@@ -80,6 +84,7 @@ process behind what is presented here, you may wish to skip to the Design
 Overview section to save time.
 
 ### Channel Opening Parameters
+
 As described in BOLT 2, during the channel opening procedure there are a number
 of parameters specified in the `open_channel` and `accept_channel` messages that
 remain static over the lifetime of the channel. A subset of these are updatable
@@ -121,6 +126,7 @@ The design presented here is intended to allow for arbitrary changes to these
 values that currently have no facilities for change in any other way.
 
 ### Gossip Verification
+
 It is at this point that we need to take a brief detour and review how the
 broader Lightning Network comes to discover and verify the existence of public
 channels. When the funding transaction for a channel has confirmed, the
@@ -142,6 +148,7 @@ unable to process messages of this variety, rendering useless any channels that
 can only be announced in this manner.
 
 ### Taproot
+
 This brings us to talking about what channel constructions are actually
 inexpressible by the existing gossip system. As we alluded to earlier, Taproot
 channels cannot be discovered using the existing gossip message structure and
@@ -164,6 +171,7 @@ section, it is necessarily the case that the funding output of a Taproot channel
 cannot be properly announced by the current gossip system.
 
 ## Design Overview
+
 The main goal of this proposal is to be able to change all of the historically
 "static" channel parameters, including the channel type, which includes channels
 built off of output types that our gossip system currently doesn't understand,
@@ -191,6 +199,7 @@ always be necessary, but it is certainly necessary for using this proposal to
 convert existing channels into Taproot channels.
 
 # Specification
+
 There are two phases to this channel upgrade process: proposal, and execution.
 During the proposal phase the only goal is to agree on a set of updates to the
 current channel state machine. Assuming an agreement can be reached, we will
@@ -219,41 +228,49 @@ The following TLVs are used throughout the negotiation phase of the protocol
 and are common to all messages in the negotiation phase.
 
 #### dust_limit_satoshis
+
 - type: 0
   data:
     * [`u64`:`dust_limit_satoshis`]
 
 #### max_htlc_value_in_flight_msat
+
 - type: 1
   data:
     * [`u64`:`senders_max_htlc_value_in_flight_msat`]
 
 #### channel_reserve_satoshis
+
 - type: 2
   data:
     * [`u64`:`recipients_channel_reserve_satoshis`]
 
 #### to_self_delay
+
 - type: 3
   data:
     * [`u16`:`recipients_to_self_delay`]
 
 #### max_accepted_htlcs
+
 - type: 4
   data:
     * [`u16`:`senders_max_accepted_htlcs`]
 
 #### funding_pubkey
+
 - type: 5
   data:
     * [`point`:`senders_funding_pubkey`]
 
 #### channel_type
+
 - type: 6
   data:
     * [`...*byte`:`channel_type`]
 
 #### kickoff_feerate_per_kw
+
 - type: 7
   data:
     * [`u32`:`kickoff_feerate_per_kw`]
@@ -961,6 +978,7 @@ General weights:
       - marker: 1 byte
 
 ### Kickoff Transaction Weights
+
   * funding_output_script: 71 bytes
     - OP_2: 1 byte
     - OP_DATA: 1 byte (pub_key_alice length)
@@ -1019,6 +1037,7 @@ General weights:
     - kickoff_transaction_weight = 944WU
 
 ### Commitment Transaction Weights
+
 Here we assume that both parties have an output on the commitment transaction.
 This is to keep the weight consistent across potentially different commitment
 transactions.
