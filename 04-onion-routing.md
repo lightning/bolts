@@ -1063,9 +1063,10 @@ The _origin node_:
 
 ### Rationale
 
-The requirements for the _origin node_ should help hide the payment sender. By
-continuing decrypting 27 times (dummy decryption cycles after the error is found)
-no information can be obtained via timing analysis.
+The requirements for the _origin node_ should help hide the payment sender.
+By continuing decrypting 27 times (dummy decryption cycles after the error is found)
+the erroring node cannot learn its relative position in the route by performing
+a timing analysis if the sender were to retry the same route multiple times.
 
 ## Failure Messages
 
