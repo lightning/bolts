@@ -514,11 +514,6 @@ The origin node:
   - SHOULD NOT create redundant `channel_update`s
   - If it creates a new `channel_update` with updated channel parameters:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
-  - If it is the seller of a currently active `duration_based_funding_lease` on this channel:
-    - MUST NOT set `fee_base_msat` greater than `max_channel_fee_base_msat`
-      (as committed to in `will_fund.signature`).
-    - MUST NOT set `fee_proportional_millionths` greater than `max_channel_fee_basis * 100`
-      (as committed to in `will_fund.signature`).
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`,
@@ -1172,9 +1167,6 @@ are selling depending on the guarantees offered to buyers.
     1. type: 1 (`basic_funding_leases`)
     2. data:
         * [`...*basic_funding_lease`:`funding_lease_rates`]
-    1. type: 3 (`duration_based_funding_leases`)
-    2. data:
-        * [`...*duration_based_funding_lease`:`funding_lease_rates`]
 
 1. subtype: `request_funds`
 2. data:
@@ -1186,19 +1178,6 @@ are selling depending on the guarantees offered to buyers.
 2. data:
     * [`u32`:`min_lease_amount_sat`]
     * [`u32`:`max_lease_amount_sat`]
-    * [`funding_lease_fee`:`funding_lease_fee`]
-
-1. `lease_type`: 3 (`duration_based_funding_lease`)
-2. data:
-    * [`u16`:`lease_duration`]
-    * [`u32`:`min_lease_amount_sat`]
-    * [`u32`:`max_lease_amount_sat`]
-    * [`funding_lease_fee`:`funding_lease_fee`]
-    * [`u16`:`max_channel_fee_basis`]
-    * [`u32`:`max_channel_fee_base_msat`]
-
-1. subtype: `funding_lease_fee`
-2. data:
     * [`u16`:`funding_weight`]
     * [`u16`:`lease_fee_basis`]
     * [`u32`:`lease_fee_base_sat`]
@@ -1214,14 +1193,6 @@ are selling depending on the guarantees offered to buyers.
     * [`u16`:`funding_script_size`]
     * [`funding_script_size`:`funding_script`]
 
-1. `lease_witness_type`: 3 (`duration_based_funding_lease_witness`)
-2. data:
-    * [`u32`:`lease_expiry`]
-    * [`u16`:`funding_script_size`]
-    * [`funding_script_size`:`funding_script`]
-    * [`u16`:`max_channel_fee_basis`]
-    * [`u32`:`max_channel_fee_base_msat`]
-
 Sellers may offer multiple `lease_type`s, described in the following sections.
 Buyers select a specific lease offered by the seller and use `request_funds`
 to purchase that lease. Sellers answer with `will_fund` containing a signature
@@ -1233,8 +1204,27 @@ A `basic_funding_lease` does not provide any guarantee that the seller won't
 close the channel or increase their routing fees after the purchase, if the
 liquidity isn't actually used.
 
-The `funding_lease_fee` is paid as detailed in the `funding_lease_fee` section
-below.
+When `request_funds` and `will_fund` have been exchanged, the buyer must pay
+fees to the seller for the funding they provide to the channel based on the
+agreed upon `funding_weight`, `lease_fee_basis` and `lease_fee_base_sat`.
+
+The lease fee is taken from the buyer's funding inputs and added to the
+seller's channel balance during the funding flow. The buyer must contribute
+enough funds to cover their channel balance, the lease fee, and the on-chain
+fees for the weight of the funding transaction they're responsible for.
+
+The lease fee has three components:
+
+* a fixed amount: `lease_fee_base_sat`
+* a proportional amount based on the seller's `funding_amount`:
+  * `paid_funding_contribution = min(funding_amount, request_funds.requested_sats)`
+  * `lease_fee_proportional_sat = paid_funding_contribution * lease_fee_basis / 10_000`
+* a contribution to the on-chain fees paid by the seller:
+  * `lease_fee_mining_sat = funding_weight * funding_feerate_perkw / 1000`
+
+The lease fee is then:
+
+    lease_fee_total = lease_fee_base_sat + lease_fee_proportional_sat + lease_fee_mining_sat
 
 The seller provides an ECDSA signature in `will_fund` using the private key
 associated with their `node_id`. The data signed is:
@@ -1255,58 +1245,6 @@ A node selling a `basic_funding_lease`:
   - MUST set `funding_weight` to the transaction weight that will be charged.
     It ensures that the funding node is refunded for some of the on-chain
     fees it will pay to contribute the requested funds to a channel.
-
-### The `duration_based_funding_lease` type
-
-A `duration_based_funding_lease` commits to a duration during which the seller
-will not remove the funds nor increase their routing fees above the maximum
-values provided in the lease. It is impossible to actually prevent them from
-doing so, but the signature they provide in `will_fund` can be used to prove
-that they cheated.
-
-The `funding_lease_fee` is paid as detailed in the `funding_lease_fee` section
-below.
-
-The seller provides an ECDSA signature in `will_fund` using the private key
-associated with their `node_id`. The data signed is:
-
-    SHA256("duration_based_funding_lease" || duration_based_funding_lease_witness)
-
-We use a tagged hash to ensure that this signature cannot be used in a
-different context.
-
-#### Requirements
-
-A node selling a `duration_based_funding_lease`:
-  - MUST set `lease_duration` to the number of blocks during which the lease
-    will be active.
-  - MUST set `max_channel_fee_base_msat` to the maximum `fee_base_msat` it
-    will use in its `channel_update` while the lease is active.
-  - MUST set `max_channel_fee_basis` to match (when converted from basis
-    points to millionths) the maximum `fee_proportional_millionths` it will
-    use in its `channel_update` while the lease is active.
-
-### Paying the `funding_lease_fee`
-
-When `request_funds` and `will_fund` have been exchanged, the buyer must pay
-fees to the seller for the funding they provide to the channel based on the
-agreed upon `funding_lease_fee`.
-
-The lease fee is taken from the buyer's funding inputs and added to the
-seller's channel balance during the funding flow. The buyer must contribute
-enough funds to cover their channel balance, the lease fee, and the on-chain
-fees for the weight of the funding transaction they're responsible for.
-
-The lease fee has three components:
-
-* a fixed amount: `lease_fee_base_sat`
-* a proportional amount based on the seller's `funding_amount`:
-  * `paid_funding_contribution = min(funding_amount, request_funds.requested_sats)`
-  * `lease_fee_proportional_sat = paid_funding_contribution * lease_fee_basis / 10_000`
-* a contribution to the on-chain fees paid by the seller:
-  * `lease_fee_mining_sat = funding_weight * funding_feerate_perkw / 1000`
-
-The lease fee is then `lease_fee_total = lease_fee_base_sat + lease_fee_proportional_sat + lease_fee_mining_sat`.
 
 #### Example
 

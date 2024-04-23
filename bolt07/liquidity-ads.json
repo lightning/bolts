@@ -30,30 +30,6 @@
             "lease_fee_base_sat": 0,
             "encoded": "0007a120 004c4b40 044c 004b 00000000"
           }
-        ],
-        "duration_based_funding_leases": [
-          {
-            "lease_duration": 1008,
-            "min_lease_amount_sat": 100000,
-            "max_lease_amount_sat": 1000000,
-            "funding_weight": 600,
-            "lease_fee_basis": 150,
-            "lease_fee_base_sat": 1000,
-            "max_channel_fee_basis": 75,
-            "max_channel_fee_base_msat": 10000,
-            "encoded": "03f0 000186a0 000f4240 0258 0096 000003e8 004b 00002710"
-          },
-          {
-            "lease_duration": 2016,
-            "min_lease_amount_sat": 500000,
-            "max_lease_amount_sat": 1500000,
-            "funding_weight": 1000,
-            "lease_fee_basis": 250,
-            "lease_fee_base_sat": 10000,
-            "max_channel_fee_basis": 100,
-            "max_channel_fee_base_msat": 10000,
-            "encoded": "07e0 0007a120 0016e360 03e8 00fa 00002710 0064 00002710"
-          }
         ]
       }
     },
@@ -123,75 +99,5 @@
       },
       "encoded": "0041 0100000000000000000000000000000000000000000000000000000000000000 00000000000aae60 00000000000001d9 0000000005f5e100 0000000000000001 00000006 0090 0032 031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f 024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766 02531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 03462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b 0362c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7 03f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a 02989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f 03 65 01 002200202ec38203f4cf37a3b377d9a55c7ae0153c643046dbdbe2ffccfb11b74420103c 2766629334a0cd5a8835fe6fb1790fea7a85da49dab7740d72c8b591247f905a5400c576bd196e9394a92c4340179f0aaf5076b4b4953b3ca2928ded94d1dc8b"
     }
-  },
-  "open_channel2_with_duration_lease": {
-    "chainHash": "6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000",
-    "temporaryChannelId": "0100000000000000000000000000000000000000000000000000000000000000",
-    "fundingFeerate": 5000,
-    "commitmentFeerate": 4000,
-    "fundingAmount": 250000,
-    "dustLimit": 500,
-    "maxHtlcValueInFlightMsat": 50000,
-    "htlcMinimum": 15,
-    "toSelfDelay": 144,
-    "maxAcceptedHtlcs": 483,
-    "lockTime": 650000,
-    "fundingPubkey": "031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f",
-    "revocationBasepoint": "024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766",
-    "paymentBasepoint": "02531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337",
-    "delayedPaymentBasepoint": "03462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b",
-    "htlcBasepoint": "0362c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7",
-    "firstPerCommitmentPoint": "03f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a",
-    "secondPerCommitmentPoint": "02989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f",
-    "channelFlags": {
-      "announceChannel": true
-    },
-    "tlvStream": {
-      "request_funding": {
-        "requested_sats": 750000,
-        "lease_type": 3,
-        "funding_lease": {
-          "lease_duration": 1008,
-          "min_lease_amount_sat": 100000,
-          "max_lease_amount_sat": 1000000,
-          "funding_weight": 600,
-          "lease_fee_basis": 150,
-          "lease_fee_base_sat": 1000,
-          "max_channel_fee_basis": 75,
-          "max_channel_fee_base_msat": 10000
-        }
-      }
-    },
-    "encoded": "0040 6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000 0100000000000000000000000000000000000000000000000000000000000000 00001388 00000fa0 000000000003d090 00000000000001f4 000000000000c350 000000000000000f 0090 01e3 0009eb10 031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f 024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766 02531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 03462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b 0362c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7 03f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a 02989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f 01 03 21 00000000000b71b0 03 03f0 000186a0 000f4240 0258 0096 000003e8 004b 00002710"
-  },
-  "accept_channel2_with_duration_lease": {
-    "temporaryChannelId": "0100000000000000000000000000000000000000000000000000000000000000",
-    "fundingAmount": 700000,
-    "dustLimit": 473,
-    "maxHtlcValueInFlightMsat": 100000000,
-    "htlcMinimum": 1,
-    "minimumDepth": 6,
-    "toSelfDelay": 144,
-    "maxAcceptedHtlcs": 50,
-    "fundingPubkey": "031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f",
-    "revocationBasepoint": "024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766",
-    "paymentBasepoint": "02531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337",
-    "delayedPaymentBasepoint": "03462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b",
-    "htlcBasepoint": "0362c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7",
-    "firstPerCommitmentPoint": "03f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a",
-    "secondPerCommitmentPoint": "02989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f",
-    "tlvStream": {
-      "provide_funding": {
-        "lease_witness_type": 3,
-        "lease_witness": {
-          "lease_expiry": 840330,
-          "funding_script": "00202ec38203f4cf37a3b377d9a55c7ae0153c643046dbdbe2ffccfb11b74420103c",
-          "max_channel_fee_basis": 75,
-          "max_channel_fee_base_msat": 10000
-        },
-        "signature": "5b8e3c79db5f2144ea4d4573c033c36c601ab705afe0fab305b8b78a6551d4873ccca86d9e68ae896e722d0008c653b4c253398c266ed039c4776fd0f492d10d"
-      }
-    },
-    "encoded": "0041 0100000000000000000000000000000000000000000000000000000000000000 00000000000aae60 00000000000001d9 0000000005f5e100 0000000000000001 00000006 0090 0032 031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f 024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766 02531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337 03462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b 0362c0a046dacce86ddd0343c6d3c7c79c2208ba0d9c9cf24a6d046d21d21f90f7 03f006a18d5653c4edf5391ff23a61f03ff83d237e880ee61187fa9f379a028e0a 02989c0b76cb563971fdc9bef31ec06c3560f3249d6ee9e5d83c57625596e05f6f 03 6f 03 000cd28a 002200202ec38203f4cf37a3b377d9a55c7ae0153c643046dbdbe2ffccfb11b74420103c 004b 00002710 5b8e3c79db5f2144ea4d4573c033c36c601ab705afe0fab305b8b78a6551d4873ccca86d9e68ae896e722d0008c653b4c253398c266ed039c4776fd0f492d10d"
   }
 }

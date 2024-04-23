@@ -1305,9 +1305,8 @@ The receiving node:
     - `provide_funding` is set and:
       - the `will_fund.lease_witness` does not match the `request_funds.funding_lease`.
       - the `will_fund.signature` is invalid.
-      - a `duration_based_funding_lease_witness` is provided but its `lease_expiry` is too close.
   - MUST pay fees for the `option_will_fund` amount (if any) as detailed in the
-    [liquidity ads section](07-routing-gossip.md#paying-the-funding_lease_fee).
+    [liquidity ads section](07-routing-gossip.md#liquidity-ads).
 
 #### Rationale
 
