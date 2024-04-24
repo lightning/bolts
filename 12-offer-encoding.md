@@ -228,7 +228,6 @@ The human-readable prefix for offers is `lno`.
 
 A writer of an offer:
   - MUST NOT set any tlv fields greater or equal to 80, or tlv field 0.
-  - MUST set `offer_node_id` to the node's public key to request the invoice from.
   - MUST set `offer_description` to a complete description of the purpose
     of the payment.
   - if the chain for the invoice is not solely bitcoin:
@@ -261,6 +260,9 @@ A writer of an offer:
     - MAY include `offer_paths`.
   - if it includes `offer_paths`:
     - SHOULD ignore any invoice_request which does not use the path.
+    - MAY set `offer_node_id` to the node's public key to request the invoice from.
+  - otherwise:
+     - MUST set `offer_node_id` to the node's public key to request the invoice from.
   - if it sets `offer_issuer`:
     - SHOULD set it to identify the issuer of the invoice clearly.
     - if it includes a domain name:
@@ -291,7 +293,7 @@ A reader of an offer:
       - MUST NOT respond to the offer
   - if `offer_description` is not set:
     - MUST NOT respond to the offer.
-  - if `offer_node_id` is not set:
+  - if neither `offer_node_id` nor `offer_paths` are set:
     - MUST NOT respond to the offer.
   - if it uses `offer_amount` to provide the user with a cost estimate:
     - MUST take into account the currency units for `offer_amount`:
@@ -302,6 +304,12 @@ A reader of an offer:
         from that estimate.
   - SHOULD not respond to an offer if the current time is after
     `offer_absolute_expiry`.
+  - if it chooses to sends an `invoice_request`, it sends an onion message:
+    - if `offer_node_id` is set:
+      - MUST send the onion message to `offer_node_id`
+    - otherwise:
+      - MUST send the onion message via any path in `offer_paths` to the final `onion_msg_hop`.`blinded_node_id` in that path
+    - MAY send more than one `invoice_request` onion message at once.
 
 ## Rationale
 
@@ -315,6 +323,8 @@ A signature is unnecessary, and makes for a longer string (potentially
 limiting QR code use on low-end cameras); if the offer has an error, no
 invoice will be given since the request includes all the non-signature 
 fields.
+
+The `offer_node_id` can be omitted for brevity, if `offer_paths` is set, as each of the final `blinded_node_id` in the paths can serve as a valid public key for the destination.
 
 Because `offer_amount` can be in a different currency (using the `offer_currency` field) it is merely a guide: the issuer will convert it into a number of millisatoshis for `invoice_amount` at the time generates an invoice, or the `invoice_request` can specify the exact amount in `invreq_amount`, but the issuer may then reject it if it disagrees.
 
@@ -331,15 +341,15 @@ There are two similar-looking uses for invoice requests, which are
 almost identical from a workflow perspective, but are quite different
 from a user's point of view.
 
-One is a response to an offer; this contains the `offer_node_id` and
+One is a response to an offer; this contains the `offer_node_id` or `offer_paths` and
 all other offer details, and is generally received over an onion
 message: if it's valid and refers to a known offer, the response is
 generally to reply with an `invoice` using the `reply_path` field of
 the onion message.
 
 The second case is publishing an `invoice_request` without an offer,
-such as via QR code.  It contains no `offer_node_id` (using the
-`invreq_payer_id` instead, as it in the one paying), and the
+such as via QR code.  It contains neither `offer_node_id` nor `offer_paths`, setting the
+`invreq_payer_id` (and possibly `invreq_paths`) instead, as it in the one paying: the
 other offer fields are filled by the creator of the `invoice_request`,
 forming a kind of offer-to-send-money.
 
@@ -407,6 +417,9 @@ for [Signature Calculation](#signature-calculation).
     1. type: 89 (`invreq_payer_note`)
     2. data:
         * [`...*utf8`:`note`]
+    1. type: 90 (`invreq_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -436,9 +449,10 @@ The writer:
     - otherwise:
       - MUST NOT set `invreq_quantity`
   - otherwise (not responding to an offer):
-    - MUST set (or not set) `offer_description`, `offer_absolute_expiry`, `offer_paths` and `offer_issuer` as it would for an offer.
-    - MUST set `invreq_payer_id` as it would set `offer_node_id` for an offer.
-    - MUST NOT include `signature`, `offer_metadata`, `offer_chains`, `offer_amount`, `offer_currency`, `offer_features`, `offer_quantity_max` or `offer_node_id`
+    - MUST set (or not set) `offer_description`, `offer_absolute_expiry` and `offer_issuer` as it would for an offer.
+    - MUST set `invreq_payer_id` (as it would set `offer_node_id` for an offer).
+    - MUST set `invreq_paths` as it would set (or not set) `offer_paths` for an offer.
+    - MUST NOT include `signature`, `offer_metadata`, `offer_chains`, `offer_amount`, `offer_currency`, `offer_features`, `offer_quantity_max`, `offer_paths` or `offer_node_id`
     - if the chain for the invoice is not solely bitcoin:
       - MUST specify `invreq_chain` the offer is valid for.
     - MUST set `invreq_amount`.
@@ -458,7 +472,7 @@ The reader:
   - if `invreq_features` contains unknown _even_ bits that are non-zero:
     - MUST fail the request.
   - MUST fail the request if `signature` is not correct as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
-  - if `offer_node_id` is present (response to an offer):
+  - if `offer_node_id` or `offer_paths` are present (response to an offer):
     - MUST fail the request if the offer fields do not exactly match a valid, unexpired offer.
     - if `offer_quantity_max` is present:
       - MUST fail the request if there is no `invreq_quantity` field.
@@ -477,7 +491,7 @@ The reader:
     - otherwise (no `offer_amount`):
       - MUST fail the request if it does not contain `invreq_amount`.
     - SHOULD send an invoice in response using the `onionmsg_tlv` `reply_path`.
-  - otherwise (no `offer_node_id`, not a response to our offer):
+  - otherwise (no `offer_node_id` or `offer_paths`, not a response to our offer):
     - MUST fail the request if any of the following are present:
       - `offer_chains`, `offer_features` or `offer_quantity_max`.
     - MUST fail the request if `invreq_amount` is not present.
@@ -655,8 +669,8 @@ A writer of an invoice:
       - MUST set `invoice_amount` to the *expected amount*.
   - MUST set `invoice_payment_hash` to the SHA256 hash of the
     `payment_preimage` that will be given in return for payment.
-  - if `offer_node_id` is present:
-    - MUST set `invoice_node_id` to `offer_node_id`.
+  - if `offer_node_id` or `offer_paths` are present:
+    - MUST set `invoice_node_id` to the public key for which received the `invoice_request`
   - otherwise:
     - MUST set `invoice_node_id` to a valid public key.
   - MUST specify exactly one signature TLV element: `signature`.
@@ -706,8 +720,8 @@ A reader of an invoice:
     - MUST reject the invoice if this leaves no usable paths.
   - if the invoice is a response to an `invoice_request`:
     - MUST reject the invoice if all fields less than type 160 do not exactly match the `invoice_request`.
-    - if `offer_node_id` is present (invoice_request for an offer):
-      - MUST reject the invoice if `invoice_node_id` is not equal to `offer_node_id`.
+    - if `offer_node_id` or `offer_paths` are present (invoice_request for an offer):
+      - MUST reject the invoice if `invoice_node_id` is not equal to the public key it sent the `invoice_request` to.
     - otherwise (invoice_request without an offer):
       - MAY reject the invoice if it cannot confirm that `invoice_node_id` is correct, out-of-band.
   - MUST reject the invoice if `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation).
