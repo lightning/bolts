@@ -316,6 +316,8 @@ limiting QR code use on low-end cameras); if the offer has an error, no
 invoice will be given since the request includes all the non-signature 
 fields.
 
+Because `offer_amount` can be in a different currency (using the `offer_currency` field) it is merely a guide: the issuer will convert it into a number of millisatoshis for `invoice_amount` at the time generates an invoice, or the `invoice_request` can specify the exact amount in `invreq_amount`, but the issuer may then reject it if it disagrees.
+
 `offer_quantity_max` is allowed to be 1, which seems useless, but
 useful in a system which bases it on available stock.  It would be
 painful to have to special-case the "only one left" offer generation.
