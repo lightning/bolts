@@ -651,10 +651,6 @@ A writer of an invoice:
       - MUST set `invoice_amount` to `invreq_amount`
     - otherwise:
       - MUST set `invoice_amount` to the *expected amount*.
-  - otherwise (invoice not requested, e.g. for user to scan directly):
-    - MUST set `invreq_chain` as it would for an invoice_request.
-    - MUST set `offer_description` as it would for an offer.
-    - MUST NOT set `invreq_payer_id` or `offer_node_id`.
   - MUST set `invoice_payment_hash` to the SHA256 hash of the
     `payment_preimage` that will be given in return for payment.
   - if `offer_node_id` is present:
@@ -712,8 +708,6 @@ A reader of an invoice:
       - MUST reject the invoice if `invoice_node_id` is not equal to `offer_node_id`.
     - otherwise (invoice_request without an offer):
       - MAY reject the invoice if it cannot confirm that `invoice_node_id` is correct, out-of-band.
-  - otherwise: (a invoice presented without being requested, eg. scanned by user):
-    - MAY choose to accept or reject the invoice.
   - MUST reject the invoice if `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation).
   - SHOULD prefer to use earlier `invoice_paths` over later ones if it has no other reason for preference.
   - if `invoice_features` contains the MPP/compulsory bit:
