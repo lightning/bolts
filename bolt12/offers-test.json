@@ -344,6 +344,29 @@
     ]
   },
   {
+    "description": "with blinded path via Bob's scid (0x0x42), blinding 020202...",
+    "valid": true,
+    "bolt12": "lno1pgx9getnwss8vetrw3hhyucs3yqqqqqqqqqqqqp2qgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqqyqqqqqqqqqqqqqqqqqqqqqqqqqqqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqqgzyg3zyg3zyg3z93pqthvwfzadd7jejes8q9lhc4rvjxd022zv5l44g6qah82ru5rdpnpj",
+    "field info": "path is [id=02020202..., enc=0x00*16], [id=02020202..., enc=0x11*8]",
+    "fields": [
+      {
+        "type": 10,
+        "length": 12,
+        "hex": "5465737420766563746f7273"
+      },
+      {
+        "type": 16,
+        "length": 137,
+        "hex": "00000000000000002a0202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020200100000000000000000000000000000000002020202020202020202020202020202020202020202020202020202020202020200081111111111111111"
+      },
+      {
+        "type": 22,
+        "length": 33,
+        "hex": "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+      }
+    ]
+  },
+  {
     "description": "unknown odd field",
     "valid": true,
     "bolt12": "lno1pgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvxfppf5x2mrvdamk7unvvs",
