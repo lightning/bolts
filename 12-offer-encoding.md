@@ -228,8 +228,6 @@ The human-readable prefix for offers is `lno`.
 
 A writer of an offer:
   - MUST NOT set any tlv fields greater or equal to 80, or tlv field 0.
-  - MUST set `offer_description` to a complete description of the purpose
-    of the payment.
   - if the chain for the invoice is not solely bitcoin:
     - MUST specify `offer_chains` the offer is valid for.
   - otherwise:
@@ -243,9 +241,12 @@ A writer of an offer:
       - MUST specify `offer_currency` `iso4217` as an ISO 4712 three-letter code.
       - MUST specify `offer_amount` in the currency unit adjusted by the ISO 4712
         exponent (e.g. USD cents).
+    - MUST set `offer_description` to a complete description of the purpose
+      of the payment.
   - otherwise:
     - MUST NOT set `offer_amount`
     - MUST NOT set `offer_currency`
+    - MAY set `offer_description`
   - MAY set `offer_metadata` for its own use.
   - if it supports bolt12 offer features:
     - MUST set `offer_features`.`features` to the bitmap of bolt12 features.
@@ -291,7 +292,7 @@ A reader of an offer:
   - otherwise: (`offer_chains` is set):
     - if the node does not accept invoices for any of the `chains`:
       - MUST NOT respond to the offer
-  - if `offer_description` is not set:
+  - if `offer_amount` is set and `offer_description` is not set:
     - MUST NOT respond to the offer.
   - if neither `offer_node_id` nor `offer_paths` are set:
     - MUST NOT respond to the offer.
@@ -331,6 +332,8 @@ Because `offer_amount` can be in a different currency (using the `offer_currency
 `offer_quantity_max` is allowed to be 1, which seems useless, but
 useful in a system which bases it on available stock.  It would be
 painful to have to special-case the "only one left" offer generation.
+
+Offers can be used to simply send money without expecting anything in return (tips, kudos, donations, etc), which means the description field is optional (the `offer_issuer` field is very useful for this case!); if you are charging for something specific, the description is vital for the user to know what it was they paid for.
 
 # Invoice Requests
 
@@ -449,7 +452,8 @@ The writer:
     - otherwise:
       - MUST NOT set `invreq_quantity`
   - otherwise (not responding to an offer):
-    - MUST set (or not set) `offer_description`, `offer_absolute_expiry` and `offer_issuer` as it would for an offer.
+    - MUST set `offer_description` to a complete description of the purpose of the payment.
+    - MUST set (or not set) `offer_absolute_expiry` and `offer_issuer` as it would for an offer.
     - MUST set `invreq_payer_id` (as it would set `offer_node_id` for an offer).
     - MUST set `invreq_paths` as it would set (or not set) `offer_paths` for an offer.
     - MUST NOT include `signature`, `offer_metadata`, `offer_chains`, `offer_amount`, `offer_currency`, `offer_features`, `offer_quantity_max`, `offer_paths` or `offer_node_id`
