@@ -495,17 +495,17 @@ may contain the following TLV fields:
 A recipient $`N_r`$ creating a blinded route $`N_0 \rightarrow N_1 \rightarrow ... \rightarrow N_r`$ to itself:
 
 - MUST create a blinded node ID $`B_i`$ for each node using the following algorithm:
-  - $`e_0 /leftarrow {0;1}^256`$ ($`e_0`$ SHOULD be obtained via CSPRG)
+  - $`e_0 \leftarrow \{0;1\}^{256}`$ ($`e_0`$ SHOULD be obtained via CSPRG)
   - $`E_0 = e_0 \cdot G`$
   - For every node in the route:
     - let $`N_i = k_i * G`$ be the `node_id` ($`k_i`$ is $`N_i`$'s private key)
     - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)$` (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
-    - $`B_i = HMAC256(\text{"blinded\_node\_id"}, ss_i) * N_i`$ (blinded `node_id` for $`N_i`$, private key known only by $`N_i`$)
-    - $`rho_i = HMAC256(\text{"rho"}, ss_i)`$ (key used to encrypt the payload for $`N_i`$ by $`N_r`$)
+    - $`B_i = HMAC256(\text{``blinded\_node\_id''}, ss_i) * N_i`$ (blinded `node_id` for $`N_i`$, private key known only by $`N_i`$)
+    - $`rho_i = HMAC256(\text{``rho''}, ss_i)`$ (key used to encrypt the payload for $`N_i`$ by $`N_r`$)
     - $`e_{i+1} = SHA256(E_i || ss_i) * e_i`$ (blinding ephemeral private key, only known by $`N_r`$)
     - $`E_{i+1} = SHA256(E_i || ss_i) * E_i`$ (NB: $`N_i`$ MUST NOT learn $`e_i`$)
 - MAY replace $`E_{i+1}`$ with a different value, but if it does:
-  - MUST set `encrypted_data_tlv[i].next_blinding_override` to `$E_{i+1}$`
+  - MUST set `encrypted_data_tlv[i].next_blinding_override` to $`E_{i+1}`$
 - MAY store private data in `encrypted_data_tlv[r].path_id` to verify that the route is used in the right context and was created by them
 - SHOULD add padding data to ensure all `encrypted_data_tlv[i]` have the same length
 - MUST encrypt each `encrypted_data_tlv[i]` with ChaCha20-Poly1305 using the corresponding `rho_i` key and an all-zero nonce to produce `encrypted_recipient_data[i]`
@@ -518,13 +518,13 @@ A reader:
 - If it receives `blinding_point` ($`E_i`$) from the prior peer:
   - MUST use $`b_i`$ instead of its private key $`k_i`$ to decrypt the onion.
     Note that the node may instead tweak the onion ephemeral key with
-    $`HMAC256(\text{"blinded\_node\_id}", ss_i)`$ which achieves the same result.
+    $`HMAC256(\text{``blinded\_node\_id''}, ss_i)`$ which achieves the same result.
 - Otherwise:
   - MUST use $`k_i`$ to decrypt the onion, to extract `current_blinding_point` ($`E_i`$).
 - MUST compute:
   - $`ss_i = SHA256(k_i * E_i)`$ (standard ECDH)
-  - $`b_i = HMAC256(\text{"blinded\_node\_id"}, ss_i) * k_i`$
-  - $`rho_i = HMAC256(\text{"rho"}, ss_i)`$
+  - $`b_i = HMAC256(\text{``blinded\_node\_id''}, ss_i) * k_i`$
+  - $`rho_i = HMAC256(\text{``rho''}, ss_i)`$
   - $`E_{i+1} = SHA256(E_i || ss_i) * E_i`$
 - MUST decrypt the `encrypted_data` field using $`rho_i`$ and use the
   decrypted fields to locate the next node
@@ -541,8 +541,8 @@ The final recipient:
 
 - MUST compute:
   - $`ss_r = SHA256(k_r * E_r)`$ (standard ECDH)
-  - $`b_r = HMAC256(\text{"blinded\_node\_id"}, ss_r) * k_r`$
-  - $`rho_r = HMAC256(\text{"rho"}, ss_r)`$
+  - $`b_r = HMAC256(\text{``blinded\_node\_id''}, ss_r) * k_r`$
+  - $`rho_r = HMAC256(\text{``rho''}, ss_r)`$
 - MUST decrypt the `encrypted_data` field using $`rho_r`$
 - If the `encrypted_data` field is missing or cannot be decrypted:
   - MUST return an error
@@ -557,7 +557,7 @@ keys of the nodes in the route with random public keys while letting senders
 choose what data they put in the onion for each hop. Blinded routes are also
 reusable in some cases (e.g. onion messages).
 
-Each node in the blinded route needs to receive `E_i` to be able to decrypt
+Each node in the blinded route needs to receive $`E_i`$ to be able to decrypt
 the onion and the `encrypted_data` payload. Protocols that use route blinding
 must specify how this value is propagated between nodes.
 
@@ -570,7 +570,7 @@ The final recipient must verify that the blinded route is used in the right
 context (e.g. for a specific payment) and was created by them. Otherwise a
 malicious sender could create different blinded routes to all the nodes that
 they suspect could be the real recipient and try them until one accepts the
-message. The recipient can protect against that by storing `E_r` and the
+message. The recipient can protect against that by storing $`E_r`$ and the
 context (e.g. a `payment_hash`), and verifying that they match when receiving
 the onion. Otherwise, to avoid additional storage cost, it can put some private
 context information in the `path_id` field (e.g. the `payment_preimage`) and
