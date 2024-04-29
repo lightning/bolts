@@ -495,7 +495,7 @@ may contain the following TLV fields:
 A recipient $`N_r`$ creating a blinded route $`N_0 \rightarrow N_1 \rightarrow ... \rightarrow N_r`$ to itself:
 
 - MUST create a blinded node ID $`B_i`$ for each node using the following algorithm:
-  - $`e_0 /leftarrow {0;1}^256`$ ($`e_0`$ SHOULD be obtained via CSPRG)
+  - $`e_0 \leftarrow {0;1}^{256}`$ ($`e_0`$ SHOULD be obtained via CSPRG)
   - $`E_0 = e_0 \cdot G`$
   - For every node in the route:
     - let $`N_i = k_i * G`$ be the `node_id` ($`k_i`$ is $`N_i`$'s private key)
