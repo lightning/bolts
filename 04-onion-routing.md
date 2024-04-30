@@ -499,7 +499,7 @@ A recipient $`N_r`$ creating a blinded route $`N_0 \rightarrow N_1 \rightarrow .
   - $`E_0 = e_0 \cdot G`$
   - For every node in the route:
     - let $`N_i = k_i * G`$ be the `node_id` ($`k_i`$ is $`N_i`$'s private key)
-    - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)$` (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
+    - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)`$ (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
     - $`B_i = HMAC256(\text{``blinded\_node\_id''}, ss_i) * N_i`$ (blinded `node_id` for $`N_i`$, private key known only by $`N_i`$)
     - $`rho_i = HMAC256(\text{``rho''}, ss_i)`$ (key used to encrypt the payload for $`N_i`$ by $`N_r`$)
     - $`e_{i+1} = SHA256(E_i || ss_i) * e_i`$ (blinding ephemeral private key, only known by $`N_r`$)
