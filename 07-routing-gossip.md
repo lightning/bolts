@@ -84,8 +84,10 @@ matching an endpoint's `node_id` and `bitcoin_key`.
 
 A node:
   - If the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
-    - After `channel_ready` has been sent and received AND the funding transaction has enough confirmations to ensure that it won't be reorganized:
-      - MUST send `announcement_signatures` for the funding transaction.
+    - MUST NOT send `announcement_signatures` until `channel_ready` or `splice_locked` has been sent and received for that transaction.
+    - MUST NOT send `announcement_signatures` until the funding transaction has enough confirmations to ensure that it won't be reorganized.
+    - Otherwise:
+      - MUST send the `announcement_signatures` message.
   - Otherwise:
     - MUST NOT send the `announcement_signatures` message.
   - Upon reconnection (once the above timing requirements have been met):
