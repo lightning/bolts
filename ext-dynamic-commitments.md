@@ -369,8 +369,8 @@ secure in all contexts.
 Since the `initiator` is the one that is responsible for paying the fees for the
 kickoff transaction if it is required (like for certain `channel_type` changes),
 it follows that the `responder` cannot change the `channel_type`. Since the
-`kickoff_feerate` paid by the `initiator`, it should be set only if the sender
-is the `initiator`.
+`kickoff_feerate` is paid by the `initiator`, it should be set only if the
+sender is the `initiator`.
 
 The requirement for a node to remember what it last _sent_ and for it to
 remember what it _accepted_ is necessary to recover on reestablish. See the
@@ -389,13 +389,15 @@ accepted the proposal.
 
 The sending node:
   - MUST set `channel_id` to a valid channel it has with the recipient.
-  - MUST NOT send this message if it has not received a `dyn_propose`
+  - MUST NOT send this message if it has not received a `dyn_propose` for this
+    `channel_id`
   - MUST NOT send this message if it has already sent a `dyn_ack` for the
     current negotiation.
   - MUST NOT send this message if it has already sent a `dyn_reject` for the
     current negotiation.
   - MUST remember the parameters of `dyn_propose` message to which the `dyn_ack`
-    is responding for the next `dyn_height`.
+    is responding for the next `dyn_height`. (See `channel_reestablish`
+    requirements)
   - MUST remember the local and remote commitment heights for the next
     `dyn_height`.
 
@@ -443,8 +445,6 @@ The sending node:
       - Example: an objection to the `dust_limit` would be encoded as
         0b00000001, an objection to `max_value_in_flight` would be encoded as
         0b00000010, and an objection to both would be encoded as 0b00000011.
-  - if it has sent a `dyn_propose` in the current negotiation
-    - MUST forget its last sent `dyn_propose` parameters
   - MUST forget the parameters of the `dyn_propose` message to which the
     `dyn_reject` is responding.
 
@@ -554,7 +554,9 @@ Change.
 - If either channel party changes `max_accepted_htlcs`: Rules Change
 - If either channel party changes `funding_pubkey`: Funding Output Update
 - If new `channel_type` requires different funding output script than the old
-`channel_type`: Funding Output Update
+  `channel_type`: Funding Output Update
+- If new `channel_type` requires the same funding output script as the old
+  `channel_type`: Commitment Update
 
 ### Rules Change
 
@@ -578,9 +580,8 @@ normal channel operation is resumed.
 
 ### Funding Output Change: General Protocol
 
-If a Funding Output Change is required, then once both channel parties have
-irrevocably committed to a state with no HTLC outputs, new commitment signatures
-AND kickoff signatures MUST be exchanged. To accomplish this the following steps
+If a Funding Output Change is required, then new commitment signatures AND
+kickoff signatures MUST be exchanged. To accomplish this, the following steps
 are taken:
 
 1. Build kickoff transaction
@@ -639,7 +640,7 @@ signed.
 * txout count: 3
   * `txout[0]`: `anchor_output_1` or `anchor_output_2`
   * `txout[1]`: `anchor_output_1` or `anchor_output_2`
-  * `txout[2]`: `p2tr_funding_output`
+  * `txout[2]`: `kickoff_funding_output`
 
 The anchor outputs have a value of 330 satoshis. They are encumbered by a
 version 1 witness script:
@@ -683,7 +684,7 @@ from `dyn_ack`:
 * locktime: upper 8 bits are 0x20, lower 24 bits are the lower 24 bits of the
   obscured commitment number
 * txin count: 1
-  * `txin[0]` outpoint: the matching kickoff transaction's funding outpoint.
+  * `txin[0]` outpoint: the `kickoff_funding_output`
   * `txin[0]` sequence: upper 8 bits are 0x80, lower 24 bits are upper 24 bits
     of the obscured commitment number
   * `txin[0]` script bytes: 0
