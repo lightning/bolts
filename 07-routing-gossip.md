@@ -965,6 +965,55 @@ and allows bootstrapping for new nodes as well as updating for nodes that
 have been offline for some time.  The `gossip_queries` option
 allows for more refined synchronization.
 
+### Inventory-based Rebroadcasting
+
+With the simple rebroadcasting scheme described above, nodes that are connected to many different peers will 
+receive duplicates for the same gossip messages.
+
+A more efficient scheme based on inventory messages, similar to how transactions and blocks are propagated on the 
+bitcoin p2p network, can optionally be used: if the `option_inv_gossip` feature bit is set, instead of broadcasting 
+gossip messages, nodes will broadcast inventory messages which contain enough information for the receiver to
+query relevant announcements and updates.
+
+Inventory messages are intended to be applied as a mapping of gossip messages during staggered broadcast: if a peer 
+supports `option_inv_gossip`, the batch of gossip messages it was supposed to receive will be mapped to inventory 
+messages.
+
+1. type: 266 (`channel_inventory`)
+2. data:
+    * [`chain_hash`:`chain_hash`]
+    * type: 1 (`channel_inv_tlv`)
+      * [`u16`:`len`]
+      * [`len*byte`:`encoded_short_ids`]
+      * type: 1 (`timestamps_tlv`)
+      * data:
+        * [`byte`:`encoding_type`]
+        * [`timestamps_tlv_len-1`:`encoded_timestamps`]
+      * type: 3 (`checksums_tlv`)
+      * data:
+        * [`checksums_tlv_len`:`encoded_checksums`]
+ 
+`channel_inv_tlv` contains information about channel announcements and updates. It uses the exact same encoding as `reply_channel_range` and includes:
+ - a list of `short_channel_id`s
+ - an optional `timestamps_tlv`, which includes `channel_update` timestamps
+ - an optional `checksums_tlv`, which includes `channel_update` checksums
+
+1. type: 267 (`node_inventory`)
+2. data:
+    * [`chain_hash`:`chain_hash`]
+    * type: 1 (`node_inv_tlvs`)
+      * [`u16`:`len`]
+      * [`len*node_inv_tlv`:`node_inv_tlvs`]
+ 
+`node_inv_tlvs` contains a list of `node_inv_tlv`, encoded as:
+ 
+ * [`point`:`node_id`]
+ * [`u32`:`timestamp`]
+ * [`short_channel_id`:`short_channel_id`]
+  
+The receiving node will compare inventory data against its own view of the routing table and query `node_announcement` (using the 
+provided `short_chanel_id`), `channel_announcement` and `channel_update` messages that are missing or outdated using channel range queries. 
+
 ## HTLC Fees
 
 ### Requirements
