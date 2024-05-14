@@ -1190,8 +1190,8 @@ The sending node:
     - MUST set `require_confirmed_inputs`
   - If it wants the receiving node to contribute to the funding transaction
     using `option_will_fund`:
-    - MUST send `request_funding` containing one of the `lease_type`s
-      supported by the receiving node.
+    - MUST send `request_funding` containing one of the `lease_type`s and
+      `payment_type`s supported by the receiving node.
     - MUST set `requested_sats` to the amount of sats it wants to pay for at
       the advertised lease rate.
 
@@ -1305,8 +1305,8 @@ The receiving node:
     - `provide_funding` is set and:
       - the `will_fund.lease_witness` does not match the `request_funds.funding_lease`.
       - the `will_fund.signature` is invalid.
-  - MUST pay fees for the `option_will_fund` amount (if any) as detailed in the
-    [liquidity ads section](07-routing-gossip.md#liquidity-ads).
+  - MUST pay fees for the `option_will_fund` amount using the `payment_type` selected,
+    as detailed in the [liquidity ads section](07-routing-gossip.md#liquidity-ads).
 
 #### Rationale
 

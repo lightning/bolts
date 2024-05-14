@@ -277,7 +277,7 @@ nodes not associated with an already known channel are ignored.
 2. types:
     1. type: 1 (`option_will_fund`)
     2. data:
-        * [`will_fund_lease_rates`:`will_fund_lease_rates`]
+        * [`will_fund_rates`:`will_fund_rates`]
 
 `timestamp` allows for the ordering of messages, in the case of multiple
 announcements. `rgb_color` and `alias` allow intelligence services to assign
@@ -1156,62 +1156,89 @@ above.
 
 Liquidity ads allow nodes to announce their willingness to provide funding to
 other nodes for a fee. Sellers advertise various rates for the liquidity they
-are selling depending on the guarantees offered to buyers.
+are selling.
 
-1. subtype: `will_fund_lease_rates`
-2. data:
-    * [`will_fund_lease_rates_tlvs`:`lease_rates`]
-
-1. `tlv_stream`: `will_fund_lease_rates_tlvs`
-2. types:
-    1. type: 1 (`basic_funding_leases`)
-    2. data:
-        * [`...*basic_funding_lease`:`funding_lease_rates`]
-
-1. subtype: `request_funds`
-2. data:
-    * [`u64`:`requested_sats`]
-    * [`byte`:`lease_type`]
-    * [`funding_lease`:`funding_lease`]
-
-1. `lease_type`: 1 (`basic_funding_lease`)
+1. `lease_type`: 0 (`basic_funding_lease`)
 2. data:
     * [`u32`:`min_lease_amount_sat`]
     * [`u32`:`max_lease_amount_sat`]
     * [`u16`:`funding_weight`]
     * [`u16`:`lease_fee_basis`]
-    * [`u32`:`lease_fee_base_sat`]
+    * [`tu32`:`lease_fee_base_sat`]
+
+Each `lease_type` has a matching `lease_witness` that commits to the lease.
+
+1. `lease_type`: 0 (`basic_funding_lease_witness`)
+2. data:
+    * [`...*byte`:`funding_script`]
+
+Lease types and lease witnesses are encoded using the TLV format, using the
+`lease_type` for the type field.
+
+Sellers also define how the fees can be paid by listing the `payment_type`s
+they support.
+
+1. `payment_type`: 0 (`from_channel_balance`)
+
+Payment types are encoded using the TLV format, using the `payment_type` for
+the type field.
+
+Sellers advertize their rates and payment types using `will_fund_rates`.
+
+1. subtype: `will_fund_rates`
+2. data:
+    * [`u16`:`funding_rates_count`]
+    * [`funding_rates_count*funding_lease`:`funding_rates`]
+    * [`u16`:`payment_types_len`]
+    * [`payment_types_len*byte`:`payment_types`]
+
+Buyers select a specific lease and a `payment_type` offered by the seller
+and use `request_funds` to purchase that lease.
+
+1. subtype: `request_funds`
+2. data:
+    * [`u64`:`requested_sats`]
+    * [`funding_lease`:`funding_lease`]
+    * [`payment_type`:`payment_type`]
+
+Sellers accept the purchase with `will_fund` containing a signature that
+commits to the lease parameters included in the `lease_witness`.
 
 1. subtype: `will_fund`
 2. data:
-    * [`byte`:`lease_witness_type`]
     * [`lease_witness`:`lease_witness`]
     * [`signature`:`signature`]
 
-1. `lease_witness_type`: 1 (`basic_funding_lease_witness`)
-2. data:
-    * [`u16`:`funding_script_size`]
-    * [`funding_script_size`:`funding_script`]
+### Requirements
 
-Sellers may offer multiple `lease_type`s, described in the following sections.
-Buyers select a specific lease offered by the seller and use `request_funds`
-to purchase that lease. Sellers answer with `will_fund` containing a signature
-that commits to the lease parameters included in the `lease_witness`.
+A node selling liquidity:
+  - MUST advertise its funding rates with `will_fund_rates`:
+    - MUST include a list of `lease_type`s in `funding_rates`.
+    - MUST encode each `funding_lease` using the TLV format.
+    - MAY include multiple `funding_lease`s with the same `lease_type`.
+    - MUST include a `payment_types` bitfield: for each `payment_type` that it
+      supports, the bit at the position matching this type MUST be set.
+  - When receiving `request_funds`:
+    - If the `funding_lease` does not match a lease it offers:
+      - MUST reject the funding attempt.
+    - If the `payment_type` is not supported:
+      - MUST reject the funding attempt.
+    - Otherwise:
+      - MUST send `will_fund` with the `lease_witness` matching the requested
+        `funding_lease` and a signature covering that witness (see below).
+
+A node buying liquidity:
+  - MUST ignore any unknown `lease_type` in `will_fund_rates.funding_rates`.
+  - MUST ignore any unknown `payment_type` in `will_fund_rates.payment_types`.
+  - MUST create `request_funds` with a `funding_lease` from the `funding_rates`
+    and a `payment_type` from the `payment_types` bitfield.
+  - MUST encode `funding_lease` and `payment_type` using the TLV format.
 
 ### The `basic_funding_lease` type
 
-A `basic_funding_lease` does not provide any guarantee that the seller won't
-close the channel or increase their routing fees after the purchase, if the
-liquidity isn't actually used.
-
-When `request_funds` and `will_fund` have been exchanged, the buyer must pay
-fees to the seller for the funding they provide to the channel based on the
-agreed upon `funding_weight`, `lease_fee_basis` and `lease_fee_base_sat`.
-
-The lease fee is taken from the buyer's funding inputs and added to the
-seller's channel balance during the funding flow. The buyer must contribute
-enough funds to cover their channel balance, the lease fee, and the on-chain
-fees for the weight of the funding transaction they're responsible for.
+When `request_funds` and `will_fund` have been exchanged, the buyer agrees to
+pay fees to the seller for the funding they provide to the channel based on
+the proposed `funding_weight`, `lease_fee_basis` and `lease_fee_base_sat`.
 
 The lease fee has three components:
 
@@ -1231,6 +1258,8 @@ associated with their `node_id`. The data signed is:
 
     SHA256("basic_funding_lease" || basic_funding_lease_witness)
 
+The `basic_funding_lease_witness` is encoded using the TLV format.
+
 We use a tagged hash to ensure that this signature cannot be used in a
 different context.
 
@@ -1246,6 +1275,15 @@ A node selling a `basic_funding_lease`:
     It ensures that the funding node is refunded for some of the on-chain
     fees it will pay to contribute the requested funds to a channel.
 
+### The `from_channel_balance` payment type
+
+The lease fee is taken from the buyer's transaction inputs and added to the
+seller's channel balance during the funding flow, using the
+[interactive-tx](./02-peer-protocol.md#interactive-transaction-construction)
+protocol. The buyer must contribute enough funds to cover their channel
+balance, the lease fee, and the on-chain fees for the weight of the funding
+transaction they're responsible for.
+
 #### Example
 
 A node contributes `500_000 sats` to a channel and requests `1_000_000 sats`
@@ -1253,7 +1291,7 @@ from its peer, at a feerate of `2500 sat/kw`. The total weight of their inputs
 and outputs in the funding transaction is 720. More details about transaction
 weight can be found in the [interactive-tx section](02-peer-protocol.md#interactive-transaction-construction).
 
-The seller contributes `1_100_000 sats` with the following `lease_rate`:
+The seller contributes `1_100_000 sats` with the following lease rate:
 
 	funding_weight = 444
 	lease_fee_base_sat = 233 sats
