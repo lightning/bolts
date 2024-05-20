@@ -1468,6 +1468,11 @@ The receiver of `stfu`:
 Upon disconnection:
   - the channel is no longer considered quiescent.
 
+Dependent Protocols:
+  - MUST specify all states that terminate quiescence.
+    - NOTE: this prevents batching executions of protocols that depend on
+      quiescence.
+
 ### Rationale
 
 The normal use would be to cease sending updates, then wait for all
@@ -1480,6 +1485,14 @@ If both sides send `stfu` simultaneously, they will both set
 considered to be the channel funder (the sender of `open_channel`).
 The quiescence effect is exactly the same as if one had replied to the
 other.
+
+Dependent protocols have to specify termination conditions to prevent the need
+for disconnection to resume channel traffic. An explicit resume message was
+[considered but rejected](https://github.com/rustyrussell/lightning-rfc/pull/14)
+since it introduces a number of edge cases that make bilateral consensus of
+channel state significantly more complex to maintain. This introduces the
+derivative property that it is impossible to batch multiple downstream protocols
+in the same quiescence session.
 
 ## Channel Close
 
