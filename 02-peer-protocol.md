@@ -988,18 +988,16 @@ The recipient:
 
 #### Rationale
 
-We decide on
-`option_anchors` at this point when we first have to generate
-the commitment transaction. The feature bits that were communicated in the
-`init` message exchange for the current connection determine the channel
-commitment format for the total lifetime of the channel. Even if a later
-reconnection does not negotiate this parameter, this channel will continue to
-use `option_static_remotekey` or
+We decide on `option_static_remotekey` or `option_anchors` at this point
+when we first have to generate the commitment transaction. The feature
+bits that were communicated in the `init` message exchange for the current
+connection determine the channel commitment format for the total lifetime
+of the channel. Even if a later reconnection does not negotiate this
+parameter, this channel will continue to use `option_static_remotekey` or
 `option_anchors`; we don't support "downgrading".
 
-`option_anchors` is considered superior to
-`option_static_remotekey`, and the superior one is favored if more than one
-is negotiated.
+`option_anchors` is considered superior to `option_static_remotekey`,
+and the superior one is favored if more than one is negotiated.
 
 ### The `channel_ready` Message
 
@@ -1882,7 +1880,7 @@ A node:
 The `max_dust_htlc_exposure_msat` is an upper bound on the trimmed balance from
 dust exposure. The exact value used is a matter of node policy.
 
-For channels that don't use `option_anchors_zero_fee_htlc_tx`, an increase of
+For channels that don't use `option_anchors`, an increase of
 the `feerate_per_kw` may trim multiple htlcs from commitment transactions,
 which could create a large increase in dust exposure.
 
@@ -2250,7 +2248,7 @@ The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
 
 A sending node:
-  - if `option_anchors_zero_fee_htlc_tx` was not negotiated:
+  - if `option_anchors` was not negotiated:
     - if the `update_fee` increases `feerate_per_kw`:
       - if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:
         - MAY NOT send `update_fee`
@@ -2271,7 +2269,7 @@ A receiving node:
     - SHOULD send a `warning` and close the connection, or send an
       `error` and fail the channel.
       - but MAY delay this check until the `update_fee` is committed.
-    - if `option_anchors_zero_fee_htlc_tx` was not negotiated:
+    - if `option_anchors` was not negotiated:
       - if the `update_fee` increases `feerate_per_kw`:
         - if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater then `max_dust_htlc_exposure_msat`:
           - MAY fail the channel
