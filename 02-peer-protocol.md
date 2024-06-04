@@ -32,6 +32,8 @@ operation, and closing.
       * [The `commitment_signed` Message](#the-commitment_signed-message)
       * [Sharing funding signatures: `tx_signatures`](#sharing-funding-signatures-tx_signatures)
       * [Fee bumping: `tx_init_rbf` and `tx_ack_rbf`](#fee-bumping-tx_init_rbf-and-tx_ack_rbf)
+      * [The `funding_locked` Message](#the-funding_locked-message)
+    * [Channel Quiescence](#channel-quiescence)
     * [Channel Close](#channel-close)
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
@@ -203,6 +205,7 @@ This message contains a transaction input.
 
 The sending node:
   - MUST add all sent inputs to the transaction
+  - MUST only send confirmed inputs
   - MUST use a unique `serial_id` for each input currently added to the
     transaction
   - MUST set `sequence` to be less than or equal to 4294967293 (`0xFFFFFFFD`)
@@ -1428,6 +1431,206 @@ a large feerate change, instead sets their `sats` to zero, and decline to
 participate further in the channel funding: by not contributing, they
 may obtain incoming liquidity at no cost.
 
+## Channel Quiescence
+
+Various fundamental changes, in particular protocol upgrades, are
+easiest on channels where both commitment transactions match, and no
+pending updates are in flight.  We define a protocol to quiesce the
+channel by indicating that "SomeThing Fundamental is Underway".
+
+### `stfu`
+
+1. type: 2 (`stfu`)
+2. data:
+    * [`channel_id`:`channel_id`]
+    * [`u8`:`initiator`]
+
+### Requirements
+
+The sender of `stfu`:
+  - MUST NOT send `stfu` if any of the sender's htlc additions, htlc removals
+    or fee updates are pending for either peer.
+  - MUST NOT send `stfu` twice.
+  - if it is replying to an `stfu`:
+    - MUST set `initiator` to 0
+  - otherwise:
+    - MUST set `initiator` to 1
+  - MUST set `channel_id` to the id of the channel to quiesce.
+  - MUST now consider the channel to be quiescing.
+  - MUST NOT send an update message after `stfu`.
+
+The receiver of `stfu`:
+  - if it has sent `stfu` then:
+    - MUST now consider the channel to be quiescent
+  - otherwise:
+    - SHOULD NOT send any more update messages.
+    - MUST reply with `stfu` once it can do so.
+
+Upon disconnection:
+  - the channel is no longer considered quiescent.
+
+### Rationale
+
+The normal use would be to cease sending updates, then wait for all
+the current updates to be acknowledged by both peers, then start
+quiescence.  For some protocols, choosing the initiator matters,
+so this flag is sent.
+
+If both sides send `stfu` simultaneously, they will both set
+`initiator` to `1`, in which case the "initiator" is arbitrarily
+considered to be the channel funder (the sender of `open_channel`).
+The quiescence effect is exactly the same as if one had replied to the
+other.
+
+## Splicing
+
+Splicing is the term given for replacing the funding transaction with
+a new one.  For simplicity, splicing takes place once a channel is
+[quiescent](#channel-quiescence).
+
+Operation returns to normal once negotiation is done (while waiting
+for the splice transaction(s) to confirm).
+
+The splice is finally terminated when both sides send
+`splice_locked` to indicate that one of the splice transactions
+reached acceptable depth.
+
+### The `splice` Message
+
+1. type: 80 (`splice`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`chain_hash`:`chain_hash`]
+   * [`s64`:`relative_amount`]
+   * [`u32`:`funding_feerate_perkw`]
+   * [`u32`:`locktime`]
+   * [`point`:`funding_pubkey`]
+
+1. type: 81 (`splice_ack`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`chain_hash`:`chain_hash`]
+   * [`s64`:`relative_amount`]
+   * [`point`:`funding_pubkey`]
+
+`funding_satoshis` is the amount the sender is putting into the
+post-splice channel. It includes their old funded channel amount
+plus any satoshis they intend to add, or, less any satoshis they
+intend to remove.
+
+#### Requirements
+
+The sender of `splice`:
+- MUST have successfully initiated quiescence.
+- MUST NOT send `splice` before sending and receiving `channel_ready`.
+- MUST NOT send `splice` while a splice is being negotiated.
+- If any splice is in progress:
+  - MUST NOT send a splice message with `funding_feerate_perkw` which is less than 1.25 the previous `funding_feerate_perkw` (rounded down).
+
+The receiver of `splice`:
+- SHOULD fail the connection if there is an pending splice, and the `funding_feerate_perkw` is not at least 1.25 the previous `funding_feerate_perkw` (rounded down).
+- MUST respond with `splice_ack` containing its own `funding_pubkey`.
+- MUST begin splice negotiation.
+
+The receiver of `splice_ack`:
+- MUST begin splice negotiation.
+
+
+#### Rationale
+
+There is no harm in agreeing to a splice with a high feerate
+(presumably the recipient will not contribute to the splice which they
+consider to be overpaying).
+
+## Splice Negotiation
+
+The splice negotiation is very similar to the `tx_init_rbf` negotiation:
+both sides alternate sending `tx_add_input` and `tx_add_output` until
+they both send consecutive `tx_complete`.
+
+### Requirements
+
+(Note that many of these messages have their own, additional
+requirements detailed elsewhere).
+
+The initiator:
+- MUST `tx_add_input` an input which spends the current funding transaction output.
+- MUST `tx_add_output` a zero-value output which pays to the two funding keys using the higher of the two `generation` fields.
+- MUST pay for the common fields.
+
+Each node:
+- MUST pay for their own added inputs and outputs.
+
+Upon receipt of consecutive `tx_complete`s, each node:
+- MUST fail negotiation if there is not exactly one input spending the current funding transaction.
+- MUST fail negotiation if there is not exactly one output with zero value paying to the two funding keys (a.k.a. the new channel funding output)
+- MUST calculate the channel capacity for each side:
+  - Start with the previous balance
+  - Add that side's new inputs (excluding the one spending the current funding transaction)
+  - Subtracting each sides new outputs (except the zero-value one paying to the funding keys)
+  - Subtract the total fee that side is paying for the splice transaction.
+- MUST replace the zero-value funding output amount with the total channel capacity.
+- MUST calculate the channel balance for each side:
+  - Subtract any outstanding HTLCs offered by that side.
+- If either side has added an output other than the new channel funding output:
+  - MUST fail the negotiation if the balance for that side is less than 1% of the total channel capacity.
+- SHOULD NOT fail if the splice transaction is nonstandard.
+- MUST send a single `commitment_signed` for the splice transaction.
+  - Peer MUST NOT reply with `revoke_and_ack`
+
+- If recipient's sum(tx_add_input.amount) < peer's sum(tx_add_input.amount); or
+if recipient's sum(tx_add_input.amount) == peer's sum(tx_add_input.amount) and
+recipient is the `initiator` of the splice:
+  - SHOULD send `tx_signatures` first for the splice transaction.
+- else
+  - MAY send `tx_signatures` first.
+
+- Upon receipt of `tx_signatures` for the splice transaction:
+  - MUST consider splice negotiation complete.
+  - MUST consider the connection no longer quiescent.
+
+On reconnection:
+- MUST retransmit the last splice `tx_signatures` (if any).
+- MUST ignore any redundant `tx_signatures` it receives.
+
+### Rationale
+
+If a side does not meet the reserve requirements, that's OK: but if
+they take funds out of the channel, they must ensure that they do meet
+them.  If your peer adds a massive amount to the channel, then you
+only have to add more reserve if you want to contribute to the splice
+(and you can use `tx_remove_output` and/or `tx_remove_input` part-way
+through if this happens).
+
+## Splice Completion
+
+### The `splice_locked` Message
+
+1. type: 77 (`splice_locked`)
+2. data:
+   * [`channel_id`:`channel_id`]
+
+`channel_id` is the pre-splice channel's `channel_id`.
+
+Each node:
+- if any splice transaction reaches depth 6:
+  - MUST send `splice_locked`.
+
+Once a node has received and sent `splice_locked`:
+  - Until sending OR receiving of `revoke_and_ack`
+    - MUST ignore `announcement_signatures` messages where `short_channel_id`
+      matches the pre-splice short channel id.
+    - MUST ignore `commitment_signed` messages where `splice_channel_id`
+      does not match the `channel_id` of the confirmed splice.
+  - MUST consider the successful splice to be the new funding
+    transaction for all future `commitment_signed` and splice operations.
+  - MUST discard the previous funding transaction and other splice operations.
+  - MUST send a new `commitment_signed` bundle (with no splice commitsigs bundle).
+
+On reconnection:
+  - MUST retransmit the last `splice_locked` if the peer did not
+    acknowledge the `commitment_signed`.
+
 ## Channel Close
 
 Nodes can negotiate a mutual close of the connection, which unlike a
@@ -1472,11 +1675,14 @@ A sending node:
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
   - MUST NOT send multiple `shutdown` messages.
+  - if there is an pending splice:
+    - MUST NOT send a `shutdown`.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
   - if no HTLCs remain in either commitment transaction (including dust HTLCs)
     and neither side has a pending `revoke_and_ack` to send:
     - MUST NOT send any `update` message after that point.
   - SHOULD fail to route any HTLC added after it has sent `shutdown`.
+  - MUST NOT initiate a new splice if none are already in progress after a `shutdown`.
   - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
     - MUST send the same value in `scriptpubkey`.
   - MUST set `scriptpubkey` in one of the following forms:
@@ -1494,8 +1700,9 @@ A receiving node:
     - SHOULD send a `warning`.
   - if it hasn't sent a `channel_ready` yet:
     - MAY reply to a `shutdown` message with a `shutdown`
-  - once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:
+  - once there are no outstanding updates on the peer and no ongoing splice, UNLESS it has already sent a `shutdown`:
     - MUST reply to a `shutdown` message with a `shutdown`
+  - MUST NOT initiate a new splice if none are already in progress.
   - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
     - MAY send a `warning`.
     - MUST fail the connection.
@@ -1530,11 +1737,22 @@ of the receiving node to change the `scriptpubkey`.
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
 
+`shutdown` MAY be sent while the splice is pending confirmation. New splice
+negotiations MAY BE initiated while the channel is in `shutdown`. 
+
+The `shutdown` phase MUST NOT be considered concluded until all htlcs are
+resolved and the channel has exited the pending splice phase (`splice_locked`
+has been exchanged).
+
 ### Closing Negotiation: `closing_signed`
 
-Once shutdown is complete, the channel is empty of HTLCs, there are no commitments
-for which a revocation is owed, and all updates are included on both commitments,
-the final current commitment transactions will have no HTLCs, and closing fee
+There may be multiple splice candidates (via RBF) however when one is confirmed
+it invalidates the others awaiting confirmation. We refer to this state as all
+splices being "cleared".
+
+Once shutdown is complete, all splices are cleared, the channel is empty
+of HTLCs, there are no commitments for which a revocation is owed, the final
+current commitment transactions will have no HTLCs, and closing fee
 negotiation begins.  The funder chooses a fee it thinks is fair, and
 signs the closing transaction with the `scriptpubkey` fields from the
 `shutdown` messages (along with its chosen fee) and sends the signature;
@@ -1649,20 +1867,20 @@ the closing transaction will likely never reach miners.
 Once both nodes have exchanged `channel_ready` (and optionally [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), the channel can be used to make payments via Hashed Time Locked Contracts.
 
 Changes are sent in batches: one or more `update_` messages are sent before a
-`commitment_signed` message, as in the following diagram:
+`commitment_signed` message bundle, as in the following diagram:
 
         +-------+                               +-------+
         |       |--(1)---- update_add_htlc ---->|       |
         |       |--(2)---- update_add_htlc ---->|       |
         |       |<-(3)---- update_add_htlc -----|       |
         |       |                               |       |
-        |       |--(4)--- commitment_signed --->|       |
+        |       |--(4)- commitment_signed(s) -->|       |
         |   A   |<-(5)---- revoke_and_ack ------|   B   |
         |       |                               |       |
-        |       |<-(6)--- commitment_signed ----|       |
+        |       |<-(6)- commitment_signed(s) ---|       |
         |       |--(7)---- revoke_and_ack ----->|       |
         |       |                               |       |
-        |       |--(8)--- commitment_signed --->|       |
+        |       |--(8)- commitment_signed(s) -->|       |
         |       |<-(9)---- revoke_and_ack ------|       |
         +-------+                               +-------+
 
@@ -1930,7 +2148,7 @@ A sending node:
     between implementations.
   - if it is _not responsible_ for paying the Bitcoin fee:
     - SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to
-    its commitment transaction, it cannot pay the fee for the updated local or
+    any of its commitment transactions, it cannot pay the fee for the updated local or
     remote transaction at the current `feerate_per_kw` while maintaining its
     channel reserve.
   - MUST offer `amount_msat` greater than 0.
@@ -2007,6 +2225,9 @@ reach a state where it is unable to send or receive any non-dust HTLC while
 maintaining its channel reserve (because of the increased weight of the
 commitment transaction), resulting in a degraded channel. See [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728)
 for more details.
+
+If splicing is supported, there can be more than one commitment transaction
+at a time: proposed changes must be valid for all of them.
 
 ### Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`
 
@@ -2114,7 +2335,9 @@ leaking information to senders trying to probe the blinded route.
 
 When a node has changes for the remote commitment, it can apply them,
 sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), and send a
-`commitment_signed` message.
+`commitment_signed` message bundle. First it will send `commitment_signed`
+for the active channel, then it will send another `commitment_signed` message
+for each splice candidate awaiting confirmation.
 
 1. type: 132 (`commitment_signed`)
 2. data:
@@ -2122,15 +2345,26 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
    * [`signature`:`signature`]
    * [`u16`:`num_htlcs`]
    * [`num_htlcs*signature`:`htlc_signature`]
+   * [`commitment_signed_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `commitment_signed_tlvs`
+2. types:
+    1. type: 0 (`splice_info`)
+    2. data:
+        * [`channel_id`:`splice_channel_id`]
+
 
 #### Requirements
 
 A sending node:
-  - MUST NOT send a `commitment_signed` message that does not include any
+  - MUST send channel's original `channel_id` regardless of prior splice activity.
+  - MUST send `splice_channel_id` to specify which channel tx this commitment
+is for.
+  - MUST NOT send a `commitment_signed` message bundle that does not include any
 updates.
-  - MAY send a `commitment_signed` message that only
+  - MAY send a `commitment_signed` message bundle that only
 alters the fee.
-  - MAY send a `commitment_signed` message that doesn't
+  - MAY send a `commitment_signed` message bundle that doesn't
 change the commitment transaction aside from the new revocation number
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).
@@ -2138,6 +2372,12 @@ fee changes).
     to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
+  - if during an active splice negotiation
+      - MUST send a single `commitment_signed` for the splice candidate.
+  - else
+      - MUST first send a `commitment_signed` for the active channel then immediately
+send a `commitment_signed` for each splice awaiting confirmation, in increasing
+feerate order.
 
 A receiving node:
   - once all pending updates are applied:
@@ -2151,7 +2391,15 @@ A receiving node:
   - if any `htlc_signature` is not valid for the corresponding HTLC transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
-  - MUST respond with a `revoke_and_ack` message.
+  - if there is not exactly one `commitsigs` for each splice in progress:
+    - MUST fail the channel.
+  - if `commit_signature`, `num_htlcs` or `htlc_signature` is not correct as specified above for each splice:
+    - MUST fail the channel.
+  - if not during an active splice negotiation
+    - if the number of consecutive `commitment_signed` messages received is not
+      the number of splice candidates plus one:
+      - MUST fail the channel.
+    - MUST respond with a `revoke_and_ack` message.
 
 #### Rationale
 
@@ -2174,9 +2422,14 @@ stating time-locks on HTLC outputs.
 The `option_anchors` allows HTLC transactions to "bring their own fees" by
 attaching other inputs and outputs, hence the modified signature flags.
 
+Splicing requires us to send and receive redundant signatures, as we
+don't know which (if any) of the splice transactions will end up being
+the new channel.  Increasing feerate order is also the order in which
+splices were negotiated (since each must increase the feerate).
+
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
-Once the recipient of `commitment_signed` checks the signature and knows
+Once the recipient of a `commitment_signed` bundle checks the signature and knows
 it has a valid new commitment transaction, it replies with the commitment
 preimage for the previous commitment transaction in a `revoke_and_ack`
 message.
@@ -2215,6 +2468,8 @@ A node:
   - SHOULD NOT sign commitment transactions, unless it's about to broadcast
   them (due to a failed connection),
     - Note: this is to reduce the above risk.
+  - MUST send a single `revoke_and_ack` in response to a bundle of
+`commitment_signed` messages.
 
 ### Updating Fees: `update_fee`
 
@@ -2243,6 +2498,8 @@ given in [BOLT #3](03-transactions.md#fee-calculation).
 The node _responsible_ for paying the Bitcoin fee:
   - SHOULD send `update_fee` to ensure the current fee rate is sufficient (by a
       significant margin) for timely processing of the commitment transaction.
+  - MUST NOT set `feerate_per_kw` in excess of what it can afford on any of the receiving node's
+    current commitment transactions.
 
 The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
@@ -2265,7 +2522,7 @@ A receiving node:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
   - if the sender cannot afford the new fee rate on the receiving node's
-  current commitment transaction:
+  current commitment transactions:
     - SHOULD send a `warning` and close the connection, or send an
       `error` and fail the channel.
       - but MAY delay this check until the `update_fee` is committed.
@@ -2302,6 +2559,9 @@ If on-chain fees increase while commitments contain many HTLCs that will
 be trimmed at the updated feerate, this could overflow the configured
 `max_dust_htlc_exposure_msat`. Whether to close the channel preemptively
 or not is left as a matter of node policy.
+
+If splicing is supported, there can be more than one commitment transaction
+at a time: proposed changes must be valid for all of them.
 
 ## Message Retransmission
 
@@ -2453,8 +2713,11 @@ A receiving node:
       - if it has already received `tx_signatures` for that funding transaction:
         - MUST send its `tx_signatures` for that funding transaction.
     - otherwise:
-      - MUST send `tx_abort` to let the sending node know that they can forget
-        this funding transaction.
+      - if `next_funding_txid` matches the latest confirmed funding transaction:
+        - MUST re-send `splice_locked`
+      - otherwise:
+        - MUST send `tx_abort` to let the sending node know that they can forget
+          this funding transaction.
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
