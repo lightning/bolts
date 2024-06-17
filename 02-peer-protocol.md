@@ -1465,6 +1465,9 @@ The receiver of `stfu`:
     - SHOULD NOT send any more update messages.
     - MUST reply with `stfu` once it can do so.
 
+Both nodes:
+  - MUST disconnect after 60 seconds of quiescence if the HTLCs are pending.
+
 Upon disconnection:
   - the channel is no longer considered quiescent.
 
