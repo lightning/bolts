@@ -349,7 +349,9 @@ The witness script for the output is:
 
 To spend this via penalty, the remote node uses a witness stack `<revocationsig> 1`, and to collect the output, the local node uses an input with nSequence `to_self_delay` and a witness stack `<local_delayedsig> 0`.
 
-## Closing Transaction
+## Classic Closing Transaction
+
+This variant is used for `closing_signed` messages (i.e. where `option_simple_close` is not negotiated).
 
 Note that there are two possible variants for each node.
 
@@ -389,6 +391,37 @@ has been used.
 
 There will be at least one output, if the funding amount is greater
 than twice `dust_limit_satoshis`.
+
+## Closing Transaction
+
+This variant is used for `closing_complete` and `closing_sig` messages (i.e. where `option_simple_close` is negotiated).
+
+In this case, the node sending `closing_complete` ("the closer") pays the fees, and the sequence specified to allow RBF.  The outputs are ordered as detailed in [Transaction Output Ordering](#transaction-output-ordering).
+
+The side with lesser funds can opt to omit their own output.
+
+* version: 2
+* locktime: 0
+* txin count: 1
+   * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
+   * `txin[0]` sequence: `sequence` from `closing_complete` message
+   * `txin[0]` script bytes: 0
+   * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
+
+* txout count: 1 or 2
+  * The closer output:
+    * `txout` amount: the final balance for the closer, minus `closing_complete` `fee_satoshis`, rounded down to whole satoshis.
+	* `txout` script: as specified in that closer's `scriptpubkey` in its `shutdown` message
+  * The closee output:
+    * `txout` amount: the final balance for the closee, rounded down to whole satoshis.
+	* `txout` script: as specified in that closee's `scriptpubkey` in its `shutdown` message
+
+### Requirements
+
+Each node offering a signature:
+  - MUST round each output down to whole satoshis.
+  - MUST subtract the fee given by `fee_satoshis` from the closer output.
+
 
 ## Fees
 
@@ -513,6 +546,7 @@ Bitcoin Core defines the following dust thresholds:
 - pay to witness pubkey hash (p2wpkh): 294 satoshis
 - pay to witness script hash (p2wsh): 330 satoshis
 - unknown segwit versions: 354 satoshis
+- `OP_RETURN` outputs: these are never dust
 
 The rationale of this calculation (implemented [here](https://github.com/bitcoin/bitcoin/blob/0.21/src/policy/policy.cpp))
 is explained in the following sections.
