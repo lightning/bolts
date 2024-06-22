@@ -93,7 +93,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
      several blockchains. Nodes are to ignore any messages that reference a
      `chain_hash` that are unknown to them. Unlike `bitcoin-cli`, the hash is
      not reversed but is used directly.
-
+     Sometimes this format is referred as "little-endian" representation of the proof of work 256 bit unsigned integer for the block.
      For the main chain Bitcoin blockchain, the `chain_hash` value MUST be
      (encoded in hex):
      `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
