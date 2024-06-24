@@ -284,10 +284,8 @@ The writer of the TLV `payload`:
         - MUST set `sender_provided_payment_preimage` to randomly generated unique bytes.
         - MUST set `update_add_htlc.payment_hash` to match the SHA256 hash of
           `sender_provided_payment_preimage`.
-        - if the `payment_onion_invreq` feature is set in the invoice:
-          - MUST or MAY set `invoice_request` to the BOLT 12 invoice request
-            corresponding to this HTLC, based on whether `payment_onion_invreq`
-            is optional or compulsory.
+        - MUST set `invoice_request` to the BOLT 12 invoice request
+          corresponding to this HTLC.
       - otherwise:
         - MUST NOT set `sender_provided_payment_preimage`.
     - MUST NOT include any other tlv field.

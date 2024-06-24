@@ -670,20 +670,10 @@ the `onion_message` `invoice` field.
 
 ## Invoice Features
 
-| Bits | Description                                | Name                            |
-|------|--------------------------------------------|---------------------------------|
-| 16   | Multi-part-payment support                 | MPP/compulsory                  |
-| 17   | Multi-part-payment support                 | MPP/optional                    |
-| 60   | Include `invoice_request` in payment onion | payment_onion_invreq/compulsory |
-| 61   | Include `invoice_request` in payment onion | payment_onion_invreq/optional   |
-
-The `payment_onion_invreq` feature indicates that the payer MUST (0) or MAY (1)
-repeat their invoice request in the `update_add_htlc` payment onion.
-
-Often-offline receivers may not have received the payer's invoice request
-originally if another node replied with a keysend invoice on their behalf.
-Providing it to the receiver separately may be useful for verification purposes
-or to supply some other data relevant to the payment.
+| Bits | Description                      | Name           |
+|------|----------------------------------|----------------|
+| 16   | Multi-part-payment support       | MPP/compulsory |
+| 17   | Multi-part-payment support       | MPP/optional   |
 
 The 'MPP support' invoice feature indicates that the payer MUST (16) or
 MAY (17) use multiple part payments to pay the invoice.

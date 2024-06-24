@@ -28,7 +28,6 @@ The Context column decodes as follows:
 * `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
 * `B`: presented in the `allowed_features` field of a blinded path.
 * `R`: presented in [BOLT 12](12-offers.md) invoice requests.
-* `V`: presented in [BOLT 12](12-offers.md) invoices.
 
 | Bits  | Name                              | Description                                               | Context  | Dependencies              | Link                                                                  |
 |-------|-----------------------------------|-----------------------------------------------------------|----------|---------------------------|-----------------------------------------------------------------------|
@@ -55,7 +54,6 @@ The Context column decodes as follows:
 | 52/53 | `option_htlc_hold`               | Hold HTLCs and forward on receipt of an onion message     | IN       | `option_onion_messages`                                   |
 | 56/57 | `option_om_mailbox`               | Store-and-forward onion messages for often-offline peers  | IN       | `option_onion_messages`   | [BOLT #12](bolt12-offers.md)                                          |
 | 59    | `static_invoice_pay`              | Supports paying BOLT 12 static invoices                   | R        | `option_onion_messages`   | [BOLT #12](bolt12-offers.md)                                          |
-| 60/61 | `payment_onion_invreq`            | Include `invoice_request` in payment onion                | V        |                           | [BOLT #12](bolt12-offers.md)                                          |
 
 ## Definitions
 
