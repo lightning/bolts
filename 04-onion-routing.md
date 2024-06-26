@@ -254,9 +254,10 @@ The creator of `encrypted_recipient_data` (usually, the recipient of payment):
     - `htlc_minimum_msat` to the largest minimum HTLC value the nodes will allow.
   - If it sets `encrypted_data_tlv.allowed_features`:
     - MUST set it to an empty array.
-  - MUST compute the total fees and cltv delta of the route as follows and communicate them to the sender:
+  - MUST compute the total fees and CLTV delta of the route as follows and communicate them to the sender:
     - `total_fee_base_msat(n+1) = (fee_base_msat(n+1) * 1000000 + total_fee_base_msat(n) * (1000000 + fee_proportional_millionths(n+1)) + 1000000 - 1) / 1000000`
     - `total_fee_proportional_millionths(n+1) = ((total_fee_proportional_millionths(n) + fee_proportional_millionths(n+1)) * 1000000 + total_fee_proportional_millionths(n) * fee_proportional_millionths(n+1) + 1000000 - 1) / 1000000`
+    - `total_cltv_delta = cltv_delta(0) + cltv_delta(1) + ... + cltv_delta(n) + min_final_cltv_expiry_delta`
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
 
 The writer of the TLV `payload`:
