@@ -1418,7 +1418,7 @@ The _origin node_:
 # Onion Messages
 
 Onion messages allow peers to use existing connections to query for
-invoices (see [BOLT 12](12-offer-encoding.md)).  Like gossip messages,
+invoices (see [BOLT 12](https://github.com/lightning/bolts/pull/1149)).  Like gossip messages,
 they are not associated with a particular local channel.  Like HTLCs,
 they use [onion messages](#onion-messages) protocol for
 end-to-end encryption.
