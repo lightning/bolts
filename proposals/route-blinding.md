@@ -356,21 +356,23 @@ The messages exchanged will contain the following values:
       |     | | encrypted_data(bob)        | |     |      | | | cltv_expiry_delta: 144           | | |     |     | | | max_cltv_expiry: 1356            | | |     |     | +----------------------------+ |     |
       |     | +----------------------------+ |     |      | | | max_cltv_expiry: 1500            | | |     |     | | +----------------------------------+ | |     |     |  tlv_extension                 |     |
       |     | | amount_fwd: 100000 msat    | |     |      | | +----------------------------------+ | |     |     | +--------------------------------------+ |     |     | +----------------------------+ |     |
-      |     | | outgoing_expiry: 1112      | |     |      | +--------------------------------------+ |     |     | | amount_fwd: 100000 msat              | |     |     | | blinding_eph_key: E(alice) | |     |
+      |     | | outgoing_expiry: 1112      | |     |      | +--------------------------------------+ |     |     | | amount_fwd: 100000 msat              | |     |     | | blinding_key: E(alice)     | |     |
       |     | | encrypted_data(alice)      | |     |      | | encrypted_data(bob)                  | |     |     | | outgoing_expiry: 1112                | |     |     | +----------------------------+ |     |
       |     | +----------------------------+ |     |      | +--------------------------------------+ |     |     | | encrypted_data(alice)                | |     |     +--------------------------------+     |
       |     +--------------------------------+     |      | | amount_fwd: 100000 msat              | |     |     | +--------------------------------------+ |     |                                            |
       |                                            |      | | outgoing_expiry: 1112                | |     |     |  tlv_extension                           |     |                                            |
       |                                            |      | | encrypted_data(alice)                | |     |     | +--------------------------------------+ |     |                                            |
-      |                                            |      | +--------------------------------------+ |     |     | | blinding_eph_key: E(bob)             | |     |                                            |
+      |                                            |      | +--------------------------------------+ |     |     | | blinding_key: E(bob)                 | |     |                                            |
       |                                            |      +------------------------------------------+     |     | +--------------------------------------+ |     |                                            |
       |                                            |                                                       |     +------------------------------------------+     |                                            |
       |                                            |                                                       |                                                      |                                            |
 ```
 
-Note that all onion payloads are described in each `update_add_htlc` for clarity, but only the
+Note: 
+- All onion payloads are described in each `update_add_htlc` for clarity, but only the
 first one can be decrypted by the intermediate node that receives the message (standard Bolt 4
 onion encryption).
+- `blinding_eph_key` here is the `current_blinding_point` field in the `payload`
 
 ## Attacks
 
