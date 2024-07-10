@@ -427,6 +427,12 @@ for [Signature Calculation](#signature-calculation).
     1. type: 90 (`invreq_paths`)
     2. data:
         * [`...*blinded_path`:`paths`]
+    1. type: 91 (`invreq_bip_353_name`)
+    2. data:
+        * [`u8`:`name_len`]
+        * [`user_len*byte`:`name`]
+        * [`u8`:`domain_len`]
+        * [`user_len*byte`:`domain`]
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -471,6 +477,10 @@ The writer:
         (e.g. milli-satoshis for bitcoin) for `invreq_chain` (or for bitcoin, if there is no `invreq_chain`).
   - if it supports bolt12 invoice request features:
     - MUST set `invreq_features`.`features` to the bitmap of features.
+  - if it received the offer from which it constructed this `invoice_request` using BIP 353 resolution:
+    - MUST include `invreq_bip_353_name` with,
+      - `name` set to the post-₿, pre-@ part of the BIP 353 HRN,
+      - `domain` set to the post-@ part of the BIP 353 HRN.
 
 The reader:
   - MUST fail the request if `invreq_payer_id` or `invreq_metadata` are not present.
