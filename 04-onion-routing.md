@@ -57,7 +57,7 @@ A node:
   * [Shared Secret](#shared-secret)
   * [Blinding Ephemeral Keys](#blinding-ephemeral-keys)
   * [Packet Construction](#packet-construction)
-  * [Packet Forwarding](#packet-forwarding)
+  * [Onion Decryption](#onion-decryption)
   * [Filler Generation](#filler-generation)
   * [Returning Errors](#returning-errors)
     * [Failure Messages](#failure-messages)
@@ -893,76 +893,59 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 }
 ```
 
-# Packet Forwarding
+# Onion Decryption
 
-This specification is limited to `version` `0` packets; the structure
-of future versions may change.
+There are two kinds of `onion_packet` we use: 
+1. `onion_routing_packet` in `update_add_htlc` for payments, which contains a `payload` TLV (see [Adding an HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc))
+2. `onion_message_packet` on `onion_message` for messages, which contains a `onionmsg_tlv` TLV (see [Onion Messages](#onion-messages)
 
-Upon receiving a packet, a processing node compares the version byte of the
-packet with its own supported versions and aborts the connection if the packet
-specifies a version number that it doesn't support.
-For packets with supported version numbers, the processing node first parses the
-packet into its individual fields.
-
-Next, the processing node computes the shared secret using the private key
-corresponding to its own public key and the ephemeral key from the packet, as
-described in [Shared Secret](#shared-secret).
-
-The above requirements prevent any hop along the route from retrying a payment
-multiple times, in an attempt to track a payment's progress via traffic
-analysis. Note that disabling such probing could be accomplished using a log of
-previous shared secrets or HMACs, which could be forgotten once the HTLC would
-not be accepted anyway (i.e. after `outgoing_cltv_value` has passed). Such a log
-may use a probabilistic data structure, but it MUST rate-limit commitments as
-necessary, in order to constrain the worst-case storage requirements or false
-positives of this log.
-
-Next, the processing node uses the shared secret to compute a _mu_-key, which it
-in turn uses to compute the HMAC of the `hop_payloads`. The resulting HMAC is then
-compared against the packet's HMAC.
-
-Comparison of the computed HMAC and the packet's HMAC MUST be
-time-constant to avoid information leaks.
-
-At this point, the processing node can generate a _rho_-key.
-
-The routing information is then deobfuscated, and the information about the
-next hop is extracted.
-To do so, the processing node copies the `hop_payloads` field, appends 1300 `0x00`-bytes,
-generates `2*1300` pseudo-random bytes (using the _rho_-key), and applies the result, using `XOR`, to the copy of the `hop_payloads`.
-The first few bytes correspond to the bigsize-encoded length `l` of the `hop_payload`, followed by `l` bytes of the resulting routing information become the `hop_payload`, and the 32 byte HMAC.
-The next 1300 bytes are the `hop_payloads` for the outgoing packet.
-
-A special `hmac` value of 32 `0x00`-bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
-
-If the HMAC does not indicate route termination, and if the next hop is a peer of the
-processing node; then the new packet is assembled. Packet assembly is accomplished
-by blinding the ephemeral key with the processing node's public key, along with the
-shared secret, and by serializing the `hop_payloads`.
-The resulting packet is then forwarded to the addressed peer.
+Those sections specify the `associated_data` to use, the extracted payload format and handling (including how to determine the next peer, if any), and how to handle errors.  The processing itself is identical.
 
 ## Requirements
 
-The processing node:
-  - if the ephemeral public key is NOT on the `secp256k1` curve:
-    - MUST abort processing the packet.
-    - MUST report a route failure to the origin node.
-  - if the packet has previously been forwarded or locally redeemed, i.e. the
-  packet contains duplicate routing information to a previously received packet:
-    - if preimage is known:
+A reader:
+  - if `version` is not 0:
+    - MUST abort processing the packet and fail.
+  - if `public_key` is not a valid pubkey:
+    - MUST abort processing the packet and fail.
+  - if the onion is for a payment:
+  - if `hmac` has previously been received:
+    - if the preimage is known:
       - MAY immediately redeem the HTLC using the preimage.
     - otherwise:
-      - MUST abort processing and report a route failure.
-  - if the computed HMAC and the packet's HMAC differ:
-    - MUST abort processing.
-    - MUST report a route failure.
-  - if the `realm` is unknown:
-    - MUST drop the packet.
-    - MUST signal a route failure.
-  - MUST address the packet to another peer that is its direct neighbor.
-  - if the processing node does not have a peer with the matching address:
-    - MUST drop the packet.
-    - MUST signal a route failure.
+      - MUST abort processing the packet and fail.
+  - Derive the shared secret `ss` as ECDH(`public_key`, `node-privkey`) (see [Shared Secret](#shared-secret))
+  - Derive `mu` as $`HMAC256(\text{"mu"}, ss)`$ (see [Key Generation](#key-generation)).
+  - Derive the HMAC as $`HMAC256(mu, hop_payloads || associated_data)`$
+  - MUST use a constant time comparison of the computed HMAC and `hmac`.
+  - If the computed HMAC and `hmac` differ:
+    - MUST abort processing the packet and fail.
+  - Derive `rho` as $`HMAC256(\text{"rho"}, ss)`$ (see [Key Generation](#key-generation)).
+  - Derive `bytestream` of twice the length of `hop_payloads` using `rho` (see [Pseudo Random Byte Stream](pseudo-random-byte-stream)).
+  - Set `unwrapped_payloads` to the XOR of `hop_payloads` and `bytestream`
+  - Remove a `bigsize` from the front of `unwrapped_payloads` as `payload_length`.  If that is malformed:
+    - MUST abort processing the packet and fail.
+  - If the `payload_length` is less than two:
+    - MUST abort processing the packet and fail.
+  - If there are fewer than `payload_length` bytes remaining in `unwrapped_payloads`:
+    - MUST abort processing the packet and fail.
+  - Remove `payload_length` bytes from the front of `unwrapped_payloads`, as the current `payload`.
+  - If there are fewer than 32 bytes remaining in `unwrapped_payloads`:
+    - MUST abort processing the packet and fail.
+  - Remove 32 bytes as `next_hmac` from the front of `unwrapped_payloads`.
+  - If `unwrapped_payloads` is smaller than `hop_payloads`:
+    - MUST abort processing the packet and fail.
+  - If `next_hmac` is not all-zero (not the final node):
+    - Derive `blinding_tweak` as $`SHA256(public_key || ss)`$ (see [Blinding Ephemeral Keys](#blinding-ephemeral-keys))
+    - SHOULD forward an onion to the next peer with:
+      - `version` set to 0
+      - `public_key` set to the incoming `public_key` multiplied by `blinding_tweak`
+      - `hop_payloads` set to the `unwrapped_payloads`, truncated to the incoming `hop_payloads` size
+      - `hmac` set to `next_hmac`
+    - If it cannot forward:
+      - MUST fail.
+  - Otherwise (all-zero `next_hmac`):
+    - This is the final destination of the onion.
 
 
 # Filler Generation
