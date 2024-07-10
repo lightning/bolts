@@ -437,6 +437,12 @@ while still allowing signature validation.
     1. type: 90 (`invreq_paths`)
     2. data:
         * [`...*blinded_path`:`paths`]
+    1. type: 91 (`invreq_bip_353_name`)
+    2. data:
+        * [`u8`:`name_len`]
+        * [`name_len*byte`:`name`]
+        * [`u8`:`domain_len`]
+        * [`domain_len*byte`:`domain`]
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -481,6 +487,10 @@ The writer:
         (e.g. milli-satoshis for bitcoin) for `invreq_chain` (or for bitcoin, if there is no `invreq_chain`).
   - if it supports bolt12 invoice request features:
     - MUST set `invreq_features`.`features` to the bitmap of features.
+  - if it received the offer from which it constructed this `invoice_request` using BIP 353 resolution:
+    - MUST include `invreq_bip_353_name` with,
+      - `name` set to the post-₿, pre-@ part of the BIP 353 HRN,
+      - `domain` set to the post-@ part of the BIP 353 HRN.
 
 The reader:
   - MUST reject the invoice request if `invreq_payer_id` or `invreq_metadata` are not present.
@@ -528,6 +538,9 @@ The reader:
       - MUST use `invreq_paths` if present, otherwise MUST use `invreq_payer_id` as the node id to send to.
   - if `invreq_chain` is not present:
     - MUST reject the invoice request if bitcoin is not a supported chain.
+  - if `invreq_bip_353_name` is present:
+    - MUST reject the invoice request if `name` or `domain` contain any bytes which are not
+      `0`-`9`, `a`-`z`, `A`-`Z`, `-`, `_` or `.`.
   - otherwise:
     - MUST reject the invoice request if `invreq_chain`.`chain` is not a supported chain.
 
