@@ -463,27 +463,32 @@ A blinded path consists of:
    to tell them the next hop.
 
 For example, Dave wants Alice to reach him via public node Bob then
-Carol.  He creates and encrypts three `encrypted_data_tlv`s:
+Carol.  He creates a chain of public "blinding" keys for Bob, Carol
+and finally himself, so he can share a secret with each of them.  These
+keys are a simple chain, so each node can derive the next without
+having to be told explicitly.
+
+From these shared secrets, Dave creates and encrypts three `encrypted_data_tlv`s:
 1. blob_bob: For Bob to tell him to forward to Carol
 2. blob_carol: For Carol to tell her to forward to him
 3. blob_dave: For himself to indicate the path was used, and any metadata he wants.
 
-To mask the node ids, he derives three blinding factors, which turn
-Bob into Bob', Carol into Carol' and Dave into Dave'.  These are a simple
-chain, so Bob can derive Carols without having to be told explicitly.
+To mask the node ids, he also derives three blinding factors from the
+shared secrets, which turn Bob into Bob', Carol into Carol' and Dave
+into Dave'.
 
 So this is the `blinded_path` he hands to Alice.
 
 1. `first_node_id`: Bob
-2. `blinding`: to turn Bob into Bob'
+2. `blinding`: the first blinding key
 3. `path`: [Bob', bob_blob], [Carol', carol_blob], [Dave', dave_blob]
 
 Alice encrypts an onion to Bob', Carol', Dave' and gives it to Bob
-with the first blinding factor `blinding`.
+with the first blinding key `blinding`.
 
-Bob uses the blinding and his private key to decrypt the first layer
-of the onion (created by Alice), and uses his normal private key to
-decrypt "bob_blob" (created by Dave).  The blob decrypts into a
+Bob uses the first blinding key to derive the shared secret which
+gives him both the tweak to decrypt the onion so he can decrypt it
+(created by Alice for Bob' instead of Bob) and also to decrypt the
 `encrypted_data_tlv` which indicates where the onion is to be
 forwarded (i.e. Carol).  Bob derives the next `blinding` and sends it
 an the onion to Carol.
