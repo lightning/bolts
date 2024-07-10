@@ -227,7 +227,7 @@ The human-readable prefix for offers is `lno`.
 ## Requirements For Offers
 
 A writer of an offer:
-  - MUST NOT set any tlv fields greater or equal to 80, or tlv field 0.
+  - MUST NOT set any tlv fields outside the inclusive ranges: 1 to 79 and 1000000000 to 1999999999.
   - if the chain for the invoice is not solely bitcoin:
     - MUST specify `offer_chains` the offer is valid for.
   - otherwise:
@@ -279,7 +279,7 @@ A writer of an offer:
     - MUST NOT set `offer_quantity_max`.
 
 A reader of an offer:
-  - if the offer contains any TLV fields greater or equal to 80:
+  - if the offer contains any tlv fields outside the inclusive ranges: 1 to 79 and 1000000000 to 1999999999:
     - MUST NOT respond to the offer.
   - if `offer_features` contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
@@ -319,6 +319,10 @@ completeness (so all information will be returned in the invoice), and
 so that the offer node can be stateless.  This makes `offer_metadata`
 particularly useful, since it can contain an authentication cookie to
 validate the other fields.
+
+Because offer fields are copied into the invoice request (and then the invoice),
+they require distinct ranges.  The range 1-79 is the normal range, with another
+billion for self-assigning experimental ranges.
 
 A signature is unnecessary, and makes for a longer string (potentially
 limiting QR code use on low-end cameras); if the offer has an error, no
@@ -460,7 +464,7 @@ The writer:
     - if the chain for the invoice is not solely bitcoin:
       - MUST specify `invreq_chain` the offer is valid for.
     - MUST set `invreq_amount`.
-  - MUST NOT set any non-signature TLV fields greater or equal to 160.
+  - MUST NOT set any non-signature TLV fields outside the inclusive ranges: 0 to 159 and 1000000000 to 2999999999
   - MUST set `invreq_metadata` to an unpredictable series of bytes.
   - if it sets `invreq_amount`:
     - MUST set `msat` in multiples of the minimum lightning-payable unit
@@ -470,7 +474,7 @@ The writer:
 
 The reader:
   - MUST fail the request if `invreq_payer_id` or `invreq_metadata` are not present.
-  - MUST fail the request if any non-signature TLV fields greater or equal to 160.
+  - MUST fail the request if any non-signature TLV fields outside the inclusive ranges: 0 to 159 and 1000000000 to 2999999999
   - if `invreq_features` contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if `invreq_features` contains unknown _even_ bits that are non-zero:
