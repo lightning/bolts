@@ -435,18 +435,55 @@ intermediary nodes could simply claim the remaining ones.
 ### Route Blinding
 
 Nodes receiving onion packets may hide their identity from senders by
-"blinding" an arbitrary amount of hops at the end of an onion path.
+providing a `blinded_path`.  To do this the recipient needs to hide both
+the real node ids, and the instructions to those nodes on where to forward
+the onion.
 
-When using route blinding, nodes find a route to themselves from a given
-"introduction node" and initial "blinding point". They then use ECDH with
-each node in that route to create a "blinded" node ID and an encrypted blob
-(`encrypted_data`) for each one of the blinded nodes.
+1. subtype: `blinded_path`
+2. data:
+   * [`point`:`first_node_id`]
+   * [`point`:`blinding`]
+   * [`byte`:`num_hops`]
+   * [`num_hops*onionmsg_hop`:`path`]
 
-They communicate this blinded route and the encrypted blobs to the sender.
-The sender finds a route to the introduction node and extends it with the
-blinded route provided by the recipient. The sender includes the encrypted
-blobs in the corresponding onion payloads: they allow nodes in the blinded
-part of the route to "unblind" the next node and correctly forward the packet.
+1. subtype: `onionmsg_hop`
+2. data:
+    * [`point`:`blinded_node_id`]
+    * [`u16`:`enclen`]
+    * [`enclen*byte`:`encrypted_recipient_data`]
+
+A blinded path consists of:
+1. an initial introduction point (`first_node_id`)
+2. an initial tweak to modify the first node_id to decrypt the onion (`blinding`)
+3. a series of tweaked node ids (`path.blinded_node_id`)
+4. a series binary blobs encrypted to the real node ids (`path.encrypted_recipient_data`)
+   to tell them the next hop.
+
+For example, Dave wants Alice to reach him via public node Bob then
+Carol.  He creates and encrypts three `encrypted_data_tlv`s:
+1. blob_bob: For Bob to tell him to forward to Carol
+2. blob_carol: For Carol to tell her to forward to him
+3. blob_dave: For himself to indicate the path was used, and any metadata he wants.
+
+To mask the node ids, he derives three blinding factors, which turn
+Bob into Bob', Carol into Carol' and Dave into Dave'.  These are a simple
+chain, so Bob can derive Carols without having to be told explicitly.
+
+So this is the `blinded_path` he hands to Alice.
+
+1. `first_node_id`: Bob
+2. `blinding`: to turn Bob into Bob'
+3. `path`: [Bob', bob_blob], [Carol', carol_blob], [Dave', dave_blob]
+
+Alice encrypts an onion to Bob', Carol', Dave' and gives it to Bob
+with the first blinding factor `blinding`.
+
+Bob uses the blinding and his private key to decrypt the first layer
+of the onion (created by Alice), and uses his normal private key to
+decrypt "bob_blob" (created by Dave).  The blob decrypts into a
+`encrypted_data_tlv` which indicates where the onion is to be
+forwarded (i.e. Carol).  Bob derives the next `blinding` and sends it
+an the onion to Carol.
 
 Note that there are two ways for the sender to reach the introduction
 point: one is to create a normal (unblinded) payment, and place the
@@ -494,21 +531,22 @@ may contain the following TLV fields:
 
 A recipient $`N_r`$ creating a blinded route $`N_0 \rightarrow N_1 \rightarrow ... \rightarrow N_r`$ to itself:
 
-- MUST create a blinded node ID $`B_i`$ for each node using the following algorithm:
+- MUST create a series of ECDH shares secrets for each node in the route using the following algorithm:
   - $`e_0 /leftarrow {0;1}^256`$ ($`e_0`$ SHOULD be obtained via CSPRG)
   - $`E_0 = e_0 \cdot G`$
   - For every node in the route:
     - let $`N_i = k_i * G`$ be the `node_id` ($`k_i`$ is $`N_i`$'s private key)
     - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)$` (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
-    - $`B_i = HMAC256(\text{"blinded\_node\_id"}, ss_i) * N_i`$ (blinded `node_id` for $`N_i`$, private key known only by $`N_i`$)
-    - $`rho_i = HMAC256(\text{"rho"}, ss_i)`$ (key used to encrypt the payload for $`N_i`$ by $`N_r`$)
     - $`e_{i+1} = SHA256(E_i || ss_i) * e_i`$ (blinding ephemeral private key, only known by $`N_r`$)
     - $`E_{i+1} = SHA256(E_i || ss_i) * E_i`$ (NB: $`N_i`$ MUST NOT learn $`e_i`$)
+- MUST create a blinded node ID $`B_i`$ for each node using the following algorithm:
+  - $`B_i = HMAC256(\text{"blinded\_node\_id"}, ss_i) * N_i`$ (blinded `node_id` for $`N_i`$, private key known only by $`N_i`$)
+- MUST produce `encrypted_recipient_data[i]` by encrypting each `encrypted_data_tlv[i]` with ChaCha20-Poly1305 using an all-zero nonce key:
+  - $`rho_i = HMAC256(\text{"rho"}, ss_i)`$ (key used to encrypt the payload for $`N_i`$ by $`N_r`$)
 - MAY replace $`E_{i+1}`$ with a different value, but if it does:
   - MUST set `encrypted_data_tlv[i].next_blinding_override` to `$E_{i+1}$`
 - MAY store private data in `encrypted_data_tlv[r].path_id` to verify that the route is used in the right context and was created by them
 - SHOULD add padding data to ensure all `encrypted_data_tlv[i]` have the same length
-- MUST encrypt each `encrypted_data_tlv[i]` with ChaCha20-Poly1305 using the corresponding `rho_i` key and an all-zero nonce to produce `encrypted_recipient_data[i]`
 - MUST communicate the blinded node IDs $`B_i`$ and `encrypted_recipient_data[i]` to the sender
 - MUST communicate the real node ID of the introduction point $`N_0`$ to the sender
 - MUST communicate the first blinding ephemeral key $`E_0`$ to the sender
@@ -1483,19 +1521,6 @@ even, of course!).
     1. type: 4 (`encrypted_recipient_data`)
     2. data:
         * [`...*byte`:`encrypted_recipient_data`]
-
-1. subtype: `blinded_path`
-2. data:
-   * [`point`:`first_node_id`]
-   * [`point`:`blinding`]
-   * [`byte`:`num_hops`]
-   * [`num_hops*onionmsg_hop`:`path`]
-
-1. subtype: `onionmsg_hop`
-2. data:
-    * [`point`:`blinded_node_id`]
-    * [`u16`:`enclen`]
-    * [`enclen*byte`:`encrypted_recipient_data`]
 
 #### Requirements
 
