@@ -295,9 +295,10 @@ The reader:
   - If `encrypted_recipient_data` is present:
     - If `blinding_point` is set in the incoming `update_add_htlc`:
       - MUST return an error if `current_blinding_point` is present.
+      - MUST use `blinding_point` as $`E_i`$
     - Otherwise:
       - MUST return an error if `current_blinding_point` is not present.
-      - MUST use that `current_blinding_point` as `E_i` to derive the following blinding point.
+      - MUST use `current_blinding_point` as $`E_i`$
       - SHOULD add a random delay before returning errors.
     - MUST return an error if `encrypted_recipient_data` does not decrypt to a valid `encrypted_data_tlv` as described in [Route Blinding](#route-blinding).
     - If `payment_constraints` is present:
@@ -506,7 +507,7 @@ The writer of `blinded_path`:
   - $`E_0 = e_0 \cdot G`$
   - For every node in the route:
     - let $`N_i = k_i * G`$ be the `node_id` ($`k_i`$ is $`N_i`$'s private key)
-    - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)$` (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
+    - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)`$ (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
     - $`e_{i+1} = SHA256(E_i || ss_i) * e_i`$ (blinding ephemeral private key, only known by $`N_r`$)
     - $`E_{i+1} = SHA256(E_i || ss_i) * E_i`$ (NB: $`N_i`$ MUST NOT learn $`e_i`$)
 - MUST set `blinding` to $`E_0`$
@@ -527,7 +528,7 @@ The reader of the `blinded_path`:
     - MAY encrypt the first blinded path onion to `first_node_id` and include `blinding` as `current_blinding_point`
   - if it does not do that:
     - MUST encrypt the first blinded path onion to the first `blinded_node_id`.
-	- MUST set `next_blinding_override` in the prior onion payload to `blinding`.
+    - MUST set `next_blinding_override` in the prior onion payload to `blinding`.
   - MUST include the first `path` `encrypted_recipient_data` in each onion payload within the blinded path.
 - For each successive entry in `path`:
   - MUST encrypt the onion to the corresponding `blinded_node_id`.
@@ -911,7 +912,10 @@ A reader:
       - MUST abort processing the packet and fail.
   - if `blinding` is specified:
     - Calculate the `blinding_ss` as ECDH(`blinding`, `node-privkey`)
-    - Tweak `public_key` by multiplying by $`HMAC256(\text{"blinded\_node\_id}", blinding_ss)`$
+    - Either:
+      - Tweak `public_key` by multiplying by $`HMAC256(\text{"blinded\_node\_id"}, blinding\_ss)`$
+    - or (equivalently):
+      - Tweak its own `node-privkey` below by multiplying by $`HMAC256(\text{"blinded\_node\_id"}, blinding\_ss)`$
   - Derive the shared secret `ss` as ECDH(`public_key`, `node-privkey`) (see [Shared Secret](#shared-secret))
   - Derive `mu` as $`HMAC256(\text{"mu"}, ss)`$ (see [Key Generation](#key-generation)).
   - Derive the HMAC as $`HMAC256(mu, hop_payloads || associated_data)`$
