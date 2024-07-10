@@ -294,13 +294,11 @@ The reader:
   - If `encrypted_recipient_data` is present:
     - If `blinding_point` is set in the incoming `update_add_htlc`:
       - MUST return an error if `current_blinding_point` is present.
-      - MUST use that `blinding_point` as the blinding point for decryption.
     - Otherwise:
       - MUST return an error if `current_blinding_point` is not present.
-      - MUST use that `current_blinding_point` as the blinding point for decryption.
+      - MUST use that `current_blinding_point` as `E_i` to derive the following blinding point.
       - SHOULD add a random delay before returning errors.
-    - MUST return an error if `encrypted_recipient_data` does not decrypt using the
-      blinding point as described in [Route Blinding](#route-blinding).
+    - MUST return an error if `encrypted_recipient_data` does not decrypt to a valid `encrypted_data_tlv` as described in [Route Blinding](#route-blinding).
     - If `payment_constraints` is present:
       - MUST return an error if:
         - the expiry is greater than `encrypted_recipient_data.payment_constraints.max_cltv_expiry`.
