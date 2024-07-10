@@ -239,7 +239,11 @@ The requirements ensure consistency in responding to an unexpected
 `outgoing_cltv_value`, whether it is the final node or not, to avoid
 leaking its position in the route.
 
-### Requirements
+Encrypted recipient data is created by the final recipient to give to the
+payer, containing instructions for the node on how to handle the message.  It's used
+in both payment onions and onion messages onions.  See [Route Blinding](#route-blinding).
+
+#### Requirements
 
 The creator of `encrypted_recipient_data` (usually, the recipient of payment):
 
@@ -899,7 +903,7 @@ There are two kinds of `onion_packet` we use:
 1. `onion_routing_packet` in `update_add_htlc` for payments, which contains a `payload` TLV (see [Adding an HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc))
 2. `onion_message_packet` on `onion_message` for messages, which contains a `onionmsg_tlv` TLV (see [Onion Messages](#onion-messages)
 
-Those sections specify the `associated_data` to use, the extracted payload format and handling (including how to determine the next peer, if any), and how to handle errors.  The processing itself is identical.
+Those sections specify the `associated_data` and `blinding` to use, the extracted payload format and handling (including how to determine the next peer, if any), and how to handle errors.  The processing itself is identical.
 
 ## Requirements
 
@@ -914,6 +918,9 @@ A reader:
       - MAY immediately redeem the HTLC using the preimage.
     - otherwise:
       - MUST abort processing the packet and fail.
+  - if `blinding` is specified:
+    - Calculate the `blinding_ss` as ECDH(`blinding`, `node-privkey`)
+    - Tweak `public_key` by multiplying by $`HMAC256(\text{"blinded\_node\_id}", blinding_ss)`$
   - Derive the shared secret `ss` as ECDH(`public_key`, `node-privkey`) (see [Shared Secret](#shared-secret))
   - Derive `mu` as $`HMAC256(\text{"mu"}, ss)`$ (see [Key Generation](#key-generation)).
   - Derive the HMAC as $`HMAC256(mu, hop_payloads || associated_data)`$
@@ -946,6 +953,10 @@ A reader:
       - MUST fail.
   - Otherwise (all-zero `next_hmac`):
     - This is the final destination of the onion.
+
+## Rationale
+
+In the case where blinding is used, the sender did not actually encrypt this onion to our node_id, but to a tweaked version.  We could alter our node private key for onion decryption, but it's equivalent to apply the same tweak to the onion ephemeral key, which is suggested here.
 
 
 # Filler Generation
@@ -1455,9 +1466,7 @@ end-to-end encryption.
 Onion messages use the same form as HTLC `onion_packet`, with a
 slightly more flexible format: instead of 1300 byte payloads, the
 payload length is implied by the total length (minus 66 bytes for the
-header and trailing bytes).  The `onionmsg_payloads` themselves are the same
-as the `hop_payloads` format, except there is no "legacy" length: a 0
-`length` would mean an empty `onionmsg_payload`.
+header and trailing bytes).
 
 Onion messages are unreliable: in particular, they are designed to
 be cheap to process and require no storage to forward.  As a result,
@@ -1539,8 +1548,11 @@ The reader:
 
 - SHOULD accept onion messages from peers without an established channel.
 - MAY rate-limit messages by dropping them.
-- MUST read the `encrypted_recipient_data` using `blinding` as required in [Route Blinding](#route-blinding).
-  - MUST ignore the message if that considers the message invalid.
+- MUST decrypt `onion_message_packet` as specified in [Onion Decryption](#onion-decryption) using an empty `associated_data`, and `blinding`.
+- If decryption fails:
+  - MUST ignore the message.
+- If the payload is not a valid `encrypted_data_tlv`, or contains unknown even fields:
+  - MUST ignore the message.
 - if `encrypted_data_tlv` contains `allowed_features`:
   - MUST ignore the message if:
     - `encrypted_data_tlv.allowed_features.features` contains an unknown feature bit (even if it is odd).
