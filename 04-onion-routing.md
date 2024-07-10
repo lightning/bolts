@@ -1115,10 +1115,6 @@ lightning implementations serialized this without the `0x0102` message type.
 
 The following `failure_code`s are defined:
 
-1. type: PERM|1 (`invalid_realm`)
-
-The `realm` byte was not understood by the processing node.
-
 1. type: NODE|2 (`temporary_node_failure`)
 
 General temporary failure of the processing node.
@@ -1305,8 +1301,6 @@ An _erring node_:
       - SHOULD select the first error it encounters from the list above.
 
 An _erring node_ MAY:
-  - if the `realm` byte is unknown:
-    - return an `invalid_realm` error.
   - if the per-hop payload in the onion is invalid (e.g. it is not a valid tlv stream)
   or is missing required information (e.g. the amount was not specified):
     - return an `invalid_onion_payload` error.
