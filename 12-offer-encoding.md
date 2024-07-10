@@ -220,9 +220,9 @@ The human-readable prefix for offers is `lno`.
     1. type: 20 (`offer_quantity_max`)
     2. data:
         * [`tu64`:`max`]
-    1. type: 22 (`offer_node_id`)
+    1. type: 22 (`offer_issuer_id`)
     2. data:
-        * [`point`:`node_id`]
+        * [`point`:`id`]
 
 ## Requirements For Offers
 
@@ -261,9 +261,9 @@ A writer of an offer:
     - MAY include `offer_paths`.
   - if it includes `offer_paths`:
     - SHOULD ignore any invoice_request which does not use the path.
-    - MAY set `offer_node_id` to the node's public key to request the invoice from.
+    - MAY set `offer_issuer_id` to the node's public key to request the invoice from.
   - otherwise:
-     - MUST set `offer_node_id` to the node's public key to request the invoice from.
+     - MUST set `offer_issuer_id` to the node's public key to request the invoice from.
   - if it sets `offer_issuer`:
     - SHOULD set it to identify the issuer of the invoice clearly.
     - if it includes a domain name:
@@ -294,7 +294,7 @@ A reader of an offer:
       - MUST NOT respond to the offer
   - if `offer_amount` is set and `offer_description` is not set:
     - MUST NOT respond to the offer.
-  - if neither `offer_node_id` nor `offer_paths` are set:
+  - if neither `offer_issuer_id` nor `offer_paths` are set:
     - MUST NOT respond to the offer.
   - if it uses `offer_amount` to provide the user with a cost estimate:
     - MUST take into account the currency units for `offer_amount`:
@@ -306,10 +306,10 @@ A reader of an offer:
   - SHOULD not respond to an offer if the current time is after
     `offer_absolute_expiry`.
   - if it chooses to sends an `invoice_request`, it sends an onion message:
-    - if `offer_node_id` is set:
-      - MUST send the onion message to `offer_node_id`
-    - otherwise:
+    - if `offer_paths` is set:
       - MUST send the onion message via any path in `offer_paths` to the final `onion_msg_hop`.`blinded_node_id` in that path
+    - otherwise:
+      - MUST send the onion message to `offer_issuer_id`
     - MAY send more than one `invoice_request` onion message at once.
 
 ## Rationale
@@ -325,7 +325,7 @@ limiting QR code use on low-end cameras); if the offer has an error, no
 invoice will be given since the request includes all the non-signature 
 fields.
 
-The `offer_node_id` can be omitted for brevity, if `offer_paths` is set, as each of the final `blinded_node_id` in the paths can serve as a valid public key for the destination.
+The `offer_issuer_id` can be omitted for brevity, if `offer_paths` is set, as each of the final `blinded_node_id` in the paths can serve as a valid public key for the destination.
 
 Because `offer_amount` can be in a different currency (using the `offer_currency` field) it is merely a guide: the issuer will convert it into a number of millisatoshis for `invoice_amount` at the time generates an invoice, or the `invoice_request` can specify the exact amount in `invreq_amount`, but the issuer may then reject it if it disagrees.
 
@@ -344,14 +344,14 @@ There are two similar-looking uses for invoice requests, which are
 almost identical from a workflow perspective, but are quite different
 from a user's point of view.
 
-One is a response to an offer; this contains the `offer_node_id` or `offer_paths` and
+One is a response to an offer; this contains the `offer_issuer_id` or `offer_paths` and
 all other offer details, and is generally received over an onion
 message: if it's valid and refers to a known offer, the response is
 generally to reply with an `invoice` using the `reply_path` field of
 the onion message.
 
 The second case is publishing an `invoice_request` without an offer,
-such as via QR code.  It contains neither `offer_node_id` nor `offer_paths`, setting the
+such as via QR code.  It contains neither `offer_issuer_id` nor `offer_paths`, setting the
 `invreq_payer_id` (and possibly `invreq_paths`) instead, as it in the one paying: the
 other offer fields are filled by the creator of the `invoice_request`,
 forming a kind of offer-to-send-money.
@@ -476,6 +476,10 @@ The reader:
   - if `invreq_features` contains unknown _even_ bits that are non-zero:
     - MUST fail the request.
   - MUST fail the request if `signature` is not correct as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
+  - if `offer_node_id` is present, and `invreq_metadata` is identical to a previous `invoice_request`:
+    - MAY simply reply with the previous invoice.
+  - otherwise:
+    - MUST NOT reply with a previous invoice.
   - if `offer_node_id` or `offer_paths` are present (response to an offer):
     - MUST fail the request if the offer fields do not exactly match a valid, unexpired offer.
     - if `offer_quantity_max` is present:
@@ -698,10 +702,6 @@ A writer of an invoice:
     - MUST include `invoice_blindedpay` with exactly one `blinded_payinfo` for each `blinded_path` in `paths`, in order.
     - MUST set `features` in each `blinded_payinfo` to match `encrypted_data_tlv`.`allowed_features` (or empty, if no `allowed_features`).
     - SHOULD ignore any payment which does not use one of the paths.
-  - if `offer_node_id` is present, and `invreq_payer_id` is identical to a previous `invoice_request`:
-    - MAY simply reuse the previous invoice.
-  - otherwise:
-    - MUST NOT reuse a previous invoice.
 
 A reader of an invoice:
   - MUST reject the invoice if `invoice_amount` is not present.
@@ -746,7 +746,7 @@ A reader of an invoice:
 
 Because the messaging layer is unreliable, it's quite possible to
 receive multiple requests for the same offer.  As it's the caller's
-responsibility not to reuse `invreq_payer_id`
+responsibility to make `invreq_metadata` both unpredictable and unique,
 the writer doesn't have to check all the fields are duplicates before
 simply returning a previous invoice.  Note that such caching is optional,
 and should be carefully limited when e.g. currency conversion is involved,
