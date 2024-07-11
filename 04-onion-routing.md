@@ -1088,12 +1088,7 @@ The top byte of `failure_code` can be read as a set of flags:
 * 0x8000 (BADONION): unparsable onion encrypted by sending peer
 * 0x4000 (PERM): permanent failure (otherwise transient)
 * 0x2000 (NODE): node failure (otherwise channel)
-* 0x1000 (UPDATE): new channel update enclosed
-
-Please note that the `channel_update` field is mandatory in messages whose
-`failure_code` includes the `UPDATE` flag. It is encoded *with* the message
-type prefix, i.e. it should always start with `0x0102`. Note that historical
-lightning implementations serialized this without the `0x0102` message type.
+* 0x1000 (UPDATE): channel forwarding parameter was violated
 
 The following `failure_code`s are defined:
 
@@ -1386,6 +1381,16 @@ In the case of multiple short_channel_id aliases, the `channel_update`
 expecting, to both avoid confusion and to avoid leaking information
 about other aliases (or the real location of the channel UTXO).
 
+The `channel_update` field used to be mandatory in messages whose `failure_code`
+includes the `UPDATE` flag. However, because nodes applying an update contained
+in the onion to their gossip data is a massive fingerprinting vulnerability,
+the `channel_update` field is no longer mandatory and nodes are expected to
+transition away from including it. Nodes which do not provide a
+`channel_update` are expected to set the `channel_update` `len` field to zero.
+
+Some nodes may still use the `channel_update` for retries of the same payment,
+however.
+
 ## Receiving Failure Codes
 
 ### Requirements
@@ -1405,20 +1410,16 @@ The _origin node_:
       - SHOULD remove all channels connected with the erring node from
       consideration.
     - if the PERM bit is NOT set:
-      - SHOULD restore the channels as it receives new `channel_update`s.
+      - SHOULD restore the channels as it receives new `channel_update`s from
+        its peers.
     - otherwise:
       - if UPDATE is set, AND the `channel_update` is valid and more recent
-      than the `channel_update` used to send the payment:
-        - if `channel_update` should NOT have caused the failure:
-          - MAY treat the `channel_update` as invalid.
-        - otherwise:
-          - SHOULD apply the `channel_update`.
-        - MAY queue the `channel_update` for broadcast.
-      - otherwise:
-        - SHOULD eliminate the channel outgoing from the erring node from
-        consideration.
-        - if the PERM bit is NOT set:
-          - SHOULD restore the channel as it receives new `channel_update`s.
+        than the `channel_update` used to send the payment:
+        - MAY consider the `channel_update` when calculating routes to retry
+          the payment which failed
+      - MUST NOT expose the `channel_update` to third-parties in any other
+        context, including applying the `channel_update` to the local network
+        graph, send the `channel_update` to peers as gossip, etc.
     - SHOULD then retry routing and sending the payment.
   - MAY use the data specified in the various failure types for debugging
   purposes.
