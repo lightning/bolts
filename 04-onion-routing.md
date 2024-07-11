@@ -1523,8 +1523,9 @@ The reader:
 
 - SHOULD accept onion messages from peers without an established channel.
 - MAY rate-limit messages by dropping them.
-- MUST read the `encrypted_recipient_data` using `blinding` as required in [Route Blinding](#route-blinding).
-  - MUST ignore the message if that considers the message invalid.
+- MUST decrypt `onion_message_packet` using an empty `associated_data`, and `blinding`, as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract an `onionmsg_tlv`.
+- If decryption fails, the result is not a valid `onionmsg_tlv`, or it contains unknown even types:
+  - MUST ignore the message.
 - if `encrypted_data_tlv` contains `allowed_features`:
   - MUST ignore the message if:
     - `encrypted_data_tlv.allowed_features.features` contains an unknown feature bit (even if it is odd).
