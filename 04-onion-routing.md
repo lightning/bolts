@@ -55,7 +55,7 @@ A node:
     * [Payload for the Last Node](#payload-for-the-last-node)
     * [Non-strict Forwarding](#non-strict-forwarding)
   * [Shared Secret](#shared-secret)
-  * [Blinding Ephemeral Keys](#blinding-ephemeral-keys)
+  * [Blinding Ephemeral Onion Keys](#blinding-ephemeral-onion-keys)
   * [Packet Construction](#packet-construction)
   * [Onion Decryption](#onion-decryption)
   * [Filler Generation](#filler-generation)
@@ -204,9 +204,9 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
     1. type: 10 (`encrypted_recipient_data`)
     2. data:
         * [`...*byte`:`encrypted_data`]
-    1. type: 12 (`current_blinding_point`)
+    1. type: 12 (`current_path_key`)
     2. data:
-        * [`point`:`blinding`]
+        * [`point`:`path_key`]
     1. type: 16 (`payment_metadata`)
     2. data:
         * [`...*byte`:`payment_metadata`]
@@ -262,7 +262,7 @@ The writer of the TLV `payload`:
   - For every node inside a blinded route:
     - MUST include the `encrypted_recipient_data` provided by the recipient
     - For the first node in the blinded route:
-      - MUST include the `blinding_point` provided by the recipient in `current_blinding_point`
+      - MUST include the `path_key` provided by the recipient in `current_path_key`
     - If it is the final node:
       - MUST include `amt_to_forward`, `outgoing_cltv_value` and `total_amount_msat`.
       - The value set for `outgoing_cltv_value`: 
@@ -288,15 +288,15 @@ The writer of the TLV `payload`:
 The reader:
 
   - If `encrypted_recipient_data` is present:
-    - If `blinding_point` is set in the incoming `update_add_htlc`:
-      - MUST return an error if `current_blinding_point` is present.
-      - MUST use that `blinding_point` as the blinding point for decryption.
+    - If `path_key` is set in the incoming `update_add_htlc`:
+      - MUST return an error if `current_path_key` is present.
+      - MUST use that `path_key` as `path_key` for decryption.
     - Otherwise:
-      - MUST return an error if `current_blinding_point` is not present.
-      - MUST use that `current_blinding_point` as the blinding point for decryption.
+      - MUST return an error if `current_path_key` is not present.
+      - MUST use that `current_path_key` as the `path_key` for decryption.
       - SHOULD add a random delay before returning errors.
     - MUST return an error if `encrypted_recipient_data` does not decrypt using the
-      blinding point as described in [Route Blinding](#route-blinding).
+      `path_key` as described in [Route Blinding](#route-blinding).
     - If `payment_constraints` is present:
       - MUST return an error if:
         - the expiry is greater than `encrypted_recipient_data.payment_constraints.max_cltv_expiry`.
@@ -308,20 +308,20 @@ The reader:
       - `encrypted_recipient_data` contains both `short_channel_id` and `next_node_id`.
       - the payment uses a feature not included in `encrypted_recipient_data.allowed_features.features`.
     - If it is not the final node:
-      - MUST return an error if the payload contains other tlv fields than `encrypted_recipient_data` and `current_blinding_point`.
+      - MUST return an error if the payload contains other tlv fields than `encrypted_recipient_data` and `current_path_key`.
       - MUST return an error if `encrypted_recipient_data` does not contain either `short_channel_id` or `next_node_id`.
       - MUST return an error if `encrypted_recipient_data` does not contain `payment_relay`.
       - MUST use values from `encrypted_recipient_data.payment_relay` to calculate `amt_to_forward` and `outgoing_cltv_value` as follows:
         - `amt_to_forward = ((amount_msat - fee_base_msat) * 1000000 + 1000000 + fee_proportional_millionths - 1) / (1000000 + fee_proportional_millionths)`
         - `outgoing_cltv_value = cltv_expiry - payment_relay.cltv_expiry_delta`
     - If it is the final node:
-      - MUST return an error if the payload contains other tlv fields than `encrypted_recipient_data`, `current_blinding_point`, `amt_to_forward`, `outgoing_cltv_value` and `total_amount_msat`.
+      - MUST return an error if the payload contains other tlv fields than `encrypted_recipient_data`, `current_path_key`, `amt_to_forward`, `outgoing_cltv_value` and `total_amount_msat`.
       - MUST return an error if `amt_to_forward`, `outgoing_cltv_value` or `total_amount_msat` are not present.
       - MUST return an error if `amt_to_forward` is below what it expects for the payment.
       - MUST return an error if incoming `cltv_expiry` < `outgoing_cltv_value`.
       - MUST return an error if incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
   - Otherwise (it is not part of a blinded route):
-    - MUST return an error if `blinding_point` is set in the incoming `update_add_htlc` or `current_blinding_point` is present.
+    - MUST return an error if `path_key` is set in the incoming `update_add_htlc` or `current_pass` is present.
     - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
     - if it is not the final node:
       - MUST return an error if:
@@ -438,7 +438,7 @@ Nodes receiving onion packets may hide their identity from senders by
 "blinding" an arbitrary amount of hops at the end of an onion path.
 
 When using route blinding, nodes find a route to themselves from a given
-"introduction node" and initial "blinding point". They then use ECDH with
+"introduction node" and initial "path key". They then use ECDH with
 each node in that route to create a "blinded" node ID and an encrypted blob
 (`encrypted_data`) for each one of the blinded nodes.
 
@@ -450,10 +450,10 @@ part of the route to "unblind" the next node and correctly forward the packet.
 
 Note that there are two ways for the sender to reach the introduction
 point: one is to create a normal (unblinded) payment, and place the
-initial blinding point in `current_blinding_point` along with the
+initial blinding point in `current_path_key` along with the
 `encrypted_data` in the onion payload for the introduction point to
 start the blinded path. The second way is to create a blinded path to
-the introduction point, set `next_blinding_override` inside the
+the introduction point, set `next_path_key_override` inside the
 `encrypted_data_tlv` on the hop prior to the introduction point to the
 initial blinding point, and have it sent to the introduction node.
 
@@ -474,9 +474,9 @@ may contain the following TLV fields:
     1. type: 6 (`path_id`)
     2. data:
         * [`...*byte`:`data`]
-    1. type: 8 (`next_blinding_override`)
+    1. type: 8 (`next_path_key_override`)
     2. data:
-        * [`point`:`blinding`]
+        * [`point`:`path_key`]
     1. type: 10 (`payment_relay`)
     2. data:
         * [`u16`:`cltv_expiry_delta`]
@@ -502,25 +502,25 @@ A recipient $`N_r`$ creating a blinded route $`N_0 \rightarrow N_1 \rightarrow .
     - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)$` (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
     - $`B_i = HMAC256(\text{"blinded\_node\_id"}, ss_i) * N_i`$ (blinded `node_id` for $`N_i`$, private key known only by $`N_i`$)
     - $`rho_i = HMAC256(\text{"rho"}, ss_i)`$ (key used to encrypt the payload for $`N_i`$ by $`N_r`$)
-    - $`e_{i+1} = SHA256(E_i || ss_i) * e_i`$ (blinding ephemeral private key, only known by $`N_r`$)
-    - $`E_{i+1} = SHA256(E_i || ss_i) * E_i`$ (NB: $`N_i`$ MUST NOT learn $`e_i`$)
+    - $`e_{i+1} = SHA256(E_i || ss_i) * e_i`$ (ephemeral private path key, only known by $`N_r`$)
+    - $`E_{i+1} = SHA256(E_i || ss_i) * E_i`$ (`path_key`. NB: $`N_i`$ MUST NOT learn $`e_i`$)
 - MAY replace $`E_{i+1}`$ with a different value, but if it does:
-  - MUST set `encrypted_data_tlv[i].next_blinding_override` to `$E_{i+1}$`
+  - MUST set `encrypted_data_tlv[i].next_path_key_override` to `$E_{i+1}$`
 - MAY store private data in `encrypted_data_tlv[r].path_id` to verify that the route is used in the right context and was created by them
 - SHOULD add padding data to ensure all `encrypted_data_tlv[i]` have the same length
 - MUST encrypt each `encrypted_data_tlv[i]` with ChaCha20-Poly1305 using the corresponding `rho_i` key and an all-zero nonce to produce `encrypted_recipient_data[i]`
 - MUST communicate the blinded node IDs $`B_i`$ and `encrypted_recipient_data[i]` to the sender
 - MUST communicate the real node ID of the introduction point $`N_0`$ to the sender
-- MUST communicate the first blinding ephemeral key $`E_0`$ to the sender
+- MUST communicate the first `path_key` $`E_0`$ to the sender
 
 A reader:
 
-- If it receives `blinding_point` ($`E_i`$) from the prior peer:
+- If it receives `path_key` ($`E_i`$) from the prior peer:
   - MUST use $`b_i`$ instead of its private key $`k_i`$ to decrypt the onion.
     Note that the node may instead tweak the onion ephemeral key with
     $`HMAC256(\text{"blinded\_node\_id}", ss_i)`$ which achieves the same result.
 - Otherwise:
-  - MUST use $`k_i`$ to decrypt the onion, to extract `current_blinding_point` ($`E_i`$).
+  - MUST use $`k_i`$ to decrypt the onion, to extract `current_path_key` ($`E_i`$).
 - MUST compute:
   - $`ss_i = SHA256(k_i * E_i)`$ (standard ECDH)
   - $`b_i = HMAC256(\text{"blinded\_node\_id"}, ss_i) * k_i`$
@@ -530,11 +530,11 @@ A reader:
   decrypted fields to locate the next node
 - If the `encrypted_data` field is missing or cannot be decrypted:
   - MUST return an error
-- If `encrypted_data` contains a `next_blinding_override`:
-  - MUST use it as the next blinding point instead of $`E_{i+1}`$
+- If `encrypted_data` contains a `next_path_key_override`:
+  - MUST use it as the next `path_key` instead of $`E_{i+1}`$
 - Otherwise:
-  - MUST use $`E_{i+1}`$ as the next blinding point
-- MUST forward the onion and include the next blinding point in the lightning
+  - MUST use $`E_{i+1}`$ as the next `path_key`
+- MUST forward the onion and include the next `path_key` in the lightning
   message for the next node
 
 The final recipient:
@@ -562,8 +562,8 @@ the onion and the `encrypted_data` payload. Protocols that use route blinding
 must specify how this value is propagated between nodes.
 
 When concatenating two blinded routes generated by different nodes, the
-last node of the first route needs to know the first `blinding_point` of the
-second route: the `next_blinding_override` field must be used to transmit this
+last node of the first route needs to know the first `path_key` of the
+second route: the `next_path_key_override` field must be used to transmit this
 information.
 
 The final recipient must verify that the blinded route is used in the right
@@ -683,7 +683,7 @@ during packet forwarding, the hop uses the ephemeral public key and its own
 node ID private key. Because of the properties of ECDH, they will both derive
 the same value.
 
-# Blinding Ephemeral Keys
+# Blinding Ephemeral Onion Keys
 
 In order to ensure multiple hops along the route cannot be linked by the
 ephemeral public keys they see, the key is blinded at each hop. The blinding is
@@ -861,7 +861,7 @@ There are two kinds of `onion_packet` we use:
 1. `onion_routing_packet` in `update_add_htlc` for payments, which contains a `payload` TLV (see [Adding an HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc))
 2. `onion_message_packet` on `onion_message` for messages, which contains a `onionmsg_tlv` TLV (see [Onion Messages](#onion-messages)
 
-Those sections specify the `associated_data` to use, the `blinding` (if any), the extracted payload format and handling (including how to determine the next peer, if any), and how to handle errors.  The processing itself is identical.
+Those sections specify the `associated_data` to use, the `path_key` (if any), the extracted payload format and handling (including how to determine the next peer, if any), and how to handle errors.  The processing itself is identical.
 
 ## Requirements
 
@@ -876,8 +876,8 @@ A reader:
       - MAY immediately redeem the HTLC using the preimage.
     - otherwise:
       - MUST abort processing the packet and fail.
-  - if `blinding` is specified:
-    - Calculate the `blinding_ss` as ECDH(`blinding`, `node-privkey`)
+  - if `path_key` is specified:
+    - Calculate the `blinding_ss` as ECDH(`path_key`, `node-privkey`)
     - Either:
       - Tweak `public_key` by multiplying by $`HMAC256(\text{"blinded\_node\_id"}, blinding\_ss)`$
     - or (equivalently):
@@ -904,7 +904,7 @@ A reader:
   - If `unwrapped_payloads` is smaller than `hop_payloads`:
     - MUST abort processing the packet and fail.
   - If `next_hmac` is not all-zero (not the final node):
-    - Derive `blinding_tweak` as $`SHA256(public_key || ss)`$ (see [Blinding Ephemeral Keys](#blinding-ephemeral-keys))
+    - Derive `blinding_tweak` as $`SHA256(public_key || ss)`$ (see [Blinding Ephemeral Onion Keys](#blinding-ephemeral-onion-keys))
     - SHOULD forward an onion to the next peer with:
       - `version` set to 0
       - `public_key` set to the incoming `public_key` multiplied by `blinding_tweak`
@@ -918,7 +918,7 @@ A reader:
 
 ## Rationale
 
-In the case where blinded paths are used, the sender did not actually encrypt this onion for our node_id, but for a tweaked version: we can derive the tweak used from `blinding` which is given alongside the onion.  Then we either tweak our node private key the same way to decrypt the onion, or tweak to the onion ephemeral key which is mathematically equivalent.
+In the case where blinded paths are used, the sender did not actually encrypt this onion for our node_id, but for a tweaked version: we can derive the tweak used from `path_key` which is given alongside the onion.  Then we either tweak our node private key the same way to decrypt the onion, or tweak to the onion ephemeral key which is mathematically equivalent.
 
 
 # Filler Generation
@@ -1034,7 +1034,7 @@ The association between the forward and return packets is handled outside of
 this onion routing protocol, e.g. via association with an HTLC in a payment
 channel.
 
-Error handling for HTLCs with `blinding_point` is particularly fraught,
+Error handling for HTLCs with `path_key` is particularly fraught,
 since differences in implementations (or versions) may be leveraged to
 de-anonymize elements of the blinded path. Thus the decision turn every
 error into `invalid_onion_blinding` which will be converted to a normal
@@ -1265,9 +1265,9 @@ An error occurred within the blinded path.
 ### Requirements
 
 An _erring node_:
-  - if `blinding_point` is set in the incoming `update_add_htlc`:
+  - if `path_key` is set in the incoming `update_add_htlc`:
     - MUST return an `invalid_onion_blinding` error.
-  - if `current_blinding_point` is set in the onion payload and it is not the
+  - if `current_path_key` is set in the onion payload and it is not the
     final node:
     - MUST return an `invalid_onion_blinding` error.
   - otherwise:
@@ -1289,9 +1289,9 @@ An _erring node_ MAY:
     - return a `required_node_feature_missing` error.
 
 A _forwarding node_ MUST:
-  - if `blinding_point` is set in the incoming `update_add_htlc`:
+  - if `path_key` is set in the incoming `update_add_htlc`:
     - return an `invalid_onion_blinding` error.
-  - if `current_blinding_point` is set in the onion payload and it is not the
+  - if `current_path_key` is set in the onion payload and it is not the
     final node:
     - return an `invalid_onion_blinding` error.
   - otherwise:
@@ -1436,7 +1436,7 @@ For consistency, all onion messages use [Route Blinding](#route-blinding).
 
 1. type: 513 (`onion_message`) (`option_onion_messages`)
 2. data:
-    * [`point`:`blinding`]
+    * [`point`:`path_key`]
     * [`u16`:`len`]
     * [`len*byte`:`onion_message_packet`]
 
@@ -1457,7 +1457,7 @@ For consistency, all onion messages use [Route Blinding](#route-blinding).
 
 The `onionmsg_tlv` itself is a TLV: an intermediate node expects an
 `encrypted_data` which it can decrypt into an `encrypted_data_tlv`
-using the `blinding` which it is handed along with the onion message.
+using the `path_key` which it is handed along with the onion message.
 
 Field numbers 64 and above are reserved for payloads for the final
 hop, though these are not explicitly refused by non-final hops (unless
@@ -1475,7 +1475,7 @@ even, of course!).
 1. subtype: `blinded_path`
 2. data:
    * [`point`:`first_node_id`]
-   * [`point`:`blinding`]
+   * [`point`:`first_path_key`]
    * [`byte`:`num_hops`]
    * [`num_hops*onionmsg_hop`:`path`]
 
@@ -1505,7 +1505,7 @@ The writer:
   - MUST NOT set fields other than `encrypted_recipient_data`.
 - For the final node's `onionmsg_tlv`:
   - if the final node is permitted to reply:
-    - MUST set `reply_path` `blinding` to the initial blinding factor for the `first_node_id`
+    - MUST set `reply_path` `path_key` to the initial path key for the `first_node_id`
     - MUST set `reply_path` `first_node_id` to the unblinded node id of the first node in the reply path.
     - For every `reply_path` `path`:
       - MUST set `blinded_node_id` to the blinded node id to encrypt the onion hop for.
@@ -1519,7 +1519,7 @@ The reader:
 
 - SHOULD accept onion messages from peers without an established channel.
 - MAY rate-limit messages by dropping them.
-- MUST decrypt `onion_message_packet` using an empty `associated_data`, and `blinding`, as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract an `onionmsg_tlv`.
+- MUST decrypt `onion_message_packet` using an empty `associated_data`, and `path_key`, as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract an `onionmsg_tlv`.
 - If decryption fails, the result is not a valid `onionmsg_tlv`, or it contains unknown even types:
   - MUST ignore the message.
 - if `encrypted_data_tlv` contains `allowed_features`:
@@ -1534,7 +1534,7 @@ The reader:
   - otherwise:
     - SHOULD forward the message using `onion_message` to the next peer indicated by `next_node_id`.
     - if it forwards the message:
-      - MUST set `blinding` in the forwarded `onion_message` to the next blinding as calculated in [Route Blinding](#route-blinding).
+      - MUST set `path_key` in the forwarded `onion_message` to the next `path_key` as calculated in [Route Blinding](#route-blinding).
 - otherwise (it is the final node):
   - if `path_id` is set and corresponds to a path the reader has previously published in a `reply_path`:
     - if the onion message is not a reply to that previous onion:
@@ -1547,7 +1547,7 @@ The reader:
   - if it wants to send a reply:
     - MUST create an onion message using `reply_path`.
     - MUST send the reply via `onion_message` to the node indicated by
-      the `first_node_id`, using `reply_path` `blinding` to send
+      the `first_node_id`, using `reply_path` `path_key` to send
       along `reply_path` `path`.
 
 
