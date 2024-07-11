@@ -2040,8 +2040,11 @@ A receiving node:
   - if other `id` violations occur:
     - MAY send a `warning` and close the connection, or send an
       `error` and fail the channel.
-  - if `blinding_point` is provided:
-    - MUST use the corresponding blinded private key to decrypt the `onion_routing_packet` (see [Route Blinding](04-onion-routing.md#route-blinding))
+  - MUST decrypt `onion_routing_packet` with `associated_data` set to `payment_hash`, and using `blinding` (if present) as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract a `payload`.
+  - If decryption fails, the result is not a valid `payload` TLV, or it contains unknown even types:
+    - MUST respond with an error as detailed in [Failure Messages](04-onion-routing.md#failure-messages)
+  - Otherwise:
+    - MUST follow the requirements for the reader of `payload` in [Payload Format](04-onion-routing.md#payload-format)
 
 The `onion_routing_packet` contains an obfuscated list of hops and instructions for each hop along the path.
 It commits to the HTLC by setting the `payment_hash` as associated data, i.e. includes the `payment_hash` in the computation of HMACs.
