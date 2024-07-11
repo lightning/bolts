@@ -1975,9 +1975,9 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 
 1. `tlv_stream`: `update_add_htlc_tlvs`
 2. types:
-    1. type: 0 (`blinding_point`)
+    1. type: 0 (`blinded_path`)
     2. data:
-        * [`point`:`blinding`]
+        * [`point`:`path_key`]
 
 #### Requirements
 
@@ -2015,7 +2015,7 @@ A sending node:
     - MUST set `id` to 0.
   - MUST increase the value of `id` by 1 for each successive offer.
   - if it is relaying a payment inside a blinded route:
-    - MUST set `blinding_point` (see [Route Blinding](04-onion-routing.md#route-blinding))
+    - MUST set `path_key` (see [Route Blinding](04-onion-routing.md#route-blinding))
 
 `id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
 been received). It MUST continue incrementing instead.
@@ -2040,7 +2040,9 @@ A receiving node:
   - if other `id` violations occur:
     - MAY send a `warning` and close the connection, or send an
       `error` and fail the channel.
-  - MUST decrypt `onion_routing_packet` with `associated_data` set to `payment_hash`, and using `blinding` (if present) as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract a `payload`.
+  - MUST decrypt `onion_routing_packet` as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract a `payload`.
+    - MUST use `path_key` (if specified).
+    - MUST use `payment_hash` as `associated_data`.
   - If decryption fails, the result is not a valid `payload` TLV, or it contains unknown even types:
     - MUST respond with an error as detailed in [Failure Messages](04-onion-routing.md#failure-messages)
   - Otherwise:
@@ -2128,14 +2130,14 @@ A node:
     - MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc`, or
 `update_fail_malformed_htlc`.
   - When failing an incoming HTLC:
-    - If `current_blinding_point` is set in the onion payload and it is not the
+    - If `current_path_key_point` is set in the onion payload and it is not the
       final node:
       - MUST send an `update_fail_htlc` error using the `invalid_onion_blinding`
         failure code for any local or downstream errors.
       - SHOULD use the `sha256_of_onion` of the onion it received.
       - MAY use an all zero `sha256_of_onion`.
       - SHOULD add a random delay before sending `update_fail_htlc`.
-    - If `blinding_point` is set in the incoming `update_add_htlc`:
+    - If `path_key_point` is set in the incoming `update_add_htlc`:
       - MUST send an `update_fail_malformed_htlc` error using the
         `invalid_onion_blinding` failure code for any local or downstream errors.
       - SHOULD use the `sha256_of_onion` of the onion it received.
