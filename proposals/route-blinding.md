@@ -261,7 +261,9 @@ total `cltv_expiry_delta`. This yields the following values:
 * `route_cltv_expiry_delta`: 300
 
 Let's assume the current block height is 1000. Alice wants the route to be used in the next 200
-blocks, so she sets `max_cltv_expiry = 1200` and adds `cltv_expiry_delta` for each hop. Alice then
+blocks, meaning that the `max_cltv_expiry` she will communicate to the payer will be 1200. She 
+also wants a `min_final_cltv_expiry_delta` of 12 though and so in the encrypted payload to herself, 
+she sets `max_cltv_expiry = 1212` and adds `cltv_expiry_delta` for each hop after that. Alice then
 transmits the following information to the sender (most likely via an invoice):
 
 * Blinded route: `[N(carol), B(bob), B(alice)]`
@@ -276,7 +278,7 @@ transmits the following information to the sender (most likely via an invoice):
 * Encrypted data for blinded nodes:
   * `encrypted_payload(alice)`:
     * `path_id`: `payment_preimage`
-    * `max_cltv_expiry`: 1200
+    * `max_cltv_expiry`: 1212
   * `encrypted_payload(bob)`:
     * `outgoing_channel_id`: `scid_bob_alice`
     * `fee_base_msat`: 100

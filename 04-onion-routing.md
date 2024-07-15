@@ -246,15 +246,18 @@ The creator of `encrypted_recipient_data` (usually, the recipient of payment):
   - MUST create `encrypted_data_tlv` for each node in the blinded route (including itself).
   - MUST include `encrypted_data_tlv.short_channel_id` and `encrypted_data_tlv.payment_relay` for each non-final node.
   - MUST NOT include `encrypted_data_tlv.next_node_id`.
-  - MUST set `encrypted_data_tlv.payment_constraints` for each non-final node:
+  - MUST set `encrypted_data_tlv.payment_constraints` for each non-final node and MAY set it for the final node:
     - `max_cltv_expiry` to the largest block height at which the route is allowed to be used, starting
-    from the final node and adding `encrypted_data_tlv.payment_relay.cltv_expiry_delta` at each hop.
+       from the final node's chosen `max_cltv_expiry` height at which the route should expire, adding 
+       the final node's `min_final_cltv_expiry_delta` and then adding 
+       `encrypted_data_tlv.payment_relay.cltv_expiry_delta` at each hop.
     - `htlc_minimum_msat` to the largest minimum HTLC value the nodes will allow.
   - If it sets `encrypted_data_tlv.allowed_features`:
     - MUST set it to an empty array.
-  - MUST compute the total fees and cltv delta of the route as follows and communicate them to the sender:
+  - MUST compute the total fees and CLTV delta of the route as follows and communicate them to the sender:
     - `total_fee_base_msat(n+1) = (fee_base_msat(n+1) * 1000000 + total_fee_base_msat(n) * (1000000 + fee_proportional_millionths(n+1)) + 1000000 - 1) / 1000000`
     - `total_fee_proportional_millionths(n+1) = ((total_fee_proportional_millionths(n) + fee_proportional_millionths(n+1)) * 1000000 + total_fee_proportional_millionths(n) * fee_proportional_millionths(n+1) + 1000000 - 1) / 1000000`
+    - `total_cltv_delta = cltv_delta(0) + cltv_delta(1) + ... + cltv_delta(n) + min_final_cltv_expiry_delta`
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
 
 The writer of the TLV `payload`:
