@@ -509,6 +509,7 @@ The writer of a `blinded_path`:
 - MAY store private data in `encrypted_data_tlv[r].path_id` to verify that the route is used in the right context and was created by them
 - SHOULD add padding data to ensure all `encrypted_data_tlv[i]` have the same length
 - MUST encrypt each `encrypted_data_tlv[i]` with ChaCha20-Poly1305 using the corresponding $`rho_i`$ key and an all-zero nonce to produce `encrypted_recipient_data[i]`
+- MAY add additional "dummy" hops at the end of the path (which it will ignore on receipt) to obscure the path length.
 
 The reader of the `blinded_path`:
 - MUST prepend its own onion payloads to reach the `first_node_id`
