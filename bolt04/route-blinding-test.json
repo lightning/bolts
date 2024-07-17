@@ -34,12 +34,12 @@
                 "blinded_node_id": "03da173ad2aee2f701f17e59fbd16cb708906d69838a5f088e8123fb36e89a2c25"
             },
             {
-                "comment": "Notice the next_blinding_override tlv in Carol's payload, indicating that Bob concatenated his route with another blinded route starting at Dave.",
+                "comment": "Notice the next_path_key_override tlv in Carol's payload, indicating that Bob concatenated his route with another blinded route starting at Dave.",
                 "alias": "Carol",
                 "node_id": "027f31ebc5462c1fdce1b737ecff52d37d75dea43ce11c74d25aa297165faa2007",
                 "tlvs": {
                     "short_channel_id": "0x0x1105",
-                    "next_blinding_override": "031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f",
+                    "next_path_key_override": "031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f",
                     "payment_relay": {
                         "cltv_expiry_delta": 48,
                         "fee_proportional_millionths": 100,
@@ -117,8 +117,8 @@
     },
     "route": {
         "comment": "This section contains the resulting blinded route, which can then be used inside onion messages or payments.",
-        "introduction_node_id": "0324653eac434488002cc06bbfb7f10fe18991e35f9fe4302dbea6d2353dc0ab1c",
-        "blinding": "024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766",
+        "first_node_id": "0324653eac434488002cc06bbfb7f10fe18991e35f9fe4302dbea6d2353dc0ab1c",
+        "first_path_key": "024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766",
         "hops": [
             {
                 "blinded_node_id": "03da173ad2aee2f701f17e59fbd16cb708906d69838a5f088e8123fb36e89a2c25",

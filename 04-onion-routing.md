@@ -321,7 +321,7 @@ The reader:
       - MUST return an error if incoming `cltv_expiry` < `outgoing_cltv_value`.
       - MUST return an error if incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
   - Otherwise (it is not part of a blinded route):
-    - MUST return an error if `path_key` is set in the incoming `update_add_htlc` or `current_pass` is present.
+    - MUST return an error if `path_key` is set in the incoming `update_add_htlc` or `current_path_key` is present.
     - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
     - if it is not the final node:
       - MUST return an error if:
@@ -495,20 +495,20 @@ may contain the following TLV fields:
 A recipient $`N_r`$ creating a blinded route $`N_0 \rightarrow N_1 \rightarrow ... \rightarrow N_r`$ to itself:
 
 - MUST create a blinded node ID $`B_i`$ for each node using the following algorithm:
-  - $`e_0 /leftarrow {0;1}^256`$ ($`e_0`$ SHOULD be obtained via CSPRG)
+  - $`e_0 \leftarrow \{0;1\}^{256}`$ ($`e_0`$ SHOULD be obtained via CSPRNG)
   - $`E_0 = e_0 \cdot G`$
   - For every node in the route:
     - let $`N_i = k_i * G`$ be the `node_id` ($`k_i`$ is $`N_i`$'s private key)
-    - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)$` (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
+    - $`ss_i = SHA256(e_i * N_i) = SHA256(k_i * E_i)`$ (ECDH shared secret known only by $`N_r`$ and $`N_i`$)
     - $`B_i = HMAC256(\text{"blinded\_node\_id"}, ss_i) * N_i`$ (blinded `node_id` for $`N_i`$, private key known only by $`N_i`$)
     - $`rho_i = HMAC256(\text{"rho"}, ss_i)`$ (key used to encrypt the payload for $`N_i`$ by $`N_r`$)
     - $`e_{i+1} = SHA256(E_i || ss_i) * e_i`$ (ephemeral private path key, only known by $`N_r`$)
     - $`E_{i+1} = SHA256(E_i || ss_i) * E_i`$ (`path_key`. NB: $`N_i`$ MUST NOT learn $`e_i`$)
 - MAY replace $`E_{i+1}`$ with a different value, but if it does:
-  - MUST set `encrypted_data_tlv[i].next_path_key_override` to `$E_{i+1}$`
+  - MUST set `encrypted_data_tlv[i].next_path_key_override` to $`E_{i+1}`$
 - MAY store private data in `encrypted_data_tlv[r].path_id` to verify that the route is used in the right context and was created by them
 - SHOULD add padding data to ensure all `encrypted_data_tlv[i]` have the same length
-- MUST encrypt each `encrypted_data_tlv[i]` with ChaCha20-Poly1305 using the corresponding `rho_i` key and an all-zero nonce to produce `encrypted_recipient_data[i]`
+- MUST encrypt each `encrypted_data_tlv[i]` with ChaCha20-Poly1305 using the corresponding $`rho_i`$ key and an all-zero nonce to produce `encrypted_recipient_data[i]`
 - MUST communicate the blinded node IDs $`B_i`$ and `encrypted_recipient_data[i]` to the sender
 - MUST communicate the real node ID of the introduction point $`N_0`$ to the sender
 - MUST communicate the first `path_key` $`E_0`$ to the sender
@@ -518,7 +518,7 @@ A reader:
 - If it receives `path_key` ($`E_i`$) from the prior peer:
   - MUST use $`b_i`$ instead of its private key $`k_i`$ to decrypt the onion.
     Note that the node may instead tweak the onion ephemeral key with
-    $`HMAC256(\text{"blinded\_node\_id}", ss_i)`$ which achieves the same result.
+    $`HMAC256(\text{"blinded\_node\_id"}, ss_i)`$ which achieves the same result.
 - Otherwise:
   - MUST use $`k_i`$ to decrypt the onion, to extract `current_path_key` ($`E_i`$).
 - MUST compute:
@@ -557,7 +557,7 @@ keys of the nodes in the route with random public keys while letting senders
 choose what data they put in the onion for each hop. Blinded routes are also
 reusable in some cases (e.g. onion messages).
 
-Each node in the blinded route needs to receive `E_i` to be able to decrypt
+Each node in the blinded route needs to receive $`E_i`$ to be able to decrypt
 the onion and the `encrypted_data` payload. Protocols that use route blinding
 must specify how this value is propagated between nodes.
 
@@ -570,7 +570,7 @@ The final recipient must verify that the blinded route is used in the right
 context (e.g. for a specific payment) and was created by them. Otherwise a
 malicious sender could create different blinded routes to all the nodes that
 they suspect could be the real recipient and try them until one accepts the
-message. The recipient can protect against that by storing `E_r` and the
+message. The recipient can protect against that by storing $`E_r`$ and the
 context (e.g. a `payment_hash`), and verifying that they match when receiving
 the onion. Otherwise, to avoid additional storage cost, it can put some private
 context information in the `path_id` field (e.g. the `payment_preimage`) and
@@ -617,7 +617,7 @@ sent across.
 
 Nodes implementing non-strict forwarding are able to make real-time assessments
 of channel bandwidths with a particular peer, and use the channel that is
-locally-optimal. 
+locally-optimal.
 
 For example, if the channel specified by `short_channel_id` connecting A and B
 does not have enough bandwidth at forwarding time, then A is able use a
@@ -857,9 +857,10 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 
 # Onion Decryption
 
-There are two kinds of `onion_packet` we use: 
+There are two kinds of `onion_packet` we use:
+
 1. `onion_routing_packet` in `update_add_htlc` for payments, which contains a `payload` TLV (see [Adding an HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc))
-2. `onion_message_packet` on `onion_message` for messages, which contains a `onionmsg_tlv` TLV (see [Onion Messages](#onion-messages)
+2. `onion_message_packet` in `onion_message` for messages, which contains an `onionmsg_tlv` TLV (see [Onion Messages](#onion-messages))
 
 Those sections specify the `associated_data` to use, the `path_key` (if any), the extracted payload format and handling (including how to determine the next peer, if any), and how to handle errors.  The processing itself is identical.
 
@@ -871,26 +872,26 @@ A reader:
   - if `public_key` is not a valid pubkey:
     - MUST abort processing the packet and fail.
   - if the onion is for a payment:
-  - if `hmac` has previously been received:
-    - if the preimage is known:
-      - MAY immediately redeem the HTLC using the preimage.
-    - otherwise:
-      - MUST abort processing the packet and fail.
+    - if `hmac` has previously been received:
+      - if the preimage is known:
+        - MAY immediately redeem the HTLC using the preimage.
+      - otherwise:
+        - MUST abort processing the packet and fail.
   - if `path_key` is specified:
-    - Calculate the `blinding_ss` as ECDH(`path_key`, `node-privkey`)
+    - Calculate the `blinding_ss` as ECDH(`path_key`, `node_privkey`).
     - Either:
-      - Tweak `public_key` by multiplying by $`HMAC256(\text{"blinded\_node\_id"}, blinding\_ss)`$
+      - Tweak `public_key` by multiplying by $`HMAC256(\text{"blinded\_node\_id"}, blinding\_ss)`$.
     - or (equivalently):
-      - Tweak its own `node-privkey` below by multiplying by $`HMAC256(\text{"blinded\_node\_id"}, blinding\_ss)`$
- - Derive the shared secret `ss` as ECDH(`public_key`, `node-privkey`) (see [Shared Secret](#shared-secret))
+      - Tweak its own `node_privkey` below by multiplying by $`HMAC256(\text{"blinded\_node\_id"}, blinding\_ss)`$.
+  - Derive the shared secret `ss` as ECDH(`public_key`, `node_privkey`) (see [Shared Secret](#shared-secret)).
   - Derive `mu` as $`HMAC256(\text{"mu"}, ss)`$ (see [Key Generation](#key-generation)).
-  - Derive the HMAC as $`HMAC256(mu, hop_payloads || associated_data)`$
+  - Derive the HMAC as $`HMAC256(mu, hop\_payloads || associated\_data)`$.
   - MUST use a constant time comparison of the computed HMAC and `hmac`.
   - If the computed HMAC and `hmac` differ:
     - MUST abort processing the packet and fail.
   - Derive `rho` as $`HMAC256(\text{"rho"}, ss)`$ (see [Key Generation](#key-generation)).
   - Derive `bytestream` of twice the length of `hop_payloads` using `rho` (see [Pseudo Random Byte Stream](pseudo-random-byte-stream)).
-  - Set `unwrapped_payloads` to the XOR of `hop_payloads` and `bytestream`
+  - Set `unwrapped_payloads` to the XOR of `hop_payloads` and `bytestream`.
   - Remove a `bigsize` from the front of `unwrapped_payloads` as `payload_length`.  If that is malformed:
     - MUST abort processing the packet and fail.
   - If the `payload_length` is less than two:
@@ -904,22 +905,20 @@ A reader:
   - If `unwrapped_payloads` is smaller than `hop_payloads`:
     - MUST abort processing the packet and fail.
   - If `next_hmac` is not all-zero (not the final node):
-    - Derive `blinding_tweak` as $`SHA256(public_key || ss)`$ (see [Blinding Ephemeral Onion Keys](#blinding-ephemeral-onion-keys))
+    - Derive `blinding_tweak` as $`SHA256(public\_key || ss)`$ (see [Blinding Ephemeral Onion Keys](#blinding-ephemeral-onion-keys)).
     - SHOULD forward an onion to the next peer with:
-      - `version` set to 0
-      - `public_key` set to the incoming `public_key` multiplied by `blinding_tweak`
-      - `hop_payloads` set to the `unwrapped_payloads`, truncated to the incoming `hop_payloads` size
-      - `hmac` set to `next_hmac`
+      - `version` set to 0.
+      - `public_key` set to the incoming `public_key` multiplied by `blinding_tweak`.
+      - `hop_payloads` set to the `unwrapped_payloads`, truncated to the incoming `hop_payloads` size.
+      - `hmac` set to `next_hmac`.
     - If it cannot forward:
       - MUST fail.
   - Otherwise (all-zero `next_hmac`):
     - This is the final destination of the onion.
 
-
 ## Rationale
 
-In the case where blinded paths are used, the sender did not actually encrypt this onion for our node_id, but for a tweaked version: we can derive the tweak used from `path_key` which is given alongside the onion.  Then we either tweak our node private key the same way to decrypt the onion, or tweak to the onion ephemeral key which is mathematically equivalent.
-
+In the case where blinded paths are used, the sender did not actually encrypt this onion for our `node_id`, but for a tweaked version: we can derive the tweak used from `path_key` which is given alongside the onion.  Then we either tweak our node private key the same way to decrypt the onion, or tweak to the onion ephemeral key which is mathematically equivalent.
 
 # Filler Generation
 

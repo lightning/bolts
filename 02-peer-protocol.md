@@ -2130,14 +2130,14 @@ A node:
     - MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc`, or
 `update_fail_malformed_htlc`.
   - When failing an incoming HTLC:
-    - If `current_path_key_point` is set in the onion payload and it is not the
+    - If `current_path_key` is set in the onion payload and it is not the
       final node:
       - MUST send an `update_fail_htlc` error using the `invalid_onion_blinding`
         failure code for any local or downstream errors.
       - SHOULD use the `sha256_of_onion` of the onion it received.
       - MAY use an all zero `sha256_of_onion`.
       - SHOULD add a random delay before sending `update_fail_htlc`.
-    - If `path_key_point` is set in the incoming `update_add_htlc`:
+    - If `path_key` is set in the incoming `update_add_htlc`:
       - MUST send an `update_fail_malformed_htlc` error using the
         `invalid_onion_blinding` failure code for any local or downstream errors.
       - SHOULD use the `sha256_of_onion` of the onion it received.
