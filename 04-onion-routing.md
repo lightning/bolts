@@ -451,28 +451,37 @@ intermediary nodes could simply claim the remaining ones.
     * [`u16`:`enclen`]
     * [`enclen*byte`:`encrypted_recipient_data`]
 
-Nodes receiving onion packets may hide their identity from senders by
-"blinding" an arbitrary amount of hops at the end of an onion path.
+A blinded path consists of:
+1. an initial introduction point (`first_node_id`)
+2. an initial key to share a secret with the first node_id (`first_path_key`)
+3. a series of tweaked node ids (`path.blinded_node_id`)
+4. a series of binary blobs encrypted to the nodes (`path.encrypted_recipient_data`)
+   to tell them the next hop.
 
-When using route blinding, nodes find a route to themselves from a given
-"introduction node" and initial "path key". They then use ECDH with
-each node in that route to create a "blinded" node ID and an encrypted blob
-(`encrypted_data`) for each one of the blinded nodes.
+For example, Dave wants Alice to reach him via public node Bob then
+Carol.  He creates a chain of public keys ("path_keys") for Bob, Carol
+and finally himself, so he can share a secret with each of them.  These
+keys are a simple chain, so each node can derive the next `path_key` without
+having to be told explicitly.
 
-They communicate this blinded route and the encrypted blobs to the sender.
-The sender finds a route to the introduction node and extends it with the
-blinded route provided by the recipient. The sender includes the encrypted
-blobs in the corresponding onion payloads: they allow nodes in the blinded
-part of the route to "unblind" the next node and correctly forward the packet.
+From these shared secrets, Dave creates and encrypts three `encrypted_data_tlv`s:
+1. encrypted_data_bob: For Bob to tell him to forward to Carol
+2. encrypted_data_carol: For Carol to tell her to forward to him
+3. encrypted_data_dave: For himself to indicate the path was used, and any metadata he wants.
 
-Note that there are two ways for the sender to reach the introduction
-point: one is to create a normal (unblinded) payment, and place the
-initial blinding point in `current_path_key` along with the
-`encrypted_data` in the onion payload for the introduction point to
-start the blinded path. The second way is to create a blinded path to
-the introduction point, set `next_path_key_override` inside the
-`encrypted_data_tlv` on the hop prior to the introduction point to the
-initial blinding point, and have it sent to the introduction node.
+To mask the node ids, he also derives three blinding factors from the
+shared secrets, which turn Bob into Bob', Carol into Carol' and Dave
+into Dave'.
+
+So this is the `blinded_path` he hands to Alice.
+
+1. `first_node_id`: Bob
+2. `first_path_key`: the first path key for Bob 
+3. `path`: [Bob', encrypted_data_bob], [Carol', encrypted_data_carol], [Dave', encrypted_data_dave]
+
+There are two different ways for Alice to construct an onion which gets to Bob (since he's probably not a direct peer of hers) which are described in the requirements below.
+
+But after Bob the path is always the same: he will send Carol the `path_key` he derived, along with the onion.  She will use the `path_key` to derive the tweak for the onion (which Alice encrypted for Carol' not Carol) so she can decrypt it, and also to derive the key to decrypt `encrypted_data_tlv` which will tell her to forward to Dave (and possibly additional restrictions Dave specified).
 
 ### Requirements
 
