@@ -50,7 +50,8 @@ A node:
   * [Packet Structure](#packet-structure)
     * [Payload Format](#payload-format)
     * [Basic Multi-Part Payments](#basic-multi-part-payments)
-    * [Route Blinding](#route-blinding)
+  * [Route Blinding](#route-blinding)
+    * [Inside encrypted_recipient_data: encrypted_data_tlv](Inside-encrypted_recipient_data-encrypted_data_tlv)
   * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
     * [Payload for the Last Node](#payload-for-the-last-node)
     * [Non-strict Forwarding](#non-strict-forwarding)
@@ -435,7 +436,20 @@ otherwise meets the amount criterion (eg. some other failure, or
 invoice timeout), however if it were to fulfill only some of them,
 intermediary nodes could simply claim the remaining ones.
 
-### Route Blinding
+## Route Blinding
+
+1. subtype: `blinded_path`
+2. data:
+   * [`point`:`first_node_id`]
+   * [`point`:`first_path_key`]
+   * [`byte`:`num_hops`]
+   * [`num_hops*onionmsg_hop`:`path`]
+
+1. subtype: `onionmsg_hop`
+2. data:
+    * [`point`:`blinded_node_id`]
+    * [`u16`:`enclen`]
+    * [`enclen*byte`:`encrypted_recipient_data`]
 
 Nodes receiving onion packets may hide their identity from senders by
 "blinding" an arbitrary amount of hops at the end of an onion path.
@@ -460,40 +474,7 @@ the introduction point, set `next_path_key_override` inside the
 `encrypted_data_tlv` on the hop prior to the introduction point to the
 initial blinding point, and have it sent to the introduction node.
 
-The `encrypted_data` is a TLV stream, encrypted for a given blinded node, that
-may contain the following TLV fields:
-
-1. `tlv_stream`: `encrypted_data_tlv`
-2. types:
-    1. type: 1 (`padding`)
-    2. data:
-        * [`...*byte`:`padding`]
-    1. type: 2 (`short_channel_id`)
-    2. data:
-        * [`short_channel_id`:`short_channel_id`]
-    1. type: 4 (`next_node_id`)
-    2. data:
-        * [`point`:`node_id`]
-    1. type: 6 (`path_id`)
-    2. data:
-        * [`...*byte`:`data`]
-    1. type: 8 (`next_path_key_override`)
-    2. data:
-        * [`point`:`path_key`]
-    1. type: 10 (`payment_relay`)
-    2. data:
-        * [`u16`:`cltv_expiry_delta`]
-        * [`u32`:`fee_proportional_millionths`]
-        * [`tu32`:`fee_base_msat`]
-    1. type: 12 (`payment_constraints`)
-    2. data:
-        * [`u32`:`max_cltv_expiry`]
-        * [`tu64`:`htlc_minimum_msat`]
-    1. type: 14 (`allowed_features`)
-    2. data:
-        * [`...*byte`:`features`]
-
-#### Requirements
+### Requirements
 
 A recipient $`N_r`$ creating a blinded route $`N_0 \rightarrow N_1 \rightarrow ... \rightarrow N_r`$ to itself:
 
@@ -552,7 +533,7 @@ The final recipient:
 - MUST ignore the message if the `path_id` does not match the blinded route it
   created
 
-#### Rationale
+### Rationale
 
 Route blinding is a lightweight technique to provide recipient anonymity.
 It's more flexible than rendezvous routing because it simply replaces the public
@@ -598,6 +579,48 @@ would let malicious nodes unblind the identity of the blinded nodes. It should
 set `payment_constraints.max_cltv_expiry` to restrict the lifetime of a blinded
 route and reduce the risk that an intermediate node updates its fees and rejects
 payments (which could be used to unblind nodes inside the route).
+
+### Inside `encrypted_recipient_data`: `encrypted_data_tlv`
+
+The `encrypted_data` is a TLV stream, encrypted for a given blinded node, that
+may contain the following TLV fields:
+
+1. `tlv_stream`: `encrypted_data_tlv`
+2. types:
+    1. type: 1 (`padding`)
+    2. data:
+        * [`...*byte`:`padding`]
+    1. type: 2 (`short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`short_channel_id`]
+    1. type: 4 (`next_node_id`)
+    2. data:
+        * [`point`:`node_id`]
+    1. type: 6 (`path_id`)
+    2. data:
+        * [`...*byte`:`data`]
+    1. type: 8 (`next_path_key_override`)
+    2. data:
+        * [`point`:`path_key`]
+    1. type: 10 (`payment_relay`)
+    2. data:
+        * [`u16`:`cltv_expiry_delta`]
+        * [`u32`:`fee_proportional_millionths`]
+        * [`tu32`:`fee_base_msat`]
+    1. type: 12 (`payment_constraints`)
+    2. data:
+        * [`u32`:`max_cltv_expiry`]
+        * [`tu64`:`htlc_minimum_msat`]
+    1. type: 14 (`allowed_features`)
+    2. data:
+        * [`...*byte`:`features`]
+
+#### Rationale
+
+Encrypted recipient data is created by the final recipient to give to the
+payer, containing instructions for the node on how to handle the message.  It's used
+in both payment onions and onion messages onions.  See [Route Blinding](#route-blinding).
+
 
 # Accepting and Forwarding a Payment
 
@@ -1474,19 +1497,6 @@ even, of course!).
     1. type: 4 (`encrypted_recipient_data`)
     2. data:
         * [`...*byte`:`encrypted_recipient_data`]
-
-1. subtype: `blinded_path`
-2. data:
-   * [`point`:`first_node_id`]
-   * [`point`:`first_path_key`]
-   * [`byte`:`num_hops`]
-   * [`num_hops*onionmsg_hop`:`path`]
-
-1. subtype: `onionmsg_hop`
-2. data:
-    * [`point`:`blinded_node_id`]
-    * [`u16`:`enclen`]
-    * [`enclen*byte`:`encrypted_recipient_data`]
 
 #### Requirements
 
