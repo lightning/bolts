@@ -443,9 +443,9 @@ intermediary nodes could simply claim the remaining ones.
    * [`point`:`first_node_id`]
    * [`point`:`first_path_key`]
    * [`byte`:`num_hops`]
-   * [`num_hops*onionmsg_hop`:`path`]
+   * [`num_hops*blinded_path_hop`:`path`]
 
-1. subtype: `onionmsg_hop`
+1. subtype: `blinded_path_hop`
 2. data:
     * [`point`:`blinded_node_id`]
     * [`u16`:`enclen`]
@@ -503,7 +503,7 @@ The writer of a `blinded_path`:
 - MUST set `first_path_key` to $`E_0`$
 - MUST create a series of blinded node IDs $`B_i`$ for each node using the following algorithm:
   - $`B_i = HMAC256(\text{"blinded\_node\_id"}, ss_i) * N_i`$ (blinded `node_id` for $`N_i`$, private key known only by $`N_i`$)
-  - MUST set `blinded_node_id` for each `onionmsg_hop` in `path` to $`B_i`$
+  - MUST set `blinded_node_id` for each `blinded_path_hop` in `path` to $`B_i`$
 - MAY replace $`E_{i+1}`$ with a different value, but if it does:
   - MUST set `encrypted_data_tlv[i].next_path_key_override` to $`E_{i+1}`$
 - MAY store private data in `encrypted_data_tlv[r].path_id` to verify that the route is used in the right context and was created by them
