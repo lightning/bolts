@@ -227,7 +227,7 @@ The human-readable prefix for offers is `lno`.
 ## Requirements For Offers
 
 A writer of an offer:
-  - MUST NOT set any tlv fields outside the inclusive ranges: 1 to 79 and 1000000000 to 1999999999.
+  - MUST NOT set any TLV fields outside the inclusive ranges: 1 to 79 and 1000000000 to 1999999999.
   - if the chain for the invoice is not solely bitcoin:
     - MUST specify `offer_chains` the offer is valid for.
   - otherwise:
@@ -261,7 +261,7 @@ A writer of an offer:
     - MAY include `offer_paths`.
   - if it includes `offer_paths`:
     - SHOULD ignore any invoice_request which does not use the path.
-    - MAY set `offer_issuer_id` to the node's public key to request the invoice from.
+    - MAY set `offer_issuer_id`.
   - otherwise:
      - MUST set `offer_issuer_id` to the node's public key to request the invoice from.
   - if it sets `offer_issuer`:
@@ -279,7 +279,7 @@ A writer of an offer:
     - MUST NOT set `offer_quantity_max`.
 
 A reader of an offer:
-  - if the offer contains any tlv fields outside the inclusive ranges: 1 to 79 and 1000000000 to 1999999999:
+  - if the offer contains any TLV fields outside the inclusive ranges: 1 to 79 and 1000000000 to 1999999999:
     - MUST NOT respond to the offer.
   - if `offer_features` contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
@@ -295,6 +295,8 @@ A reader of an offer:
   - if `offer_amount` is set and `offer_description` is not set:
     - MUST NOT respond to the offer.
   - if neither `offer_issuer_id` nor `offer_paths` are set:
+    - MUST NOT respond to the offer.
+  - if `num_hops` is 0 in any `blinded_path` in `offer_paths`:
     - MUST NOT respond to the offer.
   - if it uses `offer_amount` to provide the user with a cost estimate:
     - MUST take into account the currency units for `offer_amount`:
@@ -403,9 +405,9 @@ for [Signature Calculation](#signature-calculation).
     1. type: 20 (`offer_quantity_max`)
     2. data:
         * [`tu64`:`max`]
-    1. type: 22 (`offer_node_id`)
+    1. type: 22 (`offer_issuer_id`)
     2. data:
-        * [`point`:`node_id`]
+        * [`point`:`id`]
     1. type: 80 (`invreq_chain`)
     2. data:
         * [`chain_hash`:`chain`]
@@ -458,9 +460,9 @@ The writer:
   - otherwise (not responding to an offer):
     - MUST set `offer_description` to a complete description of the purpose of the payment.
     - MUST set (or not set) `offer_absolute_expiry` and `offer_issuer` as it would for an offer.
-    - MUST set `invreq_payer_id` (as it would set `offer_node_id` for an offer).
+    - MUST set `invreq_payer_id` (as it would set `offer_issuer_id` for an offer).
     - MUST set `invreq_paths` as it would set (or not set) `offer_paths` for an offer.
-    - MUST NOT include `signature`, `offer_metadata`, `offer_chains`, `offer_amount`, `offer_currency`, `offer_features`, `offer_quantity_max`, `offer_paths` or `offer_node_id`
+    - MUST NOT include `signature`, `offer_metadata`, `offer_chains`, `offer_amount`, `offer_currency`, `offer_features`, `offer_quantity_max`, `offer_paths` or `offer_issuer_id`
     - if the chain for the invoice is not solely bitcoin:
       - MUST specify `invreq_chain` the offer is valid for.
     - MUST set `invreq_amount`.
@@ -474,17 +476,19 @@ The writer:
 
 The reader:
   - MUST fail the request if `invreq_payer_id` or `invreq_metadata` are not present.
-  - MUST fail the request if any non-signature TLV fields outside the inclusive ranges: 0 to 159 and 1000000000 to 2999999999
+  - MUST fail the request if any non-signature TLV fields are outside the inclusive ranges: 0 to 159 and 1000000000 to 2999999999
   - if `invreq_features` contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if `invreq_features` contains unknown _even_ bits that are non-zero:
     - MUST fail the request.
   - MUST fail the request if `signature` is not correct as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
-  - if `offer_node_id` is present, and `invreq_metadata` is identical to a previous `invoice_request`:
+  - if `num_hops` is 0 in any `blinded_path` in `invreq_paths`:
+    - MUST fail the request.
+  - if `offer_issuer_id` is present, and `invreq_metadata` is identical to a previous `invoice_request`:
     - MAY simply reply with the previous invoice.
   - otherwise:
     - MUST NOT reply with a previous invoice.
-  - if `offer_node_id` or `offer_paths` are present (response to an offer):
+  - if `offer_issuer_id` or `offer_paths` are present (response to an offer):
     - MUST fail the request if the offer fields do not exactly match a valid, unexpired offer.
     - if `offer_quantity_max` is present:
       - MUST fail the request if there is no `invreq_quantity` field.
@@ -503,13 +507,13 @@ The reader:
     - otherwise (no `offer_amount`):
       - MUST fail the request if it does not contain `invreq_amount`.
     - SHOULD send an invoice in response using the `onionmsg_tlv` `reply_path`.
-  - otherwise (no `offer_node_id` or `offer_paths`, not a response to our offer):
+  - otherwise (no `offer_issuer_id` or `offer_paths`, not a response to our offer):
     - MUST fail the request if any of the following are present:
       - `offer_chains`, `offer_features` or `offer_quantity_max`.
     - MUST fail the request if `invreq_amount` is not present.
     - MAY use `offer_amount` (or `offer_currency`) for informational display to user.
     - if it sends an invoice in response:
-      - MUST use `offer_paths` if present, otherwise MUST use `invreq_payer_id` as the node id to send to.
+      - MUST use `invreq_paths` if present, otherwise MUST use `invreq_payer_id` as the node id to send to.
   - if `invreq_chain` is not present:
     - MUST fail the request if bitcoin is not a supported chain.
   - otherwise:
@@ -584,9 +588,9 @@ the `onion_message` `invoice` field.
     1. type: 20 (`offer_quantity_max`)
     2. data:
         * [`tu64`:`max`]
-    1. type: 22 (`offer_node_id`)
+    1. type: 22 (`offer_issuer_id`)
     2. data:
-        * [`point`:`node_id`]
+        * [`point`:`id`]
     1. type: 80 (`invreq_chain`)
     2. data:
         * [`chain_hash`:`chain`]
@@ -605,6 +609,9 @@ the `onion_message` `invoice` field.
     1. type: 89 (`invreq_payer_note`)
     2. data:
         * [`...*utf8`:`note`]
+    1. type: 90 (`invreq_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
     1. type: 160 (`invoice_paths`)
     2. data:
         * [`...*blinded_path`:`paths`]
@@ -681,8 +688,10 @@ A writer of an invoice:
       - MUST set `invoice_amount` to the *expected amount*.
   - MUST set `invoice_payment_hash` to the SHA256 hash of the
     `payment_preimage` that will be given in return for payment.
-  - if `offer_node_id` or `offer_paths` are present:
-    - MUST set `invoice_node_id` to the public key for which received the `invoice_request`
+  - if `offer_issuer_id` is present:
+    - MUST set `invoice_node_id` to the `offer_issuer_id`
+  - otherwise, if `offer_paths` is present:
+    - MUST set `invoice_node_id` to the final `blinded_node_id` on the path it received the `invoice_request`
   - otherwise:
     - MUST set `invoice_node_id` to a valid public key.
   - MUST specify exactly one signature TLV element: `signature`.
@@ -721,15 +730,18 @@ A reader of an invoice:
   - otherwise:
     - MUST reject the invoice if the current time since 1970-01-01 UTC is greater than `invoice_created_at` plus 7200.
   - MUST reject the invoice if `invoice_paths` is not present or is empty.
+  - MUST reject the invoice if `num_hops` is 0 in any `blinded_path` in `invoice_paths`.
   - MUST reject the invoice if `invoice_blindedpay` is not present.
   - MUST reject the invoice if `invoice_blindedpay` does not contain exactly one `blinded_payinfo` per `invoice_paths`.`blinded_path`.
   - For each `invoice_blindedpay`.`payinfo`:
     - MUST NOT use the corresponding `invoice_paths`.`path` if `payinfo`.`features` has any unknown even bits set.
     - MUST reject the invoice if this leaves no usable paths.
   - if the invoice is a response to an `invoice_request`:
-    - MUST reject the invoice if all fields less than type 160 do not exactly match the `invoice_request`.
-    - if `offer_node_id` or `offer_paths` are present (invoice_request for an offer):
-      - MUST reject the invoice if `invoice_node_id` is not equal to the public key it sent the `invoice_request` to.
+    - MUST reject the invoice if all fields in ranges 0 to 159 and 1000000000 to 2999999999 (inclusive) do not exactly match the `invoice_request`.
+    - if `offer_issuer_id` is present (invoice_request for an offer):
+      - MUST reject the invoice if `invoice_node_id` is not equal to `offer_issuer_id`
+    - otherwise, if `offer_paths` is present (invoice_request for an offer without id):
+      - MUST reject the invoice if `invoice_node_id` is not equal to the final `blinded_node_id` it sent the `invoice_request` to.
     - otherwise (invoice_request without an offer):
       - MAY reject the invoice if it cannot confirm that `invoice_node_id` is correct, out-of-band.
   - MUST reject the invoice if `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation).
@@ -840,7 +852,7 @@ with the conversion so the sender can send a new invoice.
 
 1. The offer can require delivery info in the `invoice_request`.
 2. An offer can be updated: the response to an `invoice_request` is another offer,
-   perhaps with a signature from the original `offer_node_id`
+   perhaps with a signature from the original `offer_issuer_id`
 3. Any empty TLV fields can mean the value is supposed to be known by
    other means (i.e. transport-specific), but is still hashed for sig.
 4. We could upgrade to allow multiple offers in one invreq and
