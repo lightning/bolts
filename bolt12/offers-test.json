@@ -2,7 +2,20 @@
   {
     "description": "Minimal bolt12 offer",
     "valid": true,
+    "bolt12": "lno1zcss9mk8y3wkklfvevcrszlmu23kfrxh49px20665dqwmn4p72pksese",
+    "fields": [
+      {
+        "type": 22,
+        "length": 33,
+        "hex": "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+      }
+    ]
+  },
+  {
+    "description": "with description (but no amount)",
+    "valid": true,
     "bolt12": "lno1pgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvxg",
+    "field info": "description is 'Test vectors'",
     "fields": [
       {
         "type": 10,
@@ -321,32 +334,9 @@
     ]
   },
   {
-    "description": "... and with second blinded path via Carol (0x434343...), blinding 020202...",
+    "description": "with no issuer_id and blinded path via Bob (0x424242...), blinding 020202...",
     "valid": true,
-    "bolt12": "lno1pgx9getnwss8vetrw3hhyucsl5q5yqeyv5l2cs6y3qqzesrth7mlzrlp3xg7xhulusczm04x6g6nms9trspqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqqsqqqqqqqqqqqqqqqqqqqqqqqqqqpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsqpqg3zyg3zyg3zygz0uc7h32x9s0aecdhxlk075kn046aafpuuyw8f5j652t3vha2yqrsyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsqzqqqqqqqqqqqqqqqqqqqqqqqqqqqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqqyzyg3zyg3zyg3zzcss9mk8y3wkklfvevcrszlmu23kfrxh49px20665dqwmn4p72pksese",
-    "field info": "path is [id=02020202..., enc=0x00*16], [id=02020202..., enc=0x22*8]",
-    "fields": [
-      {
-        "type": 10,
-        "length": 12,
-        "hex": "5465737420766563746f7273"
-      },
-      {
-        "type": 16,
-        "length": 322,
-        "hex": "0324653eac434488002cc06bbfb7f10fe18991e35f9fe4302dbea6d2353dc0ab1c0202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020200100000000000000000000000000000000002020202020202020202020202020202020202020202020202020202020202020200081111111111111111027f31ebc5462c1fdce1b737ecff52d37d75dea43ce11c74d25aa297165faa20070202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020200100000000000000000000000000000000002020202020202020202020202020202020202020202020202020202020202020200082222222222222222"
-      },
-      {
-        "type": 22,
-        "length": 33,
-        "hex": "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
-      }
-    ]
-  },
-  {
-    "description": "with blinded path via Bob's scid (0x0x42), blinding 020202...",
-    "valid": true,
-    "bolt12": "lno1pgx9getnwss8vetrw3hhyucs3yqqqqqqqqqqqqp2qgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqqyqqqqqqqqqqqqqqqqqqqqqqqqqqqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqqgzyg3zyg3zyg3z93pqthvwfzadd7jejes8q9lhc4rvjxd022zv5l44g6qah82ru5rdpnpj",
+    "bolt12": "lno1pgx9getnwss8vetrw3hhyucs5ypjgef743p5fzqq9nqxh0ah7y87rzv3ud0eleps9kl2d5348hq2k8qzqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgqpqqqqqqqqqqqqqqqqqqqqqqqqqqqzqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqqzq3zyg3zyg3zygs",
     "field info": "path is [id=02020202..., enc=0x00*16], [id=02020202..., enc=0x11*8]",
     "fields": [
       {
@@ -356,8 +346,26 @@
       },
       {
         "type": 16,
-        "length": 137,
-        "hex": "00000000000000002a0202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020200100000000000000000000000000000000002020202020202020202020202020202020202020202020202020202020202020200081111111111111111"
+        "length": 161,
+        "hex": "0324653eac434488002cc06bbfb7f10fe18991e35f9fe4302dbea6d2353dc0ab1c0202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020200100000000000000000000000000000000002020202020202020202020202020202020202020202020202020202020202020200081111111111111111"
+      }
+    ]
+  },
+  {
+    "description": "... and with second blinded path via 1x2x3 (direction 1), blinding 020202...",
+    "valid": true,
+    "bolt12": "lno1pgx9getnwss8vetrw3hhyucsl5qj5qeyv5l2cs6y3qqzesrth7mlzrlp3xg7xhulusczm04x6g6nms9trspqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqqsqqqqqqqqqqqqqqqqqqqqqqqqqqpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsqpqg3zyg3zyg3zygpqqqqzqqqqgqqxqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqqgqqqqqqqqqqqqqqqqqqqqqqqqqqqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgqqsg3zyg3zyg3zygtzzqhwcuj966ma9n9nqwqtl032xeyv6755yeflt235pmww58egx6rxry",
+    "field info": "path is [id=02020202..., enc=0x00*16], [id=02020202..., enc=0x22*8]",
+    "fields": [
+      {
+        "type": 10,
+        "length": 12,
+        "hex": "5465737420766563746f7273"
+      },
+      {
+        "type": 16,
+        "length": 298,
+        "hex": "0324653eac434488002cc06bbfb7f10fe18991e35f9fe4302dbea6d2353dc0ab1c02020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202001000000000000000000000000000000000020202020202020202020202020202020202020202020202020202020202020202000811111111111111110100000100000200030202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020200100000000000000000000000000000000002020202020202020202020202020202020202020202020202020202020202020200082222222222222222"
       },
       {
         "type": 22,
@@ -384,6 +392,29 @@
       },
       {
         "type": 33,
+        "length": 10,
+        "hex": "68656c6c6f776f726c64"
+      }
+    ]
+  },
+  {
+    "description": "unknown odd experimental field",
+    "valid": true,
+    "bolt12": "lno1pgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvx078wdv5gg2dpjkcmr0wahhymry",
+    "field info": "type 1000000033 is 'helloworld'",
+    "fields": [
+      {
+        "type": 10,
+        "length": 12,
+        "hex": "5465737420766563746f7273"
+      },
+      {
+        "type": 22,
+        "length": 33,
+        "hex": "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+      },
+      {
+        "type": 1000000033,
         "length": 10,
         "hex": "68656c6c6f776f726c64"
       }
@@ -490,7 +521,7 @@
     "bolt12": "lno1pgz5znzfgdz3yq5qgytzzqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqg"
   },
   {
-    "description": "Malformed: invalid offer_node_id",
+    "description": "Malformed: invalid offer_issuer_id",
     "valid": false,
     "bolt12": "lno1pgz5znzfgdz3vggzqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvps"
   },
@@ -500,18 +531,33 @@
     "bolt12": "lno1pgz5znzfgdz3vggzqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgp9qgr0u2xq4dh3kdevrf4zg6hx8a60jv0gxe0ptgyfc6xkryqqqqqqqq"
   },
   {
+    "description": "Contains type > 1999999999",
+    "valid": false,
+    "bolt12": "lno1pgz5znzfgdz3vggzqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgp06ae4jsq9qgr0u2xq4dh3kdevrf4zg6hx8a60jv0gxe0ptgyfc6xkryqqqqqqqq"
+  },
+  {
+    "description": "Contains unknown even type (1000000002)",
+    "valid": false,
+    "bolt12": "lno1pgz5znzfgdz3vggzqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgp06wu6egp9qgr0u2xq4dh3kdevrf4zg6hx8a60jv0gxe0ptgyfc6xkryqqqqqqqq"
+  },
+  {
     "description": "Contains unknown feature 22",
     "valid": false,
     "bolt12": "lno1pgx9getnwss8vetrw3hhyucvqdqqqqqkyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvxg"
   },
   {
-    "description": "Missing offer_description",
+    "description": "Missing offer_description and offer_amount",
     "valid": false,
     "bolt12": "lno1zcss9mk8y3wkklfvevcrszlmu23kfrxh49px20665dqwmn4p72pksese"
   },
   {
-    "description": "Missing offer_node_id",
+    "description": "Missing offer_issuer_id",
     "valid": false,
     "bolt12": "lno1pgx9getnwss8vetrw3hhyuc"
+  },
+  {
+    "description": "Second offer_path is empty",
+    "valid": false,
+    "bolt12": "lno1pgx9getnwss8vetrw3hhyucsespjgef743p5fzqq9nqxh0ah7y87rzv3ud0eleps9kl2d5348hq2k8qzqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgqpqqqqqqqqqqqqqqqqqqqqqqqqqqqzqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqqzq3zyg3zyg3zygszqqqqyqqqqsqqvpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsq"
   }
 ]
