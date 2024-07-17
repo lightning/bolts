@@ -1163,6 +1163,9 @@ This message initiates the v2 channel establishment workflow.
    2. data:
         * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
+   1. type: 3 (`request_funding`)
+   2. data:
+        * [`request_funds`:`request_funds`]
 
 Rationale and Requirements are the same as for [`open_channel`](#the-open_channel-message),
 with the following additions.
@@ -1177,11 +1180,18 @@ The sending node:
   - MUST set `funding_feerate_perkw` to the feerate for this transaction
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If it wants the receiving node to contribute to the funding transaction
+    using `option_will_fund`:
+    - MUST send `request_funding` containing one of the funding rates and
+      `payment_type`s supported by the receiving node.
+    - MUST set `requested_sats` to the amount of sats it wants to pay for at
+      the advertised funding rate.
 
 The receiving node:
   - MAY fail the negotiation if:
     - the `locktime` is unacceptable
     - the `funding_feerate_perkw` is unacceptable
+    - `request_funds.funding_rate` does not match a rate it advertised.
   - MUST fail the negotiation if:
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
 
@@ -1250,6 +1260,9 @@ acceptance of the new channel.
    2. data:
         * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
+   1. type: 3 (`provide_funding`)
+   2. data:
+        * [`will_fund`:`will_fund`]
 
 Rationale and Requirements are the same as listed above,
 for [`accept_channel`](#the-accept_channel-message) with the following
@@ -1262,10 +1275,29 @@ The accepting node:
   - MAY respond with a `funding_satoshis` value of zero.
   - If it requires the opening node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If the `request_funding` TLV was sent in `open_channel2`:
+    - If it does not want to contribute funds or to be paid for its
+      funding contributions:
+      - SHOULD omit the `provide_funding` TLV.
+    - Otherwise, if it decides to be paid for its contributions:
+      - MUST include the `provide_funding` TLV.
+      - MUST set `funding_satoshis` to a value greater than `0`.
+      - MAY set `funding_satoshis` less or more than `requested_sats`.
 
 The receiving node:
+  - MAY fail the negotiation if:
+    - It sent `request_funding` and `provide_funding` is not set.
+    - It sent `request_funding` and `provide_funding` is set and:
+      - `funding_satoshis` is smaller than requested.
   - MUST fail the negotiation if:
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
+    - `provide_funding` is set but `request_funding` was not sent in `open_channel2`.
+    - `provide_funding` is set and:
+      - `will_fund.funding_rate` does not match `request_funds.funding_rate`.
+      - `will_fund.funding_script` does not match the channel funding script.
+      - `will_fund.signature` is invalid.
+  - MUST pay fees for the `option_will_fund` amount using the `payment_type` selected,
+    as detailed in the [liquidity ads section](07-routing-gossip.md#liquidity-ads).
 
 #### Rationale
 
@@ -1277,6 +1309,14 @@ Instead, the channel reserve is fixed at 1% of the total channel balance
 (`open_channel2`.`funding_satoshis` + `accept_channel2`.`funding_satoshis`)
 rounded down to the nearest whole satoshi or the `dust_limit_satoshis`,
 whichever is greater.
+
+If the opener sent `request_funding` in their `open_channel2` message, the
+accepter node may choose to contribute funds, but they don't have to.
+
+If the accepter node has run out of available funds, they should either fail
+the negotiation or reply with a `funding_satoshis` set to `0` and omit the
+`provide_funding` TLV, allowing the opener to decide whether they want to
+proceed anyway or fail the negotiation.
 
 ### Funding Composition
 
