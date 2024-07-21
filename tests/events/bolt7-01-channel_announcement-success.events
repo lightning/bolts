@@ -1,0 +1,110 @@
+# Simple gossip tests.
+
+include setup.incl
+
+1. block: $BLOCK_102
+
+2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
+3. expect-send: type=init
+4. recv: type=init localfeatures= globalfeatures=
+
+# Funding tx spending 16835ac8c154b616baac524163f41fb0c4f82c7b972ad35d4d6f18d854f6856b/1, feerate 253 to bitcoin privkeys 0000000000000000000000000000000000000000000000000000000000000010 and 0000000000000000000000000000000000000000000000000000000000000020
+# txid 189c40b0728f382fe91c87270926584e48e0af3a6789f37454afee6c7560311d
+5. block: height=103 n=6 tx=020000000001016b85f654d8186f4d5dd32a977b2cf8c4b01ff4634152acba16b654c1c85a83160100000000ffffffff01c5410f0000000000220020c46bf3d1686d6dbb2d9244f8f67b90370c5aa2747045f1aeccb77d8187117382024730440220798d96d5a057b5b7797988a855217f41af05ece3ba8278366e2f69763c72e785022065d5dd7eeddc0766ddf65557c92b9c52c301f23f94d2cf681860d32153e6ae1e012102d6a3c2d0cf7904ab6af54d7c959435a452b24a63194e1c4e7c337d3ebbb3017b00000000
+
+6. recv: type=channel_announcement
+   node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f63
+   node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98e
+   bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc39
+   bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa12
+   features=
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x1x0
+   node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+   node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+   bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+   bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+
+# New peer connects, asking for initial_routing_sync.  We *won't* relay channel_announcement, as there is no channel_update.
+7. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+8. expect-send: type=init
+9. recv: type=init localfeatures=08 globalfeatures=
+10. must-not-send: type=channel_announcement
+11. disconnect:
+
+12. recv: type=channel_update
+   signature=76df7e70c63cc2b63ef1c062b99c6d934a80ef2fd4dae9e1d86d277f47674af3255a97fa52ade7f129263f591ed784996eba6383135896cc117a438c80293282
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x1x0
+   timestamp=1565587763
+   message_flags=0
+   channel_flags=0
+   cltv_expiry_delta=144
+   htlc_minimum_msat=0
+   fee_base_msat=1000
+   fee_proportional_millionths=10
+
+# Now we'll relay to a new peer.
+13. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+14. expect-send: type=init
+15. recv: type=init localfeatures=08 globalfeatures=
+16. expect-send: type=channel_announcement
+   node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f63
+   node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98e
+   bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc39
+   bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa12
+   features=
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x1x0
+   node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+   node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+   bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+   bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+17. expect-send: type=channel_update
+   signature=76df7e70c63cc2b63ef1c062b99c6d934a80ef2fd4dae9e1d86d277f47674af3255a97fa52ade7f129263f591ed784996eba6383135896cc117a438c80293282
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x1x0
+   timestamp=1565587763
+   message_flags=0
+   channel_flags=0
+   cltv_expiry_delta=144
+   htlc_minimum_msat=0
+   fee_base_msat=1000
+   fee_proportional_millionths=10
+
+# And it will relay this, too.
+18. recv: conn=0000000000000000000000000000000000000000000000000000000000000003 type=channel_update
+   signature=0b20265c60b98d6150097ea2ed73a0df4c870ed13defde348c799dd418671ca814837b7b46733d3f28f63b4f36768b44f6ec8dc52fbb08103e27c85ab1188c60
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x1x0
+   timestamp=1565587763
+   message_flags=1
+   channel_flags=1
+   cltv_expiry_delta=48
+   htlc_minimum_msat=0
+   fee_base_msat=100
+   fee_proportional_millionths=11
+   htlc_maximum_msat=100000
+19. expect-send: type=channel_update
+   signature=0b20265c60b98d6150097ea2ed73a0df4c870ed13defde348c799dd418671ca814837b7b46733d3f28f63b4f36768b44f6ec8dc52fbb08103e27c85ab1188c60
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x1x0
+   timestamp=1565587763
+   message_flags=1
+   channel_flags=1
+   cltv_expiry_delta=48
+   htlc_minimum_msat=0
+   fee_base_msat=100
+   fee_proportional_millionths=11
+   htlc_maximum_msat=100000
+20. disconnect:
+
+# Now, if channel closes, it won't be relayed.
+
+21. block: height=109 n=1 tx=020000000001011d3160756ceeaf5474f389673aafe0484e58260927871ce92f388f72b0409c180000000000ffffffff010e410f00000000001600141b42e1fc7b1cd93a469fa67ed5eabf36ce354dd60400483045022100d93a21312af5b9a46041d2189e5b72f593fc865d920f705d76a25a728de5790302207995cc2dd45ff20c96ccea8b117be41581da8b84466dabfeea728ed858a3a7fd0147304402206d9f5e3b2b2540002ffc37815cef3fbc4ba7646a7bca1aa7605941edd735dee802205130da104d584df6b59c18704c94cd4edd032aed7e0c3044dc8815183552f2dd0147522103d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e652103e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a52ae00000000
+
+22. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+23. expect-send: type=init
+24. recv: type=init localfeatures=08 globalfeatures=
+25. must-not-send: type=channel_announcement
+26. must-not-send: type=channel_update

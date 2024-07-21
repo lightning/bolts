@@ -1,0 +1,207 @@
+# Tests for malformed/bad channel_announcement
+include setup.incl
+
+1. block: $BLOCK_102
+
+2. connect: privkey=0000000000000000000000000000000000000000000000000000000000000003
+3. expect-send: type=init
+4. recv: type=init localfeatures= globalfeatures=
+
+# Funding tx spending 16835ac8c154b616baac524163f41fb0c4f82c7b972ad35d4d6f18d854f6856b/1, feerate 253 to bitcoin privkeys 0000000000000000000000000000000000000000000000000000000000000010 and 0000000000000000000000000000000000000000000000000000000000000020
+# txid 189c40b0728f382fe91c87270926584e48e0af3a6789f37454afee6c7560311d
+5. block: height=103 n=1 tx=020000000001016b85f654d8186f4d5dd32a977b2cf8c4b01ff4634152acba16b654c1c85a83160100000000ffffffff01c5410f0000000000220020c46bf3d1686d6dbb2d9244f8f67b90370c5aa2747045f1aeccb77d8187117382024730440220798d96d5a057b5b7797988a855217f41af05ece3ba8278366e2f69763c72e785022065d5dd7eeddc0766ddf65557c92b9c52c301f23f94d2cf681860d32153e6ae1e012102d6a3c2d0cf7904ab6af54d7c959435a452b24a63194e1c4e7c337d3ebbb3017b00000000
+
+    # Invalid `channel_announcement`: short_channel_id too young.
+    # It's allowed (even encouraged!) to cache this, so we separate this
+    # from the other tests.
+    1. recv: type=channel_announcement
+       node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f63
+       node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98e
+       bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc39
+       bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa12
+       features=
+       chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+       short_channel_id=103x1x0
+       node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+       node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+       bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+       bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+
+    # Invalid `channel_announcement`: short_channel_id *still* too young.
+    1. block: height=104 n=4
+    2. recv: type=channel_announcement
+       node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f63
+       node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98e
+       bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc39
+       bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa12
+       features=
+       chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+       short_channel_id=103x1x0
+       node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+       node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+       bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+       bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+
+    # This makes announcement otherwise acceptable.
+    1. block: height=104 n=5
+
+        # Invalid `channel_announcement`: bad node_signature_1.
+        1. recv: type=channel_announcement
+           node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f62
+           node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98e
+           bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc39
+           bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa12
+           features=
+           chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+           short_channel_id=103x1x0
+           node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+           node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+           bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+           bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+        2. expect-error:
+    
+        # Invalid `channel_announcement`: bad node_signature_2.
+        1. recv: type=channel_announcement
+           node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f63
+           node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98f
+           bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc39
+           bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa12
+           features=
+           chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+           short_channel_id=103x1x0
+           node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+           node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+           bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+           bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+        2. expect-error:
+     
+        # Invalid `channel_announcement`: bad bitcoin_signature_1.
+        1. recv: type=channel_announcement
+           node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f63
+           node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98e
+           bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc38
+           bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa12
+           features=
+           chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+           short_channel_id=103x1x0
+           node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+           node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+           bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+           bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+        2. expect-error:
+    
+        # Invalid `channel_announcement`: bad bitcoin_signature_2.
+        1. recv: type=channel_announcement
+           node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f63
+           node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98e
+           bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc39
+           bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa13
+           features=
+           chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+           short_channel_id=103x1x0
+           node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+           node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+           bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+           bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+        2. expect-error:
+    
+        # Ignored `channel_announcement`: bad chain_hash
+        1. recv: type=channel_announcement
+           node_signature_1=63023be1b5b1f9fbb26fde890032bf4098fba6a78be75a8dd9deae332f6d20ec634806cc3477c41ca565c45089a8331beb3912fb896188b117d525ee17c85f63
+           node_signature_2=7f2c0664c6205e3c9626b4b7618d18235c059f13579a41dd79ae99e1234d5e8709d295e77c3846b37c44edc7fc4bd1ab07b605c0d216973b6bb4d9dead54b98e
+           bitcoin_signature_1=083ccfe5a766dfe236446ddf52a4f89da5d3f3acc06851f2b0821223a069be02005f5cae7747451b8ae53709723c50fef2c7861c1b8b6bba1043e5bde56dbc39
+           bitcoin_signature_2=157a587d3495da5b953ba4a9f3a6ad8479a114e4bacbf4262dc257dd86f10db949e6e34e12ef95ead4ba5a9e38b86cd530920b7054914f1ee61ed4261783aa12
+           features=
+           chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf1889100
+           short_channel_id=103x1x0
+           node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+           node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+           bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+           bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+    
+        # Invalid `channel_announcement`: short_channel_id DNE
+        1. recv: type=channel_announcement
+           node_signature_1=69d878cc06a2444a92244534aa2a106b2a8270299f20d15a693d2416fa60fb8535342929dfb17fcfcd4f800692d16994861037333a5f9503b3eaf1091acd18b4
+           node_signature_2=dc678146f6f55db9d0751e24a045c1ce080aa973c1af9fbec7e2f088bb4eef322b746bb9cfcd3fddbf3b27f0b55517bc3f7e32d25652f51b7f1f7ca86d439b3b
+           bitcoin_signature_1=d0dca329a8705c92b7aa18f5d42731c31d17a0a0cd104c8e012c9c1f763f4f9857eba89b41264669c64be7316e38cd6c62a23bddb9db25773f28f421220339e4
+           bitcoin_signature_2=f8cc9ac5c9147c3077b60f7768403a3f251d421672de0867e6c0314074679d373e9038be8253ae3668586e7cedc50f347725c2296274b7e8e9e26efee9374513
+           features=
+           chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+           short_channel_id=103x5x0
+           node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+           node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+           bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+           bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+    
+        # Invalid `channel_announcement`: short_channel_id output DNE
+        1. recv: type=channel_announcement
+           node_signature_1=ff3d3d3cf42b2a967b51407d0097fb5bb5035117726ddc16de9758cc1d11d87e65e468e5554b8d69ee2cd3ece701c75417f9a70c7dbd4139732aff0daba31ce4
+           node_signature_2=5f709cca17429766bc7057c37d24b3820cc8541ae347b157ca693902b94729d6221000c776011cf427fdf7fff870262cadb4ed91fd44ee1fd7b2e5323d74ba17
+           bitcoin_signature_1=0ab5cc881ac52e0e3644831c0a0da7a18c94a2cc51e09b637ba6cff3bedfba8146be0d666a6b82f374bedc682a75491303dd286773b68d97f523df3169cf16b2
+           bitcoin_signature_2=9990fd49c489b880bf305fc56946356557c78cb306e915706b4ee02d8eec60497a322018f0e7b1896996860e304a82b3f27ea24038e63c05eb0e8fa1699dabb8
+           features=
+           chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+           short_channel_id=103x1x1
+           node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+           node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+           bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+           bitcoin_key_2=03d30199d74fb5a22d47b6e054e2f378cedacffcb89904a61d75d0dbd407143e65
+    
+        # Invalid `channel_announcement`: short_channel_id tx does not match
+        # (second bitcoin privkey is ...021 instead of ...020)
+        1. recv: type=channel_announcement
+           node_signature_1=97eaa79c72eca400466390454cfaae9805e3e827a396e9f0d91c6abd0371f8136252dad20b56258a4955f78e9e76d063ec9cace9ac0735879fe60620f7502bc9
+           node_signature_2=f1c432187bf0cf6629c7c99397f92153960630d2d766a2b59816c34c6a677a121414c20bf9dda865248112248fb0b017020e3676d6ebc6485c4056d55879d829
+           bitcoin_signature_1=387ccb63e1dca46f1926de5b963500982eabe9a375d755a804ced67a3977253a2a3bbd525fa0de438b7dc39ec4939a7d81d9c832725005dca77c8fd4ac1dbfa0
+           bitcoin_signature_2=0ea3ba77c7644cf34446f1c957cc95f9d2a6aa1abc939e4daddb180e3aa1b01f6c4613cbc9290cdbef74bbdd6a61da58e4ade784edc47795bab4514850f92fce
+           features=
+           chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+           short_channel_id=103x1x0
+           node_id_1=02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5
+           node_id_2=02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9
+           bitcoin_key_1=03e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a
+           bitcoin_key_2=021697ffa6fd9de627c077e3d2fe541084ce13300b0bec1146f95ae57f0d0bd6a5
+
+# To test if it accepted one of those channel_announcements, give it
+# the matching channel_update, which should make it broadcast.
+6. connect: privkey=0000000000000000000000000000000000000000000000000000000000000004
+7. recv: type=channel_update
+   signature=76df7e70c63cc2b63ef1c062b99c6d934a80ef2fd4dae9e1d86d277f47674af3255a97fa52ade7f129263f591ed784996eba6383135896cc117a438c80293282
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x1x0
+   timestamp=1565587763
+   message_flags=0
+   channel_flags=0
+   cltv_expiry_delta=144
+   htlc_minimum_msat=0
+   fee_base_msat=1000
+   fee_proportional_millionths=10
+8. recv: type=channel_update
+   signature=b236ed64ff6511baabba2b932e30da95e38c3d533e13870a96bb43150eb86a1453b00da41a5fc1ed5ae20f92c56812b40864996219b1e31188ae40e107e6140d
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x1x1
+   timestamp=1565587763
+   message_flags=0
+   channel_flags=0
+   cltv_expiry_delta=144
+   htlc_minimum_msat=0
+   fee_base_msat=1000
+   fee_proportional_millionths=10
+9. recv: type=channel_update
+   signature=0bff9ee3b8e6ef8670b39817c21b9a6cc172ec47f0ea6b4aa4ae2469c3c352267969a0bc70cbdd441fb6f7e305b61cac6d1f16d5e042f8b72742c1d2c9a35e90
+   chain_hash=06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f
+   short_channel_id=103x5x0
+   timestamp=1565587763
+   message_flags=0
+   channel_flags=0
+   cltv_expiry_delta=144
+   htlc_minimum_msat=0
+   fee_base_msat=1000
+   fee_proportional_millionths=10
+
+# New peer connects, asking for initial_routing_sync.  We *won't* relay channel_announcement.
+10. connect: privkey=0000000000000000000000000000000000000000000000000000000000000005
+11. expect-send: type=init
+12. recv: type=init localfeatures=08 globalfeatures=
+13. must-not-send: type=channel_announcement
+14. must-not-send: type=channel_update
