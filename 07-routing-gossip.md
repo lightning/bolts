@@ -918,27 +918,30 @@ significantly out of sync with each other.
   - MUST set `num_channel_updates` to the number of valid unique `channel_update`s it has.
   - MUST set `num_node_announcements` to the number of valid unique `node_announcement`s it has.
   - SHOULD NOT send `gossip_status` if it knows it is not synced with the latest block.
-  - SHOULD NOT send `gossip_status` more than once per minute.
-
+  - SHOULD send `gossip_status` after the initial `gossip_timestamp_filter` message.
 
 - A receiving node:
   - If it does not advertize `option_gossip_status`, SHOULD ignore `gossip_status`.
   - If it has responded to a `gossip_status` from this peer already without a reconnection:
-    - SHOULD ignore `option_gossip_status`
+    - SHOULD ignore `option_gossip_status`.
   - If it has responded to a `gossip_status` from this peer recently:
     - MAY ignore `option_gossip_status`.
   - If it has more than 100 more `channel_announcement` than `num_channel_announcements`:
-    - SHOULD send all `channel_announcement`, `channel_update` and `node_announcement` to the peer
+    - SHOULD send all `channel_announcement`, `channel_update` and `node_announcement` to the peer.
   - Otherwise, if it has 100 more `channel_update` than `num_channel_updates`:
-    - SHOULD send all `channel_update` to the peer
+    - SHOULD send all `channel_update` to the peer.
+	- MAY send additional gossip messages.
   - Otherwise, if it has 100 more `node_announcement` than `num_node_announcements`:
-    - SHOULD send all `node_announcement` to the peer
+    - SHOULD send all `node_announcement` to the peer.
+	- MAY send additional gossip messages.
 
 #### Rationale
 
 Nodes can fall out of sync with the current gossip, either because they are offline for significant periods, or because peers are limiting the gossip they relay.  Various heuristics can be used to detect this, as can randomly asking a peer for all gossip, but this is both more reliable and more network friendly.
 
 The number 100 is chosen fairly arbitrarily as greater than the largest number of channels opened in a single block, so one node being a block behind will not trigger a flood of gossip.
+
+The requirements explicitly allow an implementation to simply "send all gossip" when any count is too far behind.
 
 ## Rebroadcasting
 
