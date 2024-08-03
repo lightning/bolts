@@ -360,7 +360,7 @@ Note that there are two possible variants for each node.
    * `txin[0]` sequence: 0xFFFFFFFF
    * `txin[0]` script bytes: 0
    * `txin[0]` witness: `0 <signature_for_pubkey1> <signature_for_pubkey2>`
-* txout count: 0, 1 or 2
+* txout count: 1 or 2
    * `txout` amount: final balance to be paid to one node (minus `fee_satoshis` from `closing_signed`, if this peer funded the channel)
    * `txout` script: as specified in that node's `scriptpubkey` in its `shutdown` message
 
