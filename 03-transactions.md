@@ -514,7 +514,7 @@ Bitcoin Core defines the following dust thresholds:
 - pay to witness script hash (p2wsh): 330 satoshis
 - unknown segwit versions: 354 satoshis
 
-The rationale of this calculation (implemented [here](https://github.com/bitcoin/bitcoin/blob/0.21/src/policy/policy.cpp))
+The rationale of this calculation (implemented [here](https://github.com/bitcoin/bitcoin/blob/2aff9a36c352640a263e8b5de469710f7e80eb54/src/policy/policy.cpp#L28))
 is explained in the following sections.
 
 In all these sections, the calculations are done with a feerate of 3000 sat/kB
