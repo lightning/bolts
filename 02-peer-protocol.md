@@ -44,6 +44,7 @@ operation, and closing.
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
+      * [Alternative Addresses: `alt_addr`](#alternative-addresses-alt_addr)
     * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
   * [Authors](#authors)
 
@@ -2376,6 +2377,52 @@ If on-chain fees increase while commitments contain many HTLCs that will
 be trimmed at the updated feerate, this could overflow the configured
 `max_dust_htlc_exposure_msat`. Whether to close the channel preemptively
 or not is left as a matter of node policy.
+
+### Alternative Addresses: `alt_addr`
+
+The `alt_addr` message allows a node to specify private alternative connection
+addresses for a peer. These addresses are used for reconnections between nodes
+with an existing relationship, bypassing the public gossip protocol. Peers with
+an established channel or history may opt to use alternative addresses for
+improved privacy, reliability, or latency.
+
+1. type: 209 (`peer_alt_addr`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u8`:`addr_len`]
+   * [`addr_len*byte`:`addr`]
+
+#### Requirements
+
+A sending node:
+  - SHOULD send `alt_addr` when a new connection address is necessary for
+    enhanced privacy or network performance.
+  - MAY send an empty `IPADDRESS` to clear any previously stored alternative
+    addresses.
+  - MUST store a record of the peers to whom it has sent its `alt_addr` for
+    future verification.
+  - MUST verify that an incoming connection attempt using `alt_addr` is from
+    the specific peer to whom it has previously provided that exact address.
+  - MUST reject connection attempts using `alt_addr` if it has not sent that
+    specific `alt_addr` to the connecting peer.
+
+A receiving node:
+  - MUST store the `alt_addr` in persistent storage upon successful validation.
+  - MUST use the stored `alt_addr` when initiating a connection to the peer
+    that provided it.
+  - MAY continue using the original address until `alt_addr` is fully validated.
+
+#### Rationale
+
+The `alt_addr` feature enhances security and control over network communications
+by allowing nodes to manage private, alternative connection addresses that are
+not publicly disclosed. This capability is particularly useful in scenarios
+where a public address may not be optimal, enabling nodes to decide which peers
+can use these alternative addresses without impacting their public presence.
+
+This feature integrates with `alt-bind-addr` and `alt-announce-addr`, which
+allow nodes to bind and announce alternative addresses selectively. This
+provides additional control over network connections and privacy.
 
 ## Message Retransmission
 
