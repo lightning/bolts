@@ -5,46 +5,116 @@ operation, and closing.
 
 # Table of Contents
 
-  * [Channel](#channel)
-    * [Definition of `channel_id`](#definition-of-channel_id)
-    * [Interactive Transaction Construction](#interactive-transaction-construction)
-      * [Set-Up and Vocabulary](#set-up-and-vocabulary)
-      * [Fee Responsibility](#fee-responsibility)
-      * [Overview](#overview)
-      * [The `tx_add_input` Message](#the-tx_add_input-message)
-      * [The `tx_add_output` Message](#the-tx_add_output-message)
-      * [The `tx_remove_input` and `tx_remove_output` Messages](#the-tx_remove_input-and-tx_remove_output-messages)
-      * [The `tx_complete` Message](#the-tx_complete-message)
-      * [The `tx_signatures` Message](#the-tx_signatures-message)
-      * [The `tx_init_rbf` Message](#the-tx_init_rbf-message)
-      * [The `tx_ack_rbf` Message](#the-tx_ack_rbf-message)
-      * [The `tx_abort` Message](#the-tx_abort-message)
-    * [Channel Establishment v1](#channel-establishment-v1)
-      * [The `open_channel` Message](#the-open_channel-message)
-      * [The `accept_channel` Message](#the-accept_channel-message)
-      * [The `funding_created` Message](#the-funding_created-message)
-      * [The `funding_signed` Message](#the-funding_signed-message)
-      * [The `channel_ready` Message](#the-channel_ready-message)
-    * [Channel Establishment v2](#channel-establishment-v2)
-      * [The `open_channel2` Message](#the-open_channel2-message)
-      * [The `accept_channel2` Message](#the-accept_channel2-message)
-      * [Funding Composition](#funding-composition)
-      * [The `commitment_signed` Message](#the-commitment_signed-message)
-      * [Sharing funding signatures: `tx_signatures`](#sharing-funding-signatures-tx_signatures)
-      * [Fee bumping: `tx_init_rbf` and `tx_ack_rbf`](#fee-bumping-tx_init_rbf-and-tx_ack_rbf)
-    * [Channel Close](#channel-close)
-      * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
-      * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
-    * [Normal Operation](#normal-operation)
-      * [Forwarding HTLCs](#forwarding-htlcs)
-      * [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
-      * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
-      * [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)
-      * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
-      * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
-      * [Updating Fees: `update_fee`](#updating-fees-update_fee)
-    * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
-  * [Authors](#authors)
+- [BOLT #2: Peer Protocol for Channel Management](#bolt-2-peer-protocol-for-channel-management)
+- [Table of Contents](#table-of-contents)
+- [Channel](#channel)
+  - [Definition of `channel_id`](#definition-of-channel_id)
+    - [`channel_id`, v2](#channel_id-v2)
+      - [Rationale](#rationale)
+  - [Interactive Transaction Construction](#interactive-transaction-construction)
+    - [Set-Up and Vocabulary](#set-up-and-vocabulary)
+    - [Fee Responsibility](#fee-responsibility)
+    - [Overview](#overview)
+      - [*initiator* only](#initiator-only)
+      - [*initiator* and *non-initiator*](#initiator-and-non-initiator)
+    - [The `tx_add_input` Message](#the-tx_add_input-message)
+      - [Requirements](#requirements)
+      - [Rationale](#rationale-1)
+      - [Liquidity griefing](#liquidity-griefing)
+    - [The `tx_add_output` Message](#the-tx_add_output-message)
+      - [Requirements](#requirements-1)
+      - [Rationale](#rationale-2)
+    - [The `tx_remove_input` and `tx_remove_output` Messages](#the-tx_remove_input-and-tx_remove_output-messages)
+      - [Requirements](#requirements-2)
+    - [The `tx_complete` Message](#the-tx_complete-message)
+      - [Requirements](#requirements-3)
+      - [Rationale](#rationale-3)
+    - [The `tx_signatures` Message](#the-tx_signatures-message)
+      - [Requirements](#requirements-4)
+      - [Rationale](#rationale-4)
+    - [The `tx_init_rbf` Message](#the-tx_init_rbf-message)
+      - [Requirements](#requirements-5)
+      - [Rationale](#rationale-5)
+    - [The `tx_ack_rbf` Message](#the-tx_ack_rbf-message)
+      - [Requirements](#requirements-6)
+      - [Rationale](#rationale-6)
+    - [The `tx_abort` Message](#the-tx_abort-message)
+      - [Requirements](#requirements-7)
+      - [Rationale](#rationale-7)
+  - [Channel Establishment v1](#channel-establishment-v1)
+    - [The `open_channel` Message](#the-open_channel-message)
+      - [Defined Channel Types](#defined-channel-types)
+      - [Requirements](#requirements-8)
+      - [Rationale](#rationale-8)
+    - [The `accept_channel` Message](#the-accept_channel-message)
+      - [Requirements](#requirements-9)
+    - [The `funding_created` Message](#the-funding_created-message)
+      - [Requirements](#requirements-10)
+      - [Rationale](#rationale-9)
+    - [The `funding_signed` Message](#the-funding_signed-message)
+      - [Requirements](#requirements-11)
+      - [Rationale](#rationale-10)
+    - [The `channel_ready` Message](#the-channel_ready-message)
+      - [Requirements](#requirements-12)
+      - [Rationale](#rationale-11)
+  - [Channel Establishment v2](#channel-establishment-v2)
+    - [The `open_channel2` Message](#the-open_channel2-message)
+      - [Requirements](#requirements-13)
+      - [Rationale](#rationale-12)
+    - [The `accept_channel2` Message](#the-accept_channel2-message)
+      - [Requirements](#requirements-14)
+      - [Rationale](#rationale-13)
+    - [Funding Composition](#funding-composition)
+      - [The `tx_add_input` Message](#the-tx_add_input-message-1)
+        - [Requirements](#requirements-15)
+      - [The `tx_add_output` Message](#the-tx_add_output-message-1)
+        - [Requirements](#requirements-16)
+        - [Rationale](#rationale-14)
+      - [The `tx_complete` Message](#the-tx_complete-message-1)
+    - [The `commitment_signed` Message](#the-commitment_signed-message)
+      - [Requirements](#requirements-17)
+      - [Rationale](#rationale-15)
+    - [Sharing funding signatures: `tx_signatures`](#sharing-funding-signatures-tx_signatures)
+      - [Requirements](#requirements-18)
+      - [Rationale](#rationale-16)
+    - [Fee bumping: `tx_init_rbf` and `tx_ack_rbf`](#fee-bumping-tx_init_rbf-and-tx_ack_rbf)
+      - [Requirements](#requirements-19)
+      - [Rationale](#rationale-17)
+  - [Channel Close](#channel-close)
+    - [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
+      - [Requirements](#requirements-20)
+      - [Rationale](#rationale-18)
+    - [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
+      - [Requirements](#requirements-21)
+      - [Rationale](#rationale-19)
+  - [Normal Operation](#normal-operation)
+    - [Forwarding HTLCs](#forwarding-htlcs)
+      - [Requirements](#requirements-22)
+      - [Rationale](#rationale-20)
+    - [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
+      - [Requirements](#requirements-23)
+    - [Bounding exposure to trimmed in-flight HTLCs: `max_dust_htlc_exposure_msat`](#bounding-exposure-to-trimmed-in-flight-htlcs-max_dust_htlc_exposure_msat)
+    - [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
+      - [Requirements](#requirements-24)
+      - [Rationale](#rationale-21)
+    - [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)
+      - [Requirements](#requirements-25)
+      - [Rationale](#rationale-22)
+    - [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
+      - [Requirements](#requirements-26)
+      - [Rationale](#rationale-23)
+    - [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
+      - [Requirements](#requirements-27)
+    - [Updating Fees: `update_fee`](#updating-fees-update_fee)
+      - [Requirements](#requirements-28)
+      - [Rationale](#rationale-24)
+    - [Alternative Addresses: `alt_addr`](#alternative-addresses-alt_addr)
+      - [Requirements](#requirements-29)
+      - [Rationale](#rationale-25)
+  - [Message Retransmission](#message-retransmission)
+    - [Requirements](#requirements-30)
+    - [Rationale](#rationale-26)
+- [Authors](#authors)
 
 # Channel
 
@@ -2304,6 +2374,54 @@ If on-chain fees increase while commitments contain many HTLCs that will
 be trimmed at the updated feerate, this could overflow the configured
 `max_dust_htlc_exposure_msat`. Whether to close the channel preemptively
 or not is left as a matter of node policy.
+
+### Alternative Addresses: `alt_addr`
+
+The `alt_addr` message allows a node to specify private alternative connection
+addresses for a peer. These addresses are used for reconnections between nodes
+with an existing relationship, bypassing the public gossip protocol. Peers with
+an established channel or history may opt to use alternative addresses for
+improved privacy, reliability, or latency.
+
+1. type: 209 (`peer_alt_addr`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u8`:`addr_len`]
+   * [`addr_len*byte`:`addr`]
+
+#### Requirements
+
+A sending node:
+  - SHOULD send `alt_addr` when a new connection address is necessary for
+    enhanced privacy or network performance.
+  - MAY send an empty `IPADDRESS` to clear any previously stored alternative
+    addresses.
+  - MUST ensure that the `alt_addr` conforms to any applicable network policies
+    and security standards.
+  - MUST store a record of the peers to whom it has sent its `alt_addr` for
+    future verification.
+  - MUST verify that an incoming connection attempt using `alt_addr` is from
+    the specific peer to whom it has previously provided that exact address.
+  - MUST reject connection attempts using `alt_addr` if it has not sent that
+    specific `alt_addr` to the connecting peer.
+
+A receiving node:
+  - MUST store the `alt_addr` in persistent storage upon successful validation.
+  - MUST use the stored `alt_addr` when initiating a connection to the peer
+    that provided it.
+  - MAY continue using the original address until `alt_addr` is fully validated.
+
+#### Rationale
+
+The `alt_addr` feature enhances security and control over network communications
+by allowing nodes to manage private, alternative connection addresses that are
+not publicly disclosed. This capability is particularly useful in scenarios
+where a public address may not be optimal, enabling nodes to decide which peers
+can use these alternative addresses without impacting their public presence.
+
+This feature integrates with `alt-bind-addr` and `alt-announce-addr`, which
+allow nodes to bind and announce alternative addresses selectively. This
+provides additional control over network connections and privacy.
 
 ## Message Retransmission
 
