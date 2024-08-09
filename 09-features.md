@@ -45,6 +45,7 @@ The Context column decodes as follows:
 | 24/25 | `option_route_blinding`           | Node supports blinded paths                               | IN9      |                           | [BOLT #4](bolt04-route-blinding)                                      |
 | 26/27 | `option_shutdown_anysegwit`       | Future segwit versions allowed in `shutdown`              | IN       |                           | [BOLT #2][bolt02-shutdown]                                            |
 | 28/29 | `option_dual_fund`                | Use v2 of channel open, enables dual funding              | IN       |                           | [BOLT #2](02-peer-protocol.md)                                        |
+| 34/35 | `option_quiesce`             | Support for `stfu` message                                     | IN       |                            | [BOLT #2][bolt02-quiescence]                                         |
 | 38/39 | `option_onion_messages`           | Can forward onion messages                                | IN       |                           | [BOLT #7](04-onion-routing.md#onion-messages)                         |
 | 44/45 | `option_channel_type`             | Node supports the `channel_type` field in open/accept     | IN       |                           | [BOLT #2](02-peer-protocol.md#the-open_channel-message)               |
 | 46/47 | `option_scid_alias`               | Supply channel aliases for routing                        | IN       |                           | [BOLT #2][bolt02-channel-ready]                                       |
@@ -97,6 +98,7 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt02-open]: 02-peer-protocol.md#the-open_channel-message
 [bolt03-htlc-tx]: 03-transactions.md#htlc-timeout-and-htlc-success-transactions
 [bolt02-shutdown]: 02-peer-protocol.md#closing-initiation-shutdown
+[bolt02-quiescence]: 02-peer-protocol.md#channel-quiescence
 [bolt02-channel-ready]: 02-peer-protocol.md#the-channel_ready-message
 [bolt04]: 04-onion-routing.md
 [bolt07-sync]: 07-routing-gossip.md#initial-sync

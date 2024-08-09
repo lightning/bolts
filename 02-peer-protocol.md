@@ -5,116 +5,48 @@ operation, and closing.
 
 # Table of Contents
 
-- [BOLT #2: Peer Protocol for Channel Management](#bolt-2-peer-protocol-for-channel-management)
-- [Table of Contents](#table-of-contents)
-- [Channel](#channel)
-  - [Definition of `channel_id`](#definition-of-channel_id)
-    - [`channel_id`, v2](#channel_id-v2)
-      - [Rationale](#rationale)
-  - [Interactive Transaction Construction](#interactive-transaction-construction)
-    - [Set-Up and Vocabulary](#set-up-and-vocabulary)
-    - [Fee Responsibility](#fee-responsibility)
-    - [Overview](#overview)
-      - [*initiator* only](#initiator-only)
-      - [*initiator* and *non-initiator*](#initiator-and-non-initiator)
-    - [The `tx_add_input` Message](#the-tx_add_input-message)
-      - [Requirements](#requirements)
-      - [Rationale](#rationale-1)
-      - [Liquidity griefing](#liquidity-griefing)
-    - [The `tx_add_output` Message](#the-tx_add_output-message)
-      - [Requirements](#requirements-1)
-      - [Rationale](#rationale-2)
-    - [The `tx_remove_input` and `tx_remove_output` Messages](#the-tx_remove_input-and-tx_remove_output-messages)
-      - [Requirements](#requirements-2)
-    - [The `tx_complete` Message](#the-tx_complete-message)
-      - [Requirements](#requirements-3)
-      - [Rationale](#rationale-3)
-    - [The `tx_signatures` Message](#the-tx_signatures-message)
-      - [Requirements](#requirements-4)
-      - [Rationale](#rationale-4)
-    - [The `tx_init_rbf` Message](#the-tx_init_rbf-message)
-      - [Requirements](#requirements-5)
-      - [Rationale](#rationale-5)
-    - [The `tx_ack_rbf` Message](#the-tx_ack_rbf-message)
-      - [Requirements](#requirements-6)
-      - [Rationale](#rationale-6)
-    - [The `tx_abort` Message](#the-tx_abort-message)
-      - [Requirements](#requirements-7)
-      - [Rationale](#rationale-7)
-  - [Channel Establishment v1](#channel-establishment-v1)
-    - [The `open_channel` Message](#the-open_channel-message)
-      - [Defined Channel Types](#defined-channel-types)
-      - [Requirements](#requirements-8)
-      - [Rationale](#rationale-8)
-    - [The `accept_channel` Message](#the-accept_channel-message)
-      - [Requirements](#requirements-9)
-    - [The `funding_created` Message](#the-funding_created-message)
-      - [Requirements](#requirements-10)
-      - [Rationale](#rationale-9)
-    - [The `funding_signed` Message](#the-funding_signed-message)
-      - [Requirements](#requirements-11)
-      - [Rationale](#rationale-10)
-    - [The `channel_ready` Message](#the-channel_ready-message)
-      - [Requirements](#requirements-12)
-      - [Rationale](#rationale-11)
-  - [Channel Establishment v2](#channel-establishment-v2)
-    - [The `open_channel2` Message](#the-open_channel2-message)
-      - [Requirements](#requirements-13)
-      - [Rationale](#rationale-12)
-    - [The `accept_channel2` Message](#the-accept_channel2-message)
-      - [Requirements](#requirements-14)
-      - [Rationale](#rationale-13)
-    - [Funding Composition](#funding-composition)
-      - [The `tx_add_input` Message](#the-tx_add_input-message-1)
-        - [Requirements](#requirements-15)
-      - [The `tx_add_output` Message](#the-tx_add_output-message-1)
-        - [Requirements](#requirements-16)
-        - [Rationale](#rationale-14)
-      - [The `tx_complete` Message](#the-tx_complete-message-1)
-    - [The `commitment_signed` Message](#the-commitment_signed-message)
-      - [Requirements](#requirements-17)
-      - [Rationale](#rationale-15)
-    - [Sharing funding signatures: `tx_signatures`](#sharing-funding-signatures-tx_signatures)
-      - [Requirements](#requirements-18)
-      - [Rationale](#rationale-16)
-    - [Fee bumping: `tx_init_rbf` and `tx_ack_rbf`](#fee-bumping-tx_init_rbf-and-tx_ack_rbf)
-      - [Requirements](#requirements-19)
-      - [Rationale](#rationale-17)
-  - [Channel Close](#channel-close)
-    - [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
-      - [Requirements](#requirements-20)
-      - [Rationale](#rationale-18)
-    - [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
-      - [Requirements](#requirements-21)
-      - [Rationale](#rationale-19)
-  - [Normal Operation](#normal-operation)
-    - [Forwarding HTLCs](#forwarding-htlcs)
-      - [Requirements](#requirements-22)
-      - [Rationale](#rationale-20)
-    - [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
-      - [Requirements](#requirements-23)
-    - [Bounding exposure to trimmed in-flight HTLCs: `max_dust_htlc_exposure_msat`](#bounding-exposure-to-trimmed-in-flight-htlcs-max_dust_htlc_exposure_msat)
-    - [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
-      - [Requirements](#requirements-24)
-      - [Rationale](#rationale-21)
-    - [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)
-      - [Requirements](#requirements-25)
-      - [Rationale](#rationale-22)
-    - [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
-      - [Requirements](#requirements-26)
-      - [Rationale](#rationale-23)
-    - [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
-      - [Requirements](#requirements-27)
-    - [Updating Fees: `update_fee`](#updating-fees-update_fee)
-      - [Requirements](#requirements-28)
-      - [Rationale](#rationale-24)
-    - [Alternative Addresses: `alt_addr`](#alternative-addresses-alt_addr)
-      - [Requirements](#requirements-29)
-      - [Rationale](#rationale-25)
-  - [Message Retransmission](#message-retransmission)
-    - [Requirements](#requirements-30)
-    - [Rationale](#rationale-26)
-- [Authors](#authors)
+  * [Channel](#channel)
+    * [Definition of `channel_id`](#definition-of-channel_id)
+    * [Interactive Transaction Construction](#interactive-transaction-construction)
+      * [Set-Up and Vocabulary](#set-up-and-vocabulary)
+      * [Fee Responsibility](#fee-responsibility)
+      * [Overview](#overview)
+      * [The `tx_add_input` Message](#the-tx_add_input-message)
+      * [The `tx_add_output` Message](#the-tx_add_output-message)
+      * [The `tx_remove_input` and `tx_remove_output` Messages](#the-tx_remove_input-and-tx_remove_output-messages)
+      * [The `tx_complete` Message](#the-tx_complete-message)
+      * [The `tx_signatures` Message](#the-tx_signatures-message)
+      * [The `tx_init_rbf` Message](#the-tx_init_rbf-message)
+      * [The `tx_ack_rbf` Message](#the-tx_ack_rbf-message)
+      * [The `tx_abort` Message](#the-tx_abort-message)
+    * [Channel Establishment v1](#channel-establishment-v1)
+      * [The `open_channel` Message](#the-open_channel-message)
+      * [The `accept_channel` Message](#the-accept_channel-message)
+      * [The `funding_created` Message](#the-funding_created-message)
+      * [The `funding_signed` Message](#the-funding_signed-message)
+      * [The `channel_ready` Message](#the-channel_ready-message)
+    * [Channel Establishment v2](#channel-establishment-v2)
+      * [The `open_channel2` Message](#the-open_channel2-message)
+      * [The `accept_channel2` Message](#the-accept_channel2-message)
+      * [Funding Composition](#funding-composition)
+      * [The `commitment_signed` Message](#the-commitment_signed-message)
+      * [Sharing funding signatures: `tx_signatures`](#sharing-funding-signatures-tx_signatures)
+      * [Fee bumping: `tx_init_rbf` and `tx_ack_rbf`](#fee-bumping-tx_init_rbf-and-tx_ack_rbf)
+    * [Channel Quiescence](#channel-quiescence)
+    * [Channel Close](#channel-close)
+      * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
+      * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
+    * [Normal Operation](#normal-operation)
+      * [Forwarding HTLCs](#forwarding-htlcs)
+      * [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
+      * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
+      * [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)
+      * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
+      * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
+      * [Updating Fees: `update_fee`](#updating-fees-update_fee)
+      * [Alternative Addresses: `alt_addr`](#alternative-addresses-alt_addr)
+    * [Message Retransmission: `channel_reestablish` message](#message-retransmission)
+  * [Authors](#authors)
 
 # Channel
 
@@ -1058,18 +990,16 @@ The recipient:
 
 #### Rationale
 
-We decide on
-`option_anchors` at this point when we first have to generate
-the commitment transaction. The feature bits that were communicated in the
-`init` message exchange for the current connection determine the channel
-commitment format for the total lifetime of the channel. Even if a later
-reconnection does not negotiate this parameter, this channel will continue to
-use `option_static_remotekey` or
+We decide on `option_static_remotekey` or `option_anchors` at this point
+when we first have to generate the commitment transaction. The feature
+bits that were communicated in the `init` message exchange for the current
+connection determine the channel commitment format for the total lifetime
+of the channel. Even if a later reconnection does not negotiate this
+parameter, this channel will continue to use `option_static_remotekey` or
 `option_anchors`; we don't support "downgrading".
 
-`option_anchors` is considered superior to
-`option_static_remotekey`, and the superior one is favored if more than one
-is negotiated.
+`option_anchors` is considered superior to `option_static_remotekey`,
+and the superior one is favored if more than one is negotiated.
 
 ### The `channel_ready` Message
 
@@ -1499,6 +1429,74 @@ It's recommended that a peer, rather than fail the RBF negotiation due to
 a large feerate change, instead sets their `sats` to zero, and decline to
 participate further in the channel funding: by not contributing, they
 may obtain incoming liquidity at no cost.
+
+## Channel Quiescence
+
+Various fundamental changes, in particular protocol upgrades, are
+easiest on channels where both commitment transactions match, and no
+pending updates are in flight.  We define a protocol to quiesce the
+channel by indicating that "SomeThing Fundamental is Underway".
+
+### `stfu`
+
+1. type: 2 (`stfu`)
+2. data:
+    * [`channel_id`:`channel_id`]
+    * [`u8`:`initiator`]
+
+### Requirements
+
+The sender of `stfu`:
+  - MUST NOT send `stfu` unless `option_quiesce` is negotiated.
+  - MUST NOT send `stfu` if any of the sender's htlc additions, htlc removals
+    or fee updates are pending for either peer.
+  - MUST NOT send `stfu` twice.
+  - if it is replying to an `stfu`:
+    - MUST set `initiator` to 0
+  - otherwise:
+    - MUST set `initiator` to 1
+  - MUST set `channel_id` to the id of the channel to quiesce.
+  - MUST now consider the channel to be quiescing.
+  - MUST NOT send an update message after `stfu`.
+
+The receiver of `stfu`:
+  - if it has sent `stfu` then:
+    - MUST now consider the channel to be quiescent
+  - otherwise:
+    - SHOULD NOT send any more update messages.
+    - MUST reply with `stfu` once it can do so.
+
+Both nodes:
+  - MUST disconnect after 60 seconds of quiescence if the HTLCs are pending.
+
+Upon disconnection:
+  - the channel is no longer considered quiescent.
+
+Dependent Protocols:
+  - MUST specify all states that terminate quiescence.
+    - NOTE: this prevents batching executions of protocols that depend on
+      quiescence.
+
+### Rationale
+
+The normal use would be to cease sending updates, then wait for all
+the current updates to be acknowledged by both peers, then start
+quiescence.  For some protocols, choosing the initiator matters,
+so this flag is sent.
+
+If both sides send `stfu` simultaneously, they will both set
+`initiator` to `1`, in which case the "initiator" is arbitrarily
+considered to be the channel funder (the sender of `open_channel`).
+The quiescence effect is exactly the same as if one had replied to the
+other.
+
+Dependent protocols have to specify termination conditions to prevent the need
+for disconnection to resume channel traffic. An explicit resume message was
+[considered but rejected](https://github.com/rustyrussell/lightning-rfc/pull/14)
+since it introduces a number of edge cases that make bilateral consensus of
+channel state significantly more complex to maintain. This introduces the
+derivative property that it is impossible to batch multiple downstream protocols
+in the same quiescence session.
 
 ## Channel Close
 
@@ -1952,7 +1950,7 @@ A node:
 The `max_dust_htlc_exposure_msat` is an upper bound on the trimmed balance from
 dust exposure. The exact value used is a matter of node policy.
 
-For channels that don't use `option_anchors_zero_fee_htlc_tx`, an increase of
+For channels that don't use `option_anchors`, an increase of
 the `feerate_per_kw` may trim multiple htlcs from commitment transactions,
 which could create a large increase in dust exposure.
 
@@ -1978,9 +1976,9 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 
 1. `tlv_stream`: `update_add_htlc_tlvs`
 2. types:
-    1. type: 0 (`blinding_point`)
+    1. type: 0 (`blinded_path`)
     2. data:
-        * [`point`:`blinding`]
+        * [`point`:`path_key`]
 
 #### Requirements
 
@@ -2018,7 +2016,7 @@ A sending node:
     - MUST set `id` to 0.
   - MUST increase the value of `id` by 1 for each successive offer.
   - if it is relaying a payment inside a blinded route:
-    - MUST set `blinding_point` (see [Route Blinding](04-onion-routing.md#route-blinding))
+    - MUST set `path_key` (see [Route Blinding](04-onion-routing.md#route-blinding))
 
 `id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
 been received). It MUST continue incrementing instead.
@@ -2043,8 +2041,13 @@ A receiving node:
   - if other `id` violations occur:
     - MAY send a `warning` and close the connection, or send an
       `error` and fail the channel.
-  - if `blinding_point` is provided:
-    - MUST use the corresponding blinded private key to decrypt the `onion_routing_packet` (see [Route Blinding](04-onion-routing.md#route-blinding))
+  - MUST decrypt `onion_routing_packet` as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract a `payload`.
+    - MUST use `path_key` (if specified).
+    - MUST use `payment_hash` as `associated_data`.
+  - If decryption fails, the result is not a valid `payload` TLV, or it contains unknown even types:
+    - MUST respond with an error as detailed in [Failure Messages](04-onion-routing.md#failure-messages)
+  - Otherwise:
+    - MUST follow the requirements for the reader of `payload` in [Payload Format](04-onion-routing.md#payload-format)
 
 The `onion_routing_packet` contains an obfuscated list of hops and instructions for each hop along the path.
 It commits to the HTLC by setting the `payment_hash` as associated data, i.e. includes the `payment_hash` in the computation of HMACs.
@@ -2128,14 +2131,14 @@ A node:
     - MUST NOT send an `update_fulfill_htlc`, `update_fail_htlc`, or
 `update_fail_malformed_htlc`.
   - When failing an incoming HTLC:
-    - If `current_blinding_point` is set in the onion payload and it is not the
+    - If `current_path_key` is set in the onion payload and it is not the
       final node:
       - MUST send an `update_fail_htlc` error using the `invalid_onion_blinding`
         failure code for any local or downstream errors.
       - SHOULD use the `sha256_of_onion` of the onion it received.
       - MAY use an all zero `sha256_of_onion`.
       - SHOULD add a random delay before sending `update_fail_htlc`.
-    - If `blinding_point` is set in the incoming `update_add_htlc`:
+    - If `path_key` is set in the incoming `update_add_htlc`:
       - MUST send an `update_fail_malformed_htlc` error using the
         `invalid_onion_blinding` failure code for any local or downstream errors.
       - SHOULD use the `sha256_of_onion` of the onion it received.
@@ -2320,7 +2323,7 @@ The node _not responsible_ for paying the Bitcoin fee:
   - MUST NOT send `update_fee`.
 
 A sending node:
-  - if `option_anchors_zero_fee_htlc_tx` was not negotiated:
+  - if `option_anchors` was not negotiated:
     - if the `update_fee` increases `feerate_per_kw`:
       - if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater than `max_dust_htlc_exposure_msat`:
         - MAY NOT send `update_fee`
@@ -2341,7 +2344,7 @@ A receiving node:
     - SHOULD send a `warning` and close the connection, or send an
       `error` and fail the channel.
       - but MAY delay this check until the `update_fee` is committed.
-    - if `option_anchors_zero_fee_htlc_tx` was not negotiated:
+    - if `option_anchors` was not negotiated:
       - if the `update_fee` increases `feerate_per_kw`:
         - if the dust balance of the remote transaction at the updated `feerate_per_kw` is greater then `max_dust_htlc_exposure_msat`:
           - MAY fail the channel

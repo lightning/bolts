@@ -606,7 +606,7 @@ to arrive at a reasonable fee.
 
 A node which broadcasts an HTLC-success or HTLC-timeout transaction for a
 commitment transaction:
-  1. if `option_anchors` applies:
+  - if `option_anchors` applies:
     - MUST combine it with inputs contributing sufficient fee to ensure timely
       inclusion in a block.
     - MAY combine it with other transactions.
