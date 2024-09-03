@@ -1135,6 +1135,7 @@ are selling.
     * [`u16`:`funding_weight`]
     * [`u16`:`funding_fee_basis`]
     * [`u32`:`funding_fee_base_sat`]
+    * [`u32`:`channel_creation_fee_sat`]
 
 Sellers also define how the fees can be paid by listing the `payment_type`s
 they support.
@@ -1202,16 +1203,27 @@ When `request_funds` and `will_fund` have been exchanged, the buyer agrees to
 pay fees to the seller for the funding they provide to the channel based on
 the proposed `funding_weight`, `funding_fee_basis` and `funding_fee_base_sat`.
 
+If the buyer is opening a new channel, an additional `channel_creation_fee_sat`
+is applied. This can be used to hedge some of the future cost of closing that
+channel, which doesn't apply when additional liquidity is purchased on an
+existing channel (since the creation fee has already been paid).
+
 The funding fee has three components:
 
-* a fixed amount: `funding_fee_base_sat`
+* a fixed amount:
+  * `funding_fee_base_sat` if liquidity is purchased on an existing channel
+  * `funding_fee_base_sat + channel_creation_fee_sat` when opening a channel
 * a proportional amount based on the seller's `funding_amount`:
   * `paid_funding_contribution = min(funding_amount, request_funds.requested_sats)`
   * `funding_fee_proportional_sat = paid_funding_contribution * funding_fee_basis / 10_000`
 * a contribution to the on-chain fees paid by the seller:
   * `funding_fee_mining_sat = funding_weight * funding_feerate_perkw / 1000`
 
-The total fee is then:
+The total fee for a channel creation is then:
+
+    funding_fee_total = funding_fee_base_sat + channel_creation_fee_sat + funding_fee_proportional_sat + funding_fee_mining_sat
+
+The total fee for buying liquidity on an existing channel is:
 
     funding_fee_total = funding_fee_base_sat + funding_fee_proportional_sat + funding_fee_mining_sat
 
@@ -1229,6 +1241,8 @@ A node advertising a `funding_rate`:
   - MUST set `min_funding_amount_sat` and `max_funding_amount_sat` to the
     minimum and maximum amount it will contribute at this rate.
   - MUST set `funding_fee_base_sat` to the base fee (in satoshi) it will charge.
+  - MUST set `channel_creation_fee_sat` to the additional fee it will charge for
+    channel creation.
   - MUST set `funding_fee_basis` to the amount it will charge per contributed
     satoshi (in basis points, ie 1/10_000).
   - MUST set `funding_weight` to the transaction weight that will be charged.
@@ -1255,28 +1269,30 @@ The seller contributes `1_100_000 sats` with the following funding rate:
 
 	funding_weight = 444
 	funding_fee_base_sat = 233 sats
+  channel_creation_fee_sat = 500 sats
 	funding_fee_basis = 22
 
 The funding fee is:
 
 	funding_fee_base_sat = 233 sats
+  channel_creation_fee_sat = 500 sats
 	funding_fee_proportional_sat = min(1_000_000, 1_100_000) * 22 / 10_000 = 2200 sats
 	funding_fee_mining_sat = 444 * 2500 / 1000 = 1110 sats
-	funding_fee_total = 3543 sats
+	funding_fee_total = 4043 sats
 
 The outputs to the peers in the commitment transaction will be
 
 	to-buyer:     500_000 sats
-	to-seller: 1_103_543 sats
+	to-seller: 1_104_043 sats
 
 The miner fee for the buyer will be `720 * 2500 / 1000 = 1800 sats`.
 
 Minimum funds that the buyer must contribute to the funding transaction:
 
 	open_channel2.funding_satoshis: 500_000 sats
-	funding fee:                      3_543 sats
+	funding fee:                      4_043 sats
 	miner fee:                        1_800 sats
-	total required contribution:    505_343 sats
+	total required contribution:    505_843 sats
 
 Minimum funds that the seller must contribute to the funding transaction:
 
