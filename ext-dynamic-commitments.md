@@ -182,26 +182,26 @@ Three new messages are introduced that are common to all dynamic commitment
 flows. They let each channel party propose which channel parameters they wish to
 change as well as accept or reject the proposal made by their counterparty.
 
-#### `dyn_propose`
+#### `chan_param_propose`
 
 This message is sent to negotiate the parameters of a dynamic commitment
 upgrade. The overall protocol flow is depicted below. This message is always
 sent by the `initiator`.
 
-        +-------+                               +-------+
-        |       |--(1)------ dyn_propose ------>|       |
-        |       |                               |       |
-        |   A   |<-(2)---{dyn_ack|dyn_reject}---|   B   |
-        |       |                               |       |
-        |       |--(3)------ dyn_commit ------->|       |
-        +-------+                               +-------+
+        +-------+                                             +-------+
+        |       |--(1)---------- chan_param_propose --------->|       |
+        |       |                                             |       |
+        |   A   |<-(2)---{chan_param_ack|chan_param_reject}---|   B   |
+        |       |                                             |       |
+        |       |--(3)----------- chan_param_commit --------->|       |
+        +-------+                                             +-------+
 
-1. type: 111 (`dyn_propose`)
+1. type: 111 (`chan_param_propose`)
 2. data:
    * [`32*byte`:`channel_id`]
-   * [`dyn_propose_tlvs`:`tlvs`]
+   * [`chan_param_propose_tlvs`:`tlvs`]
 
-1. `tlv_stream`: `dyn_propose_tlvs`
+1. `tlv_stream`: `chan_param_propose_tlvs`
 2. types:
     1. type: 0 (`dust_limit_satoshis`)
     2. data:
@@ -229,9 +229,10 @@ The sending node:
   - MUST set `channel_id` to an existing one it has with the recipient.
   - MUST NOT send a set of TLV parameters that would violate the requirements
     of the identically named parameters in BOLT 2 or associated extensions.
-  - MUST remember its last sent `dyn_propose` parameters.
-  - if it is currently waiting for a response (`dyn_ack` or `dyn_reject`):
-    - MUST NOT send another `dyn_propose`.
+  - MUST remember its last sent `chan_param_propose` parameters.
+  - if it is currently waiting for a response (`chan_param_ack` or
+    `chan_param_reject`):
+    - MUST NOT send another `chan_param_propose`.
     - SHOULD close the connection if it exceeds an acceptable time frame.
   - MUST NOT set a `channel_type` with a different funding output script than
     the current funding output script UNLESS otherwise negotiated by another
@@ -240,13 +241,13 @@ The sending node:
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the sender:
     - SHOULD send an `error` and close the connection.
-  - MUST respond with either a `dyn_ack` or `dyn_reject`.
-  - if the TLV parameters of the `dyn_propose` are acceptable and the receiver
-    intends to execute those parameter changes:
-    - MUST respond with `dyn_ack`.
-  - if the TLV parameters of the `dyn_propose` are NOT acceptable and the
+  - MUST respond with either a `chan_param_ack` or `chan_param_reject`.
+  - if the TLV parameters of the `chan_param_propose` are acceptable and the
+    receiver intends to execute those parameter changes:
+    - MUST respond with `chan_param_ack`.
+  - if the TLV parameters of the `chan_param_propose` are NOT acceptable and the
     receiver refuses to execute those parameter changes:
-    - MUST respond with `dyn_reject`.
+    - MUST respond with `chan_param_reject`.
 
 _NOTE FOR REVIEWERS_: These messages all interact with each other, so feedback
 is welcome for how to restructure this section so that the invariants it
@@ -260,12 +261,12 @@ trying change channel parameters without a close event. BOLT 2 specifies
 constraints on these parameters to make sure they are internally consistent and
 secure in all contexts.
 
-#### `dyn_ack`
+#### `chan_param_ack`
 
-This message is sent in response to a `dyn_propose` indicating that it has
-accepted the proposal.
+This message is sent in response to a `chan_param_propose` indicating that it
+has accepted the proposal.
 
-1. type: 113 (`dyn_ack`)
+1. type: 113 (`chan_param_ack`)
 2. data:
    * [`32*byte`:`channel_id`]
    * [`signature`:`signature`]
@@ -273,24 +274,25 @@ accepted the proposal.
 ##### Requirements
 
 The sending node:
-  - MUST set `channel_id` to the `channel_id` it received in the `dyn_propose`.
-  - MUST NOT send this message if it has not received a `dyn_propose` for this
-    `channel_id`
-  - MUST NOT send this message if it has already sent a `dyn_ack` for the
+  - MUST set `channel_id` to the `channel_id` it received in the
+    `chan_param_propose`.
+  - MUST NOT send this message if it has not received a `chan_param_propose` for
+    this `channel_id`
+  - MUST NOT send this message if it has already sent a `chan_param_ack` for the
     current negotiation.
-  - MUST NOT send this message if it has already sent a `dyn_reject` for the
-    current negotiation.
+  - MUST NOT send this message if it has already sent a `chan_param_reject` for
+    the current negotiation.
   - MUST set the `signature` field to a valid signature described in
-    [Appendix A](#appendix-a-dyn_ack-signature-definition)
+    [Appendix A](#appendix-a-chan_param_ack-signature-definition)
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the peer:
     - MUST send an `error` and close the connection.
-  - if there isn't an outstanding `dyn_propose` it has sent:
+  - if there isn't an outstanding `chan_param_propose` it has sent:
     - MUST send an `error` and fail the channel.
   - MUST verify the `signature` is valid for the same set of parameters proposed
     and signed by the channel peer's node identity private key.
-  - MUST respond with a `dyn_commit` message.
+  - MUST respond with a `chan_param_commit` message.
 
 ##### Rationale
 
@@ -299,12 +301,12 @@ dispense with having to renegotiate quiescence and parameters. This allows the
 `responder` to commit to its acceptance of the new parameters in a way that the
 `initiator` can later _unilaterally_ recall.
 
-#### `dyn_reject`
+#### `chan_param_reject`
 
-This message is sent in response to a `dyn_propose` indicating that it rejects
-the proposal.
+This message is sent in response to a `chan_param_propose` indicating that it
+rejects the proposal.
 
-1. type: 115 (`dyn_reject`)
+1. type: 115 (`chan_param_reject`)
 2. data:
     * [`32*byte`:`channel_id`]
     * [`...*byte`:`update_rejections`]
@@ -312,29 +314,30 @@ the proposal.
 ##### Requirements
 
 The sending node:
-  - MUST set `channel_id` to the `channel_id` it received in the `dyn_propose`.
-  - MUST NOT send this message if it has not received a `dyn_propose`
-  - MUST NOT send this message if it has already sent a `dyn_ack` for the
+  - MUST set `channel_id` to the `channel_id` it received in the
+    `chan_param_propose`.
+  - MUST NOT send this message if it has not received a `chan_param_propose`
+  - MUST NOT send this message if it has already sent a `chan_param_ack` for the
     current negotiation.
-  - MUST NOT send this message if it has already sent a `dyn_reject` for the
-    current negotiation.
+  - MUST NOT send this message if it has already sent a `chan_param_reject` for
+    the current negotiation.
   - if it will not accept **any** dynamic commitment negotiation:
-    - SHOULD send a `dyn_reject` with zero value for `update_rejections`
+    - SHOULD send a `chan_param_reject` with zero value for `update_rejections`
   - if it does not agree with one or more parameters:
-    - MUST send a `dyn_reject` with the bit index (using the same layout as
-      feature negotiation) set corresponding to the TLV type number.
+    - MUST send a `chan_param_reject` with the bit index (using the same layout
+      as feature negotiation) set corresponding to the TLV type number.
       - Example: an objection to the `dust_limit` would be encoded as
         0b00000001, an objection to `max_value_in_flight` would be encoded as
         0b00000100, and an objection to both would be encoded as 0b00000101.
-  - MUST forget the parameters of the `dyn_propose` message to which the
-    `dyn_reject` is responding.
+  - MUST forget the parameters of the `chan_param_propose` message to which the
+    `chan_param_reject` is responding.
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the peer
     - MUST close the connection
-  - if there isn't an outstanding `dyn_propose` it has sent
+  - if there isn't an outstanding `chan_param_propose` it has sent
     - MUST send an `error` and fail the channel
-  - MUST forget its last sent `dyn_propose` parameters.
+  - MUST forget its last sent `chan_param_propose` parameters.
   - if the `update_rejections` is a zero value
     - SHOULD NOT re-attempt another dynamic commitment negotation for the
       remaining lifecycle of the connection
@@ -355,27 +358,27 @@ to an agreement on a proposal that will work. By sending back a zero value for
 commitment negotiation forward at all and further negotiation should not be
 attempted.
 
-#### `dyn_commit`
+#### `chan_param_commit`
 
-This message is sent after receiving a `dyn_ack` to unify the parameters and
-the signature into a single message.
+This message is sent after receiving a `chan_param_ack` to unify the parameters
+and the signature into a single message.
 
 1. type: 117
 2. data:
    * [`32*byte`:`channel_id`]
-   * [`signature`:`dyn_ack_signature`]
-   * [`dyn_propose_tlvs`:`tlvs`]
+   * [`signature`:`chan_param_ack_signature`]
+   * [`chan_param_propose_tlvs`:`tlvs`]
 
 ##### Requirements
 
 The sending node:
   - MUST set `channel_id` to a valid channel id that it has with a peer.
   - MUST set `signature` to a valid signature that matches the
-    `dyn_propose_tlvs` and the receiver's node identity private key.
+    `chan_param_propose_tlvs` and the receiver's node identity private key.
     message.
-  - MUST NOT send `dyn_commit` with a signature that is not valid for the next
-    commitment number that the receiving node expects to receive.
-  - MAY send `dyn_commit` _even if_ the channel is NOT quiescent.
+  - MUST NOT send `chan_param_commit` with a signature that is not valid for the
+    next commitment number that the receiving node expects to receive.
+  - MAY send `chan_param_commit` _even if_ the channel is NOT quiescent.
   - MUST proceed to the Execution Phase.
 
 The receiving node:
@@ -402,11 +405,11 @@ identically.
 
 ### Requirements
 
-If a node has previously sent a `dyn_commit` message that contains a signature
-bound to the commitment number that its channel peer specified in the
+If a node has previously sent a `chan_param_commit` message that contains a
+signature bound to the commitment number that its channel peer specified in the
 `channel_reestablish` message:
-  - MUST retransmit `dyn_commit`
-  - MUST NOT retransmit `dyn_propose`
+  - MUST retransmit `chan_param_commit`
+  - MUST NOT retransmit `chan_param_propose`
   - MUST proceed to Execution Phase
 
 #### Rationale
@@ -415,13 +418,13 @@ During the reestablish process we explicitly specify the next commitment
 numbers we expect to receive. Since the new parameter changes are locked in
 by an exchange of `commitment_signed` messages, if our channel peer tells us
 that the next commit number it expects is the same one as the commit number
-bound in the signature in `dyn_commit` we need to reissue that commitment as
-well as all of the updates that commitment includes.
+bound in the signature in `chan_param_commit` we need to reissue that commitment
+as well as all of the updates that commitment includes.
 
 As a side note, since we establish quiescence prior to Dynamic Commitment
 negotiation, there cannot be any `update_` messages in the batch that the
-`commitment_signed` message covers if it covers a `dyn_commit`. This may be
-a useful invariant to check during implementation.
+`commitment_signed` message covers if it covers a `chan_param_commit`. This may
+be a useful invariant to check during implementation.
 
 ## Execution Phase
 
@@ -433,7 +436,7 @@ are considered locked in on the `responder`'s side. From there, the
 constraints. A sketch is provided below:
 
         +-------+                               +-------+
-        |       |--(1)------ dyn_commit ------->|       |
+        |       |--(1)--- chan_param_commit --->|       |
         |       |                               |       |
         |   A   |--(2)------ commit_sig ------->|   B   |
         |       |                               |       |
@@ -448,11 +451,12 @@ anything except in the case where the `initiator` requests a change to its
 `dust_limit` which would give it _immediate_ (as opposed to _eventual_) access
 to a commitment transaction that abided by the new limit.
 
-## Appendix A: `dyn_ack` signature definition
+## Appendix A: `chan_param_ack` signature definition
 
-The signature included in the `dyn_ack` message covers the following message:
+The signature included in the `chan_param_ack` message covers the following
+message:
 
-`channel_id || u64(next_commitment_number) || dyn_propose_tlvs`
+`channel_id || u64(next_commitment_number) || chan_param_propose_tlvs`
 
 Like with `channel_reestablish`, the `next_commitment_number` refers to the
 immediate next commitment number the responder expects to receive. For the

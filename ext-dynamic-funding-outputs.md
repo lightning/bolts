@@ -212,25 +212,25 @@ and are common to all messages in the negotiation phase.
 
 The proposal messages are reused from Dynamic Commitments.
 
-#### `dyn_propose`
+#### `chan_param_propose`
 
 This message is sent to negotiate the parameters of a dynamic commitment
 upgrade. The overall protocol flow is depicted below. This message is always
 sent by the `initiator`. The new TLVs above can be sent along with the TLVs
 detailed in the original Dynamic Commitments proposal.
 
-        +-------+                               +-------+
-        |       |--(1)------ dyn_propose ------>|       |
-        |   A   |                               |   B   |
-        |       |<-(4)---{dyn_ack|dyn_reject}---|       |
-        +-------+                               +-------+
+        +-------+                                             +-------+
+        |       |--(1)---------- chan_param_propose --------->|       |
+        |   A   |                                             |   B   |
+        |       |<-(4)---{chan_param_ack|chan_param_reject}---|       |
+        +-------+                                             +-------+
 
-1. type: 111 (`dyn_propose`)
+1. type: 111 (`chan_param_propose`)
 2. data:
    * [`32*byte`:`channel_id`]
-   * [`dyn_propose_tlvs`:`tlvs`]
+   * [`chan_param_propose_tlvs`:`tlvs`]
 
-1. `tlv_stream`: `dyn_propose_tlvs`
+1. `tlv_stream`: `chan_param_propose_tlvs`
 2. types:
     1. type: 0 (`dust_limit_satoshis`)
     2. data:
@@ -274,44 +274,46 @@ Since the funding output change implies a new transaction that is used to move
 the channel funds from the old funding output script to the new one, this
 transaction needs to have a mutually agreed upon feerate.
 
-#### `dyn_ack`
+#### `chan_param_ack`
 
-This message is sent in response to a `dyn_propose` indicating that it has
-accepted the proposal.
+This message is sent in response to a `chan_param_propose` indicating that it
+has accepted the proposal.
 
-1. type: 113 (`dyn_ack`)
+1. type: 113 (`chan_param_ack`)
 2. data:
    * [`32*byte`:`channel_id`]
 
 ##### Requirements
 
-The requirements for `dyn_ack` are identical to those in Dynamic Commitments.
+The requirements for `chan_param_ack` are identical to those in Dynamic
+Commitments.
 
-#### `dyn_reject`
+#### `chan_param_reject`
 
-This message is sent in response to a `dyn_propose` indicating that it rejects
-the proposal.
+This message is sent in response to a `chan_param_propose` indicating that it
+rejects the proposal.
 
-1. type: 115 (`dyn_reject`)
+1. type: 115 (`chan_param_reject`)
 2. data:
     * [`32*byte`:`channel_id`]
     * [`...*byte`:`update_rejections`]
 
 ##### Requirements
 
-The requirements for `dyn_reject` are identical to those in Dynamic Commitments.
+The requirements for `chan_param_reject` are identical to those in Dynamic
+Commitments.
 
 ## Reestablish
 
 ### `channel_reestablish`
 
-A new TLV that denotes the node's current `dyn_epoch_height` is included.
+A new TLV that denotes the node's current `chan_param_epoch_height` is included.
 
 1. `tlv_stream`: `channel_reestablish_tlvs`
 2. types:
-    1. type: 20 (`dyn_epoch_height`)
+    1. type: 20 (`chan_param_epoch_height`)
     2. data:
-        * [`u64`:`dyn_epoch_height`]
+        * [`u64`:`chan_param_epoch_height`]
 
 #### Requirements
 
@@ -412,7 +414,7 @@ version 1 witness script:
 The new funding output has a value of the original funding output minus the sum
 of 660 satoshis and this kickoff transaction's fee. It is encumbered by a
 version 1 witness script where `taproot_funding_key1/taproot_funding_key2` are
-from `dyn_ack`:
+from `chan_param_ack`:
 * `OP_1 funding_key`
 * where:
   * `funding_key = combined_funding_key + tagged_hash("TapTweak", combined_funding_key)*G`
@@ -525,12 +527,12 @@ burned.
 This section describes how dynamic commitments can upgrade regular channels to
 simple taproot channels. The regular dynamic proposal phase is executed followed
 by a signing phase. A `channel_type` of `option_taproot` will be included in
-`dyn_propose` and both sides must agree on it. The `initiator` of the upgrade
+`chan_param_propose` and both sides must agree on it. The `initiator` of the upgrade
 will also propose a feerate to use for an intermediate "kickoff" transaction.
 
-#### Required `dyn_propose` TLVs:
+#### Required `chan_param_propose` TLVs:
 
-1. `tlv_stream`: `dyn_propose_tlvs`
+1. `tlv_stream`: `chan_param_propose_tlvs`
 2. types:
     1. type: 10 (`channel_type`)
     2. data:
@@ -567,20 +569,20 @@ The sending node:
 
 The receiving node:
   - if it is the `responder`:
-    - MUST reject the `dyn_propose` if the `initiator` cannot pay for the kickoff
+    - MUST reject the `chan_param_propose` if the `initiator` cannot pay for the kickoff
       transaction fee and the anchor outputs.
-    - MUST reject the `dyn_propose` if, after calculating the amount of the new
+    - MUST reject the `chan_param_propose` if, after calculating the amount of the new
       funding output, the new commmitment transaction would not be able to pay
       for any outputs at the current commitment feerate.
-  - MUST reject the `dyn_propose` if `taproot_funding_key` is not a valid
+  - MUST reject the `chan_param_propose` if `taproot_funding_key` is not a valid
     secp256k1 compressed public key.
-  - MAY reject the `dyn_propose` if it does not agree with the `channel_type`
+  - MAY reject the `chan_param_propose` if it does not agree with the `channel_type`
   - MUST send an `error` and fail the channel if `local_musig2_pubnonce` cannot
     be parsed as two compressed secp256k1 points.
 
 #### Rationale
 
-The `dyn_propose` renegotiates the funding keys as otherwise signatures for the
+The `chan_param_propose` renegotiates the funding keys as otherwise signatures for the
 funding keys would be exchanged in both the ECDSA and Schnorr contexts. This can
 lead to an attack outlined in [BIP340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki#alternative-signing).
 Renegotiating funding keys avoids this issue. Note that the various basepoints
@@ -589,9 +591,9 @@ the private keys _change_ with each commitment transaction they sign due to the
 `per_commitment_point` construction, the basepoints can be used in both ECDSA
 and Schnorr contexts.
 
-#### Extensions to `dyn_ack`:
+#### Extensions to `chan_param_ack`:
 
-1. `tlv_stream`: `dyn_ack_tlvs`
+1. `tlv_stream`: `chan_param_ack_tlvs`
 2. types:
     1. type: 0 (`local_musig2_pubnonce`)
     2. data:
