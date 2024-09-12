@@ -190,8 +190,10 @@ sent by the `initiator`.
 
         +-------+                               +-------+
         |       |--(1)------ dyn_propose ------>|       |
-        |   A   |                               |   B   |
-        |       |<-(4)---{dyn_ack|dyn_reject}---|       |
+        |       |                               |       |
+        |   A   |<-(2)---{dyn_ack|dyn_reject}---|   B   |
+        |       |                               |       |
+        |       |--(3)------ dyn_commit ------->|       |
         +-------+                               +-------+
 
 1. type: 111 (`dyn_propose`)
@@ -234,10 +236,6 @@ The sending node:
   - MUST NOT set a `channel_type` with a different funding output script than
     the current funding output script UNLESS otherwise negotiated by another
     feature bit.
-  - _NOTE FOR REVIEWERS_: do we need to save `dyn_propose` parameters before
-    sending them? It complicates the design, but if we don't we need to be able
-    to discern between a faulty/malicious peer and a dropped connection while
-    the ack is in flight.
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the sender:
@@ -246,7 +244,6 @@ The receiving node:
   - if the TLV parameters of the `dyn_propose` are acceptable and the receiver
     intends to execute those parameter changes:
     - MUST respond with `dyn_ack`.
-    - MUST remember its last received `dyn_propose` parameters.
   - if the TLV parameters of the `dyn_propose` are NOT acceptable and the
     receiver refuses to execute those parameter changes:
     - MUST respond with `dyn_reject`.
@@ -263,10 +260,6 @@ trying change channel parameters without a close event. BOLT 2 specifies
 constraints on these parameters to make sure they are internally consistent and
 secure in all contexts.
 
-The requirement for a node to remember what it last _sent_ and for it to
-remember what it _accepted_ is necessary to recover on reestablish. See the
-reestablish section for more details.
-
 #### `dyn_ack`
 
 This message is sent in response to a `dyn_propose` indicating that it has
@@ -275,6 +268,7 @@ accepted the proposal.
 1. type: 113 (`dyn_ack`)
 2. data:
    * [`32*byte`:`channel_id`]
+   * [`signature`:`signature`]
 
 ##### Requirements
 
@@ -286,28 +280,24 @@ The sending node:
     current negotiation.
   - MUST NOT send this message if it has already sent a `dyn_reject` for the
     current negotiation.
-  - MUST remember the parameters of `dyn_propose` message to which the `dyn_ack`
-    is responding for the next `dyn_epoch_height`. (See `channel_reestablish`
-    requirements)
+  - MUST set the `signature` field to a valid signature described in
+    [Appendix A](#appendix-a-dyn_ack-signature-definition)
 
 The receiving node:
   - if `channel_id` does not match an existing channel it has with the peer:
     - MUST send an `error` and close the connection.
   - if there isn't an outstanding `dyn_propose` it has sent:
     - MUST send an `error` and fail the channel.
-
-A node:
-  - once it has sent or received `dyn_ack`
-    - MUST increment its `dyn_epoch_height`.
-    - MUST proceed to the Execution Phase.
-    - MUST remember the local and remote commitment heights for the next
-      `dyn_epoch_height`.
+  - MUST verify the `signature` is valid for the same set of parameters proposed
+    and signed by the channel peer's node identity private key.
+  - MUST respond with a `dyn_commit` message.
 
 ##### Rationale
 
-The `dyn_epoch_height` starts at 0 for a channel and is incremented by 1 every
-time the dynamic commitment proposal phase completes for a channel. See the
-reestablish section for why this is needed.
+We include a signature here so that during the reestablish process we can
+dispense with having to renegotiate quiescence and parameters. This allows the
+`responder` to commit to its acceptance of the new parameters in a way that the
+`initiator` can later _unilaterally_ recall.
 
 #### `dyn_reject`
 
@@ -365,59 +355,109 @@ to an agreement on a proposal that will work. By sending back a zero value for
 commitment negotiation forward at all and further negotiation should not be
 attempted.
 
-## Reestablish
+#### `dyn_commit`
 
-### `channel_reestablish`
+This message is sent after receiving a `dyn_ack` to unify the parameters and
+the signature into a single message.
 
-A new TLV that denotes the node's current `dyn_epoch_height` is included.
+1. type: 117
+2. data:
+   * [`32*byte`:`channel_id`]
+   * [`signature`:`dyn_ack_signature`]
+   * [`dyn_propose_tlvs`:`tlvs`]
 
-1. `tlv_stream`: `channel_reestablish_tlvs`
-2. types:
-    1. type: 20 (`dyn_epoch_height`)
-    2. data:
-        * [`u64`:`dyn_epoch_height`]
-
-#### Requirements
+##### Requirements
 
 The sending node:
-  - MUST set `dyn_epoch_height` to the number of dynamic commitment negotiations
-    it has completed. The point at which it is incremented is described in the
-    `dyn_ack` section.
+  - MUST set `channel_id` to a valid channel id that it has with a peer.
+  - MUST set `signature` to a valid signature that matches the
+    `dyn_propose_tlvs` and the receiver's node identity private key.
+    message.
+  - MUST NOT send `dyn_commit` with a signature that is not valid for the next
+    commitment number that the receiving node expects to receive.
+  - MAY send `dyn_commit` _even if_ the channel is NOT quiescent.
+  - MUST proceed to the Execution Phase.
 
 The receiving node:
-  - if the received `dyn_epoch_height` equals its own `dyn_epoch_height`:
-    - MAY forget any state that is unnecessary for heights <= `dyn_epoch_height`
-      - NOTE: some channel parameters show up in the chain footprint of
-        commitment transactions, and therefore it is likely necessary to
-        remember these parameters to be able to recognize and react to breach
-        transactions.
-      - resume using channel with the parameters associated with
-        `dyn_epoch_height`
-  - if the received `dyn_epoch_height` is 1 greater than its own
-    `dyn_epoch_height`:
-    - resume using the channel with the current parameters
-  - if the received `dyn_epoch_height` is 1 less than its own
-    `dyn_epoch_height`:
-    - resume using the channel with the old parameters.
-    - MUST forget the most recent `dyn_epoch_height` parameters.
-  - else:
-    - MUST send an `error` and fail the channel. State was lost.
+  - MUST validate that the `signature` was previously signed by its own node
+    identity pubkey for the next commitment number it expects to receive for
+    the `channel_id` specified.
+  - MUST consider this message an "update" for the purposes of retransmission
+    as well as allowing enabling the receipt of a `commitment_signed` message.
+  - MUST proceed to the Execution Phase.
+
+##### Rationale
+
+This message simplifies the process of resolving issues with retransmission.
+This message captures all of the necessary information to resolve honest
+discrepencies in channel state. With this message the effects of the Dynamic
+Commitment negotiation can be reapplied without retransmitting the negotiation
+messages themselves.
+
+## Reestablish
+
+The channel reestablish that needs to include a Dynamic Commitment upgrade
+proceeds similarly to the way other updates are retransmitted, though not
+identically.
+
+### Requirements
+
+If a node has previously sent a `dyn_commit` message that contains a signature
+bound to the commitment number that its channel peer specified in the
+`channel_reestablish` message:
+  - MUST retransmit `dyn_commit`
+  - MUST NOT retransmit `dyn_propose`
+  - MUST proceed to Execution Phase
 
 #### Rationale
 
-If `dyn_ack` has been sent and received before the connection closed, it
-is simple to continue. If one side has sent `dyn_ack` and the other hasn't
-received it, the flow is recoverable on reconnection by rolling back to the
-previous set of parameters.
+During the reestablish process we explicitly specify the next commitment
+numbers we expect to receive. Since the new parameter changes are locked in
+by an exchange of `commitment_signed` messages, if our channel peer tells us
+that the next commit number it expects is the same one as the commit number
+bound in the signature in `dyn_commit` we need to reissue that commitment as
+well as all of the updates that commitment includes.
+
+As a side note, since we establish quiescence prior to Dynamic Commitment
+negotiation, there cannot be any `update_` messages in the batch that the
+`commitment_signed` message covers if it covers a `dyn_commit`. This may be
+a useful invariant to check during implementation.
 
 ## Execution Phase
 
-For the parameter changes outlined in this proposal, no specific execution is
-required. The next commitment transaction issued by each peer is expected to
-abide by the new parameters.
+For the parameter changes outlined in this proposal, the specific execution
+required is simply to exchange `commitment_signed` and `revoke_and_ack`
+messages. After the `responder` has issued a `revoke_and_ack` these parameters
+are considered locked in on the `responder`'s side. From there, the
+`responder`'s subsequent updates will be expected to abide by the new
+constraints. A sketch is provided below:
 
-_NOTE FOR REVIEWERS_: Should we eagerly issue new commitment transactions here?
-As writtent we commit to the new values lazily in the next commitment
-transaction that would normally be issued.
+        +-------+                               +-------+
+        |       |--(1)------ dyn_commit ------->|       |
+        |       |                               |       |
+        |   A   |--(2)------ commit_sig ------->|   B   |
+        |       |                               |       |
+        |       |<-(3)---- revoke_and_ack ------|       |
+        +-------+                               +-------+
 
 At this point the channel is no longer considered quiescent.
+
+_NOTE FOR REVIEWERS_: Should we require that the `responder` immediately issues
+a `commitment_signed` of its own? As far as I can tell this doesn't accomplish
+anything except in the case where the `initiator` requests a change to its
+`dust_limit` which would give it _immediate_ (as opposed to _eventual_) access
+to a commitment transaction that abided by the new limit.
+
+## Appendix A: `dyn_ack` signature definition
+
+The signature included in the `dyn_ack` message covers the following message:
+
+`channel_id || u64(next_commitment_number) || dyn_propose_tlvs`
+
+Like with `channel_reestablish`, the `next_commitment_number` refers to the
+immediate next commitment number the responder expects to receive. For the
+TLV stream, since BOLT1 specifies that types must be sent in strictly ascending
+order, the encoding is fully deterministic and will ensure that the signature
+can be verified without ambiguity.
+
+The key used to sign this message is the node's identity private key.
