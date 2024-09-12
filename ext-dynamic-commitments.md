@@ -67,6 +67,7 @@ a list of parameters which are unchangeable. We list these below:
 
 - dust_limit_satoshis
 - max_htlc_value_in_flight_msat
+- htlc_minimum_msat
 - channel_reserve_satoshis
 - to_self_delay
 - max_accepted_htlcs
@@ -89,6 +90,7 @@ remaining after we filter out these values is thus:
 
 - dust_limit_satoshis
 - max_htlc_value_in_flight_msat
+- htlc_minimum_msat
 - channel_reserve_satoshis
 - to_self_delay
 - max_accepted_htlcs
