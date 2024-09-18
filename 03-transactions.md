@@ -628,8 +628,8 @@ also subtract two times the fixed anchor size of 330 sats from the funder
 7. If the `to_remote` amount is greater or equal to `dust_limit_satoshis`,
    add a [`to_remote` output](#to_remote-output).
 8. If `option_anchors` applies to the commitment transaction:
-   * if `to_local` exists or there are untrimmed HTLCs, add a [`to_local_anchor` output](#to_local_anchor-and-to_remote_anchor-output-option_anchor_outputs)
-   * if `to_remote` exists or there are untrimmed HTLCs, add a [`to_remote_anchor` output](#to_local_anchor-and-to_remote_anchor-output-option_anchor_outputs)
+   * if `to_local` exists or there are untrimmed HTLCs, add a [`to_local_anchor` output](#to_local_anchor-and-to_remote_anchor-output-option_anchors)
+   * if `to_remote` exists or there are untrimmed HTLCs, add a [`to_remote_anchor` output](#to_local_anchor-and-to_remote_anchor-output-option_anchors)
 9. Sort the outputs into [BIP 69+CLTV order](#transaction-output-ordering).
 
 # Keys
