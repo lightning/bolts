@@ -452,8 +452,9 @@ or `node_id_2` otherwise.
 The origin node:
   - MUST NOT send a created `channel_update` before `channel_ready` has been received.
   - MAY create a `channel_update` to communicate the channel parameters to the
-  channel peer, even though the channel has not yet been announced (i.e. the
-  `announce_channel` bit was not set).
+  channel peer, even though the channel has not yet been announced (i.e.
+    the `announce_channel` bit was not set or the `channel_update` is sent before
+    the peers exchanged [announcement signatures](#the-announcement_signatures-message)).
     - MUST set the `short_channel_id` to either an `alias` it has
     received from the peer, or the real channel `short_channel_id`.
     - MUST set `dont_forward` to 1 in `message_flags`
