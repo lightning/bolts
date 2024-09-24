@@ -440,7 +440,7 @@ intermediary nodes could simply claim the remaining ones.
 
 1. subtype: `blinded_path`
 2. data:
-   * [`point`:`first_node_id`]
+   * [`sciddir_or_pubkey`:`first_node_id`]
    * [`point`:`first_path_key`]
    * [`byte`:`num_hops`]
    * [`num_hops*blinded_path_hop`:`path`]
