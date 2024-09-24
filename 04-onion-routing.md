@@ -245,8 +245,8 @@ leaking its position in the route.
 The creator of `encrypted_recipient_data` (usually, the recipient of payment):
 
   - MUST create `encrypted_data_tlv` for each node in the blinded route (including itself).
-  - MUST include `encrypted_data_tlv.short_channel_id` and `encrypted_data_tlv.payment_relay` for each non-final node.
-  - MUST NOT include `encrypted_data_tlv.next_node_id`.
+  - MUST include `encrypted_data_tlv.payment_relay` for each non-final node.
+  - MUST include exactly one of `encrypted_data_tlv.short_channel_id` or `encrypted_data_tlv.next_node_id` for each non-final node.
   - MUST set `encrypted_data_tlv.payment_constraints` for each non-final node and MAY set it for the final node:
     - `max_cltv_expiry` to the largest block height at which the route is allowed to be used, starting
        from the final node's chosen `max_cltv_expiry` height at which the route should expire, adding 
@@ -1516,8 +1516,8 @@ even, of course!).
 The creator of `encrypted_recipient_data` (usually, the recipient of the onion):
 
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
-  - MUST NOT include `short_channel_id`, `payment_relay` or `payment_constraints` in any `encrypted_data_tlv`
-  - MUST include `encrypted_data_tlv.next_node_id` for each non-final node.
+  - MUST NOT include `payment_relay` or `payment_constraints` in any `encrypted_data_tlv`
+  - MUST include either `next_node_id` or `short_channel_id` in the `encrypted_data_tlv` for each non-final node.
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
 
 The writer:
@@ -1558,7 +1558,13 @@ The reader:
   - if the `encrypted_data_tlv` contains `path_id`:
     - MUST ignore the message.
   - otherwise:
-    - SHOULD forward the message using `onion_message` to the next peer indicated by `next_node_id`.
+    - if `next_node_id` is present:
+      - the *next peer* is the peer with that node id.
+    - otherwise, if `short_channel_id` is present and corresponds to an announced short_channel_id or a local alias for a channel:
+      - the *next peer* is the peer at the other end of that channel.
+    - otherwise:
+      - MUST ignore the message.
+    - SHOULD forward the message using `onion_message` to the *next peer*.
     - if it forwards the message:
       - MUST set `path_key` in the forwarded `onion_message` to the next `path_key` as calculated in [Route Blinding](#route-blinding).
 - otherwise (it is the final node):
