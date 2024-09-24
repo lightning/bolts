@@ -410,6 +410,14 @@ quiesce
 quiescing
 SomeThing
 onionmsg
+unrequested
+Merkle
+whitespace
+TLVs
+LnLeaf
+LnNonce
+LnBranch
+payinfo
 griefing
 unspendable
 pkh
