@@ -274,7 +274,7 @@ nodes not associated with an already known channel are ignored.
 
 1. `tlv_stream`: `node_announcement_tlvs`
 2. types:
-    1. type: 1 (`option_will_fund`)
+    1. type: 5 (`option_will_fund`)
     2. data:
         * [`will_fund_rates`:`will_fund_rates`]
 

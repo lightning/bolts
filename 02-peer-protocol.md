@@ -453,6 +453,9 @@ completed.
     2. data:
         * [`s64`:`satoshis`]
    1. type: 2 (`require_confirmed_inputs`)
+   1. type: 5 (`request_funding`)
+   2. data:
+        * [`request_funds`:`request_funds`]
 
 #### Requirements
 
@@ -463,6 +466,12 @@ The sender:
     - MUST set `funding_output_contribution`
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If it wants the receiving node to contribute to the funding transaction
+    using `option_will_fund`:
+    - MUST send `request_funding` containing one of the funding rates and
+      `payment_type`s supported by the receiving node.
+  - If the previous transaction included `request_funding`:
+    - SHOULD include `request_funding`.
 
 The recipient:
   - MUST respond either with `tx_abort` or with `tx_ack_rbf`
@@ -472,6 +481,8 @@ The recipient:
   - MAY send `tx_abort` for any reason
   - MUST fail the negotiation if:
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
+    - `request_funding` was included in the previous transaction but is not
+      included in `tx_init_rbf`.
 
 #### Rationale
 
@@ -505,6 +516,9 @@ not contributing to the funding output.
     2. data:
         * [`s64`:`satoshis`]
    1. type: 2 (`require_confirmed_inputs`)
+   1. type: 5 (`provide_funding`)
+   2. data:
+        * [`will_fund`:`will_fund`]
 
 #### Requirements
 
@@ -513,12 +527,16 @@ The sender:
     - MUST set `funding_output_contribution`
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If the `request_funding` TLV was sent in `tx_init_rbf`:
+    - MUST apply the same requirements as `accept_channel2`
 
 The recipient:
   - MUST respond with `tx_abort` or with a `tx_add_input` message,
     restarting the interactive tx collaboration protocol.
   - MUST fail the negotiation if:
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
+  - MAY fail the negotiation if `provide_funding` does not match what it
+    expects, similar to the requirements for `accept_channel2`.
 
 #### Rationale
 
@@ -1163,7 +1181,7 @@ This message initiates the v2 channel establishment workflow.
    2. data:
         * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
-   1. type: 3 (`request_funding`)
+   1. type: 5 (`request_funding`)
    2. data:
         * [`request_funds`:`request_funds`]
 
@@ -1260,7 +1278,7 @@ acceptance of the new channel.
    2. data:
         * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
-   1. type: 3 (`provide_funding`)
+   1. type: 5 (`provide_funding`)
    2. data:
         * [`will_fund`:`will_fund`]
 
