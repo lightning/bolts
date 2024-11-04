@@ -23,7 +23,8 @@ Additionally, spam and other content which disrupts or prevents contributors fro
 ## The Code of Conduct Team
 
 A small team of contributors has volunteered to enforce this Code of Conduct. If you feel like a community member has engaged in inappropriate behavior, please don't hesitate to contact one of the following contributors via email:
- * TODO
+ * Vincenzo Palazzo - vincenzopalazzo on member.fsf.org
+ * Rusty Russell - rusty on rustcorp.com.au
 
 ## The Code of Conduct Team’s Responsibilities
 
