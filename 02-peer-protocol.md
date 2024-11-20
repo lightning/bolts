@@ -1580,6 +1580,8 @@ The sending node:
       the amount that will be added to its current channel balance.
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`.
+  - SHOULD use a different `funding_pubkey` than the one used for the
+    previous funding transaction.
 
 The receiving node:
   - If the channel is not quiescent:
