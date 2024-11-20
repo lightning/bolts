@@ -168,8 +168,9 @@ The origin node:
   that the channel was opened within:
     - for the _Bitcoin blockchain_:
       - MUST set `chain_hash` value (encoded in hex) equal to `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
-  - MUST set `short_channel_id` to refer to the confirmed funding transaction,
-  as specified in [BOLT #2](02-peer-protocol.md#the-channel_ready-message).
+  - MUST set `short_channel_id` to refer to the latest confirmed funding or
+  splice transaction, as specified in
+  [BOLT #2](02-peer-protocol.md#the-channel_ready-message).
     - Note: the corresponding output MUST be a P2WSH, as described in [BOLT #3](03-transactions.md#funding-transaction-output).
   - MUST set `node_id_1` and `node_id_2` to the public keys of the two nodes
   operating the channel, such that `node_id_1` is the lexicographically-lesser of the
