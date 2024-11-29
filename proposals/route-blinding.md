@@ -126,7 +126,7 @@ To use the blinded route, senders need the following data:
 * The real `node_id` of the introduction point `N(0)` (to locate the beginning of the route)
 * The list of blinded `node_id`s: `[B(1),...,B(r)]`
 * The encrypted data for each node: `[encrypted_data(0),...,encrypted_data(r)]`
-* The first blinding ephemeral key: `E(0)`
+* The first blinding `path_key`: `E(0)`
 
 ### Sending to a blinded route
 
@@ -267,7 +267,7 @@ she sets `max_cltv_expiry = 1212` and adds `cltv_expiry_delta` for each hop afte
 transmits the following information to the sender (most likely via an invoice):
 
 * Blinded route: `[N(carol), B(bob), B(alice)]`
-* First blinding ephemeral key: `E(carol)`
+* First blinding `path_key`: `E(carol)`
 * Aggregated route relay parameters and constraints:
   * `fee_base_msat`: 201
   * `fee_proportional_millionths`: 1001
@@ -294,9 +294,9 @@ transmits the following information to the sender (most likely via an invoice):
 
 Note that the introduction point (Carol) uses the real `node_id`, not the blinded one, because the
 sender needs to be able to locate this introduction point and find a route to it. The sender will
-send the first blinding ephemeral key `E(carol)` in the onion `hop_payload` for Carol, which will
+send the first blinding `path_key` `E(carol)` in the onion `hop_payload` for Carol, which will
 allow Carol to compute the blinding shared secret and correctly forward. We put this blinding
-ephemeral key in the onion instead of using a tlv in `update_add_htlc` because intermediate nodes
+`path_key` in the onion instead of using a tlv in `update_add_htlc` because intermediate nodes
 added before the blinded route may not support route blinding and wouldn't know how to relay it.
 
 Erin wants to send 100 000 msat to this blinded route.
@@ -348,23 +348,23 @@ The messages exchanged will contain the following values:
       |     |  expiry: 1424                  |     |      |  expiry: 1400                            |     |     |  expiry: 1256                            |     |     |  expiry: 1112                  |     |
       |     |  onion_routing_packet:         |     |      |  onion_routing_packet:                   |     |     |  onion_routing_packet:                   |     |     |  onion_routing_packet:         |     |
       |     | +----------------------------+ |     |      | +--------------------------------------+ |     |     | +--------------------------------------+ |     |     | +----------------------------+ |     |
-      | --> | | amount_fwd: 100302 msat    | | --> | -->  | | blinding_eph_key: E(carol)           | | --> | --> | | encrypted_data:                      | | --> | --> | | amount_fwd: 100000 msat    | | --> |
+      | --> | | amount_fwd: 100302 msat    | | --> | -->  | | path_key: E(carol)                   | | --> | --> | | encrypted_data:                      | | --> | --> | | amount_fwd: 100000 msat    | | --> |
       |     | | outgoing_expiry: 1400      | |     |      | | encrypted_data:                      | |     |     | | +----------------------------------+ | |     |     | | outgoing_expiry: 1112      | |     |
       |     | | scid: scid_dave_to_carol   | |     |      | | +----------------------------------+ | |     |     | | | scid: scid_bob_to_alice          | | |     |     | | encrypted_data:            | |     |
       |     | +----------------------------+ |     |      | | | scid: scid_carol_to_bob          | | |     |     | | | fee_base_msat: 100               | | |     |     | | +-----------------------+  | |     |
-      |     | | blinding_eph_key: E(carol) | |     |      | | | fee_base_msat: 100               | | |     |     | | | fee_proportional_millionths: 500 | | |     |     | | | path_id: preimage     |  | |     |
+      |     | | path_key: E(carol)         | |     |      | | | fee_base_msat: 100               | | |     |     | | | fee_proportional_millionths: 500 | | |     |     | | | path_id: preimage     |  | |     |
       |     | | encrypted_data(carol)      | |     |      | | | fee_proportional_millionths: 500 | | |     |     | | | htlc_minimum_msat: 1000          | | |     |     | | | max_cltv_expiry: 1200 |  | |     |
       |     | +----------------------------+ |     |      | | | htlc_minimum_msat: 1000          | | |     |     | | | cltv_expiry_delta: 144           | | |     |     | | +-----------------------+  | |     |
       |     | | encrypted_data(bob)        | |     |      | | | cltv_expiry_delta: 144           | | |     |     | | | max_cltv_expiry: 1356            | | |     |     | +----------------------------+ |     |
       |     | +----------------------------+ |     |      | | | max_cltv_expiry: 1500            | | |     |     | | +----------------------------------+ | |     |     |  tlv_extension                 |     |
       |     | | amount_fwd: 100000 msat    | |     |      | | +----------------------------------+ | |     |     | +--------------------------------------+ |     |     | +----------------------------+ |     |
-      |     | | outgoing_expiry: 1112      | |     |      | +--------------------------------------+ |     |     | | amount_fwd: 100000 msat              | |     |     | | blinding_eph_key: E(alice) | |     |
+      |     | | outgoing_expiry: 1112      | |     |      | +--------------------------------------+ |     |     | | amount_fwd: 100000 msat              | |     |     | | path_key: E(alice)         | |     |
       |     | | encrypted_data(alice)      | |     |      | | encrypted_data(bob)                  | |     |     | | outgoing_expiry: 1112                | |     |     | +----------------------------+ |     |
       |     | +----------------------------+ |     |      | +--------------------------------------+ |     |     | | encrypted_data(alice)                | |     |     +--------------------------------+     |
       |     +--------------------------------+     |      | | amount_fwd: 100000 msat              | |     |     | +--------------------------------------+ |     |                                            |
       |                                            |      | | outgoing_expiry: 1112                | |     |     |  tlv_extension                           |     |                                            |
       |                                            |      | | encrypted_data(alice)                | |     |     | +--------------------------------------+ |     |                                            |
-      |                                            |      | +--------------------------------------+ |     |     | | blinding_eph_key: E(bob)             | |     |                                            |
+      |                                            |      | +--------------------------------------+ |     |     | | path_key: E(bob)                     | |     |                                            |
       |                                            |      +------------------------------------------+     |     | +--------------------------------------+ |     |                                            |
       |                                            |                                                       |     +------------------------------------------+     |                                            |
       |                                            |                                                       |                                                      |                                            |
