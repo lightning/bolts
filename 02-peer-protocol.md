@@ -36,6 +36,7 @@ operation, and closing.
     * [Channel Close](#channel-close)
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
       * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
+      * [Closing Negotiation: `closing_complete` and `closing_sig`](#closing-negotiation-closing_complete-and-closing_sig)
     * [Normal Operation](#normal-operation)
       * [Forwarding HTLCs](#forwarding-htlcs)
       * [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
@@ -1508,23 +1509,68 @@ Closing happens in two stages:
 2. once all HTLCs are resolved, the final channel close negotiation begins.
 
         +-------+                              +-------+
-        |       |--(1)-----  shutdown  ------->|       |
-        |       |<-(2)-----  shutdown  --------|       |
+        |       | shutdown(scriptA1)           |       |
+        |       |----------------------------->|       |
+        |       |           shutdown(scriptB1) |       |
+        |       |<-----------------------------|       |
         |       |                              |       |
         |       | <complete all pending HTLCs> |       |
-        |   A   |                 ...          |   B   |
+        |   A   |             ....             |   B   |
         |       |                              |       |
-        |       |--(3)-- closing_signed  F1--->|       |
-        |       |<-(4)-- closing_signed  F2----|       |
-        |       |              ...             |       |
-        |       |--(?)-- closing_signed  Fn--->|       |
-        |       |<-(?)-- closing_signed  Fn----|       |
+        |       | closing_complete             |       |
+        |       |----------------------------->|       |
+        |       |             closing_complete |       |
+        |       |<-----------------------------|       |
+        |       |                  closing_sig |       |
+        |       |<-----------------------------|       |
+        |       | closing_sig                  |       |
+        |       |----------------------------->|       |
+        |       |                              |       |
+        |       |   <A updates their script>   |       |
+        |       |                              |       |
+        |       | shutdown(scriptA2)           |       |
+        |       |----------------------------->|       |
+        |       |           shutdown(scriptB1) |       | (*) Bob doesn't update his script
+        |       |<-----------------------------|       |
+        |       | closing_complete             |       |
+        |       |----------------------------->|       |
+        |       |                  closing_sig |       |
+        |       |<-----------------------------|       |
+        |       |                              |       |
+        |       |   <Bob updates his script>   |       |
+        |       |                              |       |
+        |       |           shutdown(scriptB2) |       |
+        |       |<-----------------------------|       |
+        |       | shutdown(scriptA2)           |       |
+        |       |----------------------------->|       |
+        |       |             closing_complete |       |
+        |       |          <-------------------|       |
+        |       |                              |       |
+        |       |  <Alice updates her script>  |       | (*) This is a concurrent update while Bob is sending closing_complete
+        |       |                              |       |
+        |       | shutdown(scriptA3)           |       |
+        |       |------------------->          |       |
+        |       |   closing_complete           |       |
+        |       |<-------------------          |       | (*) A doesn't answer with closing_sig because B's sig doesn't use scriptA3
+        |       |           shutdown(scriptA3) |       |
+        |       |          ------------------->|       |
+        |       |           shutdown(scriptB2) |       | (*) B answers A's shutdown with his own shutdown, without any changes
+        |       |<-----------------------------|       |
+        |       | closing_complete             |       |
+        |       |----------------------------->|       | (*) A now uses scriptB2 and scriptA3 for closing_complete 
+        |       |             closing_complete |       |
+        |       |<-----------------------------|       | (*) B now uses scriptB2 and scriptA3 for closing_complete 
+        |       | closing_sig                  |       |
+        |       |----------------------------->|       |
+        |       |                  closing_sig |       |
+        |       |<-----------------------------|       |
         +-------+                              +-------+
 
 ### Closing Initiation: `shutdown`
 
 Either node (or both) can send a `shutdown` message to initiate closing,
-along with the `scriptpubkey` it wants to be paid to.
+along with the `scriptpubkey` it wants to be paid to.  This can be
+sent multiple times.
 
 1. type: 38 (`shutdown`)
 2. data:
@@ -1540,7 +1586,6 @@ A sending node:
   - MAY send a `shutdown` before a `channel_ready`, i.e. before the funding transaction has reached `minimum_depth`.
   - if there are updates pending on the receiving node's commitment transaction:
     - MUST NOT send a `shutdown`.
-  - MUST NOT send multiple `shutdown` messages.
   - MUST NOT send an `update_add_htlc` after a `shutdown`.
   - if no HTLCs remain in either commitment transaction (including dust HTLCs)
     and neither side has a pending `revoke_and_ack` to send:
@@ -1555,6 +1600,10 @@ A sending node:
     3. if (and only if) `option_shutdown_anysegwit` is negotiated:
       * `OP_1` through `OP_16` inclusive, followed by a single push of 2 to 40 bytes
         (witness program versions 1 through 16)
+    4. if (and only if) `option_simple_close` is negotiated:
+      * `OP_RETURN` followed by one of:
+        * `6` to `75` inclusive followed by exactly that many bytes
+        * `76` followed by `76` to `80` followed by exactly that many bytes
 
 A receiving node:
   - if it hasn't received a `funding_signed` (if it is a funder) or a `funding_created` (if it is a fundee):
@@ -1712,6 +1761,161 @@ policies (e.g. when using a non-segwit shutdown script for an output below 546
 satoshis, which is possible if `dust_limit_satoshis` is below 546 satoshis).
 No funds are at risk when that happens, but the channel must be force-closed as
 the closing transaction will likely never reach miners.
+
+`OP_RETURN` is only standard if followed by PUSH opcodes, and the total script
+is 83 bytes or less. We are slightly stricter, to only allow a single PUSH, but
+there are two forms in script: one which pushes up to 75 bytes, and a longer
+one (`OP_PUSHDATA1`) which is needed for 76-80 bytes.
+
+### Closing Negotiation: `closing_complete` and `closing_sig`
+
+Once shutdown is complete, the channel is empty of HTLCs, there are no commitments
+for which a revocation is owed, and all updates are included on both commitments,
+the final current commitment transactions will have no HTLCs.
+
+Each peer says what fee it will pay, and the other side simply signs that transaction.
+The lesser-paid peer (if either is) can opt to omit their own output from the closing tx.
+
+This process will be repeated every time a `shutdown` message is received, which allows re-negotiation (and RBF).
+
+1. type: 40 (`closing_complete`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u64`:`fee_satoshis`]
+   * [`u32`:`locktime`]
+   * [`closing_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `closing_tlvs`
+2. types:
+    1. type: 1 (`closer_output_only`)
+    2. data:
+        * [`signature`:`sig`]
+    1. type: 2 (`closee_output_only`)
+    2. data:
+        * [`signature`:`sig`]
+    1. type: 3 (`closer_and_closee_outputs`)
+    2. data:
+        * [`signature`:`sig`]
+
+1. type: 41 (`closing_sig`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`closing_tlvs`:`tlvs`]
+
+#### Requirements
+
+Note: the details and requirements for the transaction being signed are in [BOLT 3](03-transactions.md#closing-transaction).
+
+An output is *dust* if the amount is less than the [Bitcoin Core Dust Thresholds](03-transactions.md#dust-limits).
+
+Both nodes:
+  - After a `shutdown` has been sent and received, AND no HTLCs remain in either commitment transaction:
+    - SHOULD send a `closing_complete` message.
+  - When receiving `shutdown` again, if it did not send `shutdown` first:
+    - MUST respond with `shutdown`.
+    - MAY send `closing_complete` afterwards.
+
+The sender of `closing_complete` (aka. "the closer"):
+  - MUST set `fee_satoshis` to a fee less than or equal to its outstanding balance, rounded down to whole satoshis.
+  - MUST set `fee_satoshis` so that at least one output is not dust.
+  - MUST use the last sent and received `shutdown.scriptpubkey` to generate the closing transaction specified in [BOLT #3](03-transactions.md#closing-transaction).
+  - MUST set `locktime` to the desired `nLockTime` of the closing transaction.
+  - MUST set `signature` fields as valid signature using its `funding_pubkey` of:
+    - `closer_output_only`: closing transaction with only the local ("closer") output.
+    - `closee_output_only`: closing transaction with only the remote ("closee") output.
+    - `closer_and_closee_outputs`: closing transaction with both the closer and closee outputs.
+  - If the local outstanding balance (in millisatoshi) is less than the remote outstanding balance:
+    - MUST NOT set `closer_output_only`.
+    - MUST set `closee_output_only` if the local output amount is dust.
+    - MAY set `closee_output_only` if it considers the local output amount uneconomical AND its `scriptpubkey` is not `OP_RETURN`.
+  - Otherwise (not lesser amount, cannot remove own output):
+    - MUST NOT set `closee_output_only`.
+    - If the closee's output amount is dust:
+      - MUST set `closer_output_only`.
+      - SHOULD NOT set `closer_and_closee_outputs`.
+    - Otherwise:
+      - MUST set both `closer_output_only` and `closer_and_closee_outputs`.
+  - If it wants to send another `closing_complete` (e.g. with a different `fee_satoshis`):
+    - MUST send `shutdown` first.
+    - MUST receive `shutdown` from the remote node in response.
+    - MUST use the `scriptpubkey`s from those `shutdown` messages.
+
+The receiver of `closing_complete` (aka. "the closee"):
+  - If `fee_satoshis` is greater than the closer's outstanding balance:
+    - MUST either send a `warning` and close the connection, or send an `error` and fail the channel.
+  - Select a signature for validation:
+    - if the local output amount is dust:
+      - MUST use `closer_output_only`.
+    - otherwise, if it considers the local output amount uneconomical AND its `scriptpubkey` is not `OP_RETURN`:
+      - MUST use `closer_output_only`.
+    - otherwise, if `closer_and_closee_outputs` is present:
+      - MUST use `closer_and_closee_outputs`.
+    - otherwise:
+      - MUST use `closee_output_only`.
+  - If the selected signature field does not exist:
+    - MUST either send a `warning` and close the connection, or send an `error` and fail the channel.
+  - If the signature field is not valid for the corresponding closing transaction specified in [BOLT #3](03-transactions.md#closing-transaction):
+    - MUST ignore `closing_complete`.
+  - If the signature field is non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+    - MUST either send a `warning` and close the connection, or send an `error` and fail the channel.
+  - MUST sign and broadcast the corresponding closing transaction.
+  - MUST send `closing_sig` with a single valid signature in the same TLV field as the `closing_complete`.
+
+The receiver of `closing_sig`:
+  - if `tlvs` does not contain exactly one signature:
+    - MUST either send a `warning` and close the connection, or send an `error` and fail the channel.
+  - if `tlvs` does not contain one of the TLV fields sent in `closing_complete`:
+    - MUST ignore `closing_sig`.
+  - if the signature field is not valid for the corresponding closing transaction specified in [BOLT #3](03-transactions.md#closing-transaction):
+    - MUST ignore `closing_sig`.
+  - if the signature field is non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+    - MUST either send a `warning` and close the connection, or send an `error` and fail the channel.
+  - otherwise:
+    - MUST sign and broadcast the corresponding closing transaction.
+
+### Rationale
+
+The close protocol is designed to avoid any failure scenarios caused by fee disagreement,
+since each side offers to pay its own desired fee.
+
+If one side has less funds than the other, it may choose to omit its own output, and in this case
+dust MUST be omitted, to ensure that the resulting transaction can be broadcast.
+
+The corner case where fees are so high that both outputs are dust is addressed in two ways: paying
+a low fee to avoid the problem, or using an `OP_RETURN` (which is never "dust"). If one side
+chooses to use an `OP_RETURN` output, its amount must be 0 to ensure that the resulting transaction
+can be broadcast.
+
+Note that there is usually no reason to pay a high fee for rapid processing, since an urgent child
+could pay the fee on the closing transactions' behalf. If rapid processing is desired and CPFP is
+not an option, the closer can RBF its previous closing transactions by sending `shutdown` again.
+
+Sending a new `shutdown` message overrides previous ones, so you can negotiate again (even changing
+the output address when `upfront_shutdown_script` was not negotiated) if you want: in this case
+there's a race where you could receive `closing_complete` for the previous output address, and the
+signature won't validate. In this case, ignoring the `closing_complete` is the correct behaviour,
+as the new `shutdown` will trigger a new `closing_complete` with the correct signature. This
+assumption that we only remember the last-sent of any message is why so many cases of bad
+signatures are simply ignored.
+
+When sending a new `shutdown`, we must receive a new `shutdown` from the remote node before
+sending `closing_complete`. This is necessary to be compatible with future taproot channels
+that use musig2 and need to exchange random nonces every time a transaction spending the channel
+output is signed. Note that the remote `shutdown` doesn't need to be an explicit response to the
+local `shutdown` that was sent: if both nodes concurrently send `shutdown`, they can exchange
+`closing_complete` immediately after receiving the remote `shutdown`.
+
+If the closer proposes a transaction which will not relay (an output is dust, or the fee rate it
+proposes is too low), it doesn't harm the closee to sign the transaction.
+
+Similarly, if the closer proposes a high fee, it doesn't harm the closee to sign the transaction,
+as the closer is paying.
+
+There's a slight game where each side would prefer the other side pay the fee, and proposes a
+minimal fee. If neither side proposes a fee which will relay, the negotiation can occur again,
+or the final commitment transaction can be spent. In practice, the opener has an incentive to
+offer a reasonable closing fee, as they would pay the fee for the commitment transaction, which
+also costs more to spend.
 
 ## Normal Operation
 
