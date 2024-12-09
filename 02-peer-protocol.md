@@ -2526,6 +2526,9 @@ A receiving node:
     - otherwise:
       - MUST send `tx_abort` to let the sending node know that they can forget
         this funding transaction.
+  - if `next_funding_txid` is not set, and `next_commitment_number` is zero:
+    - MUST immediately fail the channel and broadcast any relevant latest commitment
+      transaction.
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
