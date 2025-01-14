@@ -84,8 +84,8 @@ The `announcement_signatures` message is created by constructing a `channel_anno
 A node:
   - if the `open_channel` message has the `announce_channel` bit set AND a `shutdown` message has not been sent:
     - MUST send the `announcement_signatures` message.
-      - MUST NOT send `announcement_signatures` messages until `channel_ready`
-      has been sent and received AND the funding transaction has at least six confirmations.
+      - MUST NOT send `announcement_signatures` until `channel_ready` has been sent and received.
+      - MUST NOT send `announcement_signatures` until the funding transaction has enough confirmations to ensure that it won't be reorganized.
   - otherwise:
     - MUST NOT send the `announcement_signatures` message.
   - upon reconnection (once the above timing requirements have been met):
@@ -104,10 +104,9 @@ A recipient node:
   - if it has sent AND received a valid `announcement_signatures` message:
     - SHOULD queue the `channel_announcement` message for its peers.
   - if it has not sent `channel_ready`:
-    - MAY defer handling the announcement_signatures until after it has sent `channel_ready`
+    - MAY defer handling the `announcement_signatures` until after it has sent `channel_ready`.
     - otherwise:
       - MUST ignore it.
-
 
 ### Rationale
 
@@ -115,6 +114,10 @@ The reason for allowing deferring of a premature announcement_signatures is
 that an earlier version of the spec did not require waiting for receipt of
 funding locked: deferring rather than ignoring it allows compatibility with
 this behavior.
+
+Channels must not be announced before the funding transaction has enough
+confirmations, because a blockchain reorganization would otherwise invalidate
+the `short_channel_id`.
 
 ## The `channel_announcement` Message
 
