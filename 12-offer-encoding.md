@@ -538,12 +538,11 @@ The reader:
       - MUST use `invreq_paths` if present, otherwise MUST use `invreq_payer_id` as the node id to send to.
   - if `invreq_chain` is not present:
     - MUST reject the invoice request if bitcoin is not a supported chain.
+  - otherwise:
+    - MUST reject the invoice request if `invreq_chain`.`chain` is not a supported chain.
   - if `invreq_bip_353_name` is present:
     - MUST reject the invoice request if `name` or `domain` contain any bytes which are not
       `0`-`9`, `a`-`z`, `A`-`Z`, `-`, `_` or `.`.
-  - otherwise:
-    - MUST reject the invoice request if `invreq_chain`.`chain` is not a supported chain.
-
 
 ## Rationale
 
@@ -639,6 +638,12 @@ the `onion_message` `invoice` field.
     1. type: 90 (`invreq_paths`)
     2. data:
         * [`...*blinded_path`:`paths`]
+    1. type: 91 (`invreq_bip_353_name`)
+    2. data:
+        * [`u8`:`name_len`]
+        * [`name_len*byte`:`name`]
+        * [`u8`:`domain_len`]
+        * [`domain_len*byte`:`domain`]
     1. type: 160 (`invoice_paths`)
     2. data:
         * [`...*blinded_path`:`paths`]
