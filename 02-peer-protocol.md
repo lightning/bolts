@@ -1857,22 +1857,25 @@ The sender of `closing_complete` (aka. "the closer"):
   - MUST set `closer_scriptpubkey` to its desired output script.
   - MUST set `closee_scriptpubkey` to the last script it received from its peer (from `closing_complete` or from the initial `shutdown`).
   - MUST set `locktime` to the desired `nLockTime` of the closing transaction.
-  - MUST generate its closing transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).
-  - MUST set `signature` fields as valid signature using its `funding_pubkey` of:
-    - `closer_output_only`: closing transaction with only the local ("closer") output.
-    - `closee_output_only`: closing transaction with only the remote ("closee") output.
-    - `closer_and_closee_outputs`: closing transaction with both the closer and closee outputs.
   - If the local outstanding balance (in millisatoshi) is less than the remote outstanding balance:
     - MUST NOT set `closer_output_only`.
     - MUST set `closee_output_only` if the local output amount is dust.
     - MAY set `closee_output_only` if it considers the local output amount uneconomical AND its `closer_scriptpubkey` is not `OP_RETURN`.
   - Otherwise (not lesser amount, cannot remove its own output):
     - MUST NOT set `closee_output_only`.
+    - If it considers the local output amount uneconomical:
+      - MAY send a `closer_scriptpubkey` that is a valid `OP_RETURN` script. 
+      - If it does, the output value MUST be set to zero so that all funds go to fees, as specified in [BOLT #3](03-transactions.md#closing-transaction).
     - If the closee's output amount is dust:
       - MUST set `closer_output_only`.
       - SHOULD NOT set `closer_and_closee_outputs`.
     - Otherwise:
       - MUST set both `closer_output_only` and `closer_and_closee_outputs`.
+  - MUST generate its closing transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).
+  - MUST set `signature` fields as valid signature using its `funding_pubkey` of:
+    - `closer_output_only`: closing transaction with only the local ("closer") output.
+    - `closee_output_only`: closing transaction with only the remote ("closee") output.
+    - `closer_and_closee_outputs`: closing transaction with both the closer and closee outputs.
   - If it wants to send another `closing_complete` (e.g. with a different `fee_satoshis` or `closer_scriptpubkey`):
     - MUST wait until it has received `closing_sig` first.
     - SHOULD close the connection if it doesn't receive `closing_sig`.
@@ -1884,6 +1887,8 @@ The receiver of `closing_complete` (aka. "the closee"):
     - SHOULD ignore `closing_complete`.
     - SHOULD send a `warning`.
     - SHOULD close the connection.
+  - If `closer_scriptpubkey` is a valid `OP_RETURN` script:
+    - MUST set its output amount to zero so that all funds go to fees, as specified in [BOLT #3](03-transactions.md#closing-transaction).
   - MUST generate the remote closing transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).
   - Select a signature for validation:
     - If the local output amount is dust:
