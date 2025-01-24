@@ -627,17 +627,17 @@ Alice initiates a splice, but disconnects before Bob receives her tx_signatures 
 ### Disconnection with concurrent `splice_locked`
 
 In this scenario, disconnections happen while nodes are exchanging `splice_locked`.
-The `splice_locked` message must be retransmitted on reconnection until new commitments have been signed.
+The `splice_locked` message must be retransmitted on reconnection if it wasn't previously received.
+When `last_funding_locked` is set, this lets nodes immediately lock the latest splice transaction.
 
 ```text
 Initial active commitments:
 
-   commitment_number = 10
    +------------+
    | FundingTx1 |
    +------------+
 
-Alice initiates a splice, but disconnects before Bob receives her splice_locked:
+Alice initiates a splice, but disconnections happen when exchanging splice_locked:
 
    Alice                           Bob
      |             stfu             |
@@ -668,77 +668,43 @@ Alice initiates a splice, but disconnects before Bob receives her splice_locked:
      |---------------------X        |
      |                              | Active commitments:
      |                              | 
-     |                              |    commitment_number = 10
      |                              |    +------------+        +------------+
      |                              |    | FundingTx1 |------->| FundingTx2 |
      |                              |    +------------+        +------------+
      |                              |
-     |      channel_reestablish     | next_funding_txid = null, next_commitment_number = 11, next_revocation_number = 10
+     |      channel_reestablish     | next_funding_txid = null, your_last_funding_locked = funding_tx1, my_current_funding_locked = funding_tx2
      |----------------------------->|
-     |      channel_reestablish     | next_funding_txid = null, next_commitment_number = 11, next_revocation_number = 10
+     |      channel_reestablish     | next_funding_txid = null, your_last_funding_locked = funding_tx1, my_current_funding_locked = funding_tx1
      |<-----------------------------|
      |        splice_locked         |
      |----------------------------->|
-     |        splice_locked         |
+     |        splice_locked         | At that point, Bob has locked funding_tx2, but Alice doesn't know it because she hasn't received splice_locked yet.
      |       X----------------------|
      |                              |
-     |      channel_reestablish     | next_funding_txid = null, next_commitment_number = 11, next_revocation_number = 10
+     |      channel_reestablish     | next_funding_txid = null, your_last_funding_locked = funding_tx1, my_current_funding_locked = funding_tx2
      |----------------------------->|
-     |      channel_reestablish     | next_funding_txid = null, next_commitment_number = 11, next_revocation_number = 10
+     |      channel_reestablish     | next_funding_txid = null, your_last_funding_locked = funding_tx2, my_current_funding_locked = funding_tx2
      |<-----------------------------|
-     |        splice_locked         |
-     |----------------------------->|
-     |        splice_locked         |
-     |<-----------------------------|
+     |                              | Alice doesn't need to retransmit splice_locked, since Bob's your_last_funding_locked indicates that he received it.
+     |                              | Bob's my_current_funding_locked lets Alice know that Bob has locked funding_tx2 while they were disconnected and will send his splice_locked.
+     |                              | She can thus immediately lock it as well even though she hasn't received yet Bob's splice_locked.
+     |                              |
      |                              | Active commitments:
-     |                              | 
-     |                              |    commitment_number = 10
+     |                              |
      |                              |    +------------+
      |                              |    | FundingTx2 |
      |                              |    +------------+
-     |       update_add_htlc        |
-     |----------------------X       |
-     |         commit_sig           |
-     |----------------------X       |
      |                              |
-     |      channel_reestablish     | next_funding_txid = null, next_commitment_number = 11, next_revocation_number = 10
-     |----------------------------->|
-     |      channel_reestablish     | next_funding_txid = null, next_commitment_number = 11, next_revocation_number = 10
-     |<-----------------------------|
-     |        splice_locked         |
-     |----------------------------->|
-     |        splice_locked         |
-     |<-----------------------------|
      |       update_add_htlc        |
      |----------------------------->|
-     |         commit_sig           |
+     |         commit_sig           | Alice doesn't need to sent commit_sig for funding_tx1 since funding_tx2 was locked.
      |----------------------------->|
+     |        splice_locked         | Bob's splice_locked is sent concurrently with Alice's update_add_htlc and commit_sig: this is fine.
+     |<-----------------------------|
      |       revoke_and_ack         |
      |<-----------------------------|
      |         commit_sig           |
      |<-----------------------------|
      |       revoke_and_ack         |
-     |----------------------------->|
-     |                              | Active commitments:
-     |                              |
-     |                              |    commitment_number = 11
-     |                              |    +------------+
-     |                              |    | FundingTx2 |
-     |                              |    +------------+
-     |                              |
-     |                              | A new commitment was signed, implicitly acknowledging splice_locked.
-     |                              | We thus don't need to retransmit splice_locked on reconnection.
-     |       update_add_htlc        |
-     |----------------------X       |
-     |         commit_sig           |
-     |----------------------X       |
-     |                              |
-     |      channel_reestablish     | next_funding_txid = null, next_commitment_number = 12, next_revocation_number = 11
-     |----------------------------->|
-     |      channel_reestablish     | next_funding_txid = null, next_commitment_number = 12, next_revocation_number = 11
-     |<-----------------------------|
-     |       update_add_htlc        |
-     |----------------------------->|
-     |         commit_sig           |
      |----------------------------->|
 ```

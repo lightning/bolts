@@ -1945,7 +1945,7 @@ the locked transaction replaces the previous funding transaction.
 
 Each node:
   - If any splice transaction reaches acceptable depth:
-    - MUST send `splice_locked`.
+    - MUST send `splice_locked` with the `txid` of that transaction.
 
 Once a node has sent and received `splice_locked`:
   - MUST consider the locked splice transaction to be the new funding
@@ -1954,18 +1954,6 @@ Once a node has sent and received `splice_locked`:
   - SHOULD discard the previous funding transaction and RBF attempts.
   - MUST send `announcement_signatures` with `short_channel_id` matching
     the locked splice transaction.
-
-On reconnection:
-  - MUST retransmit its last `splice_locked` if the `commitment_number`
-    is the same as before sending `splice_locked`.
-
-##### Rationale
-
-If a disconnection happens, nodes cannot know whether their peer received
-their `splice_locked` message, so they retransmit it. Redundant messages
-are harmless and can be safely ignored. If updates to the commitment have
-been signed, this implicitly acknowledges that `splice_locked` has been
-received and doesn't need to be retransmitted.
 
 ## Channel Close
 
@@ -3193,6 +3181,12 @@ messages are), they are independent of requirements here.
     1. type: 0 (`next_funding`)
     2. data:
         * [`sha256`:`next_funding_txid`]
+    1. type: 1 (`your_last_funding_locked`)
+    2. data:
+        * [`sha256`:`your_last_funding_locked_txid`]
+    1. type: 3 (`my_current_funding_locked`)
+    2. data:
+        * [`sha256`:`my_current_funding_locked_txid`]
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
@@ -3251,10 +3245,28 @@ The sending node:
       - MUST set `next_commitment_number` to the commitment number of the `commitment_signed` it sent.
   - otherwise:
     - MUST NOT set `next_funding_txid`.
+  - if `option_splice` was negotiated:
+    - MUST set `your_last_funding_locked` to the txid of the last `splice_locked` it received.
+    - if it never received `splice_locked` for any transaction, but it received `channel_ready`:
+      - MUST set `your_last_funding_locked` to the txid of the channel funding transaction.
+    - otherwise (it has never received `channel_ready` or `splice_locked`):
+      - MUST NOT set `your_last_funding_locked`.
+    - if a splice transaction reached acceptable depth while disconnected:
+      - MUST set `my_current_funding_locked` to the txid of the latest such transaction.
+      - MUST send `splice_locked` for that transaction after `channel_reestablish`.
+    - otherwise:
+      - MUST set `my_current_funding_locked` to the txid of the last `splice_locked` it sent.
+      - if it never sent `splice_locked` for any transaction, but it sent `channel_ready`:
+        - MUST set `my_current_funding_locked` to the txid of the channel funding transaction.
+      - otherwise (it has never sent `channel_ready` or `splice_locked`):
+        - MUST NOT set `my_current_funding_locked`.
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
-  sent and received:
+    sent and received and `option_splice` was NOT negotiated:
+    - MUST retransmit `channel_ready`.
+  - if `option_splice` was negotiated and `your_last_funding_locked` is not
+    set in the `channel_reestablish` it received:
     - MUST retransmit `channel_ready`.
   - otherwise:
     - MUST NOT retransmit `channel_ready`, but MAY send `channel_ready` with
@@ -3311,15 +3323,22 @@ A receiving node:
         - MUST send its `tx_signatures` for that funding transaction.
       - if it has already received `tx_signatures` for that funding transaction:
         - MUST send its `tx_signatures` for that funding transaction.
-    - if `next_funding_txid` matches the latest funding transaction:
-      - if that transaction has reached acceptable depth:
-        - MUST send `splice_locked`.        
     - if it also sets `next_funding_txid` in its own `channel_reestablish`, but the
       values don't match:
       - MUST send an `error` and fail the channel.
     - otherwise:
       - MUST send `tx_abort` to let the sending node know that they can forget
         this funding transaction.
+
+A receiving node:
+  - if `my_current_funding_locked` does not match the most recent `splice_locked`
+    it has received:
+    - MUST process `my_current_funding_locked` as if it was receiving `splice_locked`
+      for this `txid`, and thus discard the previous funding transaction and RBF
+      attempts if it has previously sent its own `splice_locked` for that `txid`.
+  - if `your_last_funding_locked` is not set, or if it does not match the most recent
+    `splice_locked` it has sent:
+    - MUST retransmit `splice_locked`.
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
@@ -3380,16 +3399,6 @@ operation, which is known to have begun after a `commitment_signed` has been
 received — hence, the test for a `next_commitment_number` greater
 than 1.
 
-A previous draft insisted that the funder "MUST remember ...if it has
-broadcast the funding transaction, otherwise it MUST NOT": this was in
-fact an impossible requirement. A node must either firstly commit to
-disk and secondly broadcast the transaction or vice versa. The new
-language reflects this reality: it's surely better to remember a
-channel which hasn't been broadcast than to forget one which has!
-Similarly, for the fundee's `funding_signed` message: it's better to
-remember a channel that never opens (and times out) than to let the
-funder open it while the fundee has forgotten it.
-
 A node, which has somehow fallen
 behind (e.g. has been restored from old backup), can detect that it has fallen
 behind. A fallen-behind node must know it cannot broadcast its current
@@ -3404,6 +3413,15 @@ with a different backup).
 interactive transaction construction, or safely abort that transaction
 if it was not signed by one of the peers, who has thus already removed
 it from its state.
+
+`your_last_funding_locked` allows peers to detect that their `splice_locked`
+was lost during the disconnection and must be retransmitted. When a splice
+transaction reaches acceptable depth while peers are disconnected, it also
+allows locking that splice transaction immediately after `channel_reestablish`
+instead of waiting for the `splice_locked` message, which could otherwise
+create a race condition with channel updates. For more details about this
+race condition, see [this example](./bolt02/splicing-test.md#disconnection-with-concurrent-splice_locked).
+Redundant `splice_locked` messages are harmless and can be safely ignored.
 
 # Authors
 
