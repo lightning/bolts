@@ -1,4 +1,4 @@
-# BOLT #12: Flexible Protocol for Lightning Payments
+# BOLT #12: Negotiation Protocol for Lightning Payments
 
 # Table of Contents
 
