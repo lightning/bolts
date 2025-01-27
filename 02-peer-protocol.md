@@ -1868,7 +1868,7 @@ The sender of `closing_complete` (aka. "the closer"):
       - If it does, the output value MUST be set to zero so that all funds go to fees, as specified in [BOLT #3](03-transactions.md#closing-transaction).
     - If the closee's output amount is dust:
       - MUST set `closer_output_only`.
-      - SHOULD NOT set `closer_and_closee_outputs`.
+      - MUST NOT set `closer_and_closee_outputs`.
     - Otherwise:
       - MUST set both `closer_output_only` and `closer_and_closee_outputs`.
   - MUST generate its closing transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).
@@ -1884,6 +1884,10 @@ The receiver of `closing_complete` (aka. "the closee"):
   - If `fee_satoshis` is greater than the closer's outstanding balance:
     - MUST either send a `warning` and close the connection, or send an `error` and fail the channel.
   - If `closee_scriptpubkey` does not match the last script it sent (from `closing_complete` or from the initial `shutdown`):
+    - SHOULD ignore `closing_complete`.
+    - SHOULD send a `warning`.
+    - SHOULD close the connection.
+  - If `closer_scriptpubkey` is invalid (as detailed in the [`shutdown` requirements](#closing-initiation-shutdown)):
     - SHOULD ignore `closing_complete`.
     - SHOULD send a `warning`.
     - SHOULD close the connection.
