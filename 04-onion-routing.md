@@ -854,7 +854,7 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
         
         // Our starting packet needs to be filled out with random bytes, we
         // generate some deterministically using the session private key.
-        paddingKey := generateKey("pad", sessionKey.Serialize()
+        paddingKey := generateKey("pad", sessionKey.Serialize())
         paddingBytes := generateCipherStream(paddingKey, routingInfoSize)
         copy(mixHeader[:], paddingBytes)
 
