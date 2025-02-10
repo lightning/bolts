@@ -41,7 +41,7 @@ extract_fields()
 extract_field()
 {
     if [ $(grep -c "^    $1:" $2) != 1 ]; then
-	echo "Ambigious field $1" >&2
+	echo "Ambiguous field $1" >&2
 	exit 1
     fi
     extract_fields "$@" | cut -d: -f2-
