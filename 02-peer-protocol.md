@@ -1892,7 +1892,7 @@ The receiver of `closing_complete` (aka. "the closee"):
     - SHOULD send a `warning`.
     - SHOULD close the connection.
   - If `closer_scriptpubkey` is a valid `OP_RETURN` script:
-    - MUST set its output amount to zero so that all funds go to fees, as specified in [BOLT #3](03-transactions.md#closing-transaction).
+    - MUST set the closer's output amount to zero so that all funds go to fees, as specified in [BOLT #3](03-transactions.md#closing-transaction).
   - MUST generate the remote closing transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).
   - Select a signature for validation:
     - If the local output amount is dust:
