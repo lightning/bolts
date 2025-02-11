@@ -51,7 +51,7 @@ A node:
     * [Payload Format](#payload-format)
     * [Basic Multi-Part Payments](#basic-multi-part-payments)
   * [Route Blinding](#route-blinding)
-    * [Inside encrypted_recipient_data: encrypted_data_tlv](Inside-encrypted_recipient_data-encrypted_data_tlv)
+    * [Inside encrypted_recipient_data: encrypted_data_tlv](#Inside-encrypted_recipient_data-encrypted_data_tlv)
   * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
     * [Payload for the Last Node](#payload-for-the-last-node)
     * [Non-strict Forwarding](#non-strict-forwarding)
@@ -1527,7 +1527,6 @@ The creator of `encrypted_recipient_data` (usually, the recipient of the onion):
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
   - MUST NOT include `payment_relay` or `payment_constraints` in any `encrypted_data_tlv`
   - MUST include either `next_node_id` or `short_channel_id` in the `encrypted_data_tlv` for each non-final node.
-  - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
 
 The writer:
 
