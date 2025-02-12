@@ -3260,6 +3260,13 @@ The sending node:
         - MUST set `my_current_funding_locked` to the txid of the channel funding transaction.
       - otherwise (it has never sent `channel_ready` or `splice_locked`):
         - MUST NOT set `my_current_funding_locked`.
+      - if `my_current_funding_locked` is included and `announce_channel` is set for this channel:
+        - if it has not received `announcement_signatures` for that transaction:
+          - MUST retransmit `channel_ready` or `splice_locked` after `channel_reestablish`.
+        - if it receives `channel_ready` for that transaction after `channel_reestablish`:
+          - MUST retransmit `channel_ready` in response, if not already sent.
+        - if it receives `splice_locked` for that transaction after `channel_reestablish`:
+          - MUST retransmit `splice_locked` in response, if not already sent.
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
