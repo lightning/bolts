@@ -3250,6 +3250,11 @@ The sending node:
       - MUST send `splice_locked` for that transaction after `channel_reestablish`.
     - otherwise:
       - MUST set `my_current_funding_locked_txid` to the txid of the last `splice_locked` it sent.
+      - if `announce_channel` is set for this channel:
+        - if it has not received `announcement_signatures` for that transaction:
+          - MUST retransmit `splice_locked` after `channel_reestablish`.
+        - if it receives `splice_locked` for that transaction after `channel_reestablish`:
+          - MUST retransmit `splice_locked` in response.
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
@@ -3328,8 +3333,6 @@ A receiving node:
     - if `your_last_funding_locked_txid` does not match the most recent
       `splice_locked` it has sent:
       - MUST retransmit `splice_locked`.
-    - otherwise:
-      - MUST NOT retransmit `splice_locked`.
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
