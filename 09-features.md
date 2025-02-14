@@ -48,6 +48,7 @@ The Context column decodes as follows:
 | 28/29 | `option_dual_fund`                | Use v2 of channel open, enables dual funding              | IN       |                             | [BOLT #2](02-peer-protocol.md)                                        |
 | 34/35 | `option_quiesce`                  | Support for `stfu` message                                | IN       |                             | [BOLT #2][bolt02-quiescence]                                          |
 | 38/39 | `option_onion_messages`           | Can forward onion messages                                | IN       |                             | [BOLT #7](04-onion-routing.md#onion-messages)                         |
+| 40/41 | `zero_fee_commitments`            | Zero-fee commitment and HTLC transactions                 | IN       | `option_channel_type`       | [BOLT #3][bolt03-shared-anchor]                                       |
 | 42/43 | `option_provide_storage`          | Can store other nodes' encrypted backup data              | IN       |                             | [BOLT #1](01-messaging.md#peer-storage)                               |
 | 44/45 | `option_channel_type`             | ASSUMED                                                   | IN       |                             |                                                                       |
 | 46/47 | `option_scid_alias`               | Supply channel aliases for routing                        | INT      |                             | [BOLT #2][bolt02-channel-ready]                                       |
@@ -100,6 +101,7 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt02-open]: 02-peer-protocol.md#the-open_channel-message
 [bolt02-simple-close]: 02-peer-protocol.md#closing-negotiation-closing_complete-and-closing_sig
 [bolt03-htlc-tx]: 03-transactions.md#htlc-timeout-and-htlc-success-transactions
+[bolt03-shared-anchor]: 03-transactions.md#shared_anchor-output-zero_fee_commitments
 [bolt02-shutdown]: 02-peer-protocol.md#closing-initiation-shutdown
 [bolt02-quiescence]: 02-peer-protocol.md#channel-quiescence
 [bolt02-channel-ready]: 02-peer-protocol.md#the-channel_ready-message

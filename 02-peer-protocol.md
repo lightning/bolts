@@ -609,7 +609,6 @@ the `channel_ready` message, the channel is established and can begin
 normal operation. The `channel_ready` message includes information
 that will be used to construct channel authentication proofs.
 
-
         +-------+                              +-------+
         |       |--(1)---  open_channel  ----->|       |
         |       |<-(2)--  accept_channel  -----|       |
@@ -745,6 +744,7 @@ affect the channel operation).
 The currently defined basic types are:
   - `option_static_remotekey` (bit 12)
   - `option_anchors` and `option_static_remotekey` (bits 22 and 12)
+  - `zero_fee_commitments` (bit 40)
 
 Each basic type has the following variations allowed:
   - `option_scid_alias` (bit 46)
@@ -774,14 +774,19 @@ The sending node:
       - MUST set it to a defined type representing the type it wants.
       - MUST use the smallest bitmap possible to represent the channel type.
       - SHOULD NOT set it to a type containing a feature which was not negotiated.
+      - if `channel_type` includes `zero_fee_commitments`:
+        - MUST set `feerate_per_kw` to `0`.
       - if `announce_channel` is `true` (not `0`):
         - MUST NOT send `channel_type` with the `option_scid_alias` bit set.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
-  - set `feerate_per_kw` to at least the rate it estimates would cause the transaction to be immediately included in a block.
-  - set `dust_limit_satoshis` to a sufficient value to allow commitment transactions to propagate through the Bitcoin network.
   - set `htlc_minimum_msat` to the minimum value HTLC it's willing to accept from this peer.
+  - when using `zero_fee_commitments` or `option_anchors`:
+    - set `dust_limit_satoshis` to a sufficient value to ensure that it is economical to spend, taking the cost of HTLC transactions into account.
+  - otherwise (not using `zero_fee_commitments` or `option_anchors`):
+    - set `feerate_per_kw` to at least the rate it estimates would cause the transaction to be immediately included in a block.
+    - set `dust_limit_satoshis` to a sufficient value to allow commitment transactions to propagate through the Bitcoin network.
 
 The receiving node MUST:
   - ignore undefined bits in `channel_flags`.
@@ -807,8 +812,12 @@ The receiving node MUST fail the channel if:
   - the `chain_hash` value is set to a hash of a chain that is unknown to the receiver.
   - `push_msat` is greater than `funding_satoshis` * 1000.
   - `to_self_delay` is unreasonably large.
-  - `max_accepted_htlcs` is greater than 483.
-  - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
+  - `channel_type` includes `zero_fee_commitments` and:
+    - `max_accepted_htlcs` is greater than 114.
+    - `feerate_per_kw` is not `0`.
+  - `channel_type` does not include `zero_fee_commitments` and:
+    - `max_accepted_htlcs` is greater than 483.
+    - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
 are not valid secp256k1 pubkeys in compressed format.
   - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
@@ -1161,6 +1170,8 @@ If nodes have negotiated `option_dual_fund`:
 The sending node:
   - MUST set `channel_type`
   - MUST set `funding_feerate_perkw` to the feerate for this transaction
+  - if `channel_type` includes `zero_fee_commitments`:
+    - MUST set `commitment_feerate_perkw` to `0`.
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
 
@@ -1169,6 +1180,7 @@ The receiving node:
     - the `locktime` is unacceptable
     - the `funding_feerate_perkw` is unacceptable
   - MUST fail the negotiation if:
+    - `channel_type` includes `zero_fee_commitments` and `commitment_feerate_perkw` is not `0`.
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
     - `channel_type` is not set
 
@@ -2208,9 +2220,9 @@ A node:
 The `max_dust_htlc_exposure_msat` is an upper bound on the trimmed balance from
 dust exposure. The exact value used is a matter of node policy.
 
-For channels that don't use `option_anchors`, an increase of
-the `feerate_per_kw` may trim multiple htlcs from commitment transactions,
-which could create a large increase in dust exposure.
+For channels that don't use `zero_fee_commitments` or `option_anchors`, an
+increase of the `feerate_per_kw` may trim multiple htlcs from commitment
+transactions, which could create a large increase in dust exposure.
 
 ### Adding an HTLC: `update_add_htlc`
 
@@ -2241,26 +2253,27 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
 #### Requirements
 
 A sending node:
-  - if it is _responsible_ for paying the Bitcoin fee:
-    - MUST NOT offer `amount_msat` if, after adding that HTLC to its commitment
-    transaction, it cannot pay the fee for either the local or remote commitment
-    transaction at the current `feerate_per_kw` while maintaining its channel
-    reserve (see [Updating Fees](#updating-fees-update_fee)).
-    - if `option_anchors` applies to this commitment transaction and the sending
-    node is the funder:
-      - MUST be able to additionally pay for `to_local_anchor` and 
-      `to_remote_anchor` above its reserve.
-    - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
-    transaction, its remaining balance doesn't allow it to pay the commitment
-    transaction fee when receiving or sending a future additional non-dust HTLC
-    while maintaining its channel reserve. It is recommended that this "fee spike
-    buffer" can handle twice the current `feerate_per_kw` to ensure predictability
-    between implementations.
-  - if it is _not responsible_ for paying the Bitcoin fee:
-    - SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to
-    its commitment transaction, it cannot pay the fee for the updated local or
-    remote transaction at the current `feerate_per_kw` while maintaining its
-    channel reserve.
+  - if `zero_fee_commitments` has not been negotiated:
+    - if it is _responsible_ for paying the Bitcoin fee:
+      - MUST NOT offer `amount_msat` if, after adding that HTLC to its commitment
+      transaction, it cannot pay the fee for either the local or remote commitment
+      transaction at the current `feerate_per_kw` while maintaining its channel
+      reserve (see [Updating Fees](#updating-fees-update_fee)).
+      - if `option_anchors` applies to this commitment transaction and the sending
+      node is the funder:
+        - MUST be able to additionally pay for `to_local_anchor` and
+        `to_remote_anchor` above its reserve.
+      - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
+      transaction, its remaining balance doesn't allow it to pay the commitment
+      transaction fee when receiving or sending a future additional non-dust HTLC
+      while maintaining its channel reserve. It is recommended that this "fee spike
+      buffer" can handle twice the current `feerate_per_kw` to ensure predictability
+      between implementations.
+    - if it is _not responsible_ for paying the Bitcoin fee:
+      - SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to
+      its commitment transaction, it cannot pay the fee for the updated local or
+      remote transaction at the current `feerate_per_kw` while maintaining its
+      channel reserve.
   - MUST offer `amount_msat` greater than 0.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
   - MUST set `cltv_expiry` less than 500000000.
@@ -2329,12 +2342,16 @@ sides send the maximum number of HTLCs, the `commitment_signed` message will
 still be under the maximum message size. It also ensures that
 a single penalty transaction can spend the entire commitment transaction,
 as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
+When using `zero_fee_commitments`, we further limit `max_accepted_htlcs` to
+114 because v3 transactions are limited to 10kvB, which decreases the number
+of outputs the commitment transaction can have.
 
 `cltv_expiry` values equal to or greater than 500000000 would indicate a time in
 seconds, and the protocol only supports an expiry in blocks.
 
-The node _responsible_ for paying the Bitcoin fee should maintain a "fee
-spike buffer" on top of its reserve to accommodate a future fee increase.
+When `zero_fee_commitments` is not used, the node _responsible_ for paying
+the Bitcoin fee should maintain a "fee spike buffer" on top of its reserve
+to accommodate a future fee increase.
 Without this buffer, the node _responsible_ for paying the Bitcoin fee may
 reach a state where it is unable to send or receive any non-dust HTLC while
 maintaining its channel reserve (because of the increased weight of the
@@ -2504,9 +2521,6 @@ the case of offered HTLCs being timed out or received HTLCs being spent. This
 is done to reduce fees by creating smaller scripts compared to explicitly
 stating time-locks on HTLC outputs.
 
-The `option_anchors` allows HTLC transactions to "bring their own fees" by
-attaching other inputs and outputs, hence the modified signature flags.
-
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
 Once the recipient of `commitment_signed` checks the signature and knows
@@ -2551,8 +2565,9 @@ A node:
 
 ### Updating Fees: `update_fee`
 
-An `update_fee` message is sent by the node which is paying the
-Bitcoin fee. Like any update, it's first committed to the receiver's
+For channels that don't use `zero_fee_commitments`, an `update_fee`
+message is sent by the node which is paying the Bitcoin fee.
+Like any update, it's first committed to the receiver's
 commitment transaction and then (once acknowledged) committed to the
 sender's. Unlike an HTLC, `update_fee` is never closed but simply
 replaced.
@@ -2573,6 +2588,9 @@ given in [BOLT #3](03-transactions.md#fee-calculation).
 
 #### Requirements
 
+When using `zero_fee_commitments`, nodes:
+  - MUST NOT send `update_fee`.
+
 The node _responsible_ for paying the Bitcoin fee:
   - SHOULD send `update_fee` to ensure the current fee rate is sufficient (by a
       significant margin) for timely processing of the commitment transaction.
@@ -2591,6 +2609,9 @@ A sending node:
         - MAY fail the channel
 
 A receiving node:
+  - if `zero_fee_commitments` is used:
+    - MUST ignore the message.
+    - SHOULD send a `warning` and disconnect.
   - if the `update_fee` is too low for timely processing, OR is unreasonably large:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
@@ -2615,7 +2636,9 @@ Bitcoin fees are required for unilateral closes to be effective.
 With `option_anchors`, `feerate_per_kw` is not as critical anymore to guarantee
 confirmation as it was in the legacy commitment format, but it still needs to
 be enough to be able to enter the mempool (satisfy min relay fee and mempool
-min fee).
+min fee). With `zero_fee_commitments`, transactions can enter the mempool
+as a package with a child transaction paying the fees: channel transactions
+thus don't need to directly include a fee, so this message isn't used.
 
 For the legacy commitment format, there is no general method for the
 broadcasting node to use child-pays-for-parent to increase its effective fee.

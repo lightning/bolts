@@ -13,6 +13,7 @@ This details the exact format of on-chain transactions, which both sides need to
           * [`to_local` Output](#to_local-output)
           * [`to_remote` Output](#to_remote-output)
           * [`to_local_anchor` and `to_remote_anchor`](#to_local_anchor-and-to_remote_anchor-output-option_anchors)
+          * [`shared_anchor`](#shared_anchor-output-zero_fee_commitments)
           * [Offered HTLC Outputs](#offered-htlc-outputs)
           * [Received HTLC Outputs](#received-htlc-outputs)
         * [Trimmed Outputs](#trimmed-outputs)
@@ -44,6 +45,7 @@ This details the exact format of on-chain transactions, which both sides need to
   * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
   * [Appendix F: Commitment and HTLC Transaction Test Vectors (anchors)](#appendix-f-commitment-and-htlc-transaction-test-vectors-anchors)
   * [Appendix G: Dual Funded Transaction Test Vectors](#appendix-g-dual-funded-transaction-test-vectors)
+  * [Appendix H: Commitment and HTLC Transaction Test Vectors (zero-fee-commitments)](#appendix-h-commitment-and-htlc-transaction-test-vectors-zero-fee-commitments)
   * [References](#references)
   * [Authors](#authors)
 
@@ -80,7 +82,7 @@ A `<>` designates an empty vector as required for compliance with MINIMALIF-stan
 
 ## Commitment Transaction
 
-* version: 2
+* version: 3 when using `zero_fee_commitments`, otherwise 2
 * locktime: upper 8 bits are 0x20, lower 24 bits are the lower 24 bits of the obscured commitment number
 * txin count: 1
    * `txin[0]` outpoint: `txid` and `output_index` from `funding_created` message
@@ -104,7 +106,9 @@ To allow an opportunity for penalty transactions, in case of a revoked commitmen
 The reason for the separate transaction stage for HTLC outputs is so that HTLCs can timeout or be fulfilled even though they are within the `to_self_delay` delay.
 Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
-The amounts for each output MUST be rounded down to whole satoshis. If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
+The amounts for each output MUST be rounded down to whole satoshis.
+If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
+If `zero_fee_commitments` is used, the amount may be partially added to the `shared_anchor` as detailed [here](#shared_anchor-output-zero_fee_commitments).
 
 #### `to_local` Output
 
@@ -145,7 +149,7 @@ Otherwise, this output is a simple P2WPKH to `remotepubkey`. Note: the remote's 
 #### `to_local_anchor` and `to_remote_anchor` Output (option_anchors)
 
 This output can be spent by the local and remote nodes respectively to provide incentive to mine the transaction, using child-pays-for-parent. Both
-anchor outputs are always added, except for the case where there are no htlcs and one of the parties has a commitment output that is below the dust limit. 
+anchor outputs are always added, except for the case where there are no htlcs and one of the parties has a commitment output that is below the dust limit.
 In that case only an anchor is added for the commitment output that does materialize. This typically happens if the initiator closes right after opening
 (no `to_remote` output).
 
@@ -172,9 +176,30 @@ After 16 blocks, anyone can sweep the anchor with witness:
 
     <>
 
+#### `shared_anchor` Output (zero_fee_commitments)
+
+This output can be spent by anyone to provide incentive to mine the transaction, using child-pays-for-parent.
+This output is only added when the commitment transaction is using version 3 (`zero_fee_commitments`) and prevents pinning attacks on the commitment transaction.
+
+It is using the following standard P2A (pay-to-anchor) script:
+
+    OP_1 <0x4e73>
+
+The standard dust limit for this type of script is `240 sat`.
+However, if the parent transaction doesn't pay any on-chain fees, using values below this dust limit is allowed under the "ephemeral dust" rule.
+
+If the difference between the commitment transaction input and the sum of all other commitment transaction outputs is smaller than `240 sat`, we set the anchor amount to this value.
+This ensures that the commitment transaction doesn't pay any on-chain fees whenever the anchor amount is smaller than `240 sat`.
+
+Otherwise, we set the anchor amount to `240 sat`, and the remaining difference between the commitment transaction input and its outputs directly contributes to the transaction's mining fees (which is standard since the `shared_anchor` has reached its dust limit).
+
+Spending of the output requires the following (empty) witness:
+
+    <>
+
 #### Offered HTLC Outputs
 
-This output sends funds to either an HTLC-timeout transaction after the HTLC-timeout or to the remote node using the payment preimage or the revocation key. The output is a P2WSH, with a witness script (no option_anchors):
+This output sends funds to either an HTLC-timeout transaction after the HTLC-timeout or to the remote node using the payment preimage or the revocation key. The output is a P2WSH, with a witness script (no `option_anchors`):
 
     # To remote node with revocation key
     OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
@@ -281,60 +306,68 @@ To redeem the HTLC, the HTLC-success transaction is used as detailed below. This
 ### Trimmed Outputs
 
 Each peer specifies a `dust_limit_satoshis` below which outputs should
-not be produced; these outputs that are not produced are termed "trimmed". A trimmed output is
-considered too small to be worth creating and is instead added
-to the commitment transaction fee. For HTLCs, it needs to be taken into
-account that the second-stage HTLC transaction may also be below the
-limit.
+not be produced; these outputs that are not produced are termed "trimmed".
+A trimmed output is considered too small to be worth creating: it is instead
+either added to the commitment transaction fee or, if `zero_fee_commitments`
+applies, to the [shared anchor output](#shared_anchor-output-zero_fee_commitments).
+
+For HTLCs, it needs to be taken into account that the second-stage HTLC
+transaction may also be below the limit. Note that when using `option_anchors`
+or `zero_fee_commitments`, HTLC transactions don't include a fee and thus
+don't contribute to trimming: setting a higher `dust_limit_satoshis` makes
+sense for those channels to ensure that outputs are economical to spend.
 
 #### Requirements
 
-The base fee and anchor output values:
-  - before the commitment transaction outputs are determined:
-    - MUST be subtracted from the `to_local` or `to_remote`
-    outputs, as specified in [Fee Calculation](#fee-calculation).
+Before the commitment transaction outputs are determined:
+  - the base fee MUST be subtracted from the `to_local` or `to_remote` output,
+    as specified in [Fee Calculation](#fee-calculation).
+  - if `option_anchors` applies:
+    - the `to_local_anchor` output value MUST be subtracted from the funder's output.
+    - the `to_remote_anchor` output value MUST be subtracted from the funder's output.
 
 The commitment transaction:
   - if the amount of the commitment transaction `to_local` output would be
-less than `dust_limit_satoshis` set by the transaction owner:
+    less than `dust_limit_satoshis` set by the transaction owner:
     - MUST NOT contain that output.
   - otherwise:
     - MUST be generated as specified in [`to_local` Output](#to_local-output).
   - if the amount of the commitment transaction `to_remote` output would be
-less than `dust_limit_satoshis` set by the transaction owner:
+    less than `dust_limit_satoshis` set by the transaction owner:
     - MUST NOT contain that output.
   - otherwise:
     - MUST be generated as specified in [`to_remote` Output](#to_remote-output).
   - for every offered HTLC:
     - if the HTLC amount minus the HTLC-timeout fee would be less than
-    `dust_limit_satoshis` set by the transaction owner:
+      `dust_limit_satoshis` set by the transaction owner:
       - MUST NOT contain that output.
     - otherwise:
-      - MUST be generated as specified in
-      [Offered HTLC Outputs](#offered-htlc-outputs).
+      - MUST be generated as specified in [Offered HTLC Outputs](#offered-htlc-outputs).
   - for every received HTLC:
     - if the HTLC amount minus the HTLC-success fee would be less than
-    `dust_limit_satoshis` set by the transaction owner:
+      `dust_limit_satoshis` set by the transaction owner:
       - MUST NOT contain that output.
     - otherwise:
-      - MUST be generated as specified in
-      [Received HTLC Outputs](#received-htlc-outputs).
+      - MUST be generated as specified in [Received HTLC Outputs](#received-htlc-outputs).
+  - if `zero_fee_commitments` applies:
+    - MUST add a `shared_anchor` output with an amount computed as detailed in
+      [the `shared_anchor` section](#shared_anchor-output-zero_fee_commitments).
 
 ## HTLC-Timeout and HTLC-Success Transactions
 
 These HTLC transactions are almost identical, except the HTLC-timeout transaction is timelocked. Both HTLC-timeout/HTLC-success transactions can be spent by a valid penalty transaction.
 
-* version: 2
+* version: 3 when using `zero_fee_commitments`, otherwise 2
 * locktime: `0` for HTLC-success, `cltv_expiry` for HTLC-timeout
 * txin count: 1
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction
-   * `txin[0]` sequence: `0` (set to `1` for `option_anchors`)
+   * `txin[0]` sequence: `1` for `option_anchors`, `0` otherwise
    * `txin[0]` script bytes: `0`
    * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-success, `0 <remotehtlcsig> <localhtlcsig> <>` for HTLC-timeout
 * txout count: 1
    * `txout[0]` amount: the HTLC `amount_msat` divided by 1000 (rounding down) minus fees in satoshis (see [Fee Calculation](#fee-calculation))
    * `txout[0]` script: version-0 P2WSH with witness script as shown below
-* if `option_anchors` applies to this commitment transaction, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used as described in [BOLT #5](05-onchain.md#generation-of-htlc-transactions).
+* if `option_anchors` or `zero_fee_commitments` applies to this commitment transaction, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used as described in [BOLT #5](05-onchain.md#generation-of-htlc-transactions).
 
 The witness script for the output is:
 
@@ -435,7 +468,12 @@ Each node offering a signature:
 
 The fee calculation for both commitment transactions and HTLC
 transactions is based on the current `feerate_per_kw` and the
-*expected weight* of the transaction.
+*expected weight* of the transaction. Note that `feerate_per_kw`
+is set to `0` when using `zero_fee_commitments`: in that case
+the commitment transactions and HTLC transactions don't pay any
+fee, which must be paid using child-pays-for-parent (for the
+commitment transactions) or by adding inputs (for the HTLC
+transactions).
 
 The actual and expected weights vary for several reasons:
 
@@ -460,24 +498,27 @@ This yields the following *expected weights* (details of the computation in [App
     HTLC-success weight (no option_anchors): 703
     HTLC-success weight (option_anchors): 706
 
-Note the reference to the "base fee" for a commitment transaction in the requirements below, which is what the funder pays. The actual fee may be higher than the amount calculated here, due to rounding and trimmed outputs.
+Note the reference to the "base fee" for a commitment transaction in the requirements below, which is what the funder pays.
+The actual fee may be higher than the amount calculated here, due to rounding and trimmed outputs.
 
 #### Requirements
 
 The fee for an HTLC-timeout transaction:
-  - If `option_anchors` applies:
+  - If `option_anchors` or `zero_fee_commitments` applies:
     1. MUST be 0.
   - Otherwise, MUST be calculated to match:
     1. Multiply `feerate_per_kw` by 663 and divide by 1000 (rounding down).
 
 The fee for an HTLC-success transaction:
-  - If `option_anchors` applies:
+  - If `option_anchors` or `zero_fee_commitments` applies:
     1. MUST be 0.
   - Otherwise, MUST be calculated to match:
     1. Multiply `feerate_per_kw` by 703 and divide by 1000 (rounding down).
 
 The base fee for a commitment transaction:
-  - MUST be calculated to match:
+  - If `zero_fee_commitments` applies:
+    1. MUST be 0.
+  - Otherwise, MUST be calculated to match:
     1. Start with `weight` = 724 (1124 if `option_anchors` applies).
     2. For each committed HTLC, if that output is not trimmed as specified in
     [Trimmed Outputs](#trimmed-outputs), add 172 to `weight`.
@@ -517,16 +558,20 @@ outputs) is 7140 satoshi. The final fee may be even higher if the
 
 ### Fee Payment
 
-Base commitment transaction fees and amounts for `to_local_anchor` and `to_remote_anchor` outputs are extracted from the funder's amount;
-Restrictions to the commitment tx output for the funder in relation to the
-channel reserve apply as described in [BOLT #2](02-peer-protocol.md).
+Base commitment transaction fees and amounts for `to_local_anchor` and
+`to_remote_anchor` outputs are extracted from the funder's amount.
+
+When using `zero_fee_commitments`, the `shared_anchor` output amount is
+taken from [trimmed outputs](#trimmed-outputs), as detailed in the
+[`shared_anchor` section](#shared_anchor-output-zero_fee_commitments).
 
 Note that after the fee amount is subtracted from the to-funder output,
 that output may be below `dust_limit_satoshis`, and thus will also
-contribute to fees.
+contribute to fees (or, if `zero_fee_commitments` applies, to the
+`shared_anchor`).
 
 A node:
-  - if the resulting fee rate is too low:
+  - if `zero_fee_commitments` is not used and the resulting fee rate is too low:
     - MAY send a `warning` and close the connection, or send an
       `error` and fail the channel.
 
@@ -651,26 +696,28 @@ given that peer's `dust_limit_satoshis`, the current `feerate_per_kw`,
 the amounts due to each peer (`to_local` and `to_remote`), and all
 committed HTLCs:
 
-1. Initialize the commitment transaction input and locktime, as specified
-   in [Commitment Transaction](#commitment-transaction).
-1. Calculate which committed HTLCs need to be trimmed (see [Trimmed Outputs](#trimmed-outputs)).
-2. Calculate the base [commitment transaction fee](#fee-calculation).
-3. Subtract this base fee from the funder (either `to_local` or `to_remote`).
-If `option_anchors` applies to the commitment transaction,
-also subtract two times the fixed anchor size of 330 sats from the funder
-(either `to_local` or `to_remote`).
-4. For every offered HTLC, if it is not trimmed, add an
-   [offered HTLC output](#offered-htlc-outputs).
-5. For every received HTLC, if it is not trimmed, add an
-   [received HTLC output](#received-htlc-outputs).
-6. If the `to_local` amount is greater or equal to `dust_limit_satoshis`,
-   add a [`to_local` output](#to_local-output).
-7. If the `to_remote` amount is greater or equal to `dust_limit_satoshis`,
-   add a [`to_remote` output](#to_remote-output).
-8. If `option_anchors` applies to the commitment transaction:
-   * if `to_local` exists or there are untrimmed HTLCs, add a [`to_local_anchor` output](#to_local_anchor-and-to_remote_anchor-output-option_anchors)
-   * if `to_remote` exists or there are untrimmed HTLCs, add a [`to_remote_anchor` output](#to_local_anchor-and-to_remote_anchor-output-option_anchors)
-9. Sort the outputs into [BIP 69+CLTV order](#transaction-output-ordering).
+* Initialize the commitment transaction input and locktime, as specified
+  in [Commitment Transaction](#commitment-transaction).
+* Calculate which committed HTLCs need to be trimmed (see [Trimmed Outputs](#trimmed-outputs)).
+* Calculate the base [commitment transaction fee](#fee-calculation).
+* Subtract this base fee from the funder (either `to_local` or `to_remote`).
+  If `option_anchors` applies to the commitment transaction,
+  also subtract two times the fixed anchor size of 330 sats from the funder
+  (either `to_local` or `to_remote`).
+* For every offered HTLC, if it is not trimmed, add an
+  [offered HTLC output](#offered-htlc-outputs).
+* For every received HTLC, if it is not trimmed, add a
+  [received HTLC output](#received-htlc-outputs).
+* If the `to_local` amount is greater or equal to `dust_limit_satoshis`,
+  add a [`to_local` output](#to_local-output).
+* If the `to_remote` amount is greater or equal to `dust_limit_satoshis`,
+  add a [`to_remote` output](#to_remote-output).
+* If `option_anchors` applies to the commitment transaction:
+  * if `to_local` exists or there are untrimmed HTLCs, add a [`to_local_anchor` output](#to_local_anchor-and-to_remote_anchor-output-option_anchors).
+  * if `to_remote` exists or there are untrimmed HTLCs, add a [`to_remote_anchor` output](#to_local_anchor-and-to_remote_anchor-output-option_anchors).
+* If `zero_fee_commitments` applies to the commitment transaction:
+  * add a [`shared_anchor` output](#shared_anchor-output-zero_fee_commitments).
+* Sort the outputs into [BIP 69+CLTV order](#transaction-output-ordering).
 
 # Keys
 
@@ -906,7 +953,6 @@ Multiplying non-witness data by 4 results in a weight of:
       witness_weight = sum(witness_len)
 
       overall_weight = funding_transaction_weight + witness_weight
-
 
 ## Expected Weight of the Commitment Transaction
 
@@ -1155,9 +1201,9 @@ Multiplying non-witness data by 4 results in a weight of 376. Adding
 the witness data for each case (285 or 288 + 2 for HTLC-timeout, 324 or 327 + 2 for
 HTLC-success) results in weights of:
 
-	663 (HTLC-timeout) (666 with option_anchors))
-	703 (HTLC-success) (706 with option_anchors))
-                - (really 702 and 705, but we use these numbers for historical reasons)
+	663 (HTLC-timeout) (666 with option_anchors)
+	703 (HTLC-success) (706 with option_anchors)
+        - (really 702 and 705, but we use these numbers for historical reasons)
 
 # Appendix B: Funding Transaction Test Vectors
 
@@ -2360,6 +2406,12 @@ Note locktime is set to 120.
 ```
 02000000000102b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000fdffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000fdffffff03e5effa02000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b1cf0fa020000000016001444cb0c39f93ecc372b5851725bd29d865d333b100084d71700000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec50247304402207de9ba56bb9f641372e805782575ee840a899e61021c8b1572b3ec1d5b5950e9022069e9ba998915dae193d3c25cb89b5e64370e6a3a7755e7f31cf6d7cbc2a49f6d0121034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484022068656c6c6f2074686572652c2074686973206973206120626974636f6e2121212782012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff8778000000
 ```
+
+# Appendix H: Commitment and HTLC Transaction Test Vectors (zero-fee-commitments)
+
+Test vectors [are provided](./bolt03/zero-fee-commitments-test.json) that detail commitment and HTLC
+transactions created using `zero_fee_commitments` in various scenarios. All parameters are provided
+to ensure that implementations generate exactly the same signed transactions.
 
 # References
 
