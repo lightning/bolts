@@ -814,7 +814,7 @@ The receiving node MUST fail the channel if:
   - `push_msat` is greater than `funding_satoshis` * 1000.
   - `to_self_delay` is unreasonably large.
   - `channel_type` includes `zero_fee_commitments` and:
-    - `max_accepted_htlcs` is greater than 283.
+    - `max_accepted_htlcs` is greater than 114.
     - `feerate_per_kw` is not `0`.
   - `channel_type` does not include `zero_fee_commitments` and:
     - `max_accepted_htlcs` is greater than 483.
@@ -2342,7 +2342,7 @@ still be under the maximum message size. It also ensures that
 a single penalty transaction can spend the entire commitment transaction,
 as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
 When using `zero_fee_commitments`, we further limit `max_accepted_htlcs` to
-283 because v3 transactions are limited to 10kvB, which decreases the number
+114 because v3 transactions are limited to 10kvB, which decreases the number
 of outputs the commitment transaction can have.
 
 `cltv_expiry` values equal to or greater than 500000000 would indicate a time in

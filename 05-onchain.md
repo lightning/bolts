@@ -100,8 +100,8 @@ delayed_pubkey.
 funding_pubkey.
 4. _remote node's anchor output_: one output paying to the *remote node's*
 funding_pubkey.
-5. _shared ephemeral anchor_: one output paying to the *local* or *remote*
-node's funding_pubkey.
+5. _shared anchor_: one output paying to the *local* or *remote* node's
+funding_pubkey.
 6. _local node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to pay
 the *remote node* in return for a payment preimage.
 7. _remote node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to
@@ -151,10 +151,13 @@ A node:
           - MUST broadcast the *last commitment transaction*, for which it has a
           signature, to perform a *unilateral close*.
           - MUST spend any `to_local_anchor` or `shared_anchor` output, providing sufficient fees
-          as incentive to include the commitment transaction in a block. When using `nVersion=2`,
+          as incentive to include the commitment transaction in a block. For `to_local_anchor`,
           special care must be taken when spending to a third-party, because this re-introduces
-          the vulnerability that was addressed by adding the CSV delay to the non-anchor outputs.
-          - SHOULD use [replace-by-fee](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki) or other mechanism on the spending transaction if it proves insufficient for timely inclusion in a block.
+          the pinning vulnerability that was addressed by adding the CSV delay to the non-anchor
+          outputs.
+          - SHOULD use [replace-by-fee](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki)
+          or other mechanism on the spending transaction if it proves insufficient for timely
+          inclusion in a block.
 
 ## Rationale
 
@@ -517,7 +520,8 @@ A local node:
   using the revocation private key.
   - SHOULD extract the payment preimage from the transaction input witness, if
   it's not already known.
-  - if `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used for HTLC transactions:
+  - if `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used for HTLC transactions
+  (i.e. `option_anchors` or `zero_fee_commitments` applies):
     - MAY use a single transaction to *resolve* all the outputs.
     - if confirmation doesn't happen before reaching `security_delay` blocks from
   expiry:
@@ -534,8 +538,9 @@ A single transaction that resolves all the outputs will be under the
 standard size limit because of the 483 HTLC-per-party limit (see
 [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
 
-Note: when `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used for HTLC transactions,
-the cheating node can pin spends of its HTLC-timeout/HTLC-success outputs.
+Note: when `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used for HTLC transactions
+(i.e. `option_anchors` or `zero_fee_commitments`), the cheating node can pin
+spends of its HTLC-timeout/HTLC-success outputs.
 Using a single penalty transaction for all revoked outputs is thus unsafe as it
 could be blocked to propagate long enough for the _local node's `to_local` output_ 's
 relative locktime to expire and the cheating party escaping the penalty on this
@@ -590,9 +595,9 @@ Note: even if the `to_remote` output is not swept, the resulting
 
 # Generation of HTLC Transactions
 
-If `SIGHASH_ALL` is used for HTLC transactions, then HTLC-timeout and
-HTLC-success transactions are complete transactions with (hopefully!)
-reasonable fees and must be used directly.
+If `option_anchors` and `zero_fee_commitments` do not apply, then HTLC-timeout
+and HTLC-success transactions are signed with `SIGHASH_ALL` and are complete
+transactions with (hopefully!) reasonable fees and must be used directly.
 
 Otherwise, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` MUST be used on the
 HTLC signatures received from the peer, as this allows HTLC transactions to be

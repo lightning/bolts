@@ -106,7 +106,7 @@ Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, ca
 
 The amounts for each output MUST be rounded down to whole satoshis.
 If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced.
-If `zero_fee_commitments` is used, this amount is added to the `shared_anchor`, otherwise it adds to on-chain fees.
+In that case, the amount is added to the `shared_anchor` if `zero_fee_commitments` is used, otherwise the amount is added to on-chain fees.
 
 #### `to_local` Output
 
