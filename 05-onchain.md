@@ -100,8 +100,7 @@ delayed_pubkey.
 funding_pubkey.
 4. _remote node's anchor output_: one output paying to the *remote node's*
 funding_pubkey.
-5. _shared anchor_: one output paying to the *local* or *remote* node's
-funding_pubkey.
+5. _shared anchor_: one output spendable by anyone (pay-to-anchor).
 6. _local node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to pay
 the *remote node* in return for a payment preimage.
 7. _remote node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to
