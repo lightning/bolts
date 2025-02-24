@@ -770,14 +770,12 @@ The sending node:
     - MAY include `upfront_shutdown_script`.
   - if it includes `open_channel_tlvs`:
     - MUST include `upfront_shutdown_script`.
-  - if `option_channel_type` is negotiated:
-    - MUST set `channel_type`
-  - if it includes `channel_type`:
-    - MUST set it to a defined type representing the type it wants.
-    - MUST use the smallest bitmap possible to represent the channel type.
-    - SHOULD NOT set it to a type containing a feature which was not negotiated.
-    - if `announce_channel` is `true` (not `0`):
-      - MUST NOT send `channel_type` with the `option_scid_alias` bit set.
+    - MUST set `channel_type`:
+      - MUST set it to a defined type representing the type it wants.
+      - MUST use the smallest bitmap possible to represent the channel type.
+      - SHOULD NOT set it to a type containing a feature which was not negotiated.
+      - if `announce_channel` is `true` (not `0`):
+        - MUST NOT send `channel_type` with the `option_scid_alias` bit set.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -787,6 +785,8 @@ The sending node SHOULD:
 
 The receiving node MUST:
   - ignore undefined bits in `channel_flags`.
+  - if the message doesn't include a `channel_type`:
+    - fail the channel.
   - if the connection has been re-established after receiving a previous
  `open_channel`, BUT before receiving a `funding_created` message:
     - accept a new `open_channel` message.
@@ -795,7 +795,6 @@ The receiving node MUST:
     - fail the channel.
 
 The receiving node MAY fail the channel if:
-  - `option_channel_type` was negotiated but the message doesn't include a `channel_type`
   - `announce_channel` is `false` (`0`), yet it wishes to publicly announce the channel.
   - `funding_satoshis` is too small.
   - it considers `htlc_minimum_msat` too large.
@@ -816,10 +815,9 @@ are not valid secp256k1 pubkeys in compressed format.
   - `dust_limit_satoshis` is smaller than `354 satoshis` (see [BOLT 3](03-transactions.md#dust-limits)).
   - the funder's amount for the initial commitment transaction is not sufficient for full [fee payment](03-transactions.md#fee-payment).
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
-  - `funding_satoshis` is greater than or equal to 2^24 and the receiver does not support `option_support_large_channel`. 
-  - It supports `channel_type` and `channel_type` was set:
-    - if `type` is not suitable.
-    - if `type` includes `option_zeroconf` and it does not trust the sender to open an unconfirmed channel.
+  - `funding_satoshis` is greater than or equal to 2^24 and the receiver does not support `option_support_large_channel`.
+  - the `channel_type` is not suitable.
+  - the `channel_type` includes `option_zeroconf` and it does not trust the sender to open an unconfirmed channel.
 
 The receiving node MUST NOT:
   - consider funds received, using `push_msat`, to be received until the funding transaction has reached sufficient depth.
@@ -893,8 +891,7 @@ The sender:
     - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
   - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
   - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
-  - if `option_channel_type` was negotiated:
-    - MUST set `channel_type` to the `channel_type` from `open_channel`
+  - MUST set `channel_type` to the `channel_type` from `open_channel`.
 
 The receiver:
   - if `minimum_depth` is unreasonably large:
@@ -903,10 +900,10 @@ The receiver:
     - MUST fail the channel.
   - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:
     - MUST fail the channel.
-  - if `channel_type` is set, and `channel_type` was set in `open_channel`, and they are not equal types:
+  - if the message doesn't include a `channel_type`:
     - MUST fail the channel.
-  - if `option_channel_type` was negotiated but the message doesn't include a `channel_type`:
-    - MAY fail the channel.
+  - if `channel_type` does not match the `channel_type` from `open_channel`:
+    - MUST fail the channel.
 
 Other fields have the same requirements as their counterparts in `open_channel`.
 
@@ -967,14 +964,7 @@ This message introduces the `channel_id` to identify the channel. It's derived f
 #### Requirements
 
 Both peers:
-  - if `channel_type` was present in both `open_channel` and `accept_channel`:
-    - This is the `channel_type` (they must be equal, required above)
-  - otherwise:
-    - if `option_anchors` was negotiated:
-      - the `channel_type` is `option_anchors` and `option_static_remotekey` (bits 22 and 12)
-    - otherwise:
-      - the `channel_type` is `option_static_remotekey` (bit 12)
-  - MUST use that `channel_type` for all commitment transactions.
+  - MUST use the negotiated `channel_type` for all commitment transactions.
 
 The sender MUST set:
   - `channel_id` by exclusive-OR of the `funding_txid` and the `funding_output_index` from the `funding_created` message.
@@ -990,16 +980,10 @@ The recipient:
 
 #### Rationale
 
-We decide on `option_static_remotekey` or `option_anchors` at this point
-when we first have to generate the commitment transaction. The feature
-bits that were communicated in the `init` message exchange for the current
-connection determine the channel commitment format for the total lifetime
-of the channel. Even if a later reconnection does not negotiate this
-parameter, this channel will continue to use `option_static_remotekey` or
-`option_anchors`; we don't support "downgrading".
-
-`option_anchors` is considered superior to `option_static_remotekey`,
-and the superior one is favored if more than one is negotiated.
+We generate the commitment transaction at this point, using the `channel_type`
+that was communicated in the `open_channel` and `accept_channel` messages.
+This `channel_type` determines the channel commitment format for the total
+lifetime of the channel.
 
 ### The `channel_ready` Message
 
@@ -1175,6 +1159,7 @@ If nodes have negotiated `option_dual_fund`:
     - MUST NOT send `open_channel`
 
 The sending node:
+  - MUST set `channel_type`
   - MUST set `funding_feerate_perkw` to the feerate for this transaction
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
@@ -1185,6 +1170,7 @@ The receiving node:
     - the `funding_feerate_perkw` is unacceptable
   - MUST fail the negotiation if:
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
+    - `channel_type` is not set
 
 #### Rationale
 
@@ -1259,14 +1245,16 @@ additions.
 #### Requirements
 
 The accepting node:
-  - MUST use the `temporary_channel_id` of the `open_channel2` message
+  - MUST use the `temporary_channel_id` of the `open_channel2` message.
+  - MUST set `channel_type` to the `channel_type` from `open_channel2`.
   - MAY respond with a `funding_satoshis` value of zero.
   - If it requires the opening node to only use confirmed inputs:
-    - MUST set `require_confirmed_inputs`
+    - MUST set `require_confirmed_inputs`.
 
 The receiving node:
   - MUST fail the negotiation if:
-    - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
+    - `require_confirmed_inputs` is set but it cannot provide confirmed inputs.
+    - `channel_type` is not set.
 
 #### Rationale
 
@@ -1331,7 +1319,8 @@ Upon receipt of consecutive `tx_complete`s, the receiving node:
 ### The `commitment_signed` Message
 
 This message is exchanged by both peers. It contains the signatures for
-the first commitment transaction.
+the first commitment transaction, which uses a format determined by the
+`channel_type` sent in `open_channel2` and `accept_channel2`.
 
 Rationale and Requirements are the same as listed below,
 for [`commitment_signed`](#committing-updates-so-far-commitment_signed) with the following additions.
