@@ -29,6 +29,7 @@ The Context column decodes as follows:
 * `C+`: presented in the `channel_announcement` message, but always even (required).
 * `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
 * `B`: presented in the `allowed_features` field of a blinded path.
+* `T`: used in the `channel_type` field [when opening channels](02-peer-protocol.md#the-open_channel-message).
 
 | Bits  | Name                              | Description                                               | Context  | Dependencies                | Link                                                                  |
 |-------|-----------------------------------|-----------------------------------------------------------|----------|-----------------------------|-----------------------------------------------------------------------|
@@ -41,7 +42,7 @@ The Context column decodes as follows:
 | 14/15 | `payment_secret`                  | Node supports `payment_secret` field                      | IN9      |                             | [Routing Onion Specification][bolt04]                                 |
 | 16/17 | `basic_mpp`                       | Node can receive basic multi-part payments                | IN9      | `payment_secret`            | [BOLT #4][bolt04-mpp]                                                 |
 | 18/19 | `option_support_large_channel`    | Can create large channels                                 | IN       |                             | [BOLT #2](02-peer-protocol.md#the-open_channel-message)               |
-| 22/23 | `option_anchors`                  | Anchor commitment type with zero fee HTLC transactions    | IN       |                             | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful] |
+| 22/23 | `option_anchors`                  | Anchor commitment type with zero fee HTLC transactions    | INT      |                             | [BOLT #3][bolt03-htlc-tx], [lightning-dev][ml-sighash-single-harmful] |
 | 24/25 | `option_route_blinding`           | Node supports blinded paths                               | IN9      |                             | [BOLT #4][bolt04-route-blinding]                                      |
 | 26/27 | `option_shutdown_anysegwit`       | Future segwit versions allowed in `shutdown`              | IN       |                             | [BOLT #2][bolt02-shutdown]                                            |
 | 28/29 | `option_dual_fund`                | Use v2 of channel open, enables dual funding              | IN       |                             | [BOLT #2](02-peer-protocol.md)                                        |
@@ -49,9 +50,9 @@ The Context column decodes as follows:
 | 38/39 | `option_onion_messages`           | Can forward onion messages                                | IN       |                             | [BOLT #7](04-onion-routing.md#onion-messages)                         |
 | 42/43 | `option_provide_storage`          | Can store other nodes' encrypted backup data              | IN       |                             | [BOLT #1](01-messaging.md#peer-storage)                               |
 | 44/45 | `option_channel_type`             | ASSUMED                                                   | IN       |                             |                                                                       |
-| 46/47 | `option_scid_alias`               | Supply channel aliases for routing                        | IN       |                             | [BOLT #2][bolt02-channel-ready]                                       |
+| 46/47 | `option_scid_alias`               | Supply channel aliases for routing                        | INT      |                             | [BOLT #2][bolt02-channel-ready]                                       |
 | 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                             | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
-| 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | IN       | `option_scid_alias`         | [BOLT #2][bolt02-channel-ready]                                       |
+| 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | INT      | `option_scid_alias`         | [BOLT #2][bolt02-channel-ready]                                       |
 | 60/61 | `option_simple_close`             | Simplified closing negotiation                            | IN       | `option_shutdown_anysegwit` | [BOLT #2][bolt02-simple-close]                                        |
 
 ## Requirements
