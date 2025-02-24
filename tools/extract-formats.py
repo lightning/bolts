@@ -24,17 +24,17 @@ import fileinput
 
 # We allow either ordered or unordered lists.
 typeline = re.compile(
-    '(1\.|\*) type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z0-9_]+)`\)( \(`?(?P<option>[^)`]*)`\))?')
+    r'(1\.|\*) type: (?P<value>[-0-9A-Za-z_|]+) \(`(?P<name>[A-Za-z0-9_]+)`\)( \(`?(?P<option>[^)`]*)`\))?')
 tlvline = re.compile(
-    '(1\.|\*) `tlv_stream`: `(?P<name>[A-Za-z0-9_]+)`')
+    r'(1\.|\*) `tlv_stream`: `(?P<name>[A-Za-z0-9_]+)`')
 subtypeline = re.compile(
-    '(1\.|\*) subtype: `(?P<name>[A-Za-z0-9_]+)`')
+    r'(1\.|\*) subtype: `(?P<name>[A-Za-z0-9_]+)`')
 dataline = re.compile(
-    '\s+([0-9]+\.|\*) \[`(?P<typefield>[-._a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]')
+    r'\s+([0-9]+\.|\*) \[`(?P<typefield>[-._a-zA-Z0-9*+]+)`:`(?P<name>[_a-z0-9]+)`\]')
 datastartline = re.compile(
-    '(2\.|\*) data:')
+    r'(2\.|\*) data:')
 tlvtypesline = re.compile(
-    '(2\.|\*) types:')
+    r'(2\.|\*) types:')
 
 # Generator to give us one line at a time.
 def next_line(args, lines):
