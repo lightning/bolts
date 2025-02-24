@@ -522,14 +522,14 @@ peers to return the latest data to them using the `peer_storage_retrieval` messa
 
 1. type: 7 (`peer_storage`)
 2. data:
-   * [`u16`: `length`]
-   * [`length*byte`:`blob`]
+    * [`u16`:`length`]
+    * [`length*byte`:`blob`]
 
 
 1. type: 9 (`peer_storage_retrieval`)
 2. data:
-   * [`u16`: `length`]
-   * [`length*byte`:`blob`]
+    * [`u16`:`length`]
+    * [`length*byte`:`blob`]
 
 
 Requirements:
