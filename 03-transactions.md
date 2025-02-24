@@ -105,8 +105,8 @@ The reason for the separate transaction stage for HTLC outputs is so that HTLCs 
 Otherwise, the required minimum timeout on HTLCs is lengthened by this delay, causing longer timeouts for HTLCs traversing the network.
 
 The amounts for each output MUST be rounded down to whole satoshis.
-If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced.
-In that case, the amount is added to the `shared_anchor` if `zero_fee_commitments` is used, otherwise the amount is added to on-chain fees.
+If this amount, minus the fees for the HTLC transaction, is less than the `dust_limit_satoshis` set by the owner of the commitment transaction, the output MUST NOT be produced (thus the funds add to fees).
+If `zero_fee_commitments` is used, the amount may be partially added to the `shared_anchor` as detailed [here](#shared_anchor-output-zero_fee_commitments).
 
 #### `to_local` Output
 
@@ -183,7 +183,8 @@ It is using the following standard P2A (pay-to-anchor) script:
     OP_1 <0x4e73>
 
 The amount of this output is usually 0 sats, in which case it must be spent by the child transaction paying the mining fees.
-When the commitment contains [trimmed outputs](#trimmed-outputs), their amount is added to this `shared_anchor` output.
+When the commitment contains [trimmed outputs](#trimmed-outputs), their amount is added to this `shared_anchor` output until it reaches 240 sats.
+The remaining amount is not added to any output and thus directly contributes to the transaction's mining fees.
 
 Spending of the output requires the following (emtpy) witness:
 
@@ -323,14 +324,16 @@ The commitment transaction:
     less than `dust_limit_satoshis` set by the transaction owner:
     - MUST NOT contain that output.
     - if `zero_fee_commitments` applies:
-      - MUST add this amount to the `shared_anchor` output.
+      - MUST add this amount to the `shared_anchor` output as detailed in
+        [the `shared_anchor` section](#shared_anchor-output-zero_fee_commitments).
   - otherwise:
     - MUST be generated as specified in [`to_local` Output](#to_local-output).
   - if the amount of the commitment transaction `to_remote` output would be
     less than `dust_limit_satoshis` set by the transaction owner:
     - MUST NOT contain that output.
     - if `zero_fee_commitments` applies:
-      - MUST add this amount to the `shared_anchor` output.
+      - MUST add this amount to the `shared_anchor` output as detailed in
+        [the `shared_anchor` section](#shared_anchor-output-zero_fee_commitments).
   - otherwise:
     - MUST be generated as specified in [`to_remote` Output](#to_remote-output).
   - for every offered HTLC:
@@ -338,7 +341,8 @@ The commitment transaction:
       `dust_limit_satoshis` set by the transaction owner:
       - MUST NOT contain that output.
       - if `zero_fee_commitments` applies:
-        - MUST add this amount to the `shared_anchor` output.
+        - MUST add this amount to the `shared_anchor` output as detailed in
+          [the `shared_anchor` section](#shared_anchor-output-zero_fee_commitments).
     - otherwise:
       - MUST be generated as specified in [Offered HTLC Outputs](#offered-htlc-outputs).
   - for every received HTLC:
@@ -346,7 +350,8 @@ The commitment transaction:
       `dust_limit_satoshis` set by the transaction owner:
       - MUST NOT contain that output.
       - if `zero_fee_commitments` applies:
-        - MUST add this amount to the `shared_anchor` output.
+        - MUST add this amount to the `shared_anchor` output as detailed in
+          [the `shared_anchor` section](#shared_anchor-output-zero_fee_commitments).
     - otherwise:
       - MUST be generated as specified in [Received HTLC Outputs](#received-htlc-outputs).
 
@@ -559,7 +564,8 @@ Base commitment transaction fees and amounts for `to_local_anchor` and
 `to_remote_anchor` outputs are extracted from the funder's amount.
 
 When using `zero_fee_commitments`, the `shared_anchor` output amount is
-the sum of all [trimmed outputs](#trimmed-outputs).
+taken from [trimmed outputs](#trimmed-outputs), as detailed in the
+[`shared_anchor` section](#shared_anchor-output-zero_fee_commitments).
 
 Note that after the fee amount is subtracted from the to-funder output,
 that output may be below `dust_limit_satoshis`, and thus will also
