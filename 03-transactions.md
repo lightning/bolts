@@ -363,7 +363,7 @@ These HTLC transactions are almost identical, except the HTLC-timeout transactio
 * locktime: `0` for HTLC-success, `cltv_expiry` for HTLC-timeout
 * txin count: 1
    * `txin[0]` outpoint: `txid` of the commitment transaction and `output_index` of the matching HTLC output for the HTLC transaction
-   * `txin[0]` sequence: `1` for `option_anchors`, `0xFFFFFFFD` for `zero_fee_commitments`, `0` otherwise
+   * `txin[0]` sequence: `1` for `option_anchors`, `0` otherwise
    * `txin[0]` script bytes: `0`
    * `txin[0]` witness stack: `0 <remotehtlcsig> <localhtlcsig>  <payment_preimage>` for HTLC-success, `0 <remotehtlcsig> <localhtlcsig> <>` for HTLC-timeout
 * txout count: 1
