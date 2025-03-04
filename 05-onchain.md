@@ -254,11 +254,14 @@ A node:
       before spending that HTLC-timeout output.
   - for any committed HTLC that does NOT have an output in this commitment
   transaction:
-    - once the commitment transaction has reached reasonable depth:
-      - MUST fail the corresponding incoming HTLC (if any).
-    - if no *valid* commitment transaction contains an output corresponding to
-    the HTLC.
-      - MAY fail the corresponding incoming HTLC sooner.
+    - if the payment preimage is known:
+      - MUST fulfill the corresponding incoming HTLC (if any).
+    - otherwise:
+      - once the commitment transaction has reached reasonable depth:
+        - MUST fail the corresponding incoming HTLC (if any).
+      - if no *valid* commitment transaction contains an output corresponding to
+      the HTLC:
+        - MAY fail the corresponding incoming HTLC sooner.
 
 ### Rationale
 
@@ -281,12 +284,21 @@ detailed in
 If the incoming HTLC is also on-chain, a node must simply wait for it to
 timeout: there is no way to signal early failure.
 
-If an HTLC is too small to appear in *any commitment transaction*, it can be
-safely failed immediately. Otherwise, if an HTLC isn't in the *local commitment
-transaction*, a node needs to make sure that a blockchain reorganization, or
-race, does not switch to a commitment transaction that does contain the HTLC
-before the node fails it (hence the wait). The requirement that the incoming
-HTLC be failed before its own timeout still applies as an upper bound.
+There are several reasons a committed HTLC may not have an output in the
+confirmed commitment transaction: the HTLC may be smaller than
+`dust_limit_satoshis`, the HTLC may not have been added to the commitment
+transaction yet, or the HTLC may have already been failed or fulfilled. In any
+case, if the payment preimage is known for the HTLC, the upstream HTLC needs to
+be fulfilled to avoid loss of funds.
+
+If the payment preimage is not known for the missing HTLC, the correct action
+depends on the possibility of a blockchain reorganization that swaps out the
+confirmed commitment transaction for one with the HTLC present.
+If the HTLC is too small to appear in *any commitment transaction*, such a
+reorganization is not possible, and the HTLC can be safely failed immediately.
+Otherwise, a reorganization delay is required before failing the incoming HTLC.
+The requirement that the incoming HTLC be failed before its own timeout still
+applies as an upper bound.
 
 ## HTLC Output Handling: Local Commitment, Remote Offers
 
@@ -406,12 +418,14 @@ A local node:
     - MUST *resolve* the output, by spending it to a convenient address.
   - for any committed HTLC that does NOT have an output in this commitment
   transaction:
-    - once the commitment transaction has reached reasonable depth:
-      - MUST fail the corresponding incoming HTLC (if any).
+    - if the payment preimage is known:
+      - MUST fulfill the corresponding incoming HTLC (if any).
     - otherwise:
+      - once the commitment transaction has reached reasonable depth:
+        - MUST fail the corresponding incoming HTLC (if any).
       - if no *valid* commitment transaction contains an output corresponding to
       the HTLC:
-        - MAY fail it sooner.
+        - MAY fail the corresponding incoming HTLC sooner.
 
 ### Rationale
 
@@ -437,13 +451,21 @@ back-fail any corresponding incoming HTLC, using `update_fail_htlc`
 If the incoming HTLC is also on-chain, a node simply waits for it to
 timeout, as there's no way to signal early failure.
 
-If an HTLC is too small to appear in *any commitment transaction*, it
-can be safely failed immediately. Otherwise,
-if an HTLC isn't in the *local commitment transaction* a node needs to make sure
-that a blockchain reorganization or race does not switch to a
-commitment transaction that does contain it before the node fails it: hence
-the wait. The requirement that the incoming HTLC be failed before its
-own timeout still applies as an upper bound.
+There are several reasons a committed HTLC may not have an output in the
+confirmed commitment transaction: the HTLC may be smaller than
+`dust_limit_satoshis`, the HTLC may not have been added to the commitment
+transaction yet, or the HTLC may have already been failed or fulfilled. In any
+case, if the payment preimage is known for the HTLC, the upstream HTLC needs to
+be fulfilled to avoid loss of funds.
+
+If the payment preimage is not known for the missing HTLC, the correct action
+depends on the possibility of a blockchain reorganization that swaps out the
+confirmed commitment transaction for one with the HTLC present.
+If the HTLC is too small to appear in *any commitment transaction*, such a
+reorganization is not possible, and the HTLC can be safely failed immediately.
+Otherwise, a reorganization delay is required before failing the incoming HTLC.
+The requirement that the incoming HTLC be failed before its own timeout still
+applies as an upper bound.
 
 ## HTLC Output Handling: Remote Commitment, Remote Offers
 
