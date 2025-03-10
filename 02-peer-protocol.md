@@ -1407,7 +1407,10 @@ a transaction paying more fees to make the channel confirm faster.
 #### Requirements
 
 The sender of `tx_init_rbf`:
-  - MUST be the *initiator*
+  - MAY be either the *initiator* or the *accepter*
+    - If the sender is the accepter, it becomes the initiator of the `interactive-tx` session and thus:
+      - MUST send `tx_add_output` for the channel output
+      - MUST pay the fees for the shared transaction fields
   - MUST NOT have sent or received a `channel_ready` message.
 
 The recipient:
@@ -1429,6 +1432,10 @@ It's recommended that a peer, rather than fail the RBF negotiation due to
 a large feerate change, instead sets their `sats` to zero, and decline to
 participate further in the channel funding: by not contributing, they
 may obtain incoming liquidity at no cost.
+
+We allow both nodes to initiate RBF, because any one of them may want to take
+this opportunity to contribute additional funds to the channel without
+waiting for the initial funding transaction to confirm.
 
 ## Channel Quiescence
 
