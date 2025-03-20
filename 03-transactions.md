@@ -28,6 +28,7 @@ This details the exact format of on-chain transactions, which both sides need to
   * [Keys](#keys)
     * [Key Derivation](#key-derivation)
         * [`localpubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation](#localpubkey-local_htlcpubkey-remote_htlcpubkey-local_delayedpubkey-and-remote_delayedpubkey-derivation)
+        * [`remotepubkey` Derivation](#remotepubkey-derivation)
         * [`revocationpubkey` Derivation](#revocationpubkey-derivation)
         * [Per-commitment Secret Requirements](#per-commitment-secret-requirements)
     * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
