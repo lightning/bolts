@@ -516,7 +516,9 @@ A sending node:
     - MUST include `outgoing_node_id`.
 - MUST use a different `session_key` for the `trampoline_onion_packet` and the `onion_packet`.
 - MUST include the `trampoline_onion_packet` tlv in the _last_ hop's payload of the `onion_packet`.
-- MUST generate a random `payment_secret` to use in the outer onion.
+- If it sends a multi-part payment:
+  - MUST generate a random `payment_secret` to use in the outer onion.
+  - MUST NOT use the invoice's `payment_secret` in the outer onion.
 
 When processing a `trampoline_onion_packet`, a receiving node:
 
@@ -542,7 +544,10 @@ When processing a `trampoline_onion_packet`, a receiving node:
   - If it is the final node:
     - MUST reject the payment if:
       - The outer onion's `outgoing_cltv_value` is smaller than the trampoline onion's `outgoing_cltv_value`.
-      - The outer onion's `total_msat` is smaller than the trampoline onion's `amt_to_forward`.
+      - If this is a multi-part payment:
+        - The outer onion's `total_msat` is smaller than the trampoline onion's `amt_to_forward`.
+      - Otherwise:
+        - The outer onion's `amt_to_forward` is smaller than the trampoline onion's `amt_to_forward`.
 
 ## Route Blinding
 
