@@ -513,7 +513,9 @@ A sending node:
     - MUST include `outgoing_node_id`.
 - MUST use a different `session_key` for the `trampoline_onion_packet` and the `onion_packet`.
 - MUST include the `trampoline_onion_packet` tlv in the _last_ hop's payload of the `onion_packet`.
-- MUST generate a random `payment_secret` to use in the outer onion.
+- If it sends a multi-part payment:
+  - MUST generate a random `payment_secret` to use in the outer onion.
+  - MUST NOT use the invoice's `payment_secret` in the outer onion.
 
 When processing a `trampoline_onion_packet`, a receiving node:
 
