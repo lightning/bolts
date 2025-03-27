@@ -541,7 +541,10 @@ When processing a `trampoline_onion_packet`, a receiving node:
   - If it is the final node:
     - MUST reject the payment if:
       - The outer onion's `outgoing_cltv_value` is smaller than the trampoline onion's `outgoing_cltv_value`.
-      - The outer onion's `total_msat` is smaller than the trampoline onion's `amt_to_forward`.
+      - If this is a multi-part payment:
+        - The outer onion's `total_msat` is smaller than the trampoline onion's `amt_to_forward`.
+      - Otherwise:
+        - The outer onion's `amt_to_forward` is smaller than the trampoline onion's `amt_to_forward`.
 
 ## Route Blinding
 
