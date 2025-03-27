@@ -1633,6 +1633,7 @@ The sending node:
   - MUST NOT send `splice_init` if another splice has been negotiated but
     `splice_locked` has not been sent and received.
   - MUST NOT send `splice_init` if it has previously sent `shutdown`.
+  - MUST set `funding_feerate_perkw` to the feerate for the splice transaction.
   - If it is splicing funds out of the channel:
     - MUST set `funding_contribution_satoshis` to a negative value matching
       the amount that will be subtracted from its current channel balance.
@@ -1660,6 +1661,8 @@ The receiving node:
   - If it has received `shutdown`:
     - MUST send a `warning` and close the connection or send an `error`
       and fail the channel.
+  - If the `funding_feerate_perkw` is unacceptable:
+    - MUST respond with `tx_abort`.
   - If `funding_contribution_satoshis` is negative and its absolute value is
     greater than the sending node's current channel balance:
     - MUST send a `warning` and close the connection or send an `error`
@@ -1862,6 +1865,7 @@ The sending node:
   - MUST NOT send `tx_init_rbf` if it is not the quiescence initiator.
   - MAY send `tx_init_rbf` even if it is not the splice initiator.
   - MUST NOT send `tx_init_rbf` if it has previously sent `splice_locked`.
+  - MUST NOT send `tx_init_rbf` if `option_zeroconf` has been negotiated.
   - MAY set `funding_output_contribution` to a different value than the
     `funding_contribution_satoshis` used in `splice_init` or `splice_ack`,
     or in previous RBF attempts.
@@ -1874,6 +1878,9 @@ The receiving node:
     - MUST send a `warning` and close the connection or send an `error`
       and fail the channel.
   - If the sender previously sent `splice_locked`:
+    - MUST send a `warning` and close the connection or send an `error`
+      and fail the channel.
+  - If `option_zeroconf` has been negotiated:
     - MUST send a `warning` and close the connection or send an `error`
       and fail the channel.
   - If `funding_output_contribution` is negative and its absolute value is
@@ -1889,7 +1896,9 @@ this opportunity to splice additional funds into or out of the channel without
 waiting for the initial splice transaction to confirm.
 
 Since splice transactions always spend the current channel funding output, the
-RBF attempts automatically double-spend each other.
+RBF attempts automatically double-spend each other. We thus disallow RBF when
+`option_zeroconf` has been negotiated, because that creates a risk of losing
+funds.
 
 #### The `tx_ack_rbf` Message
 
@@ -1946,14 +1955,34 @@ the locked transaction replaces the previous funding transaction.
 Each node:
   - If any splice transaction reaches acceptable depth:
     - MUST send `splice_locked` with the `txid` of that transaction.
+  - If `option_zeroconf` has been negotiated:
+    - SHOULD send `splice_locked` immediately after exchanging `tx_signatures`.
+
+The receiving node:
+  - If `splice_txid` doesn't match any of its pending splice transactions:
+    - MUST send a `warning` and close the connection, or send an `error` and
+      fail the channel.
 
 Once a node has sent and received `splice_locked`:
-  - MUST consider the locked splice transaction to be the new funding
-    transaction for all future `commitment_signed` messages and splice
-    negotiations.
-  - SHOULD discard the previous funding transaction and RBF attempts.
-  - MUST send `announcement_signatures` with `short_channel_id` matching
-    the locked splice transaction.
+  - If the `splice_txid`s match:
+    - MUST stop sending `commitment_signed` for RBF attempts and ancestors
+      of this splice transaction.
+    - MAY discard RBF attempts and ancestor transactions.
+    - If `announce_channel` is set for this channel:
+      - MUST send `announcement_signatures` with `short_channel_id` matching
+        this splice transaction.
+  - If the `splice_txid`s are for different RBF candidates:
+    - SHOULD ignore the message.
+    - MAY send an `error` and fail the channel.
+
+##### Rationale
+
+If nodes are on a different fork of the blockchain, they may disagree on which
+RBF attempt has been confirmed: in that case nodes can either close the channel
+or simply ignore `splice_locked` and wait for one of the forks to eventually
+replace the other, at which point both nodes should agree on which RBF attempt
+confirmed and exchange `splice_locked` for the same `splice_txid` to complete
+the splice.
 
 ## Channel Close
 
