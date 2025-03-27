@@ -2940,7 +2940,7 @@ fee changes).
     to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
-  - If there are `N` pending splice transactions:
+  - If there are `N` pending splice transactions (with `N` greater than `0`):
     - MUST send `commitment_signed` for the current channel funding output.
     - MUST send `commitment_signed` for each of the splice transactions.
     - MUST set `batch_size` to `N + 1` in every `commitment_signed` message.
@@ -2963,6 +2963,8 @@ A receiving node:
   - If there are pending splice transactions and `batch` is not set:
     - MUST send an `error` and fail the channel.
   - If `batch` is set:
+    - If `batch` is smaller than or equal to `1`:
+      - MUST send an `error` and fail the channel.
     - MUST wait until it has received `batch_size` messages.
     - If there are pending splice transactions:
       - MUST validate each `commitment_signed` based on `funding_txid`.
