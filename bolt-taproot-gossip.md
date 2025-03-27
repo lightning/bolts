@@ -1,9 +1,11 @@
-# Extension BOLT XX: Taproot Gossip
+# Extension BOLT XX: Gossip V2
 
-This document aims to update the gossip protocol defined in [BOLT 7][bolt-7] to
-allow for advertisement and verification of taproot channels. An entirely new
-set of gossip messages are defined that use [BIP-340][bip-340] signatures and
-that use a mostly TLV based structure.
+This document aims to define a gossip protocol which can be used to advertise
+and verify both P2WSH channels and P2TR channels. The aim is that this protocol
+could eventually completely replace the existing gossip protocol defined in
+[BOLT 7][bolt-7] which can only be used to advertise P2WSH channels. An entirely
+new set of gossip messages are defined that use [BIP-340][bip-340] signatures
+and that use a pure TLV based structure.
 
 # Table Of Contents
 
@@ -15,13 +17,16 @@ that use a mostly TLV based structure.
 * [Specification](#specification)
     * [Type Definitions](#type-definitions)
     * [Features Bits](#feature-bits)
-    * [Features Bit Contexts](#feature-bit-contexts)
-    * [`open_channel` Extra Requirements](#openchannel-extra-requirements)
-    * [`channel_ready` Extensions](#channelready-extensions)
-    * [The `announcement_signatures_2` Message](#the-announcementsignatures2-message)
-    * [The `channel_announcement_2` Message](#the-channelupdate2-message)
-    * [The `node_announcement_2` Message](#the-nodeannouncement2-message)
-    * [The `channel_update_2` Message](#the-channelupdate2-message)
+        * [`option_gossip_v2`](#option_gossip_v2)
+        * [`option_gossip_v2_p2wsh`](#option_gossip_v2_p2wsh)
+        * [`option_gossip_announce_private`](#option_gossip_announce_private)
+    * [`open_channel` Extensions](#open_channel-extensions)
+    * [`channel_ready` Extensions](#channel_ready-extensions)
+    * [`announcement_signatures` Extra requirements](#announcement_signatures-extra-requirements)
+    * [The `announcement_signatures_2` Message](#the-announcement_signatures_2-message)
+    * [The `channel_announcement_2` Message](#the-channel_announcement_2-message)
+    * [The `node_announcement_2` Message](#the-node_announcement_2-message)
+    * [The `channel_update_2` Message](#the-channel_update_2-message)
 * [Appendix A: Algorithms](#appendix-a-algorithms)
     * [Partial Signature Calculation](#partial-signature-calculation)
     * [Partial Signature Verification](#partial-signature-verification)
@@ -34,8 +39,6 @@ that use a mostly TLV based structure.
 
 ## Terminology
 
-- Collectively, the set of new gossip messages will be referred to as
-  `taproot gossip`.
 - `node_1` and `node_2` refer to the two parties involved in opening a channel.
 - `node_ID_1` and `node_ID_2` respectively refer to the public keys that
   `node_1` and `node_2` use to identify their nodes in the network.
@@ -101,11 +104,11 @@ taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", merkle_root_
 In the case of Simple Taproot Channels, the `merkle_root_hash` will be equal to
 the serialisation of the `taproot_internal_key`.
 
-The verification method used all depends on which information is provided in the
-`channel_announcement_2` message. All of these verification methods require
-the `node_id_1` and `node_id_2` to be provided along with a `short_channel_id`
-that will allow the verifier to fetch the funding output from which the
-`taproot_output_key` can be extracted.
+If the funding output is P2TR, then the verification method used all depends on
+which information is provided in the `channel_announcement_2` message. All of
+these verification methods require the `node_id_1` and `node_id_2` to be
+provided along with a `short_channel_id` that will allow the verifier to fetch
+the funding output from which the `taproot_output_key` can be extracted.
 
 1. If no bitcoin keys are provided, then the signature must be verified against
    the following public key:
@@ -151,24 +154,24 @@ that will allow the verifier to fetch the funding output from which the
        ```
     5. The signature must then be verified against `P_agg`.
 
-In terms of construction of the proofs, this document covers case 2 and 3.
-
 ## TLV Based Messages
 
 The initial set of Lightning Network messages consisted of a flat set of
 serialised fields that were mandatory. Later on, TLV encoding was introduced
 which provided a backward compatible way to extend messages. To ensure that the
 new messages defined in this document remain as future-proof as possible, the
-messages will mostly be pure TLV streams with a fixed 64-byte signature over the
-tlv stream appended at the front of the message. By making all fields in the
-messages TLV records, fields that we consider mandatory today can easily be
-dropped in future (when coupled with a new feature bit) without needing to
-completely redefine the gossip message in order to make the field optional.
+messages will be pure TLV streams with a set TLV range of signed fields and
+unsigned fields. That way, any signature fields can be put in the un-signed
+range along with any other large and non-mandatory fields such as SPV proofs.
+By making all fields in the messages TLV records, fields that we consider
+mandatory today can easily be dropped in future (when coupled with a new
+feature bit) without needing to completely redefine the gossip message in order
+to make the field optional.
 
 ## Block-height fields
 
 In the messages defined in this document, block heights are used as timestamps
-instead of the UNIX timestamps used in the legacy set of gossip messages.
+instead of the UNIX timestamps used in the BOLT 7 set of gossip messages.
 
 ### Rate Limiting
 
@@ -178,7 +181,7 @@ block. To allow for bursts, nodes are encouraged not to use the latest block
 height for their latest announcements/updates but rather to backdate and use
 older block heights that they have not used in an announcement/update. There of
 course needs to be a limit on the start block height that the node can use:
-for `channel_update_2` messages, the first `blockheight` must be the block
+for `channel_update_2` messages, the lowest allowed `blockheight` is the block
 height in which the channel funding transaction was mined and all updates after
 the initial one must have increasing block heights. Nodes are then responsible
 for building up their own timestamp buffer: if they want to be able to send
@@ -186,67 +189,33 @@ multiple `channel_update_2` messages per block, then they will need to ensure
 that there are blocks during which they do not broadcast any updates. This
 provides an incentive for nodes not to spam the network with too many updates.
 
-TODO:
-- how do we choose a minimum block-height for `node_announcement_2`?
-
 ### Simplifies Channel Announcement Queries
 
-In the legacy gossip protocol, the timestamp of the `channel_announcement` is
+In the BOLT 7 gossip protocol, the timestamp of the `channel_announcement` is
 hard to define since the message itself does not have a `timestamp` field. This
 makes timestamp based gossip queries tricky. By using block heights as
 timestamps instead, there is an implicit timestamp associated with the
 `channel_announcement_2`: the block in which the funding transaction is mined.
 
-## Bootstrapping Taproot Gossip
+## Interaction with BOLT 7
 
-While the network upgrades from the legacy gossip protocol to the taproot gossip
-protocol, the following scenarios may exist for any node on the network:
+The idea is that the gossip message defined in this document could eventually
+replace those defined in BOLT 7. The messages defined in this document can
+therefore be used to advertise both P2WSH and P2TR channels. Doing this will
+allow older channels to make use of the new gossip protocol and all its
+advantages without needing to close all their channels and reopen them as PT2R
+channels. The two protocols are to be seen as disjoint. This means, for example,
+that a node may only advertise a `node_announcement_2` if it has advertised
+a `channel_announcement_2`. This makes it easier to reason about the protocol.
+Any nodes that understand both protocols are encouraged to persist both
+advertisements in their database to cater for gossip syncing with older
+peers, but they should favour the new protocol when making routing decisions.
 
-| scenario | has legacy channels | has taproot channels  | should send `node_announcement` | should send `node_announcement_2` |
-|----------|---------------------|-----------------------|---------------------------------|-----------------------------------|
-| 1        | no                  | no                    | no                              | no                                |
-| 2        | yes                 | no                    | yes                             | ?                                 |
-| 3        | yes                 | yes                   | yes                             | ?                                 |
-| 4        | no                  | yes                   | no                              | yes                               |
-
-### Scenario 1
-
-These nodes have no announced channels and so should not be broadcasting legacy
-or new node announcement messages.
-
-### Scenario 2
-
-If a node has legacy channels but no taproot channels, they should continue to
-broadcast the legacy `node_announcement` message so that un-upgraded nodes can
-continue to receive `node_annoucement`s from these nodes which will initially
-also be the most effective way to spread the `option_taproot_gossip` feature
-bit to the rest of the network which will then allow upgraded nodes to find
-each-other.
-
-TODO: should these nodes also send the new node announcement? if so:
-- how do we deal with differences in the two announcements?
-- also, how does a receiving node confirm which announcement is the latest
-one given that they don't use the same timestamp type?
-
-### Scenario 3
-
-Similar to scenario 2.
-
-### Scenario 4
-
-If a node has no more legacy channels, then it will not be able to advertise
-a legacy `node_announcement` since un-upgraded nodes will drop the announcements
-due to no open channel will be known for that node. So in this case, only a
-new `node_announcement_2` can be used.
-
-### Considerations & Suggestions
-
-While the network is in the upgrade phase, the following suggestions apply:
-
-- Nodes are encouraged to actively connect to other nodes that advertise the
-  `option_taproot_gossip` feature bit as this is the only way in which they
-  will learn about taproot channel announcements and updates. This should be
-  done while taking care not to split the network.
+While the network is in the upgrade phase, nodes will likely want to advertise
+on both the old and new protocols for P2WSH channels so that older nodes
+continue to see their channels. Eventually, when most of the network has
+advertised their understanding of the new protocol, nodes can stop advertising
+on the old protocol.
 
 ## Specification
 
@@ -263,47 +232,91 @@ The following convenient types are defined:
   these is a valid UTF-8 string, a reader MAY reject any messages containing an
   array of these which is not a valid UTF-8 string.
 
+### Pure TLV messages
+
+All the messages defined in this document are pure TLV streams. The signed TLV
+range is defined as the inclusive ranges: 0 to 159 and 1000000000 to 2999999999.
+
 ### Feature Bits
 
-A new feature bit, `option_taproot_gossip`, is introduced. Nodes can use this
-feature bit in the `init` and _legacy_ `node_announcement` messages to advertise
-that they understand the new set of taproot gossip messages and that will
-therefore be able to route over Taproot Channels. If a node advertises
-both the `option_taproot_gossip`  _and_ the `option_taproot` feature bits, then
-that node has the ability to open and announce a Simple Taproot Channel.
+The proposed gossip upgrade is quite large and will require a lot of new code
+for most implementations. It is therefore proposed that the upgrade be done
+across a few feature bits. The following feature bits are proposed:
 
-| Bits  | Name                    | Description                               | Context | Dependencies |
-|-------|-------------------------|-------------------------------------------|---------|--------------|
-| 32/33 | `option_taproot_gossip` | Node understands taproot gossip messages  | IN      |              | 
+| Bits  | Name                             | Description                                               | Context | Dependencies       |
+|-------|----------------------------------|-----------------------------------------------------------|---------|--------------------|
+| 70/71 | `option_gossip_v2`               | Node understands gossip v2 protocol                       | IN*     |                    | 
+| 72/73 | `option_gossip_v2_p2wsh`         | Node can advertise P2WSH channels with gossip v2 protocol | IN      | `option_gossip_v2` | 
+| 74/75 | `option_gossip_announce_private` | Node is able to announce a previously unannounced channel | IN      |                    | 
 
-### Feature Bit Contexts
+The N* context above serves to indicate the legacy `node_announcement` message.
+All the rest of the contexts are for the new gossip messages defined in this
+document. The `option_gossip_v2` bit is implied if a node is making use of
+the new set of gossip messages.
 
-For all feature bits other than `option_taproot_gossip` defined in
-[Bolt 9][bolt-9-features] with the `N` and `C` contexts, it can be assumed that
-those contexts will now refer to the new `node_announcement_2` and
-`channel_announcement_2` messages defined in this document. The
-`option_taproot_gossip` feature bit only makes sense in the context of the
-legacy messages since it can be implied with the new taproot gossip messages.
+#### `option_gossip_v2`
 
-### `open_channel` Extra Requirements
+This feature bit indicates that a node is able to understand all the new gossip
+`_v2` messages defined in this document. This means it is able to verify both
+P2TR and P2WSH channels announced with the new protocol If this feature bit is
+set along with `option_taproot`, then the node is also able to open and
+announce Simple Taproot Channels using the new gossip protocol. This bit can
+be set in the `init` message along with the _legacy_ `node_announcement`
+message.
 
-These extra requirements only apply if the `option_taproot` channel type is set
-in the `open_channel` message.
+#### `option_gossip_v2_p2wsh`
 
-The sender:
-- if `option_taproot_gossip` was negotiated:
-    - MAY set the `announce_channel` bit in `channel_flags`
-- otherwise:
-    - MUST NOT set the `announce_channel` bit.
+This feature bit depends on `option_gossip_v2` and indicates that a node is able
+to use the new gossip protocol to advertise P2WSH channels. This means both that
+for new channels, it can use the new gossip protocol to advertise them and that
+for any existing, public, P2WSH channels, it can re-advertise them using the new
+gossip protocol.
 
-The receiver:
-- if `option_taproot_gossip` was not negotiated and the `announce_channel` bit
-  in `channel_flags` was set, MUST fail the channel.
+The reason this is a separate feature bit is that for some implementations, it
+will be quite a large lift to support managing both sets of gossip messages for
+a single channel and to support the flow of signing the announcement for
+an existing channel. By separating out the bits, nodes can start announce
+Simple Taproot Channels before they are able to re-announce their existing P2WSH
+channels using the new gossip protocol.
+
+#### `option_gossip_announce_private`
+
+This feature bit indicates that a node is able to advertise a channel that
+started out as unannounced. This means allowing the signing flow of the
+`channel_announcement` and/or `channel_announcement_2` messages at any point
+during the channel's lifetime even if the `announce_channel` bit was not set in
+the `open_channel` message
+
+#### Future feature bits
+
+More feature bits may be added here to define, for example, different types of
+channel proofs. An example is SPV proofs: a feature bit can be defined that
+indicates that a node is able to produce an SPV proof and attach it to its
+`channel_announcement_2` message if asked.
+
+### `open_channel` Extensions
+
+- If the `option_taproot` channel type was set in `open_channel`:
+    - The sender:
+        - If `option_gossip_v2` was negotiated:
+            - MAY set the `announce_channel` bit in `channel_flags`
+        - otherwise:
+            - MUST NOT set the `announce_channel` bit.
+
+    - The receiver:
+        - if `option_gossip_v2` was not negotiated and the `announce_channel` bit
+          in `channel_flags` was set, MUST fail the channel.
+
+#### Rationale
+
+- The `option_taproot` channel type was defined before this spec and limited
+  peers that negotiated the channel type to open unannounced channels only.
+  This document defines how peers can go about announcing these channels, and so
+  this restriction can be lifted.
 
 ### `channel_ready` Extensions
 
-These extensions only apply if the `option_taproot` channel type was set in the
-`open_channel` message along with the `announce_channel` channel flag.
+The following extensions are defined for the `channel_ready` message:
 
 1. `tlv_stream`: `channel_ready_tlvs`
 2. types:
@@ -314,13 +327,19 @@ These extensions only apply if the `option_taproot` channel type was set in the
     4. data:
         * [`66*byte`: `public_nonce`]
 
-#### Requirements
+#### Requirements:
+
+The following requirements apply if the `announce_channel` bit was set in the
+`channel_flags` field of the `open_channel` message. Nodes advertising the
+`option_gossip_announce_private` bit, may also choose to send the
+`channel_ready` message at any point during the channel's lifetime in which
+case, the following requirements also apply even if the `announce_channel` bit
+was not set in `open_channel`.
 
 The sender:
 
-- MAY send `channel_ready` message without the `announcement_node_pubnonce` and
-  `announcement_bitcoin_pubnonce` fields.
-- Once the channel is ready to be announced, the node:
+- If the negotiated channel type is `option_taproot` and `option_gossip_v2` was
+  negotiated, then when the node is ready to advertise the channel:
     - SHOULD send `channel_ready` with the `announcement_node_pubnonce` and
       `announcement_bitcoin_pubnonce` fields set. The `announcement_node_pubnonce`
       must be set to the public nonce to be used for signing with the node's
@@ -329,13 +348,34 @@ The sender:
     - Upon reconnection, if a fully signed `channel_announcement_2` has not yet
       been constructed:
         - SHOULD re-send `channel_ready` with the nonce fields set.
-- Once a `channel_ready` message with announcement nonces has been both sent and
-  received:
-    - MUST proceed with constructing and sending the `announcement_signatures_2`
-      message.
-
-- TODO: recommend nonce generation technique.
-- TODO: can we guarantee progress here?
+    - Once a `channel_ready` message with the nonce fields has been both sent
+      and received:
+        - MUST proceed with constructing and sending the
+          `announcement_signatures_2` message.
+- If the negotiated channel type is not `option_taproot` (ie, it is a P2WSH
+  channel) and the `option_gossip_v2_p2wsh` bit was negotiated, then when the
+  node is ready to advertise the channel:
+    - MAY send `channel_ready` either with or without the nonce fields set.
+    - If the nonce fields are set, then the node MUST proceed with
+      constructing and sending the `announcement_signatures_2` message
+      in preparation for advertising the channel using the V2 protocol.
+        - Upon reconnection, if a fully signed `channel_announcement_2` has not
+          yet been constructed:
+        - SHOULD re-send `channel_ready` with the nonce fields set.
+    - Once a `channel_ready` message with the nonce fields has been both sent
+      and received:
+        - MUST proceed with constructing and sending the
+          `announcement_signatures_2` message.
+        - If they are not set, then node may proceed with constructing and
+          sending the `announcement_signatures` message in preparation for
+          advertising the channel using the V1 protocol.
+        - Nodes may initiate the signing flow for both the V1 and V2 protocol
+          and so should be able to handle receiving both the
+          `announcement_signatures` and `announcement_signatures_2` messages.
+- For any channel type, if the channel peers have negotiated the
+  `option_gossip_announce_private` bit, then the node may send `channel_ready`
+  at any point during the channel's lifetime to exchange nonces to use
+  for the construction of the `announcement_signatures_2` message.
 
 The recipient:
 
@@ -361,23 +401,53 @@ It cannot be a requirement that a node include the nonce fields in the
 preferred channel alias, and it does not make sense to require that the nonce
 fields be populated once the channel has already been announced.
 
+### `announcement_signatures` Extra requirements
+
+If peers have negotiated the `option_gossip_announce_private` bit, then the
+`announcement_signatures` message can be used to initiate the signing flow for
+a previously unannounced channel via the `channel_announcement` message at
+any point during the channel's lifecycle. All existing requirements of the
+message remain.
+
 ### The `announcement_signatures_2` Message
 
 Like the legacy `announcement_signatures` message, this is a direct message
 between the two endpoints of a channel and serves as an opt-in mechanism to
-allow the announcement of the channel to the rest of the network.
+allow the announcement of the channel to the rest of the network. This message
+is used to exchange the partial signatures required to construct the final
+signature for the `channel_announcement_2` message.
+
+This message can be sent in two cases:
+
+1) At the start of the channel's lifetime if the `announce_channel` bit was set
+   in the `channel_flags` field of the `open_channel` message.
+2) At any other point in the channel's lifetime if the
+   `option_gossip_announce_private` bit was negotiated between the channel peers.
 
 1. type: 260 (`announcement_signatures_2`)
 2. data:
-    * [`channel_id`:`channel_id`]
-    * [`short_channel_id`:`short_channel_id`]
-    * [`partial_signature`:`partial_signature`]
+    * [`announcement_signatures_2_tlvs`:`tlvs`]
 
-#### Requirements
+1. `tlv_stream`: `announcement_signatures_2_tlvs`
+2. types:
+    1. type: 0 (`channel_id`)
+    2. data:
+        * [`channel_id`:`channel_id`]
+    1. type: 2 (`short_channel_id`)
+    2. data:
+        * [`short_channel_id`:`short_channel_id`]
+    1. type: 4 (`partial_signature`)
+        * [`partial_signature`:`partial_signature`]
+
+
+#### Requirements:
 
 The requirements are similar to the ones defined for the legacy
-`announcement_signatures`. The below requirements assume that the
-`option_taproot` channel type was set in `open_channel`.
+`announcement_signatures` in that it should only be sent once a channel
+has reached a sufficient number of confirmations meaning that nodes are able
+to construct a valid `channel_announcement_2` for the channel.
+This may be used for P2WSH channels IF the `option_gossip_v2_p2wsh` bit was
+negotiated.
 
 A node:
 - if the `open_channel` message has the `announce_channel` bit set AND a
@@ -391,6 +461,9 @@ A node:
       `MsgHash("channel_announcement", "signature", m)` where `m` is the
       serialisation of the `channel_announcement_2` message tlv stream (see the
       [`MsgHash`](#signature-message-construction) definition).
+- otherwise if the `option_gossip_announce_private` bit has been negotiated:
+    - MAY send the `announcement_signatures_2` message at any point during the
+      channel's lifetime with the same constraints as defined above.
 - otherwise:
     - MUST NOT send the `announcement_signatures_2` message.
 - upon reconnection (once the above timing requirements have been met):
@@ -428,19 +501,12 @@ aggregation of the two signatures that the sender would have created (one for
 
 ### The `channel_announcement_2` Message
 
-This gossip message contains ownership information regarding a taproot channel.
-It ties each on-chain Bitcoin key that makes up the taproot output key to the
-associated Lightning node key, and vice-versa. The channel is not practically
-usable until at least one side has announced its fee levels and expiry, using
-`channel_update_2`.
-
-See [Taproot Channel Proof and Verification](#taproot-channel-proof-and-verification)
-for more information regarding the requirements for proving the existence of a
-channel.
+This gossip message contains ownership information regarding either a P2TR or
+P2WSH channel. The channel is not practically usable until at least one side has
+announced its fee levels and expiry, using `channel_update_2`.
 
 1. type: 267 (`channel_announcement_2`)
 2. data:
-    * [`bip340sig`:`signature`]
     * [`channel_announcement_2_tlvs`:`tlvs`]
 
 1. `tlv_stream`: `channel_announcement_2_tlvs`
@@ -472,29 +538,131 @@ channel.
     1. type: 16 (`merkle_root_hash`)
     2. data:
         * [`32*byte`:`hash`]
+    1. type: 18 (`outpoint`)
+    2. data:
+        * [`sha256`:`txid`]
+        * [`u16`:`index`]
+    1. type: 160 (`signature`)
+    2. data:
+        * [`bip340sig`:`sig`]
 
 #### Message Field Descriptions
 
-TODO
+- The `chain_hash` is used to identify the blockchain containing the channel
+  being referred to.
+- `short_channel_id`: the short channel ID that can be used to uniquely identify
+  the channel on-chain.
+- `outpoint`: the funding transactions outpoint. A node may use this along with
+  a bitcoin backend's `txindex` to look up the funding transaction.
+- `capacity_satoshis`: the capacity of the channel in satoshis. This must be
+  less than or equal to the value of the output identified by the `outpoint`
+  and `short_channel_id` fields.
+- `node_id_1` and `node_id_2`: the public keys of the two nodes involved in the
+  channel.
+- `bitcoin_key_1` and `bitcoin_key_2`: optional public keys used to derive the
+  funding transaction's output.
+- `merkle_root_hash`: an optional hash to use as the merkle root hash when
+  deriving the tweak to apply to the internal key in the case of a P2TR channel.
+- `signature`: a BIP 340 signature over the serialisation of the fields in the
+  message's signed range. The public key that the signature should be verified
+  against depends on the channel type along with which other fields in the
+  message have been set.
 
-#### Requirements
+#### Requirements:
 
-TODO
+The sender:
+- If the chain that channel was opened with differs from the Bitcoin mainnet
+  blockchain, then the `chain_hash` MUST be set to the 32-byte hash that
+  uniquely identifies the chain. Otherwise, the field should not be set.
+- MUST set `short_channel_id` to refer to the confirmed funding transaction,
+  as specified in [BOLT #2](02-peer-protocol.md#the-channel_ready-message).
+- MUST set `outpoint` to the refer to funding transaction. This MUST refer to
+  the same output as the `short_channel_id` field.
+- MUST set `capacity_satoshis` to the capacity of the channel in satoshis. This
+  must be less than or equal to the value of the output identified by the
+  `outpoint` and `short_channel_id` fields.
+- MUST set `node_id_1` and `node_id_2` to the public keys of the two nodes
+  operating the channel, such that `node_id_1` is the lexicographically-lesser
+  of the two compressed keys sorted in ascending lexicographic order.
+- If the channel being announced is a P2WSH type, then the `bitcoin_key_1` and
+  `bitcoin_key_2` fields MUST be set and the `merkle_root_hash` field MUST NOT
+  be set. See [Partial Signature Calculation](#partial-signature-calculation)
+  for details on how to compute the `signature` field in this scenario.
+- If the channel being announced is a P2TR type, then the `bitcoin_key_1`,
+  `bitcoin_key_2` and `merkle_root_hash` fields are optional and the `signature`
+  construction depends on how these fields are set and how `P_agg` has been
+  derived. See [Partial Signature Calculation](#partial-signature-calculation)
+  for details on how to compute the `signature` field in this scenario.
+- The `signature` will always be over the serialised signed-range fields of the
+  message.
+
+The receiver:
+
+- MUST verify the integrity AND authenticity of the `channel_announcement_2`
+  message by verifying the signature. This verification will depend on the
+  channel type along with which fields have been set in the message.
+- Either the `short_channel_id` or the `outpoint` may be used to retrieve the
+  channel's funding script. This can then be used to determine if the channel in
+  question is a P2WSH channel or a P2TR channel.
+- If the channel is a P2WSH channel:
+    - The `bitcoin_key_1` and `bitcoin_key_2` fields MUST be set and the
+      `merkle_root_hash` field MUST NOT be set. The message should be ignored
+      otherwise.
+    - The `signature` field must be valid according to the rules defined in
+      [Verifying the `channel_announcement_2` signature](#verifying-the-channel_announcement_2-signature).
+- otherwise:
+    - The `bitcoin_key_1`, `bitcoin_key_2` and `merkle_root_hash` fields are
+      optional.
+    - The `signature` field must be valid according to the rules defined in
+      [Verifying the `channel_announcement_2` signature](#verifying-the-channel_announcement_2-signature).
+- If the `signature` is invalid:
+    - SHOULD send a `warning`.
+    - MAY close the connection.
+    - MUST ignore the message.
+- otherwise:
+    - if `node_id_1` OR `node_id_2` are blacklisted:
+        - SHOULD ignore the message.
+    - otherwise:
+        - if the transaction referred to was NOT previously announced as a
+          channel:
+            - SHOULD queue the message for rebroadcasting.
+            - MAY choose NOT to for messages longer than the minimum expected
+              length.
+        - if it has previously received a valid `channel_announcement_v2`, for
+          the same transaction, in the same block, but for a different
+          `node_id_1` or `node_id_2`:
+            - SHOULD blacklist the previous message's `node_id_1` and `node_id_2`,
+              as well as this `node_id_1` and `node_id_2` AND forget any channels
+              connected to them.
+        - otherwise:
+            - SHOULD store this `channel_announcement`.
+
+- once its funding output has been spent OR reorganized out:
+    - SHOULD forget a channel after a 12-block delay.
+
+#### TLV Defaults
+
+The following defaults TLV values apply if the TLV is not present in the
+message:
+
+| `channel_announcement_2` TLV Type  | Default Value                                                      | Comment                                                                                     |
+|------------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| 0  (`chain_hash`)                  | `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000` | The hash of the genesis block of the mainnet Bitcoin blockchain.                            | 
+
 
 ### The `node_announcement_2` Message
 
-This gossip message, like the legacy `node_announcement` message, allows a node
+This gossip message, like the `node_announcement` message, allows a node
 to indicate extra data associated with it, in addition to its public key.
 To avoid trivial denial of service attacks, nodes not associated with an already
-known channel (legacy or taproot) are ignored.
+known channel (advertised via a `channel_announcement_2` message) are ignored.
 
-Unlike the legacy `node_announcement` message, this message makes use of a
+Unlike the `node_announcement` message, this message makes use of a
 BIP340 signature instead of an ECDSA one. This will allow nodes to be backed
 by multiple keys since MuSig2 can be used to construct the single signature.
 
 1. type: 269 (`node_announcement_2`)
 2. data:
-    * [`bip340sig`:`signature`]
     * [`node_announcement_2_tlvs`:`tlvs`]
 
 1. `tlv_stream`: `node_announcement_2_tlvs`
@@ -526,6 +694,9 @@ by multiple keys since MuSig2 can be used to construct the single signature.
     1. type: 11 (`dns_hostnames`)
     2. data:
         * [`...*dns_hostname`: `dns_hostnames`]
+    1. type: 160 (`signature`)
+    2. data:
+        * [`bip340sig`:`sig`]
 
 The following subtypes are defined:
 
@@ -560,7 +731,7 @@ The following subtypes are defined:
 
 - `signature` is the [BIP340][bip-340] signature for the `node_id` key. The
   message to be signed is `MsgHash("node_announcement_2", "signature", m)`
-  where `m` is the serialised TLV stream (see the
+  where `m` is the serialised signed range of the TLV stream (see the
   [`MsgHash`](#signature-message-construction) definition).
 - `features` is a bit vector with bits set according to [BOLT #9](09-features.md#assigned-features-flags)
 - `block_height` allows for ordering or messages in the case of multiple
@@ -586,27 +757,21 @@ The following subtypes are defined:
 
 #### Requirements
 
-TODO: flesh out when it is ok to send new vs old node announcement. Is it ever
-ok to send both? if so - what if the info inside them differs?
-
 The sender:
 
 - MUST set TLV fields 0, 2 and 4.
 - MUST set `signature` to a valid [BIP340][bip-340] signature for the
   `node_id` key. The message to be signed is
   `MsgHash("node_announcement_2", "signature", m)` where `m` is the
-  serialisation of the `node_announcement_2` message excluding the
-  `signature` field (see the
-  [`MsgHash`](#signature-message-construction) definition).
+  serialisation of the signed TLV range of the `node_announcement_2` message
+  (see the [`MsgHash`](#signature-message-construction) definition).
 - MAY set `color` and `alias` to customise appearance in maps and graphs.
 - If the node sets the `alias`:
     - MUST use 32 utf8 characters or less.
 - MUST set `block_height` to be greater than that of any previous
-  `node_announcement_2` it has previously created.
-- TODO: how to determine a lower bound for the block_height of the node_ann?
-  cant say "must be greater than or = oldest advertised channel" since a node
-  could open a new channel and close the previous which would then invalidate
-  the node_announcement.
+  `node_announcement_2` it has previously created. The `blockheight` should
+  always be greater than or equal to funding block of the oldest channel that
+  the node has advertised via `channel_announcement_2`.
 - If the node wishes to announce its willingness to accept incoming network
   connections:
     - SHOULD set at least one of types 7-10.
@@ -670,29 +835,15 @@ The security considerations for node aliases mentioned in
 
 ### The `channel_update_2` Message
 
-- TODO: should updates for legacy channels also sometimes be broadcast using the
-  new format for easier set reconciliation?
-
 After a channel has been initially announced via `channel_announcement_2`, each
 side independently announces the fees and minimum expiry delta it requires to
 relay HTLCs through this channel. Each uses the 8-byte short channel id that
-matches the `channel_announcement_2` and the `direction` field to
+matches the `channel_announcement_2` and the `second_peer` field to
 indicate which end of the channel it's on (origin or final). A node can do this
 multiple times, in order to change fees.
 
-Note that the `channel_update` gossip message is only useful in the context
-of *relaying* payments, not *sending* payments. When making a payment
-`A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels
-`B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will
-come into play. When building the route, amounts and expiries for HTLCs need
-to be calculated backward from the destination to the source. The exact initial
-value for `amount_msat` and the minimal value for `cltv_expiry`, to be used for
-the last HTLC in the route, are provided in the payment request
-
-(see [BOLT #11][[bolt-11-tagged-fields]]).
 1. type: 271 (`channel_update_2`)
 2. data:
-    * [`bip340sig`:`signature`]
     * [`channel_update_2_tlvs`:`tlvs`]
 
 1. `tlv_stream`: `channel_update_2_tlvs`
@@ -725,10 +876,13 @@ the last HTLC in the route, are provided in the payment request
     1. type: 18 (`fee_proportional_millionths`)
     2. data:
         * [`u32`:`fee_proportional_millionths`]
+    1. type: 160 (`signature`)
+    2. data:
+        * [`bip340sig`:`sig`]
 
 
 The `disable_flags` bitfield is used to indicate that the channel is either
-temporarily or permanently disabled. The following table specifies the meaning 
+temporarily or permanently disabled. The following table specifies the meaning
 of the individual bits:
 
 | Bit Position | Name        | Meaning                                               |
@@ -740,7 +894,7 @@ of the individual bits:
 Both the `incoming` and `outgoing` bit can be set to indicate that the channel
 peer is offline.
 
-If the `permanant` bit is set, then the channel can be considered closed. 
+If the `permanant` bit is set, then the channel can be considered closed.
 
 #### Message Field Descriptions
 
@@ -751,16 +905,15 @@ If the `permanant` bit is set, then the channel can be considered closed.
 - `block_height` is the timestamp associated with the message. A node may not
   send two `channel_update` messages with the same `block_height`. The
   `block_height` must also be greater than or equal to the block height
-  indicated by the `short_channel_id` used in the `channel_announcement` and
-  must not be less than current best block height minus 2016 (~2 weeks of
-  blocks).
+  indicated by the `short_channel_id` used in the `channel_announcement_2` and
+  must not be greater than current best block height.
 - The `disable` bit field can be used to advertise to the network that a channel
   is disabled and that it should not be used for routing. The individual
   `disable_flags` bits can be used to communicate more fine-grained information.
-- The `second_peer` is used to indicate which node in the channel node pair has 
+- The `second_peer` is used to indicate which node in the channel node pair has
   created and signed this message. If present, the node was `node_id_2` in the
-  `channel_announcment`, otherwise the node is `node_id_1` in the 
-  `channel_announcement` message.
+  `channel_announcment_2`, otherwise the node is `node_id_1` in the
+  `channel_announcement_2` message.
 - `cltv_expiry_delta` is the number of blocks that the node will subtract from
   an incoming HTLC's `cltv_expiry`.
 - `htlc_minimum_msat` is the minimum HTLC value (in millisatoshi) that the
@@ -798,15 +951,13 @@ The origin node:
     - SHOULD not include the field in the TLV stream if the default value is
       desired.
 - MUST use the `channel_update_2` message to communicate channel parameters of a
-  Taproot channel.
-- MAY use the `channel_update_2` message to communicate channel parameters of a
-  legacy (P2SH) channel.
+  any channel advertised via `channel_announcement_2`.
 - MUST NOT send a created `channel_update_2` before `channel_ready` has been
   received.
-- For an unannounced channel (i.e. one where the `announce_channel` bit was not
-  set in `open_channel`):
-    - MAY create a `channel_update_2` to communicate the channel parameters to the
-      channel peer.
+- For an unannounced channel (i.e. one where `announcement_signatures_2` has
+  not been exchanged):
+    - MAY create a `channel_update_2` to communicate the channel parameters to
+      the channel peer.
     - MUST set the `short_channel_id` to either an `alias` it has received from
       the peer, or the real channel `short_channel_id`.
     - MUST NOT forward such a `channel_update_2` to other peers, for privacy
@@ -837,23 +988,19 @@ The receiving node:
     - SHOULD send a `warning` and close the connection.
     - MUST NOT process the message further.
 
-#### Rationale
-
-- An even type is used so that best-effort propagation can be used.
-
 ### Query Messages
 
-TODO: 
-    1. new first block height & block range fields in gossip_timestamp_range
-    2. add block-height query option (like timestamps query option)
+TODO:
+1. new first block height & block range fields in gossip_timestamp_range
+2. add block-height query option (like timestamps query option)
 
 # Appendix A: Algorithms
 
 ## Partial Signature Calculation
 
 When both nodes have exchanged a `channel_ready` message containing the
-`announcement_node_pubnonce` and `announcement_bitcoin` fields then they will
-each have the following information:
+`announcement_node_pubnonce` and `announcement_bitcoin_pubnonce` fields then
+they will each have the following information:
 
 - `node_1` will know:
     - `bitcoin_priv_key_1`, `node_ID_priv_key_1`,
@@ -886,12 +1033,11 @@ P_agg = Musig2.KeyAgg(Musig2.KeySort(node_ID_1, node_ID_2, bitcoin_key_1, bitcoi
 Next, the aggregate public nonce, `aggnonce`, can be calculated:
 
 ```
-aggnonce = Musig2.NonceAgg(announcement_node_secnonce_1, announcement_bitcoin_pubnonce_1, announcement_node_secnonce_2, announcement_bitcoin_pubnonce_2)
+aggnonce = Musig2.NonceAgg(announcement_node_pubnonce_1, announcement_bitcoin_pubnonce_1, announcement_node_pubnonce_2, announcement_bitcoin_pubnonce_2)
 ```
 
-The message, `msg` that the peers will sign is the serialisation of
-`channel_announcement_2` _without_ the `signature` field (i.e. without
-type 0)
+The message, `msg` that the peers will sign is the serialisation of all the
+TLV fields in the signed ranges of the `channel_announcement_2` message.
 
 With all the information mentioned, both peers can now construct the
 [`Session Context`][musig-session-ctx] defined by the MuSig2 protocol which is
@@ -988,23 +1134,24 @@ found in the [MuSig2][musig-session-ctx] spec.
 ## Verifying the `channel_announcement_2` signature
 
 For all the following cases, it should be verified that the output at the
-provided `short_channel_id` is an unspent Taproot output.
+provided `short_channel_id` or `outpoint` is an unspent P2WSH or P2TR output.
 
 ### The 3-of-3 MuSig2 Scenario
 
-In the case where a received `channel_announcement_2` message is received which
-does not have the optional `bitcoin_key_*` fields, the signature of the message
-should be verified as a 3-of-3 MuSig2 signature. The keys involved are:
-`node_id_1`, `node_id_2` and the taproot output key (`tr_output_key`) found in
-the channel's funding output specified by the provided `short_channel_id`.
+In the case where the funding transaction is a P2TR output and the received
+`channel_announcement_2` message is does not have the optional `bitcoin_key_*`
+fields, the signature of the message should be verified as a 3-of-3 MuSig2
+signature. The keys involved are: `node_id_1`, `node_id_2` and the taproot
+output key (`tr_output_key`) found in the channel's funding output specified by
+the provided `short_channel_id`.
 
 The full list of inputs required:
 - `node_id_1`
 - `node_id_2`
 - `tr_output_key`
 - `msg`: the serialised `channel_announcement_2` tlv stream.
-- `sig`: the 64-byte BIP340 signature found in the `signature` field of the 
-  `channel_announcement_2` message. This signature must be parsed into `R` and 
+- `sig`: the 64-byte BIP340 signature found in the `signature` field of the
+  `channel_announcement_2` message. This signature must be parsed into `R` and
   `s` values as defined in BIP327.
 
 The aggregate key can be calculated as follows:
@@ -1021,11 +1168,29 @@ The signature can then be verified as follows:
 
 ### The 4-of-4 MuSig2 Scenario
 
-In the case where a received `channel_announcement_2` message is received which
-does have both the optional `bitcoin_key_*` fields, the signature of the message
-should be verified as a 4-of-4 MuSig2 signature. The keys involved are:
-`node_id_1`, `node_id_2`, `bitcoin_key_1` and `bitcoin_key_2`. The message may
-also optionally contain the `merkle_root_hash` field in this case.
+There are two possibilities here: the channel is a P2WSH channel or a P2TR
+channel.
+
+#### P2WSH Channels
+
+In the case where the funding transaction is a P2WSH output, then the received
+`channel_announcement_2` message MUST have both the optional `bitcoin_key_*`
+fields and the `merkle_root_hash` should not be set. The verifier must then
+ensure that the funding output matches the following P2WSH script:
+
+    `2 <bitcoin_key_1> <bitcoin_key_2> 2 OP_CHECKMULTISIG`
+
+After this has been verified, the signature of the message should be verified.
+This is the same for P2TR channels and is described below.
+
+#### P2TR Channels
+
+In the case where the funding transaction is a P2TR output and the received
+`channel_announcement_2` message has both the optional `bitcoin_key_*` fields,
+the signature of the message should be verified as a 4-of-4 MuSig2 signature.
+The keys involved are: `node_id_1`, `node_id_2`, `bitcoin_key_1` and
+`bitcoin_key_2`. The message may also optionally contain the
+`merkle_root_hash` field in this case.
 
 Before the actual signature verification is done, it should first be asserted
 that the taproot output key found in the funding output is in-fact made up of
@@ -1049,17 +1214,20 @@ P_internal = KeyAgg(MuSig2.KeySort(`bitcoin_key_1`, `bitcoin_key_2`))
     - Fail if `P_o != P_internal + t*G`
 
 If the above check is successful, then it has been shown that the output key
-is constructed from the two provided bitcoin keys. So now the signature
-verification can be done.
+is constructed from the two provided bitcoin keys.
+
+#### Signature Verification
+
+For both the above cases, the following signature verification applies:
 
 The full list of inputs required:
 - `node_id_1`
 - `node_id_2`
 - `bitcoin_key_1`
 - `bitcoin_key_2`
-- `msg`: the serialised `channel_announcement_2` tlv stream.
-- `sig`: the 64-byte BIP340 signature found in the `signature` field of the 
-  `channel_announcement_2` message. This signature must be parsed into `R` and 
+- `msg`: the serialised signed range of the `channel_announcement_2` message.
+- `sig`: the 64-byte BIP340 signature found in the `signature` field of the
+  `channel_announcement_2` message. This signature must be parsed into `R` and
   `s` values as defined in BIP327.
 
 The aggregate key can be calculated as follows:
@@ -1108,6 +1276,7 @@ ideas mentioned in the following references:
   taproot channel verification should work.
 
 [bolt-7]: ./07-routing-gossip.md
+[bolt-3]: ./03-transactions.md
 [bolt-7-alias-security]: ./07-routing-gossip.md#security-considerations-for-node-aliases
 [bolt-9-features]: ./09-features.md#bolt-9-assigned-feature-flags
 [bolt-11]: ./11-payment-encoding.md
