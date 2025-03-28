@@ -205,8 +205,8 @@ A writer:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
 
 A reader:
-  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h`, `s` or
-  `n` fields that do NOT have `data_length`s of 52, 52, 52 or 53, respectively.
+  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h` or
+  `n` fields that do NOT have `data_length`s of 52, 52 or 53, respectively.
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
@@ -216,8 +216,10 @@ A reader:
   description.
   - if a valid `n` field is provided:
     - MUST use the `n` field to validate the signature instead of performing signature recovery.
-  - if there is a valid `s` field:
-    - MUST use that as [`payment_secret`](04-onion-routing.md#tlv_payload-payload-format)
+  - if a valid `s` field is not provided:
+    - MUST fail the payment.
+  - otherwise:
+    - MUST use the `s` field as [`payment_secret`](04-onion-routing.md#tlv_payload-payload-format)
   - if the `c` field (`min_final_cltv_expiry_delta`) is not provided:
     - MUST use an expiry delta of at least 18 when making the payment
   - if an `m` field is provided:
@@ -783,6 +785,9 @@ Breakdown:
 
 > ### Invalid sub-millisatoshi precision.
 > lnbc2500000001p1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpusp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9qrsgq0lzc236j96a95uv0m3umg28gclm5lqxtqqwk32uuk4k6673k6n5kfvx3d2h8s295fad45fdhmusm8sjudfhlf6dcsxmfvkeywmjdkxcp99202x
+
+> ### Missing required `s` field.
+> lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqs9qrsgq7ea976txfraylvgzuxs8kgcw23ezlrszfnh8r6qtfpr6cxga50aj6txm9rxrydzd06dfeawfk6swupvz4erwnyutnjq7x39ymw6j38gp49qdkj
 
 # Authors
 
