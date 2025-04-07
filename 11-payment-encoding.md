@@ -98,6 +98,9 @@ whatever is being offered in return.
 The `p` multiplier would allow to specify sub-millisatoshi amounts, which cannot be transferred on the network, since HTLCs are denominated in millisatoshis.
 Requiring a trailing `0` decimal ensures that the `amount` represents an integer number of millisatoshis.
 
+Note that non-largest multipliers have been encountered in the wild, and as
+such invoice parsers should handle them.
+
 # Data Part
 
 The data part of a Lightning invoice consists of multiple sections:
