@@ -235,7 +235,6 @@ The human-readable prefix for offers is `lno`.
         * [`tu32`:`period`]
     1. type: 25 (`offer_recurrence_paywindow`)
     2. data:
-        * [`byte`:`proportional_amount`]
         * [`u32`:`seconds_before`]
         * [`tu32`:`seconds_after`]
     1. type: 26 (`offer_recurrence_limit`)
@@ -243,7 +242,7 @@ The human-readable prefix for offers is `lno`.
         * [`tu32`:`max_period`]
     1. type: 27 (`offer_recurrence_base`)
     2. data:
-        * [`byte`:`start_any_period`]
+        * [`byte`:`proportional_amount`]
         * [`tu64`:`basetime`]
 
 ### Recurrence
@@ -260,15 +259,15 @@ Some offers are *periodic*, such as a subscription service or monthly dues, in t
    * which repeat from whenever you made the first payment
 
 Thus, each offer containing a recurring payment has:
-1. A `time_unit` defining 0 (seconds), 1 (days), 2 (months), 3 (years).
+1. A `time_unit` defining 0 (seconds), 1 (days), 2 (months).
 2. A `period`, defining how often (in `time_unit`) it has to be paid.
 3. An optional `offer_recurrence_limit` of total payments to be paid.
 4. An optional `offer_recurrence_base`:
    * `basetime`, defining when the first period starts in seconds since 1970-01-01 UTC.
-   * `start_any_period` if non-zero, meaning you don't have to start paying at the period indicated by `basetime`, but can use `offer_recurrence_start` to indicate what period you are starting at.
+   * The payer uses `invreq_recurrence_start` to indicate what period they are starting at.  If you don't want them to start at arbitrary periods, use `offer_absolute_expiry`.
+   * A `proportional_amount` flag: if set indicating that a payment made during the period itself will be charged proportionally to the remaining time in the period (e.g. 150 seconds into a 1500 second period gives a 10% discount).
 5. An optional `offer_recurrence_paywindow`:
    * `seconds_before`, defining how many seconds prior to the start of the period a payment will be accepted.
-   * `proportional_amount`, if set indicating that a payment made during the period itself will be charged proportionally to the remaining time in the period (e.g. 150 seconds into a 1500 second period gives a 10% discount).
    * `seconds_after`, defining how many seconds after the start of the period a payment will be accepted.
   If this field is missing, payment will be accepted during the prior period and the paid-for period.
 
@@ -284,31 +283,24 @@ Each period has a zero-based index, and a start time and an end time.  Because t
   - the start of period #0 is the `invoice_created_at`.`timestamp` of the first `invoice` for this particular offer and `invreq_payer_id`.
 
 To calculate UTC time of the start of period #`N` for `N` > 0:
+- if the period #0 start is on a leap second:
+  - the *period base* is one second before period #0 start.
+- otherwise:
+  - the *period base* is the period #0 start.
 - if `time_unit` is 0 (seconds):
-  - period `N` starts at period #0 start plus `period` multiplied by `N`, in seconds.
+  - period `N` starts at *period base* plus `period` multiplied by `N`, in seconds.
 - otherwise, if `time_unit` is 1 (days):
-  - calculate the offset in seconds within the day of period #0 start.
+  - calculate the offset in seconds within the day of *period base*.
   - add `period` multiplied by `N` days to get the day of the period start.
   - add the offset in seconds to get the period end in seconds.
 - otherwise, if `time_unit` is 2 (months):
-  - calculate the offset in days within the month of period #0 start.
-  - calculate the offset in seconds within the day of period #0 start.
+  - calculate the offset in days within the month of *period base*.
+  - calculate the offset in seconds within the day of *period base*.
   - add `period` multiplied by `N` months to get the month of the period start.
   - add the offset days to get the day of the period start.
     - if the day is not within the month, use the last day within the month.
   - add the offset seconds to get the period start in seconds.
-- otherwise, if `time_unit` is 3 (years):
-  - calculate the offset in months within the year of period #0 start.
-  - calculate the offset in days within the month of period #0 start.
-  - calculate the offset in seconds within the day of period #0 start.
-  - add `period` multiplied by `N` years to get the year of the period start.
-  - add the offset months to get the month of the period start.
-  - add the offset days to get the day of the period start.
-    - if the day is not within the month, use the last day within the month.
-  - add the offset seconds to get the period start in seconds.
 - otherwise, the time is invalid.
-
-Note that offset seconds can overflow only if the period start is in a leap second; we ignore this!
 
 See [offer-period-test.json](bolt12/offer-period-test.json).
 
@@ -364,7 +356,7 @@ A writer of an offer:
       - MUST set `offer_quantity_max` to 0.
   - otherwise:
     - MUST NOT set `offer_quantity_max`.
-  - MAY include `offer_recurrence` to indicate offer should trigger time-spaced invoices.
+  - MAY include `offer_recurrence` to indicate offer should trigger time-spaced invoice requests.
   - if it includes `offer_recurrence`:
       - MUST set `time_unit` to 0 (seconds), 1 (days), 2 (months) or 3 (years).
       - MUST set `period` to how often (in `time-unit`) it wants to be paid.
@@ -376,10 +368,10 @@ A writer of an offer:
       - if periods are always at specific time offsets:
         - MUST include `offer_recurrence_base`
         - MUST set `basetime` to the initial period time in number of seconds after midnight 1 January 1970, UTC
-        - if the first paid-for-period does not have to be the initial period:
-          - MUST set `start_any_period` to 1.
+        - if `amount` is specified and the node will proportionally reduce the amount charged for a period payed after the start of the period:
+          - MUST set `proportional_amount` to 1 
         - otherwise:
-          - MUST set `start_any_period` to 0.
+          - MUST set `proportional_amount` to 0
       - otherwise:
         - MUST NOT include `offer_recurrence_base`.
       - if payments will be accepted for any time in the current or next period:
@@ -391,10 +383,6 @@ A writer of an offer:
         - MUST set `seconds_after` to the maximum number of seconds into to a period for which it will accept payment or invoice_request for that period.
         - MAY NOT enforce this for the initial period for offers without `offer_recurrence_base`
         - SHOULD NOT set `seconds_after` to greater than the maximum number of seconds in a period.
-        - if `amount` is specified and the node will proportionally reduce the amount charged for a period payed after the start of the period:
-          - MUST set `proportional_amount` to 1 
-        - otherwise:
-          - MUST set `proportional_amount` to 0
   - otherwise:
     - MUST NOT include `offer_recurrence_base`.
     - MUST NOT include `offer_recurrence_paywindow`.
@@ -549,7 +537,6 @@ while still allowing signature validation.
         * [`tu32`:`period`]
     1. type: 25 (`offer_recurrence_paywindow`)
     2. data:
-        * [`byte`:`proportional_amount`]
         * [`u32`:`seconds_before`]
         * [`tu32`:`seconds_after`]
     1. type: 26 (`offer_recurrence_limit`)
@@ -557,7 +544,7 @@ while still allowing signature validation.
         * [`tu32`:`max_period`]
     1. type: 27 (`offer_recurrence_base`)
     2. data:
-        * [`byte`:`start_any_period`]
+        * [`byte`:`proportional_amount`]
         * [`tu64`:`basetime`]
     1. type: 80 (`invreq_chain`)
     2. data:
@@ -627,7 +614,7 @@ The writer:
       - for any successive requests:
         - MUST use the same `invreq_payer_id` as the initial request.
         - MUST set `invreq_recurrence_counter` `counter` to one greater than the highest-paid invoice.
-      - if `offer_recurrence_base` is present with `start_any_period` non-zero:
+      - if `offer_recurrence_base` is present:
         - MUST include `invreq_recurrence_start`
         - MUST set `period_offset` to the period the sender wants for the initial request
         - MUST set `period_offset` to the same value on all following requests.
@@ -697,7 +684,7 @@ The reader:
         - if `offer_currency` is not the `invreq_chain` currency, convert to the
           `invreq_chain` currency.
         - if `invreq_quantity` is present, multiply by `invreq_quantity`.`quantity`.
-        - if `offer_recurrence_paywindow` is present and `proportional_amount` is 1:
+        - if `offer_recurrence_base` is present and `proportional_amount` is 1:
           - MUST scale the *expected amount* proportional to time remaining in the period being paid for.
           - MUST NOT increase the *expected amount* (i.e. only scale if we're in the period already).
       - if `invreq_amount` is present:
@@ -707,7 +694,7 @@ The reader:
       - MUST reject the invoice request if it does not contain `invreq_amount`.
     - if `offer_recurrence` is present:
       - MUST reject the invoice request if there is no `invreq_recurrence_counter` field.
-      - if `offer_recurrence_base` is present and `start_any_period` is 1:
+      - if `offer_recurrence_base` is present:
         - MUST reject the invoice request if there is no `invreq_recurrence_start` field.
         - MUST consider the period index for this request to be the `invreq_recurrence_start` field plus the `invreq_recurrence_counter` `counter` field.
       - otherwise:
@@ -821,7 +808,6 @@ the `onion_message` `invoice` field.
         * [`tu32`:`period`]
     1. type: 25 (`offer_recurrence_paywindow`)
     2. data:
-        * [`byte`:`proportional_amount`]
         * [`u32`:`seconds_before`]
         * [`tu32`:`seconds_after`]
     1. type: 26 (`offer_recurrence_limit`)
@@ -829,7 +815,7 @@ the `onion_message` `invoice` field.
         * [`tu32`:`max_period`]
     1. type: 27 (`offer_recurrence_base`)
     2. data:
-        * [`byte`:`start_any_period`]
+        * [`byte`:`proportional_amount`]
         * [`tu64`:`basetime`]
     1. type: 80 (`invreq_chain`)
     2. data:
