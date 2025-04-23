@@ -233,17 +233,17 @@ The human-readable prefix for offers is `lno`.
     2. data:
         * [`byte`:`time_unit`]
         * [`tu32`:`period`]
-    1. type: 25 (`offer_recurrence_paywindow`)
-    2. data:
-        * [`u32`:`seconds_before`]
-        * [`tu32`:`seconds_after`]
-    1. type: 26 (`offer_recurrence_limit`)
-    2. data:
-        * [`tu32`:`max_period`]
-    1. type: 27 (`offer_recurrence_base`)
+    1. type: 26 (`offer_recurrence_base`)
     2. data:
         * [`byte`:`proportional_amount`]
         * [`tu64`:`basetime`]
+    1. type: 27 (`offer_recurrence_paywindow`)
+    2. data:
+        * [`u32`:`seconds_before`]
+        * [`tu32`:`seconds_after`]
+    1. type: 29 (`offer_recurrence_limit`)
+    2. data:
+        * [`tu32`:`max_period`]
 
 ### Recurrence
 
@@ -535,17 +535,17 @@ while still allowing signature validation.
     2. data:
         * [`byte`:`time_unit`]
         * [`tu32`:`period`]
-    1. type: 25 (`offer_recurrence_paywindow`)
-    2. data:
-        * [`u32`:`seconds_before`]
-        * [`tu32`:`seconds_after`]
-    1. type: 26 (`offer_recurrence_limit`)
-    2. data:
-        * [`tu32`:`max_period`]
-    1. type: 27 (`offer_recurrence_base`)
+    1. type: 26 (`offer_recurrence_base`)
     2. data:
         * [`byte`:`proportional_amount`]
         * [`tu64`:`basetime`]
+    1. type: 27 (`offer_recurrence_paywindow`)
+    2. data:
+        * [`u32`:`seconds_before`]
+        * [`tu32`:`seconds_after`]
+    1. type: 29 (`offer_recurrence_limit`)
+    2. data:
+        * [`tu32`:`max_period`]
     1. type: 80 (`invreq_chain`)
     2. data:
         * [`chain_hash`:`chain`]
@@ -806,17 +806,17 @@ the `onion_message` `invoice` field.
     2. data:
         * [`byte`:`time_unit`]
         * [`tu32`:`period`]
-    1. type: 25 (`offer_recurrence_paywindow`)
-    2. data:
-        * [`u32`:`seconds_before`]
-        * [`tu32`:`seconds_after`]
-    1. type: 26 (`offer_recurrence_limit`)
-    2. data:
-        * [`tu32`:`max_period`]
-    1. type: 27 (`offer_recurrence_base`)
+    1. type: 26 (`offer_recurrence_base`)
     2. data:
         * [`byte`:`proportional_amount`]
         * [`tu64`:`basetime`]
+    1. type: 27 (`offer_recurrence_paywindow`)
+    2. data:
+        * [`u32`:`seconds_before`]
+        * [`tu32`:`seconds_after`]
+    1. type: 29 (`offer_recurrence_limit`)
+    2. data:
+        * [`tu32`:`max_period`]
     1. type: 80 (`invreq_chain`)
     2. data:
         * [`chain_hash`:`chain`]
