@@ -229,7 +229,11 @@ The human-readable prefix for offers is `lno`.
     1. type: 22 (`offer_issuer_id`)
     2. data:
         * [`point`:`id`]
-    1. type: 24 (`offer_recurrence`)
+    1. type: 24 (`offer_recurrence_compulsory`)
+    2. data:
+        * [`byte`:`time_unit`]
+        * [`tu32`:`period`]
+    1. type: 25 (`offer_recurrence_optional`)
     2. data:
         * [`byte`:`time_unit`]
         * [`tu32`:`period`]
@@ -272,6 +276,8 @@ Thus, each offer containing a recurring payment has:
   If this field is missing, payment will be accepted during the prior period and the paid-for period.
 
 Note that the `offer_absolute_expiry` field already covers the case where an offer is no longer valid after January 1st 2021.
+
+For wallets which don't (yet) support recurrence, the basic recurrence field comes in two variants: `offer_recurrence_compulsory` if they should not attempt a payment, and `offer_recurrence_optional` if it still makes sense for them to attempt a single payment.
 
 ### Offer Period Calculation
 
@@ -356,8 +362,11 @@ A writer of an offer:
       - MUST set `offer_quantity_max` to 0.
   - otherwise:
     - MUST NOT set `offer_quantity_max`.
-  - MAY include `offer_recurrence` to indicate offer should trigger time-spaced invoice requests.
-  - if it includes `offer_recurrence`:
+  - If an offer MAY trigger time-spaced invoice requests:
+    - MUST include exactly one of `offer_recurrence_optional` or `offer_recurrence_compulsory`.
+	- MAY use `offer_recurrence_optional` if a payment of a single period would be useful (compatibility with pre-recurrence readers).
+	- MUST NOT use `offer_recurrence_optional` if `offer_recurrence_base` is present.
+  - if it includes either `offer_recurrence_optional` or `offer_recurrence_compulsory`:
       - MUST set `time_unit` to 0 (seconds), 1 (days), 2 (months) or 3 (years).
       - MUST set `period` to how often (in `time-unit`) it wants to be paid.
       - if there is a maximum number of payments:
@@ -418,13 +427,13 @@ A reader of an offer:
     - MUST warn the user if the received `invoice_amount` differs significantly
         from that estimate.
   - if the current time is after `offer_absolute_expiry`:
-    - MUST NOT make an initial response to the offer (i.e. continuing an existing offer with `offer_recurrence` is ok)
-  - if `offer_recurrence` is set:
+    - MUST NOT make an initial response to the offer (i.e. continuing an existing offer with recurrence is ok)
+  - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are set:
     - if `time_unit` is not one of 0, 1, 2 or 3:
        - MUST NOT respond to the offer.
     - if `offer_recurrence_limit` is set and `max_period` is 0:
        - MUST NOT respond to the offer.
-  - otherwise: (no `offer_recurrence`):
+  - otherwise: (no recurrence):
     - if it `offer_recurrence_paywindow`, `offer_recurrence_limit` or `offer_recurrence_base` are set:
        - MUST NOT respond to the offer.
   - if it chooses to send an invoice request, it sends an onion message:
@@ -531,7 +540,11 @@ while still allowing signature validation.
     1. type: 22 (`offer_issuer_id`)
     2. data:
         * [`point`:`id`]
-    1. type: 24 (`offer_recurrence`)
+    1. type: 24 (`offer_recurrence_compulsory`)
+    2. data:
+        * [`byte`:`time_unit`]
+        * [`tu32`:`period`]
+    1. type: 25 (`offer_recurrence_optional`)
     2. data:
         * [`byte`:`time_unit`]
         * [`tu32`:`period`]
@@ -607,7 +620,7 @@ The writer:
         - MUST set `invreq_quantity` less than or equal to `offer_quantity_max`.
     - otherwise:
       - MUST NOT set `invreq_quantity`
-    - if `offer_recurrence` is present:
+    - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
       - for the initial request:
         - MUST use a unique `invreq_payer_id`.
         - MUST set `invreq_recurrence_counter` `counter` to 0.
@@ -692,7 +705,7 @@ The reader:
         - MAY reject the invoice request if `invreq_amount`.`msat` greatly exceeds the *expected amount*.
     - otherwise (no `offer_amount`):
       - MUST reject the invoice request if it does not contain `invreq_amount`.
-    - if `offer_recurrence` is present:
+    - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
       - MUST reject the invoice request if there is no `invreq_recurrence_counter` field.
       - if `offer_recurrence_base` is present:
         - MUST reject the invoice request if there is no `invreq_recurrence_start` field.
@@ -710,7 +723,7 @@ The reader:
           - SHOULD reject the invoice request if the current time is equal to or after the start of the period plus `seconds_after`.
         - otherwise:
           - SHOULD reject the invoice request if the current time is prior to the start of the previous period.
-    - otherwise (no `offer_recurrence`):
+    - otherwise (no recurrence):
       - MUST reject the invoice request if there is a `invreq_recurrence_counter` field.
       - MUST reject the invoice request if there is a `invreq_recurrence_start` field.
     - SHOULD send an invoice in response using the `onionmsg_tlv` `reply_path`.
@@ -802,7 +815,11 @@ the `onion_message` `invoice` field.
     1. type: 22 (`offer_issuer_id`)
     2. data:
         * [`point`:`id`]
-    1. type: 24 (`offer_recurrence`)
+    1. type: 24 (`offer_recurrence_compulsory`)
+    2. data:
+        * [`byte`:`time_unit`]
+        * [`tu32`:`period`]
+    1. type: 25 (`offer_recurrence_optional`)
     2. data:
         * [`byte`:`time_unit`]
         * [`tu32`:`period`]
@@ -949,7 +966,7 @@ A writer of an invoice:
     - for the bitcoin chain, it MUST set each `fallback_address` with
       `version` as a valid witness version and `address` as a valid witness
       program
-  - if `offer_recurrence` is present:
+  - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
     - MUST set `invoice_recurrence_basetime`.`basetime` to the start of period #0 as calculated by [Period Calculation](#offer-period-calculation).
     - if it sets `invoice_relative_expiry`:
       - MUST NOT set `invoice_relative_expiry`.`seconds_from_creation` more than the number of seconds after `invoice_created_at` that payment for this period will be accepted.
@@ -1007,7 +1024,7 @@ A reader of an invoice:
     - MUST ignore any `fallback_address` for which `version` is greater than 16.
     - MUST ignore any `fallback_address` for which `address` is less than 2 or greater than 40 bytes.
     - MUST ignore any `fallback_address` for which `address` does not meet known requirements for the given `version`
-  - if `offer_recurrence` is present:
+  - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
     - MUST reject the invoice if `invoice_recurrence_basetime` is not present.
     - if `invreq_recurrence_counter` is 0:
       - if `offer_recurrence_base` is present:
@@ -1024,7 +1041,7 @@ A reader of an invoice:
     - MUST reject the invoice if it did not arrive via invoice request `onionmsg_tlv` `reply_path`.
   - if it pays the invoice:
     - MUST have authorization for the payment purpose, recipient and amount.
-    - if `offer_recurrence` is present:
+    - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
       - SHOULD obtain single authorization which covers all expected payments.
 
 ## Rationale
