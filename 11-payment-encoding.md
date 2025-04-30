@@ -158,6 +158,7 @@ Currently defined tagged fields are:
 * `9` (5): `data_length` variable. One or more 5-bit values containing features
   supported or required for receiving this payment.
   See [Feature Bits](#feature-bits).
+* `a` (31): `data_length` 0. A marker field that indicates whether the recipient is willing to be held accountable for the timely resolution of the invoice upon HTLC(s) receipt. 
 
 ### Requirements
 
@@ -203,6 +204,10 @@ A writer:
   - MUST pad field data to a multiple of 5 bits, using 0s.
   - if a writer offers more than one of any field type, it:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
+  - if the invoice will be resolved within 90 seconds of HTLC(s) arrival:
+    - SHOULD include a single `a` field
+  - otherwise:
+    - MUST NOT include an `a` field
 
 A reader:
   - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h` or
@@ -269,6 +274,11 @@ will be ignored by readers.
 The `r` field allows limited routing assistance: as specified, it only
 allows minimum information to use private channels, however, it could also
 assist in future partial-knowledge routing.
+
+The `a` field indicates that the recipient is willing to be held 
+accountable for the timely resolution of the invoice. In the absence
+of this field, the reader should assume that there are no guarantees
+from the writer about resolution time.
 
 ### Security Considerations for Payment Descriptions
 
