@@ -835,6 +835,56 @@ determine if replies are done: simply check if `first_blocknum` plus
 
 The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
 
+### The `path_query` and `path_reply` Messages
+
+1. type: 266 (`path_query`)
+2. data:
+  * [`chain_hash`:`chain_hash`]
+  * [`point`:`source_node_id`]
+  * [`point`:`destination_node_id`]
+  * [`u16`:`amount_msat`]
+  <!-- * [`u16`:`expiration`] -->
+  <!-- * [`u16`:`num_paths`] -->
+
+1. type: 267 (`path_reply`)
+2. data:
+  * [`chain_hash`:`chain_hash`]
+  * [`point`:`source_node_id`]
+  * [`point`:`destination_node_id`]
+  * [`u16`:`amount_msat`]
+  * [`u16`:`path_len`]
+  * [`path_len*short_channel_id`:`path`]
+ 
+1. type: 268 (`reject_path_query`)
+2. data:
+  * [`u16`:`reason_len`]
+  * [`reason_len*byte`:`reason`]
+
+#### Rationale 
+
+One path per message allows a node to respond asynchronously. `path_reply` includes the queried fields to disambiguate multiple `path_query`s.
+
+### Requirements
+
+The origin node sending `path_query`:
+  - MUST set `source_node_id` to the public key of the source node.
+  - MUST set `destination_node_id` to the public key of the destination node.
+  - MUST set `amount_msat`.
+
+The receiving node:
+  - if it does not support the `option_path_query` feature:
+    - MUST ignore the message.
+  - if the node chooses to respond:
+    - MAY send multiple `path_reply` messages:
+      - MUST set `source_node_id`, `destination_node_id`, and `amount_msat`
+      to match the values from the original `path_query` message.
+      - MUST include a list of `short_channel_id`s that form a path between nodes connected
+      to `source_node_id` and `destination_node_id`.
+      - MUST set `path_len` to the number of channels in the path.
+  - if the node chooses not to respond:
+    - MAY ignore the message.
+    - MAY send a `reject_path_query` with `reason`.
+
 ### The `gossip_timestamp_filter` Message
 
 1. type: 265 (`gossip_timestamp_filter`)
