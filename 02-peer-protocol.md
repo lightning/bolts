@@ -2233,6 +2233,7 @@ is destined, is described in [BOLT #4](04-onion-routing.md).
     1. type: 0 (`blinded_path`)
     2. data:
         * [`point`:`path_key`]
+    1. type: 1 (`accountable`)
 
 #### Requirements
 
@@ -2271,6 +2272,17 @@ A sending node:
   - MUST increase the value of `id` by 1 for each successive offer.
   - if it is relaying a payment inside a blinded route:
     - MUST set `path_key` (see [Route Blinding](04-onion-routing.md#route-blinding))
+  - if it is the original source of the HTLC:
+    - SHOULD omit `accountable`.
+    - MAY set `accountable` to mimic patterns of HTLCs it has forwarded.
+  - otherwise:
+    - if `accountable` is present in the incoming `update_add_htlc`:
+      - MUST set `accountable`.
+    - otherwise:
+      - if `upgrade_accountability` is present in the onion:
+        - MAY set `accountable`.
+      - otherwise:
+        - MUST NOT set `accountable`.
 
 `id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
 been received). It MUST continue incrementing instead.
