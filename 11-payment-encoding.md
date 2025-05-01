@@ -98,6 +98,9 @@ whatever is being offered in return.
 The `p` multiplier would allow to specify sub-millisatoshi amounts, which cannot be transferred on the network, since HTLCs are denominated in millisatoshis.
 Requiring a trailing `0` decimal ensures that the `amount` represents an integer number of millisatoshis.
 
+Note that non-largest multipliers have been encountered in the wild, and as
+such invoice parsers should handle them.
+
 # Data Part
 
 The data part of a Lightning invoice consists of multiple sections:
@@ -176,11 +179,11 @@ A writer:
         - SHOULD use a complete description of the purpose of the payment.
   - MAY include one `x` field.
     - if `x` is included:
-      - SHOULD use the minimum `data_length` possible.
+      - MUST use the minimum `data_length` possible, i.e. no leading 0 field-elements.
   - SHOULD include one `c` field (`min_final_cltv_expiry_delta`).
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
-    - SHOULD use the minimum `data_length` possible.
+    - MUST use the minimum `data_length` possible, i.e. no leading 0 field-elements.
   - MAY include one `n` field. (Otherwise performing signature recovery is required)
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
@@ -197,7 +200,8 @@ A writer:
         specified in [BOLT #7](07-routing-gossip.md#the-channel_update-message).
     - MAY include more than one `r` field to provide multiple routing options.
   - if `9` contains non-zero bits:
-    - SHOULD use the minimum `data_length` possible.
+    - MUST use the minimum `data_length` possible to encode the non-zero bits
+      with no 0 field-elements at the start.
   - otherwise:
     - MUST omit the `9` field altogether.
   - MUST pad field data to a multiple of 5 bits, using 0s.
@@ -224,6 +228,11 @@ A reader:
     - MUST use an expiry delta of at least 18 when making the payment
   - if an `m` field is provided:
     - MUST use that as [`payment_metadata`](04-onion-routing.md#tlv_payload-payload-format)
+  - if a `c`, `x`, or `9` field is provided which has a non-minimal `data_length`
+    (i.e. begins with 0 field elements):
+    - SHOULD treat the invoice as invalid.
+
+
 ### Rationale
 
 The type-and-length format allows future extensions to be backward
