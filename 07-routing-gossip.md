@@ -92,7 +92,7 @@ A node:
     - If it has NOT previously received `announcement_signatures` for the funding transaction:
       - MUST send its own `announcement_signatures` message.
     - If it receives `announcement_signatures` for the funding transaction:
-      - MUST respond with its own `announcement_signatures` message.
+      - MUST respond with its own `announcement_signatures` message once per connection.
 
 A recipient node:
   - If the `short_channel_id` is NOT correct:
