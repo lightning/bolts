@@ -2276,6 +2276,7 @@ A sending node:
     - SHOULD omit `accountable`.
     - MAY set `accountable` to mimic patterns of HTLCs it has forwarded.
   - otherwise:
+    - MAY choose to limit resources assigned to the HTLC (see [Resource Bucketing](recommendations/local-resource-conservation.md#resource-bucketing)).
     - if `accountable` is present in the incoming `update_add_htlc`:
       - MUST set `accountable`.
     - otherwise:
