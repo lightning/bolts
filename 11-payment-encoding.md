@@ -209,12 +209,8 @@ A writer:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
 
 A reader:
-  - MUST skip over unknown fields, OR an `f` field with unknown `version`, OR  `p`, `h` or
-  `n` fields that do NOT have `data_length`s of 52, 52 or 53, respectively.
-    - MUST fail the payment if a mandatory field (`p` or `s`) was skipped due to an incorrect
-    length.
-    - MUST fail the payment if a `d` field is not present and a `h` field was skipped due to an
-    incorrect length. 
+  - MUST fail the payment if any mandatory field (`p`, `h`, `s`, `n`) has an incorrect length (52, 52, 52, 53).
+  - MUST fail the payment if neither a `d` field or a `h` field are present. 
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
