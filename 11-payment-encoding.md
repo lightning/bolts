@@ -209,8 +209,9 @@ A writer:
     - MUST specify the most-preferred field first, followed by less-preferred fields, in order.
 
 A reader:
-  - MUST fail the payment if any mandatory field (`p`, `h`, `s`, `n`) has an incorrect length (52, 52, 52, 53).
-  - MUST fail the payment if neither a `d` field or a `h` field are present. 
+  - MUST skip over `f` fields that use an unknown `version`.
+  - MUST fail the payment if any mandatory field (`p`, `h`, `s`, `n`) does not have the correct length (52, 52, 52, 53).
+  - MUST fail the payment if neither a `d` field nor a `h` field is present. 
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
@@ -237,19 +238,12 @@ A reader:
 
 The type-and-length format allows future extensions to be backward
 compatible. `data_length` is always a multiple of 5 bits, for easy
-encoding and decoding. Readers also ignore fields of different length,
-for fields that are expected may change.
-
-The `p` field supports the current 256-bit payment hash, but future
-specs could add a new variant of different length: in which case,
-writers could support both old and new variants, and old readers would
-ignore the variant not the correct length.
+encoding and decoding.
 
 The `d` field allows inline descriptions, but may be insufficient for
 complex orders. Thus, the `h` field allows a summary: though the method
 by which the description is served is as-yet unspecified and will
-probably be transport dependent. The `h` format could change in the future,
-by changing the length, so readers ignore it if it's not 256 bits.
+probably be transport dependent.
 
 The `m` field allows metadata to be attached to the payment. This supports
 applications where the recipient doesn't keep any context for the payment.
@@ -354,7 +348,7 @@ A payer:
       understands for payment.
   - MAY use the sequence of channels, specified by the `r` field, to route to the payee.
   - SHOULD consider the fee amount and payment timeout before initiating payment.
-  - SHOULD use the first `p` field that it did NOT skip as the payment hash.
+  - SHOULD use the first `p` field as the payment hash.
 
 A payee:
   - after the `timestamp` plus `expiry` has passed:
