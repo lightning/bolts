@@ -528,9 +528,15 @@ When processing a `trampoline_onion_packet`, a receiving node:
     - If the incoming payment is a multi-part payment:
       - MUST wait to receive all the payment parts before forwarding.
     - If `encrypted_recipient_data` is included:
-      - MUST use `current_path_key` from the trampoline onion or the outer onion to decrypt it.
-      - MUST validate its content as it would for the non-trampoline case.
-      - MUST include the next `current_path_key` in the `hop_payload` for the next trampoline node.
+      - If `current_path_key` is not set in the trampoline onion or the outer onion:
+        - MUST reject the payment.
+      - If `current_path_key` is set in both the trampoline onion and the outer onion:
+        - MUST reject the payment.
+      - Otherwise:
+        - MUST use `current_path_key` from the trampoline onion (when it is the introduction node
+          of the blinded path) or the outer onion (when it is an intermediate node) to decrypt it.
+        - MUST validate its content as it would for the non-trampoline case.
+        - MUST include the next `current_path_key` in the `hop_payload` for the next trampoline node.
     - MUST compute a route to the next trampoline node.
     - MUST include the peeled `trampoline_onion_packet` in the `hop_payload` for the next trampoline node.
     - If it uses a multi-part payment to forward to the next trampoline node:
@@ -1453,7 +1459,7 @@ An _erring node_:
   - if `path_key` is set in the incoming `update_add_htlc`:
     - MUST return an `invalid_onion_blinding` error.
   - if `current_path_key` is set in the onion payload and it is not the
-    final node:
+    payment recipient:
     - MUST return an `invalid_onion_blinding` error.
   - otherwise:
     - MUST select one of the above error codes when creating an error message.
@@ -1476,8 +1482,7 @@ An _erring node_ MAY:
 A _forwarding node_ MUST:
   - if `path_key` is set in the incoming `update_add_htlc`:
     - return an `invalid_onion_blinding` error.
-  - if `current_path_key` is set in the onion payload and it is not the
-    final node:
+  - if `current_path_key` is set in the onion payload:
     - return an `invalid_onion_blinding` error.
   - otherwise:
     - select one of the above error codes when creating an error message.
