@@ -47,6 +47,7 @@ operation, and closing.
       * [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
       * [Adding an HTLC: `update_add_htlc`](#adding-an-htlc-update_add_htlc)
       * [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and `update_fail_malformed_htlc`](#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)
+      * [Batching channel messages](#batching-channel-messages)
       * [Committing Updates So Far: `commitment_signed`](#committing-updates-so-far-commitment_signed)
       * [Completing the Transition to the Updated State: `revoke_and_ack`](#completing-the-transition-to-the-updated-state-revoke_and_ack)
       * [Updating Fees: `update_fee`](#updating-fees-update_fee)
@@ -1786,7 +1787,7 @@ adds a massive amount to the channel, then you only have to add more reserve if
 you want to contribute to the splice (and you can use `tx_remove_output` and/or
 `tx_remove_input` part-way through if this happens).
 
-### The `commitment_signed` Message
+#### The `commitment_signed` Message
 
 After exchanging `tx_complete`, both peers send `commitment_signed` to commit
 to the splice transaction by creating a commitment transaction spending the
@@ -1795,7 +1796,7 @@ new channel funding output.
 The usual [`commitment_signed`](#committing-updates-so-far-commitment_signed)
 requirements apply with the following additions.
 
-#### Requirements
+##### Requirements
 
 The sending node:
   - MUST create a commitment transaction that spends the splice funding output and:
@@ -1803,7 +1804,7 @@ The sending node:
       to the main balance of their respective sender.
     - Uses the same feerate as the existing commitment transaction.
     - Uses the same `commitment_number` as the existing commitment transaction.
-    - Does not set the `batch` field.
+    - Does not set the `funding_txid` TLV field.
   - MUST send signatures for pending HTLCs.
   - MUST remember the details of this splice transaction.
 
@@ -1818,7 +1819,7 @@ On reconnection:
   - If `next_funding_txid` matches the splice transaction:
     - MUST retransmit `commitment_signed`.
 
-#### Rationale
+##### Rationale
 
 Once peers are ready to exchange commitment signatures, they must remember
 the details of the splice transaction to allow resuming the signatures
@@ -1864,6 +1865,8 @@ The sending node:
   - MUST NOT send `tx_init_rbf` if the channel is not quiescent.
   - MUST NOT send `tx_init_rbf` if it is not the quiescence initiator.
   - MAY send `tx_init_rbf` even if it is not the splice initiator.
+  - If there are more than 10 pending RBF attempts:
+    - MUST set a high enough `feerate` to ensure quick confirmation.
   - MUST NOT send `tx_init_rbf` if it has previously sent `splice_locked`.
   - MUST NOT send `tx_init_rbf` if `option_zeroconf` has been negotiated.
   - MAY set `funding_output_contribution` to a different value than the
@@ -1877,6 +1880,12 @@ The receiving node:
   - If the sending node is not the quiescence initiator:
     - MUST send a `warning` and close the connection or send an `error`
       and fail the channel.
+  - If another RBF attempt has been created recently:
+    - SHOULD send `tx_abort` to reject this RBF attempt and wait for the
+      previous RBF attempt to confirm.
+  - If there are more than 10 pending RBF attempts and the `feerate` is not
+    high enough to ensure quick confirmation:
+    - SHOULD send `tx_abort` to reject the RBF attempt.
   - If the sender previously sent `splice_locked`:
     - MUST send a `warning` and close the connection or send an `error`
       and fail the channel.
@@ -1894,6 +1903,12 @@ Splice transactions can be RBF-ed to react to changes in the mempool feerate.
 We allow both nodes to initiate RBF, because any one of them may want to take
 this opportunity to splice additional funds into or out of the channel without
 waiting for the initial splice transaction to confirm.
+
+We limit the number of pending RBF attempts, otherwise we may reach the
+`batch_size` limit defined in [`start_batch`](#batching-channel-messages).
+We require using a large enough feerate when we've already created many RBF
+attempts, and we wait between RBF attempts to allow a previous attempt to
+confirm.
 
 Since splice transactions always spend the current channel funding output, the
 RBF attempts automatically double-spend each other. We thus disallow RBF when
@@ -2933,6 +2948,44 @@ such detection is left as an option.
 Nodes inside a blinded route must use `invalid_onion_blinding` to avoid
 leaking information to senders trying to probe the blinded route.
 
+### Batching channel messages
+
+Multiple channel messages can be grouped together as a single logical message
+using the `start_batch` message.
+
+1. type: 127 (`start_batch`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u16`:`batch_size`]
+
+#### Requirements
+
+A sending node:
+  - MUST set `batch_size` to a value strictly greater than 1.
+  - MUST set `batch_size` to a value strictly lower than 20.
+  - After sending `start_batch`:
+    - MUST send `batch_size` messages for the same `channel_id`, without any
+      other unrelated messages in-between.
+
+A receiving node:
+  - If `batch_size` is not strictly greater than 1:
+    - MUST ignore the `start_batch` message.
+    - SHOULD send a `warning`.
+  - If `batch_size` is greater than or equal to 20:
+    - MUST send a `warning` and close the connection, or send an `error` and
+      fail the channel.
+  - MUST group the next `batch_size` messages and process them together.
+  - If one of those messages is not for the specified `channel_id`:
+    - MUST send a `warning` and close the connection, or send an `error` and
+      fail the channel.
+
+#### Rationale
+
+We limit the `batch_size` to 20 elements to protect against excessive queuing
+that could be abused to DoS receiving nodes. The `start_batch` message is only
+used for splice RBF attempts so far: 20 RBF attempts should be enough to get
+transactions confirmed.
+
 ### Committing Updates So Far: `commitment_signed`
 
 When a node has changes for the remote commitment, it can apply them,
@@ -2949,9 +3002,8 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
 
 1. `tlv_stream`: `commitment_signed_tlvs`
 2. types:
-   1. type: 0 (`batch`)
+   1. type: 0 (`funding_txid`)
    2. data:
-     * [`u16`:`batch_size`]
      * [`sha256`:`funding_txid`]
 
 #### Requirements
@@ -2970,12 +3022,15 @@ fee changes).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
   - If there are `N` pending splice transactions (with `N` greater than `0`):
+    - MUST send `start_batch` first with `batch_size` set to `N + 1`.
     - MUST send `commitment_signed` for the current channel funding output.
     - MUST send `commitment_signed` for each of the splice transactions.
-    - MUST set `batch_size` to `N + 1` in every `commitment_signed` message.
-    - MUST set `funding_txid` to the funding transaction spent by that commitment.
+    - MUST set `funding_txid` in each `commitment_signed` message to match the
+      funding transaction spent by that commitment.
+    - MUST NOT send any other message before it has sent the batch of
+      `commitment_signed` messages.
   - Otherwise:
-    - MUST NOT include the `batch` field.      
+    - MUST NOT include the `funding_txid` field.
 
 A receiving node:
   - once all pending updates are applied:
@@ -2989,12 +3044,13 @@ A receiving node:
   - if any `htlc_signature` is not valid for the corresponding HTLC transaction OR non-compliant with LOW-S-standard rule <sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
-  - If there are pending splice transactions and `batch` is not set:
+  - If there are pending splice transactions and the sending node did not
+    send `start_batch` followed by a batch of `commitment_signed` messages:
     - MUST send an `error` and fail the channel.
-  - If `batch` is set:
-    - If `batch` is smaller than or equal to `1`:
+  - If the sending node sent `start_batch` and we are processing a batch of
+    `commitment_signed` messages:
+    - If `funding_txid` is missing in one of the `commitment_signed` messages:
       - MUST send an `error` and fail the channel.
-    - MUST wait until it has received `batch_size` messages.
     - If there are pending splice transactions:
       - MUST validate each `commitment_signed` based on `funding_txid`.
       - If `commitment_signed` is missing for a funding transaction:
@@ -3034,10 +3090,12 @@ attaching other inputs and outputs, hence the modified signature flags.
 
 Splicing requires us to send and receive additional signatures, as we don't
 know which (if any) of the splice transactions will end up being the new
-channel funding transaction. We send `commitment_signed` for each of the
-pending splice transactions and for the current funding transaction. When
-sending `splice_locked`, we may receive obsolete `commitment_signed` from
-our peer: we can safely ignore them by filtering on `funding_txid`.
+channel funding transaction. We use `start_batch` to send a batch of
+`commitment_signed` messages containing signatures for each of the pending
+splice transactions and for the current funding transaction. After sending
+`splice_locked`, we may receive a batch containing obsolete `commitment_signed`
+messages from our peer that they started sending before receiving our
+`splice_locked`: we can safely ignore them by filtering on `funding_txid`.
 
 ### Completing the Transition to the Updated State: `revoke_and_ack`
 
@@ -3067,7 +3125,7 @@ A sending node:
   - MUST set `next_per_commitment_point` to the values for its next commitment
   transaction.
   - MUST send a single `revoke_and_ack` message, even if it is responding to
-  a `batch` of `commitment_signed` messages.
+  a batch of `commitment_signed` messages.
 
 A receiving node:
   - if `per_commitment_secret` is not a valid secret key or does not generate the previous `per_commitment_point`:

@@ -104,15 +104,19 @@ Alice initiates a splice:
      |----------------------------->|
      |       update_add_htlc        |
      |----------------------------->|
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx1, commitment_number = 11
+     |         start_batch          | batch_size = 2
      |----------------------------->|
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx2, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx1, commitment_number = 11
+     |----------------------------->|
+     |         commit_sig           | funding_txid = FundingTx2, commitment_number = 11
      |----------------------------->|
      |       revoke_and_ack         |
      |<-----------------------------|
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx1, commitment_number = 11
+     |         start_batch          | batch_size = 2
      |<-----------------------------|
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx2, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx1, commitment_number = 11
+     |<-----------------------------|
+     |         commit_sig           | funding_txid = FundingTx2, commitment_number = 11
      |<-----------------------------|
      |       revoke_and_ack         |
      |----------------------------->|
@@ -239,19 +243,23 @@ Alice initiates a splice:
      |----------------------------->|
      |       update_add_htlc        |
      |----------------------------->|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx1, commitment_number = 11
+     |         start_batch          | batch_size = 3
      |----------------------------->|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx2a, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx1, commitment_number = 11
      |----------------------------->|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx2b, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx2a, commitment_number = 11
+     |----------------------------->|
+     |         commit_sig           | funding_txid = FundingTx2b, commitment_number = 11
      |----------------------------->|
      |       revoke_and_ack         |
      |<-----------------------------|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx1, commitment_number = 11
+     |         start_batch          | batch_size = 3
      |<-----------------------------|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx2a, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx1, commitment_number = 11
      |<-----------------------------|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx2b, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx2a, commitment_number = 11
+     |<-----------------------------|
+     |         commit_sig           | funding_txid = FundingTx2b, commitment_number = 11
      |<-----------------------------|
      |       revoke_and_ack         |
      |----------------------------->|
@@ -270,13 +278,15 @@ Alice initiates a splice:
      |----------------------------->|
      |       update_add_htlc        |
      |----------------------------->|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx1, commitment_number = 12 -> this message will be ignored by Bob since FundingTx2a will be locked before the end of the batch
+     |         start_batch          | batch_size = 3
+     |----------------------------->|
+     |         commit_sig           | funding_txid = FundingTx1, commitment_number = 12 -> this message will be ignored by Bob since FundingTx2a will be locked before the end of the batch
      |----------------------------->|
      |        splice_locked         | splice_txid = FundingTx2a
      |<-----------------------------|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx2a, commitment_number = 12
+     |         commit_sig           | funding_txid = FundingTx2a, commitment_number = 12
      |----------------------------->|
-     |         commit_sig           | batch_size = 3, funding_txid = FundingTx2b, commitment_number = 12 -> this message can be ignored by Bob since FundingTx2a has been locked
+     |         commit_sig           | funding_txid = FundingTx2b, commitment_number = 12 -> this message can be ignored by Bob since FundingTx2a has been locked
      |----------------------------->|
      |       revoke_and_ack         |
      |<-----------------------------|
@@ -585,9 +595,11 @@ Alice initiates a splice, but disconnects before Bob receives her tx_signatures 
      |----------------------X       |
      |       update_add_htlc        |
      |----------------------X       |
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx1, commitment_number = 11
+     |         start_batch          | batch_size = 2
      |----------------------X       |
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx2, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx1, commitment_number = 11
+     |----------------------X       |
+     |         commit_sig           | funding_txid = FundingTx2, commitment_number = 11
      |----------------------X       |
      |                              | Active commitments:
      |                              | 
@@ -604,15 +616,19 @@ Alice initiates a splice, but disconnects before Bob receives her tx_signatures 
      |----------------------------->|
      |       update_add_htlc        |
      |----------------------------->|
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx1, commitment_number = 11
+     |         start_batch          | batch_size = 2
      |----------------------------->|
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx2, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx1, commitment_number = 11
+     |----------------------------->|
+     |         commit_sig           | funding_txid = FundingTx2, commitment_number = 11
      |----------------------------->|
      |       revoke_and_ack         |
      |<-----------------------------|
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx1, commitment_number = 11
+     |         start_batch          | batch_size = 2
      |<-----------------------------|
-     |         commit_sig           | batch_size = 2, funding_txid = FundingTx2, commitment_number = 11
+     |         commit_sig           | funding_txid = FundingTx1, commitment_number = 11
+     |<-----------------------------|
+     |         commit_sig           | funding_txid = FundingTx2, commitment_number = 11
      |<-----------------------------|
      |       revoke_and_ack         |
      |----------------------------->|
