@@ -3374,7 +3374,7 @@ A receiving node:
     - MUST process `my_current_funding_locked` as if it was receiving `splice_locked`
       for this `txid`, and thus discard the previous funding transaction and RBF
       attempts if it has previously sent its own `splice_locked` for that `txid`.
-  - if `your_last_funding_locked` is not set, or if it does not match the most recent
+  - if `your_last_funding_locked` is set and it does not match the most recent
     `splice_locked` it has sent:
     - MUST retransmit `splice_locked`.
 
