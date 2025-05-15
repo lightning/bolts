@@ -1091,14 +1091,14 @@ be just three hops.
 currently handling the failure message) assuming that this node is `y` hops
 away from the erring node.
 
-Each HMAC covers the following data:
+Each HMAC is computed from the combination of the following elements, concatenated in the specified order.
 
-* The return packet.
+* The return packet before applying the pseudo-random byte stream.
 
-* The first `y+1` hold times in `htlc_hold_times`. For example, `hmac_0_2` would cover
+* The concatenation of the first `y+1` hold times in `htlc_hold_times`. For example, `hmac_0_2` would cover
   all three hold times.
 
-* `y` downstream hmacs that correspond to downstream node positions relative to
+* The concatenation of `y` downstream hmacs that correspond to downstream node positions relative to
   `x`. For example, `hmac_0_2` would cover `hmac_1_1` and `hmac_2_0`.
 
 The erring node stores its 20 HMACs at the start of the array and zeroes
