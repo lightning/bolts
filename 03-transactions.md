@@ -316,8 +316,8 @@ Before the commitment transaction outputs are determined:
   - the base fee MUST be subtracted from the `to_local` or `to_remote` output,
     as specified in [Fee Calculation](#fee-calculation).
   - if `option_anchors` applies:
-    - the `to_local_anchor` output value MUST be subtracted from the `to_local` output.
-    - the `to_remote_anchor` output value MUST be subtracted from the `to_remote` output.
+    - the `to_local_anchor` output value MUST be subtracted from the funder's output.
+    - the `to_remote_anchor` output value MUST be subtracted from the funder's output.
 
 The commitment transaction:
   - if the amount of the commitment transaction `to_local` output would be

@@ -2608,6 +2608,9 @@ A sending node:
         - MAY fail the channel
 
 A receiving node:
+  - if `zero_fee_commitments` is used:
+    - MUST ignore the message.
+    - SHOULD send a `warning` and disconnect.
   - if the `update_fee` is too low for timely processing, OR is unreasonably large:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
