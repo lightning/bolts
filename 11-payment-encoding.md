@@ -211,7 +211,7 @@ A writer:
 A reader:
   - MUST skip over `f` fields that use an unknown `version`.
   - MUST fail the payment if any mandatory field (`p`, `h`, `s`, `n`) does not have the correct length (52, 52, 52, 53).
-  - MUST fail the payment if neither a `d` field nor a `h` field is present. 
+  - MUST fail the payment if neither a `d` field nor a `h` field is present, or if both are present.
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
