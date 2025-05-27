@@ -2350,6 +2350,12 @@ To supply the preimage:
    * [`channel_id`:`channel_id`]
    * [`u64`:`id`]
    * [`32*byte`:`payment_preimage`]
+1. `tlv_stream`: `update_fulfill_htlc_tlvs`
+2. types:
+    1. type: 1 (`attribution_data`)
+    2. data:
+        * [`20*u32`:`htlc_hold_times`]
+        * [`210*sha256[..4]`:`truncated_hmacs`]
 
 For a timed out or route-failed HTLC:
 
