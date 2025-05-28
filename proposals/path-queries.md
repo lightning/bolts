@@ -9,7 +9,7 @@ To route a payment on the Lightning Network, a sender must find a path to the de
 
 #### 1. Liquidity uncertainty
 
-For a payment to succeeed, a feasible path needs to be discovered, which requires sufficient liquidity in each channel. Liquidity is state that is managed between two nodes and the unpredictability of this value for a given node is referred to as *liquidity uncertainty*. Without any prior knowledge (i.e high uncertainty), the probability a path is feasible declines with the size of the payment and the number of channels used. Today, feasible paths are found by a process of trial-and-error, whereby liquidity uncertainty is reduced using the results of previous payment attempts, but this approach has a host of issues:
+For a payment to succeed, a feasible path needs to be discovered, which requires sufficient liquidity in each channel. Liquidity is state that is managed between two nodes and the unpredictability of this value for a given node is referred to as *liquidity uncertainty*. Without any prior knowledge (i.e high uncertainty), the probability a path is feasible declines with the size of the payment and the number of channels used. Today, feasible paths are found by a process of trial-and-error, whereby liquidity uncertainty is reduced using the results of previous payment attempts, but this approach has a host of issues:
 
 1. Pathfinding calculations attempt to increase probabilities by favoring shorter paths and higher capacity channels. Not only does this effect the payment sender who's more likely to pay extra in fees for reliable liquidity, it's also a centralizing force on the network.
 
@@ -22,7 +22,7 @@ Furthermore, trial-and-error is a slow discovery process because:
 1. HTLCs need to be set up and torn down at each hop. HTLCs require multiple rounds of communication between peers, which is wasted time when the payment fails. 
 2. It must be executed serially to avoid the delivery of multiple successful payments 
 
-To improve performance for real payments, nodes may choose to 'probe' the channels of routing nodes to reduce liquidity uncertainty. Due to it's dynamic nature, liquidity is always regressing to a state of uncertainty, which means nodes must actively monitor the network. As the number of routing channels grows, one can expect an exponential growth of failing payments.
+To improve performance for real payments, nodes may choose to 'probe' the channels of routing nodes to reduce liquidity uncertainty. Due to its dynamic nature, liquidity is always regressing to a state of uncertainty, which means nodes must actively monitor the network. As the number of routing channels grows, one can expect an exponential growth of failing payments.
 
 #### 2. Graph dependence
 
@@ -54,7 +54,7 @@ Upon receiving a `path_query`, a node can choose how it wants to respond, includ
 
 ## Putting into practice
 
-The proposal outlines a basic set of messages and it is for the node to choose their own request & response strategies, including *who* they want to talk to (any subset of nodes), *what* they want to respond to (e.g minimum amounts) and any rate limits (number of requests and replies/paths). While there are innumerable strategies that may evolve, let's walk-through a simple example where where all nodes adopt a PEER_ONLY strategy (i.e nodes interact only with their channel peers):
+The proposal outlines a basic set of messages, and it is up to the node to choose their own request & response strategies, including *who* they want to talk to (any subset of nodes), *what* they want to respond to (e.g minimum amounts) and any rate limits (number of requests and replies/paths). While there are innumerable strategies that may evolve, let's walk-through a simple example where all nodes adopt a PEER_ONLY strategy. Under this strategy, nodes only send `path_query` and `path_reply` messages to their direct channel peers.
 
 Payment from S -> R
 ```
@@ -71,34 +71,41 @@ Payment from S -> R
                +-------+      +-------+
 ```
 
-Before attempting the payment, the sender (S) may choose to query any subset of it's channel peers. Alice (A) advertises the lowest routing fees but, since this is a larger payment, the sender decides to make concurrent queries to both Alice and Carol:
+Before attempting the payment, the sender (S) may choose to query any subset of it's channel peers. Since this is a larger payment, the sender decides to make concurrent queries to both Alice and Carol:
 
-- Alice receives a `path_query` message requesting a path from herself (A) to the receiver (R). She sees she does not have the outbound liquidity to Bob (B) to complete payment, so responds with a `reject_path_query` with a reason indicating a temporary failure to find a route.
+- Alice receives a `path_query` message requesting a path from herself (A) to the receiver (R). She sees she does not have the outbound liquidity to Bob (B) to complete payment, so either responds with a `reject_path_query` with a reason indicating a temporary failure to find a route, or waits for liquidity to become available to respond with a `path_reply`.
 - Carol (C) receives a `path_query` requesting a path from herself to the receiver (R). She has sufficient outbound liquidity through Dave (D), but before responding to the sender, she decides to query Dave:
     - Dave receives a query from Carol for a path from himself (D) to the receiver. Similar to Alice, Dave responds that he has no route available 
 - Upon discovering insufficient liquidity from D -> R, Carol splits the sender amount and concurrently queries Bob (B) and Dave (D) with their respective splits. 
-    - Dave receives a new query requesting a path from himself (D) to the receiver, but of a lesser amount. This he does have the liquidity for! Since Dave knows he can route the requested payment, he resonds to Carol with the given path and routing details. 
-    - Bob (B) receives a new query requesting a path from himself (B) to the receiver for his split amount. Similar to Dave, he knows he can route the payment, so resonds to Carol with his routing details. 
+    - Dave receives a new query requesting a path from himself (D) to the receiver, but of a lesser amount. This he has the liquidity for! Since Dave knows he can route the requested payment, he responds to Carol with the given path and routing details. 
+    - Bob (B) receives a new query requesting a path from himself (B) to the receiver for his split amount. Similar to Dave, he knows he can route the payment, so responds to Carol with his routing details. 
 - Upon receiving the path details from Bob and Dave, Carol can now confidently assemble a MPP from herself to the receiver. She constructs the MPP, adds her own routing details and sends a `path_reply` to the sender. 
-- Upon receiving the `path_reply` from Carol, Alice attempts the payment and on her first attempt, the payment succeeded.
+- Upon receiving the `path_reply` from Carol, the sender attempts the payment and on the first attempt, the payment succeeded.
   
-As you can see, concurrent `path_query` messages spread amongst prospective routing nodes until a feasible path is discovered. After receiving a `path_reply` a node can prepend itself to the path and either back-propagate it to the source or attempt the payment. Each hop knows it's channel balances and can therefore reduce the liquidity uncertainty for it's respective channels. 
+As you can see, `path_query` messages concurrently spread amongst prospective routing nodes until a feasible path is discovered. After receiving a `path_reply` a node can prepend itself to the path and either back-propagate it to the source or attempt the payment. Each node knows it's channel balances and can therefore reduce the liquidity uncertainty for it's respective channels. 
 
 While the small example above illustrates the process, it is important to consider the *rate* at which liquidity uncertainty is reduced; trial-and-error may work for a small network like this, but does not scale to a growing number of nodes.
 
 ### Comparisons to Trampoline 
 
-One of the benefits of path queries is the reduced dependence on gossip data to route payments. The [trampoline proposal](https://github.com/lightning/bolts/blob/trampoline-routing/proposals/trampoline.md#introduction) states a similar goal: "The main goal of trampoline routing is to reduce the amount of gossip that constrained nodes need to sync." This is done by using a trampoline onion which enables dynamic routing between well-informed trampoline routing nodes. By using path queries, the payment sender can instead construct the entire route by querying well-informed - likely the same - routing nodes.  
+By querying one or more remote nodes (see [Anonymous queries via Onions](#anonymous-queries-via-onions)), a source node can construct a route similar to that used by trampoline, as demonstrated by the following example: 
 
-Each approach has their own set of trade-offs. A detailed comparison is beyond the scope of this proposal, but at a high-level, a regular onion gives more control to the payment sender over the final route and is indistinguishable to the receiver. However, when a failure occurs, the error is returned to the source and a new path needs to be attempted. By comparison, errors in a trampoline sub-path are returned to the previous trampoline hop and can be retried from there.
+1. Select a remote node with path query support as a 'trampoline' hop (T<sub>2</sub>).  
+2. Query channel peer (T<sub>1</sub>) for a path to T<sub>2</sub>. 
+3. Query T<sub>2</sub> for a path from T<sub>2</sub> to final destination (D).
+4. Send payment using aggregate route: S -> T<sub>1</sub> -> ... -> T<sub>2</sub> -> ... -> D
 
-Generally speaking, trampoline can be expected to handle failures more efficiently, while path queries give the payment sender more control of the completed payment.  
+Note that while the pathfinding process is similar to trampoline in that it leverages the pathfinding ability of other nodes, the final route is determined by the sender and a regular onion is used.
+
+Each approach has it's own set of trade-offs. A regular payment onion gives the payment sender more control over routing decisions, including what route(s) to use and how to handle errors. When using a trampoline onion, many routing decisions are outsourced. For example, errors are returned to the previous trampoline hop and can be retried from that point, which may improve the payment delivery time, but may also produce a sub-optimal route (e.g more fees) from the sender's perspective.
+
+Routing nodes have an economic incentive to support both features in order to maximize routing fees. More importantly, trampoline nodes can also employ queries to find feasible sub-paths, thereby reducing their own dependence on a fully synced and actively probed graph. Graph maintenance is a cost that disproportionately effects nodes with smaller infrastructure and lower payment volume. Reducing these costs allows smaller nodes to be more competitive, and therefore, increases the expected distribution of routing.
 
 ## Expanding the Protocol
 
-#### Queries via Onions
+#### Anonymous queries via Onions
 
-The proposal as described above only supports messages using a *direct* connection between any two peers. This is sufficient for queries between channel peers because it reveals no new information about the source of a payment. However, this reduces anonymity when querying nodes elsewhere on the network, such as querying a trampoline-like hop as described above. To improve anonymity, onions could be used to carry these messages. However, without knowing the query source, responding nodes are vulnerable to spam, and consequentally, potential DoS attacks. This is a similar attack vector to channel jamming, but rather than using onions to consume payment resources (liquidity, HTLCs), a query consumes computational resources instead. To prevent this, nodes can implement their own mitigations, such as a small payment as part of an anonymous query.  
+The proposal as described above only supports messages using a *direct* connection between any two peers. This is sufficient for queries between channel peers because it reveals no new information about the source of a payment. However, this reduces anonymity when querying remote nodes, such as the example described in [Trampoline](#comparisons-to-trampoline) above. To improve anonymity, onions could be used to carry these messages. However, without knowing the query source, responding nodes are vulnerable to spam, and consequentally, potential DoS attacks. This is a similar attack vector to channel jamming, but rather than using onions to consume routing resources (liquidity, HTLCs), query onions consume computational resources instead. To defend against spam, nodes may potentially require a small payment for anonymous recommendations.  
 
 #### Adding fields 
 
@@ -127,7 +134,7 @@ While a single query does not tell a routing node about the source of a payment,
 
 *Receiver Anonymity*
 
-While the receiver does not have a choice in the sender's routing process, they do get to choose the final sub-path via route blinding. Using path queries, a receiver can construct more reliable paths to itself; the longer the path, the more anonymity from the sender and it's gang of routing nodes. The receiver may also choose to construct the blinded path using trampoline-like hops to prevent routing nodes from inferring full paths.
+While the receiver does not have a choice in the sender's routing process, they do get to choose the final sub-path via route blinding. Using path queries, a receiver can construct more reliable paths to itself; the longer the path, the more anonymity from the sender and it's set of routing nodes. The receiver may also choose to construct the blinded path using trampoline-like hops to prevent routing nodes from inferring full paths.
 
 #### Denial-of-service risks
 
