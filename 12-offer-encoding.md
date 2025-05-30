@@ -529,6 +529,7 @@ The reader:
     - otherwise (no `offer_amount`):
       - MUST reject the invoice request if it does not contain `invreq_amount`.
     - SHOULD send an invoice in response using the `onionmsg_tlv` `reply_path`.
+      - SHOULD add a random delay before sending the invoice.
   - otherwise (no `offer_issuer_id` or `offer_paths`, not a response to our offer):
     - MUST reject the invoice request if any of the following are present:
       - `offer_chains`, `offer_features` or `offer_quantity_max`.
@@ -714,6 +715,7 @@ A writer of an invoice:
     `invreq_chain`.
   - if the invoice is in response to an `invoice_request`:
     - MUST copy all non-signature fields from the invoice request (including unknown fields).
+    - SHOULD add a random delay before sending the invoice.
     - if `invreq_amount` is present:
       - MUST set `invoice_amount` to `invreq_amount`
     - otherwise:
@@ -880,6 +882,7 @@ A writer of an invoice_error:
       - MUST set `suggested_value` to a valid field for that `tlv_fieldnum`.
   - otherwise:
     - MUST NOT set `suggested_value`.
+  - SHOULD add a random delay before sending the `invoice_error`.
 
 A reader of an invoice_error:
    FIXME!
