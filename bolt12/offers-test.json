@@ -491,7 +491,7 @@
   {
     "description": "Malformed: invalid currency UTF-8",
     "valid": false,
-    "bolt12": "lno1qcpgqsg2q4q5cj2rg5tzzqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqg"
+    "bolt12": "lno1qcplllhapqpq86q2q4qkc6trv5tzzq6muh550qsfva9fdes0ruph7ctk2s8aqq06r4jxj3msc448wzwy9s"
   },
   {
     "description": "Malformed: truncated description UTF-8",
