@@ -579,6 +579,9 @@ should add a random delay before forwarding the error. Failures are likely to
 be probing attempts and message timing may help the attacker infer its distance
 to the final recipient.
 
+Note that nodes on the blinded route return failures through `update_fail_malformed_htlc` and therefore do not and can
+not provide timing information via attribution data to the sender.
+
 The `padding` field can be used to ensure that all `encrypted_recipient_data` have the
 same length. It's particularly useful when adding dummy hops at the end of a
 blinded route, to prevent the sender from figuring out which node is the final
