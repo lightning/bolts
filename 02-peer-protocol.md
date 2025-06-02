@@ -2418,7 +2418,7 @@ A receiving node:
       originally sent the HTLC, using the `failure_code` given and setting the
       data to `sha256_of_onion`.
   - SHOULD add a random delay before sending `update_fulfill_htlc`,
-    `update_fulfill_htlc`, `update_fail_malformed_htlc`.
+    `update_fail_htlc`, `update_fail_malformed_htlc`.
 
 #### Rationale
 
