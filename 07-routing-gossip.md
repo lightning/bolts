@@ -835,55 +835,53 @@ determine if replies are done: simply check if `first_blocknum` plus
 
 The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
 
-### The `path_query` and `path_reply` Messages
+### The `query_path` and `reply_path` Messages
 
-1. type: 266 (`path_query`)
+1. type: 266 (`query_path`)
 2. data:
-  * [`chain_hash`:`chain_hash`]
   * [`point`:`source_node_id`]
   * [`point`:`destination_node_id`]
   * [`u16`:`amount_msat`]
   <!-- * [`u16`:`expiration`] -->
   <!-- * [`u16`:`num_paths`] -->
 
-1. type: 267 (`path_reply`)
+1. type: 267 (`reply_path`)
 2. data:
-  * [`chain_hash`:`chain_hash`]
   * [`point`:`source_node_id`]
   * [`point`:`destination_node_id`]
   * [`u16`:`amount_msat`]
   * [`u16`:`path_len`]
   * [`path_len*short_channel_id`:`path`]
  
-1. type: 268 (`reject_path_query`)
+1. type: 268 (`reject_query_path`)
 2. data:
   * [`u16`:`reason_len`]
   * [`reason_len*byte`:`reason`]
 
 #### Rationale 
 
-One path per message allows a node to respond asynchronously. `path_reply` includes the queried fields to disambiguate multiple `path_query`s.
+One path per message allows a node to respond asynchronously. `reply_path` includes the queried fields to disambiguate multiple `query_path`s.
 
 ### Requirements
 
-The origin node sending `path_query`:
+The origin node sending `query_path`:
   - MUST set `source_node_id` to the public key of the source node.
   - MUST set `destination_node_id` to the public key of the destination node.
   - MUST set `amount_msat`.
 
 The receiving node:
-  - if it does not support the `option_path_query` feature:
+  - if it does not support the `option_query_path` feature:
     - MUST ignore the message.
   - if the node chooses to respond:
-    - MAY send multiple `path_reply` messages:
+    - MAY send multiple `reply_path` messages:
       - MUST set `source_node_id`, `destination_node_id`, and `amount_msat`
-      to match the values from the original `path_query` message.
+      to match the values from the original `query_path` message.
       - MUST include a list of `short_channel_id`s that form a path between nodes connected
       to `source_node_id` and `destination_node_id`.
       - MUST set `path_len` to the number of channels in the path.
   - if the node chooses not to respond:
     - MAY ignore the message.
-    - MAY send a `reject_path_query` with `reason`.
+    - MAY send a `reject_query_path` with `reason`.
 
 ### The `gossip_timestamp_filter` Message
 

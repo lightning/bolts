@@ -1,40 +1,57 @@
 
 # Path Queries 
 
-### Introduction
+## Introduction
 
-To route a payment on the Lightning Network, a sender must find a path to the destination using channels which contain sufficient liquidity and meet certain routing rules (e.g fees). The routing information that's shared within the protocol today is insufficient to determine a feasible path, which results in various forms of failing payments. The purpose of path queries is to obtain routing information using queries, rather than relying on the responses of payment attempts. This gives payment senders an effective way to find feasible paths with minimal knowledge of the graph and gives routing nodes the opportunity to respond with dynamic policy. By selectively sharing routing information between peers, payment reliability can be scaled to a growing network while preserving channel balance privacy and payment anonymity.
+To route a payment on the Lightning Network, a sender must find a path to the destination using channels which contain sufficient liquidity and meet certain routing rules (e.g fees). The current gossip scheme is insufficient to reliably determine a feasible path and inflexible for routing nodes. The purpose of path queries is to reduce informational requirements during pathfinding and to allow routers to respond with dynamic policy. By selectively sharing routing information between peers, payment reliability can be scaled to a growing network while preserving channel balance privacy and payment anonymity.
 
-### The problem space 
+## The problem: Graph Dependence
 
-#### 1. Liquidity uncertainty
+While finding a feasible path, source-based routing requires information about the network graph. In the context of Lightning, this information typically comes from two sources: gossip messages and the responses of previous payment attempts. Both sources have scaling limitations, which ultimately favor larger routing nodes and routing centralization. 
 
-For a payment to succeed, a feasible path needs to be discovered, which requires sufficient liquidity in each channel. Liquidity is state that is managed between two nodes and the unpredictability of this value for a given node is referred to as *liquidity uncertainty*. Without any prior knowledge (i.e high uncertainty), the probability a path is feasible declines with the size of the payment and the number of channels used. Today, feasible paths are found by a process of trial-and-error, whereby liquidity uncertainty is reduced using the results of previous payment attempts, but this approach has a host of issues:
+### Scaling limitations of gossip
 
-1. Pathfinding calculations attempt to increase probabilities by favoring shorter paths and higher capacity channels. Not only does this effect the payment sender who's more likely to pay extra in fees for reliable liquidity, it's also a centralizing force on the network.
+1. Gossip data propogates the topology of the graph (i.e `node_announcement`, `channel_announcement`) and the advertised routing policies `channel_update`.
+
+The gossip protocol is characterized for it's ability to quickly and reliably deliver a *limited* amount of information across a large distributed system via propagation. However, because these messages are delivered to every node (potentially multiple times), it's primary limitation is that it does not scale with a growing *quantity* of data; the more data that's shared, the more network and computational resources are required by each node to process those messages. As a result, gossip is well-suited for the Bitcoin network where transaction throughput is limited by design, but is less suited for the Lightning network where global constraints are alleviated and payments are localized.
+
+Therefore, when using the gossip protocol in a distributed network, it's important to consider the quantity of data.  
+
+
+
+Pathfinding requires that a node synchronize the latest gossip messages from the network.
+This means gossip messages need to be constrained, or else the cost to run a fully-synced node increases.   
+
+The growth of nodes and channels is theoretically unbounded, which means gossip messages and the infrastructure (e.g bandwidth, computational, storage) needed to processes these messages is also unbounded. Growing infrastructure means running a fully-synced lightning node becomes increasingly expensive, which can price-out smaller nodes. 
+
+More importantly, routing nodes must limit their `channel_update` messages, and therefore, their routing policies. Inputs to routing policy, including liquidity, onchain fees, and external factors, are highly dynamic, which means their policy should respond dynamically. Rate limits to `channel_update` messages causes advertised policy to differ from desired policy, which reduces control of routing resources (e.g liquidity).   
+
+### Finding Liquidity
+
+For a payment to succeeed, a route requires sufficient liquidity in every channel of the path. From a data perspective, liquidity is state that is managed between two nodes. During pathfinding, the unpredictability of a channel's liquidity is referred to as *liquidity uncertainty*. Without any prior knowledge (i.e high uncertainty), the probability a path is feasible declines with the size of the payment and the number of channels used. Today, feasible paths are found by a process of trial-and-error, whereby liquidity ranges are temporarily narrowed using the results of previous payment attempts, but this approach has a host of issues:
+
+1. When liquidity uncertainty is high, pathfinding calculations increase payment success probabilities by favoring shorter paths and higher capacity channels. Not only does this effect the payment sender who's more likely to pay extra in fees for reliable liquidity, it's also a centralizing force on the network.
 
 2. Lower payment success probabilities implies a larger set of potential routes. When the final route is unknown, routing fees (and other payment details) are more difficult to predict. 
 
-3. Failed payments are a burden to routing nodes in the failing sub-path in the form of locked liquidity, HTLC slots, and wasted computational resources.
+3. Trial-and-error is a slow discovery process because:
 
-Furthermore, trial-and-error is a slow discovery process because:
+a. HTLCs need to be set up and torn down at each hop, where each HTLC requires three round-trips between peers. 
+b. Payments must be attempted serially to avoid the delivery of multiple successful payments.
 
-1. HTLCs need to be set up and torn down at each hop. HTLCs require multiple rounds of communication between peers, which is wasted time when the payment fails. 
-2. It must be executed serially to avoid the delivery of multiple successful payments 
+To improve performance for real payments, nodes may choose to 'probe' the channels of routing nodes using fake payments. However, liquidity is often highly dynamic and is always regressing to a state of uncertainty. To be effective, nodes must actively monitor the network. 
 
-To improve performance for real payments, nodes may choose to 'probe' the channels of routing nodes to reduce liquidity uncertainty. Due to its dynamic nature, liquidity is always regressing to a state of uncertainty, which means nodes must actively monitor the network. As the number of routing channels grows, one can expect an exponential growth of failing payments.
+4. Failed payments (both real and fake) are a burden to routing nodes in the failing sub-path in the form of locked liquidity, HTLC slots, and wasted system resources.
 
-#### 2. Graph dependence
-
-To route a payment, the sender needs the latest updates to the graph. This requirement is a burden to the sender, who needs to constantly sync the channel graph, and to routers, who must limit their `channel_update` messages. Inputs to routing policy, including liquidity, onchain fees, and external factors, are highly dynamic, which means their policy should also be dynamic. Rate limits to `channel_update` messages causes advertised policy to differ from desired policy, which reduces control of routing resources (e.g liquidity).   
+Furthermore, each of these problems represent a scaling constraint, as more nodes need to search for liquidity amongst a larger set of channels.
 
 * * *
 
-### Proposal
+## Proposal
 
-This proposal includes the following optional messages which allows nodes to cooperatively construct a path: 
+The goal of path queries is to reduce a node's dependence on the graph during pathfinding by leveraging the routing information of other nodes. Specifically, this feature includes the following optional messages which allows nodes to cooperatively construct a path: 
 
-1.  `path_query` 
+1.  `query_path` 
 
 - source_node_id
     
@@ -42,19 +59,19 @@ This proposal includes the following optional messages which allows nodes to coo
     
 - amount
     
-2.  `path_reply`
+2.  `reply_path`
 
 - path
 
-3.  `reject_path_query`
+3.  `reject_query_path`
 
 - reason
 
-Upon receiving a `path_query`, a node can choose how it wants to respond, including rejecting or ignoring it. The `path_reply` message helps the requester - either a source or router - deliver a potential payment because it leverages routing information at the queried node. This solves the liquidity uncertainty problem at the queried hop because a node knows it's own balances and can respond accordingly. Compared to payment onions, queries are lightweight and can be made concurrently. A routing node can respond with any routing policy (e.g fees, expiry, etc) it desires, unconstrained by global rate limits.
+Upon receiving a `query_path` message, a node can choose how it wants to respond, including rejecting or ignoring it. The `reply_path` message helps the requester - either a source or router - deliver a potential payment because it leverages routing information at the queried node. This resolves the liquidity uncertainty problem at the queried hop because a node knows it's own channel balances and can respond accordingly.  A routing node can respond with any routing policy (e.g fees, expiry, etc) it desires, unconstrained by rate limits to gossip. Compared to payments, queries are lightweight and can be made concurrently.
 
 ## Putting into practice
 
-The proposal outlines a basic set of messages, and it is up to the node to choose their own request & response strategies, including *who* they want to talk to (any subset of nodes), *what* they want to respond to (e.g minimum amounts) and any rate limits (number of requests and replies/paths). While there are innumerable strategies that may evolve, let's walk-through a simple example where all nodes adopt a PEER_ONLY strategy. Under this strategy, nodes only send `path_query` and `path_reply` messages to their direct channel peers.
+The proposal outlines a basic set of messages, and it is up to the node to choose their own request & response strategies, including *who* they want to talk to (any subset of nodes), *what* they want to respond to (e.g minimum amounts) and any rate limits (number of requests and replies/paths). While there are innumerable strategies that may evolve, let's walk-through a simple example where all nodes adopt a PEER_ONLY strategy. Under this strategy, nodes only send `query_path` and `reply_path` messages to their direct channel peers.
 
 Payment from S -> R
 ```
@@ -73,16 +90,16 @@ Payment from S -> R
 
 Before attempting the payment, the sender (S) may choose to query any subset of it's channel peers. Since this is a larger payment, the sender decides to make concurrent queries to both Alice and Carol:
 
-- Alice receives a `path_query` message requesting a path from herself (A) to the receiver (R). She sees she does not have the outbound liquidity to Bob (B) to complete payment, so either responds with a `reject_path_query` with a reason indicating a temporary failure to find a route, or waits for liquidity to become available to respond with a `path_reply`.
-- Carol (C) receives a `path_query` requesting a path from herself to the receiver (R). She has sufficient outbound liquidity through Dave (D), but before responding to the sender, she decides to query Dave:
+- Alice receives a `query_path` message requesting a path from herself (A) to the receiver (R). She sees she does not have the outbound liquidity to Bob (B) to complete payment, so either responds with a `reject_query_path` with a reason indicating a temporary failure to find a route, or waits for liquidity to become available to respond with a `reply_path`.
+- Carol (C) receives a `query_path` requesting a path from herself to the receiver (R). She has sufficient outbound liquidity through Dave (D), but before responding to the sender, she decides to query Dave:
     - Dave receives a query from Carol for a path from himself (D) to the receiver. Similar to Alice, Dave responds that he has no route available 
 - Upon discovering insufficient liquidity from D -> R, Carol splits the sender amount and concurrently queries Bob (B) and Dave (D) with their respective splits. 
     - Dave receives a new query requesting a path from himself (D) to the receiver, but of a lesser amount. This he has the liquidity for! Since Dave knows he can route the requested payment, he responds to Carol with the given path and routing details. 
     - Bob (B) receives a new query requesting a path from himself (B) to the receiver for his split amount. Similar to Dave, he knows he can route the payment, so responds to Carol with his routing details. 
-- Upon receiving the path details from Bob and Dave, Carol can now confidently assemble a MPP from herself to the receiver. She constructs the MPP, adds her own routing details and sends a `path_reply` to the sender. 
-- Upon receiving the `path_reply` from Carol, the sender attempts the payment and on the first attempt, the payment succeeded.
+- Upon receiving the path details from Bob and Dave, Carol can now confidently assemble a MPP from herself to the receiver. She constructs the MPP, adds her own routing details and sends a `reply_path` to the sender. 
+- Upon receiving the `reply_path` from Carol, the sender attempts the payment and on the first attempt, the payment succeeded.
   
-As you can see, `path_query` messages concurrently spread amongst prospective routing nodes until a feasible path is discovered. After receiving a `path_reply` a node can prepend itself to the path and either back-propagate it to the source or attempt the payment. Each node knows it's channel balances and can therefore reduce the liquidity uncertainty for it's respective channels. 
+As you can see, `query_path` messages concurrently spread amongst prospective routing nodes until a feasible path is discovered. After receiving a `reply_path` a node can prepend itself to the path and either back-propagate it to the source or attempt the payment. Each node knows it's channel balances and can therefore reduce the liquidity uncertainty for it's respective channels. 
 
 While the small example above illustrates the process, it is important to consider the *rate* at which liquidity uncertainty is reduced; trial-and-error may work for a small network like this, but does not scale to a growing number of nodes.
 
@@ -111,20 +128,20 @@ The proposal as described above only supports messages using a *direct* connecti
 
 The messages defined in this proposal are intentionally bare. Optional message fields can be added to enhance a node's capabilites and to reduce the number of messages between peers. Some examples:
 
-- `path_query`
+- `query_path`
     - `maximum_fee`, `cltv_expiration` - reduce response messages by providing upfront filters
     - `expiration` - A querying node can define the window of time they're interested in a given path (e.g 1min, 1hr, 1day, always) and get notified with updates.
-- `path_reply` 
-    - `confidence` (ranged interval) - a score to indicate the expected likelihood of payment delivery; the higher the routing node's confidence, the more a path suggestion behaves like a *quote* for delivery. This may be used by a querying node to weigh the value of a responding nodes offered paths, especially if there's a cost for `path_reply`s, such as onion queries as described above. Unlike forwarding endorsements (e.g [HTLC endorsement](https://github.com/lightning/bolts/pull/1071)), this value would be back-propogated in the `path_reply` messages, so does not leak information about the origin.
+- `reply_path` 
+    - `confidence` (ranged interval) - a score to indicate the expected likelihood of payment delivery; the higher the routing node's confidence, the more a path suggestion behaves like a *quote* for delivery. This may be used by a querying node to weigh the value of a responding nodes offered paths, especially if there's a cost for `reply_path`s, such as onion queries as described above. Unlike forwarding endorsements (e.g [HTLC endorsement](https://github.com/lightning/bolts/pull/1071)), this value would be back-propogated in the `reply_path` messages, so does not leak information about the origin.
 
 ## Potential Concerns
 #### Privacy Implications
 
-Naturally, any time information is shared, there is a privacy implication. A `path_query` reveals a downstream node - either a hop or the destination - to the prospective routing node. When iterated upon, each node in the path becomes aware of the *queried* destination. Meanwhile, the selected channels in a `path_reply` may reveal some information about channel balances. As so, let's consider channel balance privacy and sender/receiver anonymity:
+Naturally, any time information is shared, there is a privacy implication. A `query_path` reveals a downstream node - either a hop or the destination - to the prospective routing node. When iterated upon, each node in the path becomes aware of the *queried* destination. Meanwhile, the selected channels in a `reply_path` may reveal some information about channel balances. As so, let's consider channel balance privacy and sender/receiver anonymity:
 
 *Privacy of channel balances*
 
-Path queries differ from trial-and-error (including probing) in the manner that liquidity uncertainty is reduced. Trial-and-error informs the payment *sender* about liquidity *ranges* (i.e lower and upper bound) for channels on an attempted path, while a `path_reply` only provides a set channels that meet liquidity requirements. For example, in our PEER_ONLY strategy described above, the sender (S) gained no information about liquidity on the network other than what was sufficient for the final route. While probing still remains an unsolved problem, path queries enable better information control as nodes can choose *who* they talk to and *how much* information they want to reveal. 
+Path queries differ from trial-and-error (including probing) in the manner that liquidity uncertainty is reduced. Trial-and-error informs the payment *sender* about liquidity *ranges* (i.e lower and upper bound) for channels on an attempted path, while a `reply_path` only provides a set channels that meet liquidity requirements. For example, in our PEER_ONLY strategy described above, the sender (S) gained no information about liquidity on the network other than what was sufficient for the final route. While probing still remains an unsolved problem, path queries enable better information control as nodes can choose *who* they talk to and *how much* information they want to reveal. 
 
 Generally speaking, the more channels a node has, the more difficult it is to infer liquidity based on an offered path. Large routing nodes with many channels may be more liberal in their responses than smaller nodes delivering less frequent payments.
 
