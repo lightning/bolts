@@ -2372,7 +2372,8 @@ however, there's a special malformed failure variant for the case where
 the peer couldn't parse it: in this case the current node instead takes action, encrypting
 it into a `update_fail_htlc` for relaying.
 
-Nodes that support attributable failures will populate the optional `attribution_data` field containing timing information and hmac series, as defined in [BOLT #4](04-onion-routing.md).
+Nodes that support attributable failures will populate the optional `attribution_data` field containing timing
+information and hmac series, as defined in [BOLT #4](04-onion-routing.md).
 
 For an unparsable HTLC:
 

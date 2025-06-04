@@ -1058,41 +1058,42 @@ The erring node then generates a new key, using the key type `ammag`.
 This key is then used to generate a pseudo-random stream, which is in turn
 applied to the packet using `XOR`.
 
-When supported, the erring node should also populate the `attribution_data` field in `update_fail_htlc` consisting of the following data:
+When supported, the erring node should also populate the `attribution_data` field in `update_fail_htlc` consisting of
+the following data:
 
 1. data:
     * [`20*u32`:`htlc_hold_times`]
     * [`210*sha256[..4]`:`truncated_hmacs`]
 
-The field `htlc_hold_times` contains the htlc hold time in milliseconds for each hop. The sender can use this information to score nodes on latency. Nodes along the path that lack accurate timing information may simply report a value of zero. In such cases, the sender should distribute any potential latency penalty across multiple nodes. This encourages path nodes to provide timing data to avoid being held responsible for the high latency of other nodes.
+The field `htlc_hold_times` contains the htlc hold time in milliseconds for each hop. The sender can use this
+information to score nodes on latency. Nodes along the path that lack accurate timing information may simply report a
+value of zero. In such cases, the sender should distribute any potential latency penalty across multiple nodes. This
+encourages path nodes to provide timing data to avoid being held responsible for the high latency of other nodes.
 
-The erring node puts its hold time at the start of this array and zeroes out the rest. The size of the
-field is based on the maximum supported number of hops in a route (20).
+The erring node puts its hold time at the start of this array and zeroes out the rest. The size of the field is based on
+the maximum supported number of hops in a route (20).
 
-The field `truncated_hmacs` contains truncated authentication codes series for each hop, with the
-same `um` key that is used for `hmac` in the return packet. Regular 32 byte HMACs are
-truncated to the first 4 bytes to save space.
+The field `truncated_hmacs` contains truncated authentication codes series for each hop, with the same `um` key that is
+used for `hmac` in the return packet. Regular 32 byte HMACs are truncated to the first 4 bytes to save space.
 
-In theory this truncation makes it possible for malicious nodes to guess the
-HMAC. However, game theory is against them because a wrong guess will get
-them penalized.
+In theory this truncation makes it possible for malicious nodes to guess the HMAC. However, game theory is against them
+because a wrong guess will get them penalized.
 
-The size of the field is based on the maximum number of hops in a route (20) and
-the truncated HMAC size (4 bytes). Each hop adds 20 HMACs, one for each possible
-position that the hop could be at in the path. This is necessary because only
+The size of the field is based on the maximum number of hops in a route (20) and the truncated HMAC size (4 bytes). Each
+hop adds 20 HMACs, one for each possible position that the hop could be at in the path. This is necessary because only
 the sender knows the position of each hop in the path.
 
-It is not required to store all 20 * 20 = 400 HMACs. The node in position 0 needs to store an HMAC for every one of the 20 positions. For the node in position 1, the maximum remaining route length is only 19. For that position just 19 HMACs need to be kept, and so on. This makes for a total number of HMACs of 20+19+18+...+1 = 210 HMACs.
+It is not required to store all 20 * 20 = 400 HMACs. The node in position 0 needs to store an HMAC for every one of the
+20 positions. For the node in position 1, the maximum remaining route length is only 19. For that position just 19 HMACs
+need to be kept, and so on. This makes for a total number of HMACs of 20+19+18+...+1 = 210 HMACs.
 
-The layout of the `hmacs` field is shown below. The actual format is much longer,
-but for readability the format is described as if the maximum route length would
-be just three hops.
+The layout of the `hmacs` field is shown below. The actual format is much longer, but for readability the format is
+described as if the maximum route length would be just three hops.
 
 `hmac_0_2` | `hmac_0_1`| `hmac_0_0`| `hmac_1_1`| `hmac_1_0`| `hmac_2_0`
 
-`hmac_x_y` is the hmac added by node `x` (counted from the node that is
-currently handling the failure message) assuming that this node is `y` hops
-away from the erring node.
+`hmac_x_y` is the hmac added by node `x` (counted from the node that is currently handling the failure message) assuming
+that this node is `y` hops away from the erring node.
 
 Each HMAC is computed from the combination of the following elements, concatenated in the specified order.
 
@@ -1101,19 +1102,16 @@ Each HMAC is computed from the combination of the following elements, concatenat
 * The concatenation of the first `y+1` hold times in `htlc_hold_times`. For example, `hmac_0_2` would cover
   all three hold times.
 
-* The concatenation of `y` downstream hmacs that correspond to downstream node positions relative to
-  `x`. For example, `hmac_0_2` would cover `hmac_1_1` and `hmac_2_0`.
+* The concatenation of `y` downstream hmacs that correspond to downstream node positions relative to `x`. For example,
+  `hmac_0_2` would cover `hmac_1_1` and `hmac_2_0`.
 
-The erring node stores its 20 HMACs at the start of the array and zeroes
-out the rest. Strictly speaking the erring node would only need to add the
-single `hmac_0_0` here, because there is no downstream data to cover. However,
-for verification efficiency at the origin node, we still require all HMACs to be
-calculated. The redundant HMACs will cover portions of the zero-initialized
-data.
+The erring node stores its 20 HMACs at the start of the array and zeroes out the rest. Strictly speaking the erring node
+would only need to add the single `hmac_0_0` here, because there is no downstream data to cover. However, for
+verification efficiency at the origin node, we still require all HMACs to be calculated. The redundant HMACs will cover
+portions of the zero-initialized data.
 
-Finally a new key is generated, using the key type `ammagext`. This key is then
-used to generate a pseudo-random stream, which is in turn applied to the `attribution_data` field
-using `XOR`.
+Finally a new key is generated, using the key type `ammagext`. This key is then used to generate a pseudo-random stream,
+which is in turn applied to the `attribution_data` field using `XOR`.
 
 Error handling for HTLCs with `path_key` is particularly fraught,
 since differences in implementations (or versions) may be leveraged to
@@ -1131,38 +1129,43 @@ The _erring node_:
 
 ## Intermediate nodes
 
-Every hop along the return path that supports attributable failures will transform the incoming `attribution_data` field, if it is present, via following these steps:
+Every hop along the return path that supports attributable failures will transform the incoming `attribution_data`
+field, if it is present, via following these steps:
 
 * Shift all existing hold times to the right (4 bytes).
 
 * Shift and prune all existing HMACs.
 
-  At each step backwards, one HMAC for every hop can be pruned. When HMACs for all 20 positions are present, and it turns out that there is another hop upstream, each existing HMAC that now corresponds to position 21 due to the preceding hop becomes obsolete.
+  At each step backwards, one HMAC for every hop can be pruned. When HMACs for all 20 positions are present, and it
+  turns out that there is another hop upstream, each existing HMAC that now corresponds to position 21 due to the
+  preceding hop becomes obsolete.
 
-  For the simplified three-hop layout above, the shift/prune operation would
-apply a transformation that results in:
+  For the simplified three-hop layout above, the shift/prune operation would apply a transformation that results in:
 
   `-` | `-` | `-` | `hmac_0'_1` | `hmac_0'_0` | `hmac_1'_0`
 
   The former `hmac_x'_y` now becomes `hmac_x+1_y`. The left-most HMAC for
   each hop is discarded.
 
-  If the node supports attributable failures, but the downstream `update_fail_htlc` message does not contain `attribution_data`, the node will initialize `attribution_data` with all zeroes. When all upstream nodes also support attributable failures, this will give the sender a partially attributable failure. In case of a corrupt failure message, the first part of the route can be excluded from penalization.
+  If the node supports attributable failures, but the downstream `update_fail_htlc` message does not contain
+  `attribution_data`, the node will initialize `attribution_data` with all zeroes. When all upstream nodes also support
+  attributable failures, this will give the sender a partially attributable failure. In case of a corrupt failure
+  message, the first part of the route can be excluded from penalization.
 
-  The intermediate node then carries on by performing the following steps on either the initialized or the transformed `attribution_data`:
+  The intermediate node then carries on by performing the following steps on either the initialized or the transformed
+  `attribution_data`:
 
 * Put its hold time at the start of `htlc_hold_times`. The shift operation above has opened up a slot for that.
 
-* Calculate its own 20 truncated HMACs and put them at the start of `hmacs` in the
-  newly opened slots.
+* Calculate its own 20 truncated HMACs and put them at the start of `hmacs` in the newly opened slots.
 
-* Generate its `ammagext` key, generate the pseudo-random byte streams, and apply the
-result to obfuscate the `attribution_data` field.
+* Generate its `ammagext` key, generate the pseudo-random byte streams, and apply the result to obfuscate the
+`attribution_data` field.
 
 Furthermore every hop, also the ones that do no support attributable failures, performs these steps:
 
-* Generate its `ammag` key, generate the pseudo-random byte streams, and apply the
-result to obfuscate the return packet. This is then stored as the `reason` field of the `update_htlc_fail` message.
+* Generate its `ammag` key, generate the pseudo-random byte streams, and apply the result to obfuscate the return
+packet. This is then stored as the `reason` field of the `update_htlc_fail` message.
 
   These obfuscation steps are identical to the obfuscation steps that the erring node carries out.
 
@@ -1170,20 +1173,24 @@ result to obfuscate the return packet. This is then stored as the `reason` field
 
 ## Origin node
 
-The origin node is able to detect that it's the intended final recipient of the
-return message, because of course, it was the originator of the corresponding
-forward packet.
-When an origin node receives an `update_htlc_fail` message matching a transfer it initiated
-(i.e. it cannot return-forward the error any further) it generates the `ammag`, `ammagext`
-and `um` keys for each hop in the route.
+The origin node is able to detect that it's the intended final recipient of the return message, because of course, it
+was the originator of the corresponding forward packet. When an origin node receives an `update_htlc_fail` message
+matching a transfer it initiated (i.e. it cannot return-forward the error any further) it generates the `ammag`,
+`ammagext` and `um` keys for each hop in the route.
 
-It then iteratively decrypts the message, using each hop's `ammag` and `ammagext` keys. At each hop, the following steps are carried out:
+It then iteratively decrypts the message, using each hop's `ammag` and `ammagext` keys. At each hop, the following steps
+are carried out:
 
 For nodes supporting attributable failures:
 
-* Verify the HMAC in `attribution_data` that corresponds to the hop's position in the path using the hop's `um` key. If the HMAC does not check out, processing of the message can stop and the node should penalize this hop. This is what makes the failure 'attributable'.
+* Verify the HMAC in `attribution_data` that corresponds to the hop's position in the path using the hop's `um` key. If
+  the HMAC does not check out, processing of the message can stop and the node should penalize this hop. This is what
+  makes the failure 'attributable'.
 
-  Because HMACs cover all data including HMACs added by downstream nodes, it is not possible for a malicious node to tamper with the message without revealing themselves. Blame is still only assignable to a pair of nodes though, because it is impossible to know whether sender or receiver modified the message. This is true for other failure cases in Lightning too.
+  Because HMACs cover all data including HMACs added by downstream nodes, it is not possible for a malicious node to
+  tamper with the message without revealing themselves. Blame is still only assignable to a pair of nodes though,
+  because it is impossible to know whether sender or receiver modified the message. This is true for other failure cases
+  in Lightning too.
 
 * Record the reported htlc hold time for this hop.
 
@@ -1191,11 +1198,11 @@ For all nodes:
 
 * Compute the HMAC for the return packet, using the hop's `um` key.
 
-* When the computed HMAC matches `hmac` in the return packet, the sender will know that the current hop is the sender of the failure. They can then parse `failuremsg`.
+* When the computed HMAC matches `hmac` in the return packet, the sender will know that the current hop is the sender of
+  the failure. They can then parse `failuremsg`.
 
-The association between the forward and return packets is handled outside of
-this onion routing protocol, e.g. via association with an HTLC in a payment
-channel.
+The association between the forward and return packets is handled outside of this onion routing protocol, e.g. via
+association with an HTLC in a payment channel.
 
 ### Requirements
 
