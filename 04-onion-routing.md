@@ -579,7 +579,7 @@ should add a random delay before forwarding the error. Failures are likely to
 be probing attempts and message timing may help the attacker infer its distance
 to the final recipient.
 
-Note that nodes on the blinded route return failures through `update_fail_malformed_htlc` and therefore do not and can
+Note that nodes in the blinded route return failures through `update_fail_malformed_htlc` and therefore do not and can
 not provide timing information via attribution data to the sender.
 
 The `padding` field can be used to ensure that all `encrypted_recipient_data` have the
@@ -1058,17 +1058,19 @@ The erring node then generates a new key, using the key type `ammag`.
 This key is then used to generate a pseudo-random stream, which is in turn
 applied to the packet using `XOR`.
 
-When supported, the erring node should also populate the `attribution_data` field in `update_fail_htlc` consisting of
-the following data:
+Error handling for HTLCs with `path_key` is particularly fraught,
+since differences in implementations (or versions) may be leveraged to
+de-anonymize elements of the blinded path. Thus the decision turn every
+error into `invalid_onion_blinding` which will be converted to a normal
+onion error by the introduction point.
 
-1. data:
-    * [`20*u32`:`htlc_hold_times`]
-    * [`210*sha256[..4]`:`truncated_hmacs`]
+### Initialization of `attribution_data`
 
-The field `htlc_hold_times` contains the htlc hold time in milliseconds for each hop. The sender can use this
-information to score nodes on latency. Nodes along the path that lack accurate timing information may simply report a
-value of zero. In such cases, the sender should distribute any potential latency penalty across multiple nodes. This
-encourages path nodes to provide timing data to avoid being held responsible for the high latency of other nodes.
+For the layout of `attribution data`, see [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and
+`update_fail_malformed_htlc`](02-peer-protocol.md#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc).
+
+The field `htlc_hold_times` contains the htlc hold time in milliseconds for each hop. Nodes along the path that lack
+accurate timing information may simply report a value of zero.
 
 The erring node puts its hold time at the start of this array and zeroes out the rest. The size of the field is based on
 the maximum supported number of hops in a route (20).
@@ -1113,12 +1115,6 @@ portions of the zero-initialized data.
 Finally a new key is generated, using the key type `ammagext`. This key is then used to generate a pseudo-random stream,
 which is in turn applied to the `attribution_data` field using `XOR`.
 
-Error handling for HTLCs with `path_key` is particularly fraught,
-since differences in implementations (or versions) may be leveraged to
-de-anonymize elements of the blinded path. Thus the decision turn every
-error into `invalid_onion_blinding` which will be converted to a normal
-onion error by the introduction point.
-
 ### Requirements
 
 The _erring node_:
@@ -1126,11 +1122,20 @@ The _erring node_:
   - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to
     256. Deviating from this may cause older nodes to be unable to parse the
     return message.
+  - if `option_attributable_failure` is advertised:
+    - if `path_key` is not set in the incoming `update_add_htlc`:
+      - MUST initialize `attribution_data` and include it in `update_fail_htlc`
 
 ## Intermediate nodes
 
-Every hop along the return path that supports attributable failures will transform the incoming `attribution_data`
-field, if it is present, via following these steps:
+### Transformation of the return packet
+
+Generate the node's `ammag` key, generate the pseudo-random byte streams, and apply the result to obfuscate the return
+packet. This is then stored as the `reason` field of the `update_htlc_fail` message.
+
+  This obfuscation step is identical to the obfuscation steps that the erring node carries out.
+
+### Transformation of `attribution_data`  
 
 * Shift all existing hold times to the right (4 bytes).
 
@@ -1147,29 +1152,28 @@ field, if it is present, via following these steps:
   The former `hmac_x'_y` now becomes `hmac_x+1_y`. The left-most HMAC for
   each hop is discarded.
 
-  If the node supports attributable failures, but the downstream `update_fail_htlc` message does not contain
-  `attribution_data`, the node will initialize `attribution_data` with all zeroes. When all upstream nodes also support
-  attributable failures, this will give the sender a partially attributable failure. In case of a corrupt failure
-  message, the first part of the route can be excluded from penalization.
+### Update of `attribution_data`
 
-  The intermediate node then carries on by performing the following steps on either the initialized or the transformed
-  `attribution_data`:
+* Put the node's hold time at the start of `htlc_hold_times`. The shift operation above has opened up a slot for that.
 
-* Put its hold time at the start of `htlc_hold_times`. The shift operation above has opened up a slot for that.
+* Calculate its own 20 truncated HMACs and put them at the start of `hmacs` in the
+  newly opened slots.
 
-* Calculate its own 20 truncated HMACs and put them at the start of `hmacs` in the newly opened slots.
+* Generate the node's `ammagext` key, generate the pseudo-random byte stream, and apply the result to obfuscate the
+  `attribution_data` field. This obfuscation step is identical to the obfuscation steps that the erring node carries out.
 
-* Generate its `ammagext` key, generate the pseudo-random byte streams, and apply the result to obfuscate the
-`attribution_data` field.
+### Requirements
 
-Furthermore every hop, also the ones that do no support attributable failures, performs these steps:
-
-* Generate its `ammag` key, generate the pseudo-random byte streams, and apply the result to obfuscate the return
-packet. This is then stored as the `reason` field of the `update_htlc_fail` message.
-
-  These obfuscation steps are identical to the obfuscation steps that the erring node carries out.
-
-* Return-forward the `update_htlc_fail` message
+- if `option_attributable_failure` is advertised:
+  - if `path_key` is not set in the incoming `update_add_htlc`:
+    - if `attribution_data` is received from downstream:
+      - MUST transform `attribution_data` as described above
+    - otherwise:
+      - MUST instantiate an all-zeroes `attribution_data` block
+    - MUST update `attribution_data` as described above
+- all nodes:
+  - MUST transform the return packet as described above.
+  - MUST return-forward the `update_htlc_fail` message
 
 ## Origin node
 
@@ -1181,10 +1185,10 @@ matching a transfer it initiated (i.e. it cannot return-forward the error any fu
 It then iteratively decrypts the message, using each hop's `ammag` and `ammagext` keys. At each hop, the following steps
 are carried out:
 
-For nodes supporting attributable failures:
+For origin nodes supporting `option_attributable_failure`:
 
 * Verify the HMAC in `attribution_data` that corresponds to the hop's position in the path using the hop's `um` key. If
-  the HMAC does not check out, processing of the message can stop and the node should penalize this hop. This is what
+  the HMAC is invalid, processing of the message can stop and the node should penalize this hop. This is what
   makes the failure 'attributable'.
 
   Because HMACs cover all data including HMACs added by downstream nodes, it is not possible for a malicious node to
@@ -1192,13 +1196,20 @@ For nodes supporting attributable failures:
   because it is impossible to know whether sender or receiver modified the message. This is true for other failure cases
   in Lightning too.
 
+  When not every path node supports `option_attributable_failure`, the origin node will still have attribution data up to the first node
+  downstream without support.
+
 * Record the reported htlc hold time for this hop.
+
+  The origin node can use this information to score nodes on latency. When a zero hold time is reported, the origin node
+  should distribute any potential latency penalty across multiple nodes. This encourages path nodes to provide timing
+  data to avoid being held responsible for the high latency of other nodes.
 
 For all nodes:
 
 * Compute the HMAC for the return packet, using the hop's `um` key.
 
-* When the computed HMAC matches `hmac` in the return packet, the sender will know that the current hop is the sender of
+* When the computed HMAC matches `hmac` in the return packet, the origin node will know that the current hop is the sender of
   the failure. They can then parse `failuremsg`.
 
 The association between the forward and return packets is handled outside of this onion routing protocol, e.g. via
@@ -1212,6 +1223,8 @@ The _origin node_:
     - SHOULD continue decrypting, until the loop has been repeated 27 times
     (maximum route length of tlv payload type).
     - SHOULD use constant `ammag` and `um` keys to obfuscate the route length.
+  - When the failure source cannot be identified from the return packet AND `attribution_data` is present:
+    - SHOULD use `attribution_data` to identify the failure source
 
 ### Rationale
 
