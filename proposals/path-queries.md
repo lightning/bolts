@@ -11,7 +11,7 @@ While finding a feasible path, source-based routing requires information about t
 
 ### Limitations of gossip
 
-The gossip protocol is characterized by it's ability to quickly and reliably deliver a *finite* amount of information across a large distributed system via propagation. However, because these messages are delivered to every node (potentially multiple times), node performance suffers with a growing *quantity* of data; the more data that's shared, the more network and computational resources are required by each node to process those messages. Therefore, the size and frequency of gossip messages must be constrained. Gossip is well-suited for the Bitcoin network because nodes seek *consistency* among each other, which is done by limiting transaction throughput. Data on the Lightning Network, however, is more dynamic and routing a payment does not require consistency among all nodes, which means message limits and standardness rules are unnecessarily restrictive. For example, routing policy (cltv delta, fees, etc) has highly dynamic inputs, including available liquidity, HTLC slots, onchain fees, and even external factors. Existing limits to `channel_update` messages prohibit routing policy from accurately reflecting desired policy. 
+The gossip protocol is characterized by it's ability to quickly and reliably deliver a *finite* amount of information across a large distributed system via propagation. However, because these messages are delivered to every node (potentially multiple times), node performance suffers with a growing *quantity* of data; the more data that's shared, the more network and computational resources are required by each node to process those messages. Therefore, the size and frequency of gossip messages must be constrained. Gossip is well-suited for the Bitcoin network because nodes seek *consistency* among each other, which is done by limiting transaction throughput. Data on the Lightning Network, however, is more dynamic and routing a payment does not require consistency among all nodes, which means message limits and standardness rules are unnecessarily restrictive. For example, routing policy (cltv delta, fees, etc) has highly dynamic inputs, including available liquidity, HTLC slots, onchain fees, and even external factors. Existing limits to `channel_update` messages prohibit nodes from accurately reflecting their desired policy. 
 
 ### Finding Liquidity
 
@@ -23,10 +23,11 @@ For a payment to succeed, a route requires sufficient liquidity in every channel
 
 3. Trial-and-error is a slow discovery process because:
 
-a. HTLCs require multiple message exchanges between peers, with each HTLC addition and removal requiring commitment/revocation cycles.
-b. Payments must be attempted serially to avoid the delivery of multiple successful payments.
+    a. HTLCs require multiple message exchanges between peers, with each HTLC addition and removal requiring commitment/revocation cycles.
 
-To improve performance for real payments, nodes may choose to 'probe' the channels of routing nodes using fake payments. However, liquidity is often highly dynamic and is always regressing to a state of uncertainty. To be effective, nodes must actively monitor the network. 
+    b. Payments must be attempted serially to avoid the delivery of multiple successful payments.
+
+    To improve performance for real payments, nodes may choose to 'probe' the channels of routing nodes using fake payments. However, liquidity is often highly dynamic and is always regressing to a state of uncertainty. To be effective, nodes must actively monitor the network. 
 
 4. Failed payments (both real and fake) are a burden to routing nodes in the failing sub-path in the form of locked liquidity, HTLC slots, and wasted system resources.
 
