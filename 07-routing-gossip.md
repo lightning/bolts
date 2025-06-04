@@ -841,47 +841,49 @@ The addition of timestamp and checksum fields allow a peer to omit querying for 
 2. data:
   * [`point`:`source_node_id`]
   * [`point`:`destination_node_id`]
-  * [`u16`:`amount_msat`]
-  <!-- * [`u16`:`expiration`] -->
-  <!-- * [`u16`:`num_paths`] -->
+  * [`u64`:`amount_msat`]
 
 1. type: 267 (`reply_path`)
 2. data:
   * [`point`:`source_node_id`]
   * [`point`:`destination_node_id`]
-  * [`u16`:`amount_msat`]
+  * [`u64`:`amount_msat`]
   * [`u16`:`path_len`]
   * [`path_len*short_channel_id`:`path`]
+  * [`u16`:`routing_info_len`]
+  * [`routing_info_len*byte`:`routing_info`]
  
 1. type: 268 (`reject_query_path`)
 2. data:
+  * [`point`:`source_node_id`]
+  * [`point`:`destination_node_id`]
+  * [`u64`:`amount_msat`]
   * [`u16`:`reason_len`]
   * [`reason_len*byte`:`reason`]
 
 #### Rationale 
 
-One path per message allows a node to respond asynchronously. `reply_path` includes the queried fields to disambiguate multiple `query_path`s.
+The `reply_path` and `reject_query_path` message includes the queried fields to disambiguate multiple `query_path`s. One path per message allows a node to respond asynchronously.
 
 ### Requirements
 
 The origin node sending `query_path`:
   - MUST set `source_node_id` to the public key of the source node.
   - MUST set `destination_node_id` to the public key of the destination node.
-  - MUST set `amount_msat`.
+  - MUST set `amount_msat` to the payment amount in millisatoshis.
 
-The receiving node:
+The node receiving a `query_path`:
   - if it does not support the `option_query_path` feature:
     - MUST ignore the message.
-  - if the node chooses to respond:
-    - MAY send multiple `reply_path` messages:
+  - if it does support the `option_query_path` feature:
+    - MAY ignore the message.
+    - MAY send a `reject_query_path`.
+    - MAY respond with a `reply_path`:
       - MUST set `source_node_id`, `destination_node_id`, and `amount_msat`
       to match the values from the original `query_path` message.
-      - MUST include a list of `short_channel_id`s that form a path between nodes connected
+      - SHOULD include a list of `short_channel_id`s that form a path between nodes connected
       to `source_node_id` and `destination_node_id`.
       - MUST set `path_len` to the number of channels in the path.
-  - if the node chooses not to respond:
-    - MAY ignore the message.
-    - MAY send a `reject_query_path` with `reason`.
 
 ### The `gossip_timestamp_filter` Message
 
