@@ -1122,7 +1122,7 @@ The _erring node_:
   - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to
     256. Deviating from this may cause older nodes to be unable to parse the
     return message.
-  - if `option_attributable_failure` is advertised:
+  - if `option_attribution_data` is advertised:
     - if `path_key` is not set in the incoming `update_add_htlc`:
       - MUST initialize `attribution_data` and include it in `update_fail_htlc`
 
@@ -1164,7 +1164,7 @@ packet. This is then stored as the `reason` field of the `update_htlc_fail` mess
 
 ### Requirements
 
-- if `option_attributable_failure` is advertised:
+- if `option_attribution_data` is advertised:
   - if `path_key` is not set in the incoming `update_add_htlc`:
     - if `attribution_data` is received from downstream:
       - MUST transform `attribution_data` as described above
@@ -1185,7 +1185,7 @@ matching a transfer it initiated (i.e. it cannot return-forward the error any fu
 It then iteratively decrypts the message, using each hop's `ammag` and `ammagext` keys. At each hop, the following steps
 are carried out:
 
-For origin nodes supporting `option_attributable_failure`:
+For origin nodes supporting `option_attribution_data`:
 
 * Verify the HMAC in `attribution_data` that corresponds to the hop's position in the path using the hop's `um` key. If
   the HMAC is invalid, processing of the message can stop and the node should penalize this hop. This is what
@@ -1196,7 +1196,7 @@ For origin nodes supporting `option_attributable_failure`:
   because it is impossible to know whether sender or receiver modified the message. This is true for other failure cases
   in Lightning too.
 
-  When not every path node supports `option_attributable_failure`, the origin node will still have attribution data up to the first node
+  When not every path node supports `option_attribution_data`, the origin node will still have attribution data up to the first node
   downstream without support.
 
 * Record the reported htlc hold time for this hop.
