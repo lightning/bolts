@@ -1587,7 +1587,8 @@ The _origin node_:
 
 The `update_fulfill_htlc` message contains an optional `attribution_data` field, similar to the one used in the failure
 case described above. The only difference is that there is no failure message that is covered by the HMACs. With
-attribution data, the sender can obtain hold times as reported and committed to by each hop along the payment path.
+attribution data, the sender can obtain hold times as reported and committed to by each hop along the payment path. This
+field should not be set when the node is part of a blinded route.
 
 # Onion Messages
 
