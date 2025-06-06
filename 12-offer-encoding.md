@@ -849,6 +849,11 @@ a response to an invoice request, that field must have existed due
 to the invoice request requirements, and we also require it to be mirrored
 here.
 
+As the sender of an invoice request might attempt to utilize the time
+difference between sending the `invreq` and receiving the corresponding
+`invoice` or `invoice_error` response to draw conclusions on the identity of
+the receiver (i.e., writer of the response), the latter should wait for a
+random amount of time before responding to an `invreq` message.
 
 # Invoice Errors
 
