@@ -1446,7 +1446,7 @@ The _origin node_:
       - MUST NOT expose the `channel_update` to third-parties in any other
         context, including applying the `channel_update` to the local network
         graph, send the `channel_update` to peers as gossip, etc.
-    - SHOULD then retry routing and sending the payment.
+    - SHOULD then retry routing and sending the payment over a different path.
   - MAY use the data specified in the various failure types for debugging
   purposes.
 
