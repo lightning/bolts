@@ -2957,14 +2957,26 @@ using the `start_batch` message.
    * [`channel_id`:`channel_id`]
    * [`u16`:`batch_size`]
 
+1. `tlv_stream`: `start_batch_tlvs`
+2. types:
+   1. type: 1 (`message_type`)
+   2. data:
+     * [`u16`:`message_type`]
+
 #### Requirements
 
 A sending node:
   - MUST set `batch_size` to a value strictly greater than 1.
   - MUST set `batch_size` to a value strictly lower than 20.
+  - If the batch only contains messages of the same type:
+    - MUST set `message_type` to the corresponding
+      [Bolt 1 type](./01-messaging.md#lightning-message-format).
   - After sending `start_batch`:
     - MUST send `batch_size` messages for the same `channel_id`, without any
       other unrelated messages in-between.
+    - If `message_type` is set:
+      - MUST send `batch_size` messages of the same message type, without any
+        other unrelated messages in-between.
 
 A receiving node:
   - If `batch_size` is not strictly greater than 1:
@@ -2975,6 +2987,10 @@ A receiving node:
       fail the channel.
   - MUST group the next `batch_size` messages and process them together.
   - If one of those messages is not for the specified `channel_id`:
+    - MUST send a `warning` and close the connection, or send an `error` and
+      fail the channel.
+  - If `message_type` is set, but one of those messages is not of the specified
+    message type:
     - MUST send a `warning` and close the connection, or send an `error` and
       fail the channel.
 
@@ -3023,7 +3039,8 @@ fee changes).
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
   - If there are `N` pending splice transactions (with `N` greater than `0`):
-    - MUST send `start_batch` first with `batch_size` set to `N + 1`.
+    - MUST send `start_batch` first with `batch_size` set to `N + 1` and
+      `message_type` set to `132` (`commitment_signed`).
     - MUST send `commitment_signed` for the current channel funding output.
     - MUST send `commitment_signed` for each of the splice transactions.
     - MUST set `funding_txid` in each `commitment_signed` message to match the
