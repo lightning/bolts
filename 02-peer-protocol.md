@@ -231,11 +231,16 @@ The receiving node:
   - MUST add all received inputs to the transaction
   - MUST fail the negotiation if:
     - `sequence` is set to `0xFFFFFFFE` or `0xFFFFFFFF`
-    - the `prevtx` and `prevtx_vout` are identical to a previously added
-      (and not removed) input's
-    - `prevtx` is not a valid transaction
-    - `prevtx_vout` is greater or equal to the number of outputs on `prevtx`
-    - the `scriptPubKey` of the `prevtx_vout` output of `prevtx` is not exactly a 1-byte push opcode (for the numeric values `0` to `16`) followed by a data push between 2 and 40 bytes
+    - if `prevtx_len` is `0`:
+      - `shared_input_txid` is not set
+      - `shared_input_txid` and `prevtx_vout` don't match the previous funding output
+      - a previously added (and not removed) input already exists with `shared_input_txid` set
+    - if `prevtx_len` is not `0`:
+      - `prevtx` and `prevtx_vout` are identical to a previously added (and not removed) input
+      - `prevtx` is not a valid transaction
+      - `prevtx_vout` is greater or equal to the number of outputs on `prevtx`
+      - the `scriptPubKey` of the `prevtx_vout` output of `prevtx` is not exactly a 1-byte push
+        opcode (for the numeric values `0` to `16`) followed by a data push between 2 and 40 bytes
     - the `serial_id` is already included in the transaction
     - the `serial_id` has the wrong parity
     - if has received 4096 `tx_add_input` messages during this negotiation
@@ -248,8 +253,10 @@ MAY omit this message.
 `serial_id` is a randomly chosen number which uniquely identifies this input.
 Inputs in the constructed transaction MUST be sorted by `serial_id`.
 
-`prevtx` is the serialized transaction that contains the output
-this input spends. Used to verify that the input is non-malleable.
+`prevtx` is the serialized transaction that contains the output this input
+spends, used to verify that the input is non-malleable. It can be ommitted
+(`prevtx_len` set to `0`) when both peers already know that the input is
+non-malleable (e.g. when it is the previous funding output).
 
 `prevtx_vout` is the index of the output being spent.
 
@@ -1724,25 +1731,28 @@ The sending node:
   - If it is the splice initiator:
     - MUST add the current channel input to the splice transaction by
       sending `tx_add_input` with `shared_input_txid` containing the
-      `txid` of the latest funding transaction.
+      `txid` of the previous funding transaction.
       - MUST NOT include `prevtx` for that shared input.
+      - MUST set `prevtx_vout` to the previous funding output index.
   - If the receiver set `require_confirmed_inputs` in `splice_init`,
     `splice_ack`, `tx_init_rbf` or `tx_ack_rbf`:
     - MUST NOT send a `tx_add_input` that contains an unconfirmed input.
 
 The receiving node:
   - If `shared_input_txid` is set:
-    - If it doesn't match the `txid` of the latest funding transaction:
+    - If it doesn't match the `txid` of the previous funding transaction:
+      - MUST fail the negotiation by sending `tx_abort`.
+    - If `prevtx_vout` doesn't match the previous funding output index:
       - MUST fail the negotiation by sending `tx_abort`.
 
 ##### Rationale
 
 The splice transaction must spend the current channel funding output. The
 splice initiator is responsible for adding that input to the transaction,
-and pay the fees for its weight. Since both peers already have access to
-the funding transaction, it is wasteful to transmit it in the `prevtx`
-field. It may also exceed 65kB, which makes it impossible to include it
-in `tx_add_input` anyway, so we only transmit its `txid`.
+and pay the fees for its weight. It would be wasteful to transmit the
+previous funding transaction in the `prevtx` field, and wouldn't even
+be possible for funding transactions that exceed 65kB, so we only transmit
+its `txid` using the `shared_input_txid` field.
 
 #### The `tx_add_output` Message
 
@@ -2967,7 +2977,7 @@ using the `start_batch` message.
 
 A sending node:
   - MUST set `batch_size` to a value strictly greater than 1.
-  - MUST set `batch_size` to a value strictly lower than 20.
+  - MUST set `batch_size` to a value lower than or equal to 20.
   - If the batch only contains messages of the same type:
     - MUST set `message_type` to the corresponding
       [Bolt 1 type](./01-messaging.md#lightning-message-format).
@@ -2982,7 +2992,7 @@ A receiving node:
   - If `batch_size` is not strictly greater than 1:
     - MUST ignore the `start_batch` message.
     - SHOULD send a `warning`.
-  - If `batch_size` is greater than or equal to 20:
+  - If `batch_size` is strictly greater than 20:
     - MUST send a `warning` and close the connection, or send an `error` and
       fail the channel.
   - MUST group the next `batch_size` messages and process them together.
@@ -2998,8 +3008,8 @@ A receiving node:
 
 We limit the `batch_size` to 20 elements to protect against excessive queuing
 that could be abused to DoS receiving nodes. The `start_batch` message is only
-used for splice RBF attempts so far: 20 RBF attempts should be enough to get
-transactions confirmed.
+used for splice RBF attempts so far, which shouldn't need that many attempts
+to get transactions confirmed.
 
 ### Committing Updates So Far: `commitment_signed`
 
@@ -3358,7 +3368,7 @@ The sending node:
       - MUST NOT set `your_last_funding_locked`.
     - if a splice transaction reached acceptable depth while disconnected:
       - MUST set `my_current_funding_locked` to the txid of the latest such transaction.
-      - MUST send `splice_locked` for that transaction after `channel_reestablish`.
+      - MUST send `splice_locked` for that transaction after exchanging `channel_reestablish`.
     - otherwise:
       - MUST set `my_current_funding_locked` to the txid of the last `splice_locked` it sent.
       - if it never sent `splice_locked` for any transaction, but it sent `channel_ready`:
@@ -3367,10 +3377,10 @@ The sending node:
         - MUST NOT set `my_current_funding_locked`.
       - if `my_current_funding_locked` is included and `announce_channel` is set for this channel:
         - if it has not received `announcement_signatures` for that transaction:
-          - MUST retransmit `channel_ready` or `splice_locked` after `channel_reestablish`.
-        - if it receives `channel_ready` for that transaction after `channel_reestablish`:
+          - MUST retransmit `channel_ready` or `splice_locked` after exchanging `channel_reestablish`.
+        - if it receives `channel_ready` for that transaction after exchanging `channel_reestablish`:
           - MUST retransmit `channel_ready` in response, if not already sent.
-        - if it receives `splice_locked` for that transaction after `channel_reestablish`:
+        - if it receives `splice_locked` for that transaction after exchanging `channel_reestablish`:
           - MUST retransmit `splice_locked` in response, if not already sent.
 
 A node:
