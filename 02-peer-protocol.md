@@ -1804,7 +1804,6 @@ The sending node:
       to the main balance of their respective sender.
     - Uses the same feerate as the existing commitment transaction.
     - Uses the same `commitment_number` as the existing commitment transaction.
-    - Does not set the `funding_txid` TLV field.
   - MUST send signatures for pending HTLCs.
   - MUST remember the details of this splice transaction.
 
@@ -3002,7 +3001,7 @@ sign the resulting transaction (as defined in [BOLT #3](03-transactions.md)), an
 
 1. `tlv_stream`: `commitment_signed_tlvs`
 2. types:
-   1. type: 0 (`funding_txid`)
+   1. type: 1 (`funding_txid`)
    2. data:
      * [`sha256`:`funding_txid`]
 
@@ -3019,6 +3018,8 @@ change the commitment transaction aside from the new revocation number
 fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
     to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
+  - MUST set `funding_txid` to the funding transaction spent by this commitment
+    transaction.
   - if it has not recently received a message from the remote node:
       - SHOULD use `ping` and await the reply `pong` before sending `commitment_signed`.
   - If there are `N` pending splice transactions (with `N` greater than `0`):
@@ -3026,11 +3027,9 @@ fee changes).
     - MUST send `commitment_signed` for the current channel funding output.
     - MUST send `commitment_signed` for each of the splice transactions.
     - MUST set `funding_txid` in each `commitment_signed` message to match the
-      funding transaction spent by that commitment.
+      funding transaction spent by that commitment transaction.
     - MUST NOT send any other message before it has sent the batch of
       `commitment_signed` messages.
-  - Otherwise:
-    - MUST NOT include the `funding_txid` field.
 
 A receiving node:
   - once all pending updates are applied:
