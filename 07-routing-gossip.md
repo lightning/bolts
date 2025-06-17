@@ -227,7 +227,7 @@ The receiving node:
       - otherwise:
         - SHOULD store this `channel_announcement`.
   - once its funding output has been spent OR reorganized out:
-    - SHOULD forget a channel after a 12-block delay.
+    - SHOULD forget a channel after a 72-block delay.
 
 ### Rationale
 
@@ -252,7 +252,7 @@ optional) features will have _odd_ feature bits, while incompatible features
 will have _even_ feature bits
 (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
 
-A delay of 12 blocks is used when forgetting a channel on funding output spend
+A delay of 72 blocks is used when forgetting a channel on funding output spend
 as to permit a new `channel_announcement` to propagate which indicates this
 channel was spliced.
 
@@ -958,7 +958,7 @@ The origin node:
 A node:
   - SHOULD monitor the funding transactions in the blockchain, to identify
   channels that are being closed.
-  - if the funding output of a channel is spent and received 12 block confirmations:
+  - if the funding output of a channel is spent and received 72 block confirmations:
     - SHOULD be removed from the local network view AND be considered closed.
   - if the announced node no longer has any associated open channels:
     - MAY prune nodes added through `node_announcement` messages from their
