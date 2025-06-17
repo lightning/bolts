@@ -2978,15 +2978,11 @@ using the `start_batch` message.
 A sending node:
   - MUST set `batch_size` to a value strictly greater than 1.
   - MUST set `batch_size` to a value lower than or equal to 20.
-  - If the batch only contains messages of the same type:
-    - MUST set `message_type` to the corresponding
-      [Bolt 1 type](./01-messaging.md#lightning-message-format).
+  - MUST set `message_type` to `132` (`commitment_signed` message type as
+    defined in [Bolt 1](./01-messaging.md#lightning-message-format)).
   - After sending `start_batch`:
-    - MUST send `batch_size` messages for the same `channel_id`, without any
-      other unrelated messages in-between.
-    - If `message_type` is set:
-      - MUST send `batch_size` messages of the same message type, without any
-        other unrelated messages in-between.
+    - MUST send `batch_size` `commitment_signed` messages for the same
+      `channel_id`, without any other unrelated messages in-between.
 
 A receiving node:
   - If `batch_size` is not strictly greater than 1:
@@ -2999,12 +2995,16 @@ A receiving node:
   - If one of those messages is not for the specified `channel_id`:
     - MUST send a `warning` and close the connection, or send an `error` and
       fail the channel.
-  - If `message_type` is set, but one of those messages is not of the specified
-    message type:
-    - MUST send a `warning` and close the connection, or send an `error` and
-      fail the channel.
+  - If `message_type` is missing or not set to the type for `commitment_signed`:
+    - MUST ignore the `start_batch` message and process the following messages
+      sequentially.
 
 #### Rationale
+
+The `start_batch` message is only used when sending multiple `commitment_signed`
+messages during splicing. We thus narrow the requirements for this specific
+scenario: they can be relaxed in the future if we use `start_batch` for other
+features.
 
 We limit the `batch_size` to 20 elements to protect against excessive queuing
 that could be abused to DoS receiving nodes. The `start_batch` message is only
