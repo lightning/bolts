@@ -1069,8 +1069,8 @@ onion error by the introduction point.
 For the layout of `attribution data`, see [Removing an HTLC: `update_fulfill_htlc`, `update_fail_htlc`, and
 `update_fail_malformed_htlc`](02-peer-protocol.md#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc).
 
-The field `htlc_hold_times` contains the htlc hold time in milliseconds for each hop. Nodes along the path that lack
-accurate timing information may simply report a value of zero.
+The `htlc_hold_times` field specifies the htlc hold time for each hop in units of 100 milliseconds. For example, a value
+of 3 represents 300 ms. Nodes along the path that lack accurate timing information may report a value of zero.
 
 The erring node puts its hold time at the start of this array and zeroes out the rest. The size of the field is based on
 the maximum supported number of hops in a route (20).
