@@ -3454,11 +3454,10 @@ A receiving node:
         this funding transaction.
 
 A receiving node:
-  - if `my_current_funding_locked` does not match the most recent `splice_locked`
-    it has received:
+  - if splice transactions are pending and `my_current_funding_locked` matches one of
+    those splice transactions, for which it hasn't received `splice_locked` yet:
     - MUST process `my_current_funding_locked` as if it was receiving `splice_locked`
-      for this `txid`, and thus discard the previous funding transaction and RBF
-      attempts if it has previously sent its own `splice_locked` for that `txid`.
+      for this `txid`.
   - if `your_last_funding_locked` is set and it does not match the most recent
     `splice_locked` it has sent:
     - MUST retransmit `splice_locked`.
