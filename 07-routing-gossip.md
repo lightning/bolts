@@ -228,6 +228,7 @@ The receiving node:
         - SHOULD store this `channel_announcement`.
   - once its funding output has been spent OR reorganized out:
     - SHOULD forget a channel after a 72-block delay.
+    - MUST NOT rebroadcast this `channel_announcement` to its peers.
 
 ### Rationale
 
@@ -485,7 +486,7 @@ The origin node:
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
   settlement).
-    - MAY sent a subsequent `channel_update` with the `disable` bit set to 0 to
+    - MAY send a subsequent `channel_update` with the `disable` bit set to 0 to
     re-enable the channel.
   - MUST set `timestamp` to greater than 0, AND to greater than any
   previously-sent `channel_update` for this `short_channel_id`.
@@ -504,10 +505,13 @@ The origin node:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
 
 The receiving node:
-  - if the `short_channel_id` does NOT match a previous `channel_announcement`,
-  OR if the channel has been closed in the meantime:
+  - if the `short_channel_id` does NOT match a previous `channel_announcement`:
     - MUST ignore `channel_update`s that do NOT correspond to one of its own
     channels.
+  - if the channel output has been spent:
+    - MUST ignore `channel_update`s, unless they have the `disable` bit set to 1.
+    - MUST NOT rebroadcast `channel_update`s to its peers, unless they have the
+    `disable` bit set to 1.
   - SHOULD accept `channel_update`s for its own channels (even if non-public),
   in order to learn the associated origin nodes' forwarding parameters.
   - if `signature` is not a valid signature, using `node_id` of the
@@ -869,6 +873,8 @@ The receiver:
       is greater or equal to `first_timestamp`, and less than
       `first_timestamp` plus `timestamp_range`.
   - If a `channel_announcement` has no corresponding `channel_update`s:
+    - MUST NOT send the `channel_announcement`.
+  - If the funding output of the `channel_announcement` has been spent:
     - MUST NOT send the `channel_announcement`.
   - Otherwise:
     - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
