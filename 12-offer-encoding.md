@@ -231,23 +231,34 @@ The human-readable prefix for offers is `lno`.
         * [`point`:`id`]
     1. type: 24 (`offer_recurrence_compulsory`)
     2. data:
-        * [`byte`:`time_unit`]
-        * [`tu32`:`period`]
+        * [`recurrence`:`recurrence`]
     1. type: 25 (`offer_recurrence_optional`)
     2. data:
-        * [`byte`:`time_unit`]
-        * [`tu32`:`period`]
+        * [`recurrence`:`recurrence`]
     1. type: 26 (`offer_recurrence_base`)
     2. data:
-        * [`byte`:`proportional_amount`]
-        * [`tu64`:`basetime`]
+        * [`recurrence_base`:`recurrence_base`]
     1. type: 27 (`offer_recurrence_paywindow`)
     2. data:
-        * [`u32`:`seconds_before`]
-        * [`tu32`:`seconds_after`]
+        * [`recurrence_paywindow`:`recurrence_paywindow`]
     1. type: 29 (`offer_recurrence_limit`)
     2. data:
         * [`tu32`:`max_period`]
+
+1. subtype: `recurrence`
+2. data:
+    * [`byte`:`time_unit`]
+    * [`tu32`:`period`]
+
+1. subtype: `recurrence_base`
+2. data:
+    * [`byte`:`proportional_amount`]
+    * [`tu64`:`basetime`]
+
+1. subtype: `recurrence_paywindow`
+2. data:
+    * [`u32`:`seconds_before`]
+    * [`tu32`:`seconds_after`]
 
 ### Recurrence
 
@@ -542,20 +553,16 @@ while still allowing signature validation.
         * [`point`:`id`]
     1. type: 24 (`offer_recurrence_compulsory`)
     2. data:
-        * [`byte`:`time_unit`]
-        * [`tu32`:`period`]
+        * [`recurrence`:`recurrence`]
     1. type: 25 (`offer_recurrence_optional`)
     2. data:
-        * [`byte`:`time_unit`]
-        * [`tu32`:`period`]
+        * [`recurrence`:`recurrence`]
     1. type: 26 (`offer_recurrence_base`)
     2. data:
-        * [`byte`:`proportional_amount`]
-        * [`tu64`:`basetime`]
+        * [`recurrence_base`:`recurrence_base`]
     1. type: 27 (`offer_recurrence_paywindow`)
     2. data:
-        * [`u32`:`seconds_before`]
-        * [`tu32`:`seconds_after`]
+        * [`recurrence_paywindow`:`recurrence_paywindow`]
     1. type: 29 (`offer_recurrence_limit`)
     2. data:
         * [`tu32`:`max_period`]
@@ -582,10 +589,7 @@ while still allowing signature validation.
         * [`...*blinded_path`:`paths`]
     1. type: 91 (`invreq_bip_353_name`)
     2. data:
-        * [`u8`:`name_len`]
-        * [`name_len*byte`:`name`]
-        * [`u8`:`domain_len`]
-        * [`domain_len*byte`:`domain`]
+        * [`bip_353_name`:`bip_353_name`]
     1. type: 92 (`invreq_recurrence_counter`)
     2. data:
         * [`tu32`:`counter`]
@@ -596,6 +600,13 @@ while still allowing signature validation.
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
+
+1. subtype: `bip_353_name`
+2. data:
+    * [`u8`:`name_len`]
+    * [`name_len*byte`:`name`]
+    * [`u8`:`domain_len`]
+    * [`domain_len*byte`:`domain`]
 
 ## Requirements for Invoice Requests
 
@@ -827,20 +838,16 @@ the `onion_message` `invoice` field.
         * [`point`:`id`]
     1. type: 24 (`offer_recurrence_compulsory`)
     2. data:
-        * [`byte`:`time_unit`]
-        * [`tu32`:`period`]
+        * [`recurrence`:`recurrence`]
     1. type: 25 (`offer_recurrence_optional`)
     2. data:
-        * [`byte`:`time_unit`]
-        * [`tu32`:`period`]
+        * [`recurrence`:`recurrence`]
     1. type: 26 (`offer_recurrence_base`)
     2. data:
-        * [`byte`:`proportional_amount`]
-        * [`tu64`:`basetime`]
+        * [`recurrence_base`:`recurrence_base`]
     1. type: 27 (`offer_recurrence_paywindow`)
     2. data:
-        * [`u32`:`seconds_before`]
-        * [`tu32`:`seconds_after`]
+        * [`recurrence_paywindow`:`recurrence_paywindow`]
     1. type: 29 (`offer_recurrence_limit`)
     2. data:
         * [`tu32`:`max_period`]
@@ -867,10 +874,7 @@ the `onion_message` `invoice` field.
         * [`...*blinded_path`:`paths`]
     1. type: 91 (`invreq_bip_353_name`)
     2. data:
-        * [`u8`:`name_len`]
-        * [`name_len*byte`:`name`]
-        * [`u8`:`domain_len`]
-        * [`domain_len*byte`:`domain`]
+        * [`bip_353_name`:`bip_353_name`]
     1. type: 92 (`invreq_recurrence_counter`)
     2. data:
         * [`tu32`:`counter`]
