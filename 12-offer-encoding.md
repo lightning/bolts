@@ -592,6 +592,7 @@ while still allowing signature validation.
     1. type: 93 (`invreq_recurrence_start`)
     2. data:
         * [`tu32`:`period_offset`]
+    1. type: 94 (`invreq_recurrence_cancel`)
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -606,6 +607,9 @@ The writer:
     - otherwise:
       - if it sets `invreq_chain` it MUST set it to bitcoin.
     - MUST set `signature`.`sig` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
+      - if it sets `invreq_recurrence_cancel`:
+      - SHOULD NOT send any future `invoice_request` for this offer with this `invreq_payer_id` without `invreq_recurrence_cancel` set.
+      - MAY omit `invreq_amount`, `invreq_quantity` and `invreq_paths`.
     - if `offer_amount` is not present:
       - MUST specify `invreq_amount`.
     - otherwise:
@@ -624,9 +628,11 @@ The writer:
       - for the initial request:
         - MUST use a unique `invreq_payer_id`.
         - MUST set `invreq_recurrence_counter` `counter` to 0.
+        - MUST NOT set `invreq_recurrence_cancel`.
       - for any successive requests:
         - MUST use the same `invreq_payer_id` as the initial request.
         - MUST set `invreq_recurrence_counter` `counter` to one greater than the highest-paid invoice.
+        - MAY set `invreq_recurrence_cancel`.
       - if `offer_recurrence_base` is present:
         - MUST include `invreq_recurrence_start`
         - MUST set `period_offset` to the period the sender wants for the initial request
@@ -645,6 +651,7 @@ The writer:
     - otherwise:
       - MUST NOT set `invreq_recurrence_counter`.
       - MUST NOT set `invreq_recurrence_start`
+      - MUST NOT set `invreq_recurrence_cancel`
   - otherwise (not responding to an offer):
     - MUST set `offer_description` to a complete description of the purpose of the payment.
     - MUST set (or not set) `offer_absolute_expiry` and `offer_issuer` as it would for an offer.
@@ -676,6 +683,9 @@ The reader:
   - MUST reject the invoice request if `signature` is not correct as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
   - if `num_hops` is 0 in any `blinded_path` in `invreq_paths`:
     - MUST reject the invoice request.
+  - if `invreq_recurrence_cancel` is present:
+    - SHOULD reject any successive `invoice_request` for this offer and `invreq_payer_id`.
+    - MUST NOT reply.
   - if `offer_issuer_id` is present, and `invreq_metadata` and `invreq_recurrence_counter` (if any) are identical to a previous `invoice_request`:
     - MAY simply reply with the previous invoice.
   - otherwise:
@@ -1043,6 +1053,10 @@ A reader of an invoice:
     - MUST have authorization for the payment purpose, recipient and amount.
     - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
       - SHOULD obtain single authorization which covers all expected payments.
+      - SHOULD send the next `invoice_request` once the current period has expired (unless `offer_recurrence_limit` is reached).
+      - If authorization is cancelled:
+        - SHOULD send that `invoice_request` with `invreq_recurrence_cancel` set.
+        - SHOULD NOT send another `invoice_request` for this offer with the same `invreq_payer_id`.
 
 ## Rationale
 
@@ -1097,6 +1111,8 @@ Authorization can be very general ("install this app to spray sats to the world!
 For example, consider an offer with weekly recurrence (`time_unit`=1, `period`=7), `amount` 500, `currency` `AUD` ($5 Australian dollars).  An implementation may present this to the user as USD $3.53 (max $3.71), to allow up to 5% exchange slippage, and receive their authorization.  As it received each invoice, it would convert the `msat` into USD to check that it was below the maximum authorization of USD$3.71.  If it was, it would simply pay the invoice without user interaction.  If not, it requires re-authorization.
 
 Note that the implementation of a trusted exchange rate service is left to the reader.
+
+Users can cancel their recurring payment at any time, but as a courtesy to the offer issuer (to differentiate from technical or unintended missing payments), the following invoice_request *is sent*, but it explicitly indicates the intention to cancel (optionally using `invreq_payer_note`).  The delay in sending this until the next payment is due also discourages early cancellation of service.  Note that this cancellation message is best-effort, since no reply is received.
 
 # Invoice Errors
 
