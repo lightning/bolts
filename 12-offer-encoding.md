@@ -364,8 +364,8 @@ A writer of an offer:
     - MUST NOT set `offer_quantity_max`.
   - If an offer MAY trigger time-spaced invoice requests:
     - MUST include exactly one of `offer_recurrence_optional` or `offer_recurrence_compulsory`.
-	- MAY use `offer_recurrence_optional` if a payment of a single period would be useful (compatibility with pre-recurrence readers).
-	- MUST NOT use `offer_recurrence_optional` if `offer_recurrence_base` is present.
+    - MAY use `offer_recurrence_optional` if a payment of a single period would be useful (compatibility with pre-recurrence readers).
+    - MUST NOT use `offer_recurrence_optional` if `offer_recurrence_base` is present.
   - if it includes either `offer_recurrence_optional` or `offer_recurrence_compulsory`:
       - MUST set `time_unit` to 0 (seconds), 1 (days), 2 (months) or 3 (years).
       - MUST set `period` to how often (in `time-unit`) it wants to be paid.
@@ -470,7 +470,7 @@ painful to have to special-case the "only one left" offer generation.
 
 Offers can be used to simply send money without expecting anything in return (tips, kudos, donations, etc), which means the description field is optional (the `offer_issuer` field is very useful for this case!); if you are charging for something specific, the description is vital for the user to know what it was they paid for.
 
-We insist that recurring requests be in order (thus, if you pay an invoice for #34 of a recurring offer, it implicitly commits to the successful payment of #0 through #33).  The `invreq_recurrence_paywindow` constrains how far you can pay in advance precisely, and if it isn't in the offer the defaults provide some slack, without allowing commitments into the far future.
+We insist that recurring requests be in order (thus, if you pay an invoice for #34 of a recurring offer, it implicitly commits to the successful payment of #0 through #33).  The `offer_recurrence_paywindow` constrains how far you can pay in advance precisely, and if it isn't in the offer the defaults provide some slack, without allowing commitments into the far future.
 
 # Invoice Requests
 
