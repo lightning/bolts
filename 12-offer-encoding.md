@@ -618,9 +618,9 @@ The writer:
     - otherwise:
       - if it sets `invreq_chain` it MUST set it to bitcoin.
     - MUST set `signature`.`sig` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
-      - if it sets `invreq_recurrence_cancel`:
+    - if it sets `invreq_recurrence_cancel`:
       - SHOULD NOT send any future `invoice_request` for this offer with this `invreq_payer_id` without `invreq_recurrence_cancel` set.
-      - MAY omit `invreq_amount`, `invreq_quantity` and `invreq_paths`.
+      - MAY omit `invreq_amount` and `invreq_quantity`.
     - if `offer_amount` is not present:
       - MUST specify `invreq_amount`.
     - otherwise:
@@ -672,6 +672,7 @@ The writer:
     - if the chain for the invoice is not solely bitcoin:
       - MUST specify `invreq_chain` the offer is valid for.
     - MUST set `invreq_amount`.
+    - MUST NOT set `invreq_recurrence_cancel`.
   - MUST NOT set any non-signature TLV fields outside the inclusive ranges: 0 to 159 and 1000000000 to 2999999999
   - MUST set `invreq_metadata` to an unpredictable series of bytes.
   - if it sets `invreq_amount`:
@@ -694,9 +695,6 @@ The reader:
   - MUST reject the invoice request if `signature` is not correct as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
   - if `num_hops` is 0 in any `blinded_path` in `invreq_paths`:
     - MUST reject the invoice request.
-  - if `invreq_recurrence_cancel` is present:
-    - SHOULD reject any successive `invoice_request` for this offer and `invreq_payer_id`.
-    - MUST NOT reply.
   - if `offer_issuer_id` is present, and `invreq_metadata` and `invreq_recurrence_counter` (if any) are identical to a previous `invoice_request`:
     - MAY simply reply with the previous invoice.
   - otherwise:
@@ -708,7 +706,7 @@ The reader:
     - otherwise:
       - MUST ignore any invoice_request if it arrived via a blinded path.
     - if `offer_quantity_max` is present:
-      - MUST reject the invoice request if there is no `invreq_quantity` field.
+      - MUST reject the invoice request if `invreq_recurrence_cancel` is not present and there is no `invreq_quantity` field.
       - if `offer_quantity_max` is non-zero:
         - MUST reject the invoice request if `invreq_quantity` is zero, OR greater than `offer_quantity_max`.
     - otherwise:
@@ -725,7 +723,9 @@ The reader:
         - MUST reject the invoice request if `invreq_amount`.`msat` is less than the *expected amount*.
         - MAY reject the invoice request if `invreq_amount`.`msat` greatly exceeds the *expected amount*.
     - otherwise (no `offer_amount`):
-      - MUST reject the invoice request if it does not contain `invreq_amount`.
+      - MUST reject the invoice request if `invreq_recurrence_cancel` is not present and it does not contain `invreq_amount`.
+    - if `offer_absolute_expiry` is present, and `invreq_recurrence_counter` is either not present or equal to 0:
+      - MUST reject the invoice request if the current time is after `offer_absolute_expiry`.
     - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
       - MUST reject the invoice request if there is no `invreq_recurrence_counter` field.
       - if `offer_recurrence_base` is present:
@@ -737,16 +737,23 @@ The reader:
       - if `offer_recurrence_limit` is present:
         - MUST reject the invoice request if the period index is greater than `max_period`.
       - MUST calculate the period using the period index as detailed in [Period Calculation](#offer-period-calculation).
-      - if `invreq_recurrence_counter` is non-zero:
+      - MUST reject the invoice request if an invoice has prevously been paid for this offer, `offer_issuer_id`, `invreq_metadata` and `invreq_recurrence_counter`.
+      - if `invreq_recurrence_counter` is zero (initial request):
+        - MUST reject the invoice request if `invreq_recurrence_cancel` is present.
+      - otherwise: (successive requests)
         - MUST reject the invoice request if no invoice for the previous period has been paid.
+        - MUST reject the invoice request if it has previously received a valid invoice request with `invreq_recurrence_cancel`.
         - if `offer_recurrence_paywindow` is present:
           - SHOULD reject the invoice request if the current time is before the start of the period minus `seconds_before`.
           - SHOULD reject the invoice request if the current time is equal to or after the start of the period plus `seconds_after`.
         - otherwise:
           - SHOULD reject the invoice request if the current time is prior to the start of the previous period.
+        - if `invreq_recurrence_cancel` is present:
+          - MUST NOT send an invoice in reply.
     - otherwise (no recurrence):
       - MUST reject the invoice request if there is a `invreq_recurrence_counter` field.
       - MUST reject the invoice request if there is a `invreq_recurrence_start` field.
+      - MUST reject the invoice request if there is a `invreq_recurrence_cancel` field.
     - SHOULD send an invoice in response using the `onionmsg_tlv` `reply_path`.
   - otherwise (no `offer_issuer_id` or `offer_paths`, not a response to our offer):
     - MUST reject the invoice request if any of the following are present:
