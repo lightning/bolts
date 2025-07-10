@@ -36,6 +36,11 @@ Created: 2022-04-20
     + [Cooperative Closure](#cooperative-closure)
       - [`shutdown` Extensions](#shutdown-extensions)
       - [`closing_signed` Extensions](#closing_signed-extensions)
+    + [RBF Cooperative Close Extensions](#rbf-cooperative-close-extensions)
+      - [New TLV Types for RBF Cooperative Close](#new-tlv-types-for-rbf-cooperative-close)
+      - [`closing_complete` Extensions](#closing_complete-extensions)
+      - [`closing_sig` Extensions](#closing_sig-extensions)
+      - [RBF Nonce Rotation Protocol](#rbf-nonce-rotation-protocol)
     + [Channel Operation](#channel-operation)
       - [`commitment_signed` Extensions](#commitment_signed-extensions)
       - [`revoke_and_ack` Extensions](#revoke_and_ack-extensions)
@@ -768,7 +773,7 @@ a single message is ever signed by both sides for a coop close workflow.
 
 #### `shutdown` Extensions
 
-A new TLV field is added to the `shutdown` message:
+For taproot channels, the shutdown message includes a single nonce:
 
 1. type: 38 (`shutdown`)
 2. data:
@@ -781,24 +786,31 @@ A new TLV field is added to the `shutdown` message:
     2. data:
         * [`66*byte`:`nonces`]
 
-Before a signature can be generated for a co-op close transaction, both sides
-must exchange a fresh pair of `musig2_pubnonce` values. We package this with
-the `shutdown` message so that both sides can send a `closing_signed` message
-as soon as a `shutdown` message is sent and received.
+The `shutdown_nonce` represents the sender's "closee nonce" - the nonce they
+will use when sending `closing_sig` messages. This applies to both the legacy
+`closing_signed` flow and the modern RBF flow using
+`closing_complete`/`closing_sig`.
 
-Only a single nonce is needed as there's only a single message to sign: the
-shared co-op close transaction.
+For the modern RBF flow, additional nonces are provided just-in-time (JIT) with
+signatures:
+
+- `closing_complete` uses `PartialSigWithNonce` which includes the sender's
+next closee nonce
+
+- `closing_sig` uses just `PartialSig` (no nonce) since the receiver already
+knows the nonce
 
 ##### Requirements
 
-A sending node:
+For taproot channels:
 
+A sending node:
  - MUST set the `shutdown_nonce` to a valid `musig2` public nonce.
+ - MUST use this nonce when sending `closing_sig` messages.
 
 A receiving node:
-
- - MUST verify that the `shutdown_nonce` value is a valid `musig2` public
-   nonce.
+ - MUST verify that the `shutdown_nonce` value is a valid `musig2` public nonce.
+ - MUST store this nonce for use when verifying the peer's `closing_sig` messages.
 
 #### `closing_signed` Extensions
 
@@ -882,6 +894,189 @@ initiator is the one that pays fees directly (coming out of their settled
 output), so the responder will always have their full funds delivered to them.
 This change ensures that cooperative close always succeeds after a single
 round.
+
+### RBF Cooperative Close Extensions
+
+The modern RBF-based cooperative close protocol using `closing_complete` and
+`closing_sig` messages (as specified in BOLT #2) requires additional extensions
+for taproot channels to support MuSig2 signature generation and RBF
+(Replace-By-Fee) iterations.
+
+#### JIT (Just-In-Time) Nonce Pattern
+
+For taproot channels using the modern RBF cooperative close flow, final nonces
+are delivered just-in-time with signatures using an asymmetric pattern:
+
+- `closing_complete` uses `PartialSigWithNonce` (98 bytes) to bundle the
+  signature with the next closee nonce
+
+- `closing_sig` uses `PartialSig` (32 bytes) with a separate `NextCloseeNonce`
+  field
+
+With this pattern, we exchange the set of `closee_nonces` up front in the
+`shutdown` message. When either party wants to initiate a new update, they send
+`closing_complete` which includes their JIT `closer_nonce`. Sending this
+signatures serves to consume the `closee_nonce` of the remote party, so then
+they respond with `closing_sig`, they include a new `next_closee_nonce`.
+
+#### `closing_complete` Extensions
+
+For taproot channels, the `closing_complete` message uses `PartialSigWithNonce`
+to support MuSig2 signatures with JIT nonce delivery:
+
+1. `tlv_stream`: `closing_tlvs`
+2. types:
+    1. type: 5 (`closer_no_closee`)
+    2. data:
+        * [`98*byte`:`partial_sig_with_nonce`]
+    1. type: 6 (`no_closer_closee`)
+    2. data:
+        * [`98*byte`:`partial_sig_with_nonce`]
+    1. type: 7 (`closer_and_closee`)
+    2. data:
+        * [`98*byte`:`partial_sig_with_nonce`]
+
+Note: The TLV type numbers (5, 6, 7) are different from the non-taproot types
+(1, 2, 3) to distinguish taproot signatures. Each `partial_sig_with_nonce`
+contains:
+- 32 bytes: MuSig2 partial signature
+- 66 bytes: The sender's next closee nonce for potential RBF iterations
+
+##### Requirements
+
+The sender of `closing_complete` (aka. "the closer"):
+
+  - For taproot channels (when `option_simple_taproot` was negotiated):
+    - MUST provide `PartialSigWithNonce` (98 bytes) in the appropriate TLV
+      field based on output presence
+    - MUST compute the aggregated `musig2` public key from the sorted
+      `funding_pubkey`s using the `KeyAgg` algorithm from `bip-musig2`
+    - For the first closing transaction:
+      - MUST use the `shutdown_nonce` received from the peer as their closee
+        nonce
+      - MUST use a locally generated nonce as the closer nonce
+    - For RBF iterations:
+      - MUST use the nonce extracted from the peer's previous `closing_sig`
+        message as their closee nonce
+      - MUST use a fresh locally generated nonce as the closer nonce
+    - MUST generate the partial signature using the `Sign` algorithm from
+      `bip-musig2`
+
+The receiver of `closing_complete` (aka. "the closee"):
+
+  - For taproot channels:
+    - MUST verify that signature fields contain `PartialSigWithNonce` (98
+      bytes)
+    - MUST extract the partial signature (first 32 bytes) and the sender's next
+      closee nonce (remaining 66 bytes)
+    - MUST use the extracted nonce for verification (along with their own
+      closee nonce)
+    - MUST compute the aggregate nonce from:
+      - the `shutdown_nonce` the recipient previously sent (their closee nonce)
+      - the appropriate nonce for the closer role (from shutdown or previous
+        RBF round)
+    - MUST verify the partial signature using the `PartialSigVerifyInternal`
+      algorithm of `bip-musig2`
+    - MUST store (in memory) the extracted nonce for potential future RBF
+    iterations
+
+#### `closing_sig` Extensions
+
+For taproot channels, the `closing_sig` message uses `PartialSig` with a
+separate next nonce field:
+
+1. `tlv_stream`: `closing_tlvs`
+2. types:
+    1. type: 5 (`closer_no_closee`)
+    2. data:
+        * [`32*byte`:`partial_sig`]
+    1. type: 6 (`no_closer_closee`)
+    2. data:
+        * [`32*byte`:`partial_sig`]
+    1. type: 7 (`closer_and_closee`)
+    2. data:
+        * [`32*byte`:`partial_sig`]
+    1. type: 22 (`next_closee_nonce`)
+    2. data:
+        * [`66*byte`:`public_nonce`]
+
+Note: Unlike `closing_complete`, `closing_sig` separates the signature from the
+next nonce:
+
+- The partial signature (32 bytes) is sent in the appropriate TLV field based
+  on output presence
+- The `next_closee_nonce` (66 bytes) is sent separately in TLV type 22
+- The receiver (the closer) already knows the current signing nonce from either
+  the `shutdown` message or the previous `PartialSigWithNonce` in
+  `closing_complete`
+
+##### Requirements
+
+The sender of `closing_sig`:
+
+  - For taproot channels:
+    - MUST provide a 32-byte partial signature in the appropriate TLV field
+      based on output presence
+    - MUST use the `shutdown_nonce` sent in their own `shutdown` message as
+      their closee nonce
+    - MUST use the nonce provided in the `PartialSigWithNonce` message of the
+      received `closing_complete` message as the closer nonce.
+    - MUST generate the partial signature using the `Sign` algorithm from
+      `bip-musig2`
+    - SHOULD include `next_closee_nonce` for potential future RBF iterations
+    - MUST generate `next_closee_nonce` using the `NonceGen` algorithm from
+      `bip-musig2` if included
+
+The receiver of `closing_sig`:
+
+  - For taproot channels:
+    - MUST verify that signature fields contain 32-byte partial signatures
+    - MUST use the appropriate nonces for verification:
+      - The sender's closee nonce (from their `shutdown` message or previous
+      RBF round)
+      - The receiver's own closer nonce (locally generated)
+    - MUST verify the partial signature using `PartialSigVerifyInternal` from
+      `bip-musig2`
+    - MUST combine both partial signatures using `PartialSigAgg` to create the
+      final schnorr signature
+    - MUST broadcast the closing transaction with the aggregated signature
+    - SHOULD store `next_closee_nonce` if provided for potential future RBF
+      iterations
+
+#### RBF Nonce Rotation Protocol
+
+For taproot channels supporting RBF cooperative close, nonces are delivered
+just-in-time (JIT) with signatures using an asymmetric pattern:
+
+1. **Initial Exchange**: Nonces are exchanged in `shutdown` messages
+   - Each party sends their "closee nonce" - the nonce they'll use when signing
+     as the closee
+   - This nonce is used by the remote party when they act as closer
+
+2. **RBF Iterations**: Subsequent nonces are delivered with signatures
+   - `closing_complete` (from closer): Uses `PartialSigWithNonce` (98 bytes)
+     - Bundles the partial signature with the sender's closer nonce
+     - The bundling is necessary because the closee doesn't know this nonce yet
+   - `closing_sig` (from closee): Uses `PartialSig` (32 bytes) +
+     `NextCloseeNonce` field
+     - Separates the signature from the next closee nonce
+
+3. **Asymmetric Roles**:
+   - **Closer**: The party sending `closing_complete`, proposing a new fee
+   - **Closee**: The party sending `closing_sig`, accepting the fee proposal
+   - Each party alternates between these roles during RBF iterations
+
+##### Nonce State Management
+
+With this JIT nonce approach for coop close, an implementation only needs to
+store (in memory) the current closee nonce for the remote and local party. When
+either side is ready to sign, it'll generate a new closer nonce, and then that
+along with the sig.
+
+##### Security Considerations
+
+- Nonces MUST be generated using cryptographically secure randomness
+- Previously used nonces MUST NOT be reused for different closing transactions
 
 ### Channel Operation
 
