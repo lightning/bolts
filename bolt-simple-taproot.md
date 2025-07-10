@@ -560,6 +560,16 @@ Note that these TLV types exist across different messages, but their type IDs ar
 - data:
    * [`66*byte`: `public_nonce`]
 
+#### local_nonces
+- type: 22
+- data:
+   * [`u16`: `num_entries`]
+   * [`num_entries * nonce_entry`: `entries`]
+
+where `nonce_entry` is:
+   * [`32*byte`: `txid`]
+   * [`66*byte`: `public_nonce`]
+
 ### Channel Funding
 
 `n_a_L`: Alice's local secret nonce
@@ -1185,9 +1195,12 @@ We add a new TLV field to the `channel_reestablish` message:
 
 1. `tlv_stream`: `channel_reestablish_tlvs`
 2. types:
-1. type: 4 (`next_local_nonce`)
-2. data:
-   * [`66*byte`: `public_nonce`]
+   1. type: 4 (`next_local_nonce`)
+   2. data:
+      * [`66*byte`: `public_nonce`]
+   3. type: 22 (`local_nonces`)
+   4. data:
+      * [`local_nonces`: `nonces_map`]
 
 Similar to the `next_per_commitment_point`, by sending the `next_local_nonce`
 value in this message, we ensure that the remote party has our public nonce,
@@ -1199,11 +1212,25 @@ The sender:
 
 - MUST set `next_local_nonce` to a fresh, unique `musig2` nonce as specified by
   `bip-musig2`
+- For taproot channels, SHOULD also populate the `local_nonces` field:
+  - MUST include at least one entry with an empty hash (32 zero bytes) as the key,
+    containing the primary commitment nonce
+  - The value for the empty hash key MUST match the value in `next_local_nonce`
+  - MAY include additional entries for in-progress splice transactions
+  - MUST sort entries by TXID in lexicographical order when encoding
 
 The recipient:
 
 - MUST fail the channel if `next_local_nonce` is absent, or cannot be parsed as
   two compressed secp256k1 points.
+- When `local_nonces` field is present:
+  - MUST prioritize `local_nonces` over `next_local_nonce` for obtaining the
+    commitment nonce
+  - MUST use the nonce associated with the empty hash key (32 zero bytes) as the
+    primary commitment nonce
+  - MAY store additional nonces for splice coordination
+- For taproot channels, if neither `next_local_nonce` nor `local_nonces` contains
+  a valid nonce, MUST fail the channel
 
 A node:
 
@@ -1218,6 +1245,55 @@ A node:
   
   - THEN it must regenerate the partial signature using the newly received
     `next_local_nonce`
+
+### Splice Coordination
+
+Splicing allows parties to modify the funding output of an existing channel without
+closing it. During splice operations, multiple commitment transactions may exist
+concurrently, each requiring its own MuSig2 nonce coordination. The `local_nonces`
+field enables this coordination by mapping transaction IDs to their respective nonces.
+
+#### Splice Nonce Management
+
+During splice negotiation:
+
+- Each splice transaction MUST have a unique TXID as the key in the `local_nonces` map
+- The primary (non-splice) commitment transaction MUST use an empty hash (32 zero
+  bytes) as its key
+- Parties MUST include nonces for all active splice transactions in their
+  `local_nonces` map
+- Completed or abandoned splices SHOULD have their nonces removed from the map in
+  subsequent messages
+
+##### Requirements for Splice Coordination
+
+When a splice is initiated:
+
+- The initiating party MUST generate a fresh nonce for the splice transaction
+- Both parties MUST add the splice TXID and corresponding nonce to their
+  `local_nonces` map
+- The nonce MUST be communicated in the next `commitment_signed` or
+  `channel_reestablish` message
+
+When a splice is completed:
+
+- Parties SHOULD remove the splice TXID from their `local_nonces` map
+- The primary commitment nonce SHOULD be updated to reflect the new funding output
+
+When multiple splices are pending:
+
+- Each splice MUST have a distinct TXID and nonce pair
+- Nonces MUST NOT be reused across different splice transactions
+- The `local_nonces` map MAY contain multiple entries during concurrent splice
+  operations
+
+##### Backward Compatibility
+
+Nodes that do not support splicing:
+
+- Will ignore the `local_nonces` field (due to its even TLV type number)
+- Can continue to use the single `next_local_nonce` field
+- Will not be able to participate in splice operations
 
 ### Funding Transactions
 
