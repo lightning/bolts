@@ -2339,6 +2339,12 @@ To supply the preimage:
    * [`channel_id`:`channel_id`]
    * [`u64`:`id`]
    * [`32*byte`:`payment_preimage`]
+1. `tlv_stream`: `update_fulfill_htlc_tlvs`
+2. types:
+    1. type: 1 (`attribution_data`)
+    2. data:
+        * [`20*u32`:`htlc_hold_times`]
+        * [`210*sha256[..4]`:`truncated_hmacs`]
 
 For a timed out or route-failed HTLC:
 
@@ -2348,12 +2354,21 @@ For a timed out or route-failed HTLC:
    * [`u64`:`id`]
    * [`u16`:`len`]
    * [`len*byte`:`reason`]
+1. `tlv_stream`: `update_fail_htlc_tlvs`
+2. types:
+    1. type: 1 (`attribution_data`)
+    2. data:
+        * [`20*u32`:`htlc_hold_times`]
+        * [`210*sha256[..4]`:`truncated_hmacs`]
 
 The `reason` field is an opaque encrypted blob for the benefit of the
 original HTLC initiator, as defined in [BOLT #4](04-onion-routing.md);
 however, there's a special malformed failure variant for the case where
 the peer couldn't parse it: in this case the current node instead takes action, encrypting
 it into a `update_fail_htlc` for relaying.
+
+Nodes that support `option_attribution_data` will populate the optional `attribution_data` field containing timing
+information and hmac series, as defined in [BOLT #4](04-onion-routing.md).
 
 For an unparsable HTLC:
 
