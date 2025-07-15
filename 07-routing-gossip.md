@@ -1017,6 +1017,11 @@ This effectively creates a _shadow route extension_ to the actual route and
 provides better protection against this attack vector than simply picking a
 random offset would.
 
+Similarly, senders that consider the historical payment latency over candidate
+hops as input for their routing algorithm should exclude the final hop from
+such scoring, to account for the receiver-induced delay (see [BOLT
+#2](02-peer-protocol.md#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc)).
+
 Other more advanced considerations involve diversification of route selection,
 to avoid single points of failure and detection, and balancing of local
 channels.
