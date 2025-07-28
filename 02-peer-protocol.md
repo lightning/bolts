@@ -2515,12 +2515,11 @@ A node:
 A receiving node:
   - if `next_funding_txid` is set:
     - if `next_funding_txid` matches the latest interactive funding transaction:
-      - if it has not received `tx_signatures` for that funding transaction:
-        - if `next_commitment_number` is zero:
-          - MUST retransmit its `commitment_signed` for that funding transaction.
-        - if it has already received `commitment_signed` and it should sign first,
-          as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):
-          - MUST send its `tx_signatures` for that funding transaction.
+      - if `next_commitment_number` is zero:
+        - MUST retransmit its `commitment_signed` for the funding transaction.
+      - if it has already received `commitment_signed` and it should sign first,
+        as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):
+        - MUST send its `tx_signatures` for that funding transaction.
       - if it has already received `tx_signatures` for that funding transaction:
         - MUST send its `tx_signatures` for that funding transaction.
     - otherwise:
