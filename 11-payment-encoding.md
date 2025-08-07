@@ -601,6 +601,30 @@ Breakdown:
   * `6c6e626332306d0b25fe64500d044444444444444444444444444444444444444444444444444444444444444442e1a1c92db7b3f161a001b7689049eea2701b46f8db7513629edf2408fac7eaedc608043400010203040506070809000102030405060708090001020304050607080901020486a01863143c14c5166804bd19203356da136c985678cd4d27a1b8c63296049032620280704000` hex of data for signing (prefix + data after separator up to the start of the signature)
   * `865a2cc6730e1eeeacd30e6da8e9ab0e9115828d27953ec0c0f985db05da5027` hex of SHA256 of the preimage
 
+> ### On mainnet, with fallback (P2TR) address bc1pptdvg0d2nj99568qn6ssdy4cygnwuxgw2ukmnwgwz7jpqjz2kszse2s3lm
+> 
+lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsfp4pptdvg0d2nj99568qn6ssdy4cygnwuxgw2ukmnwgwz7jpqjz2kszs9qrsgqy606dznq28exnydt2r4c29y56xjtn3sk4mhgjtl4pg2y4ar3249rq4ajlmj9jy8zvlzw7cr8mggqzm842xfr0v72rswzq9xvr4hknfsqwmn6xd
+
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
+* `20m`: amount (20 milli-bitcoin)
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `s`: payment secret...
+* `p`: payment hash...
+* `h`: tagged field: hash of description...
+* `f`: tagged field: fallback address
+  * `p4`: `data_length` (`p` = 1, `4` = 21; 1 * 32 + 21 == 53)
+  * `p`: 1, so witness version 1
+  * `ptdvg0d2nj99568qn6ssdy4cygnwuxgw2ukmnwgwz7jpqjz2kszs`: 260 bits = P2TR.
+* `9`: features...
+* `y606dznq28exnydt2r4c29y56xjtn3sk4mhgjtl4pg2y4ar3249rq4ajlmj9jy8zvlzw7cr8mggqzm842xfr0v72rswzq9xvr4hknfsq`: signature
+* `wmn6xd`: Bech32 checksum
+* Signature breakdown:
+  * `269fa68a6051f26991ab50eb851494d1a4b9c616aeee892ff50a144af471554a3057b2fee45910e267c4ef6067da10016cf5519237b3ca1c1c2014cc1d6f69a6` hex of signature data (32-byte r, 32-byte s)
+  * `0` (int) recovery flag contained in `signature`
+  * `6c6e626332306d0b25fe64500d04444444444444444444444444444444444444444444444444444444444444444021a000081018202830384048000810182028303840480008101820283038404808105c343925b6f67e2c340036ed12093dd44e0368df1b6ea26c53dbe4811f58fd5db8c10486a10adac43daa9c8a5a68e09ea10692b82226ee190e572db9b90e17a410484ab4050280704000` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `116fdb0f18352c886deb263f6466eb40e5e6518b80231a1f9df86088bfa48043` hex of SHA256 of the preimage
+
 > ### Please send 0.00967878534 BTC for a list of items within one week, amount in pico-BTC
 > lnbc9678785340p1pwmna7lpp5gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0sd8dgfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khxsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygsxqyjw5qcqp2rzjq0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9q9qrsgqrvgkpnmps664wgkp43l22qsgdw4ve24aca4nymnxddlnp8vh9v2sdxlu5ywdxefsfvm0fq3sesf08uf6q9a2ke0hc9j6z6wlxg5z5kqpu2v9wz
 
