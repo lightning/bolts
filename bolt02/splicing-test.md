@@ -651,8 +651,7 @@ Alice initiates a splice, but disconnects before Bob receives her tx_signatures 
 ### Disconnection with concurrent `splice_locked`
 
 In this scenario, disconnections happen while nodes are exchanging `splice_locked`.
-The `splice_locked` message must be retransmitted on reconnection if it wasn't previously received.
-When `last_funding_locked` is set, this lets nodes immediately lock the latest splice transaction.
+We use the `my_current_funding_locked` field to "lock" the latest splice on reconnection.
 
 ```text
 Initial active commitments:
@@ -696,22 +695,20 @@ Alice initiates a splice, but disconnections happen when exchanging splice_locke
      |                              |    | FundingTx1 |------->| FundingTx2 |
      |                              |    +------------+        +------------+
      |                              |
-     |      channel_reestablish     | next_funding_txid = null, your_last_funding_locked = funding_tx1, my_current_funding_locked = funding_tx2
+     |      channel_reestablish     | next_funding_txid = null, my_current_funding_locked = funding_tx2
      |----------------------------->|
-     |      channel_reestablish     | next_funding_txid = null, your_last_funding_locked = funding_tx1, my_current_funding_locked = funding_tx1
+     |      channel_reestablish     | next_funding_txid = null, my_current_funding_locked = funding_tx1
      |<-----------------------------|
-     |        splice_locked         |
-     |----------------------------->|
+     |                              |
      |        splice_locked         | At that point, Bob has locked funding_tx2, but Alice doesn't know it because she hasn't received splice_locked yet.
      |       X----------------------|
      |                              |
-     |      channel_reestablish     | next_funding_txid = null, your_last_funding_locked = funding_tx1, my_current_funding_locked = funding_tx2
+     |      channel_reestablish     | next_funding_txid = null, my_current_funding_locked = funding_tx2
      |----------------------------->|
-     |      channel_reestablish     | next_funding_txid = null, your_last_funding_locked = funding_tx2, my_current_funding_locked = funding_tx2
+     |      channel_reestablish     | next_funding_txid = null, my_current_funding_locked = funding_tx2
      |<-----------------------------|
-     |                              | Alice doesn't need to retransmit splice_locked, since Bob's your_last_funding_locked indicates that he received it.
-     |                              | Bob's my_current_funding_locked lets Alice know that Bob has locked funding_tx2 while they were disconnected and will send his splice_locked.
-     |                              | She can thus immediately lock it as well even though she hasn't received yet Bob's splice_locked.
+     |                              | Bob's my_current_funding_locked lets Alice know that Bob has locked funding_tx2 while they were disconnected.
+     |                              | She can thus immediately lock it as well even though she hasn't received Bob's splice_locked.
      |                              |
      |                              | Active commitments:
      |                              |
@@ -723,8 +720,6 @@ Alice initiates a splice, but disconnections happen when exchanging splice_locke
      |----------------------------->|
      |         commit_sig           | Alice doesn't need to sent commit_sig for funding_tx1 since funding_tx2 was locked.
      |----------------------------->|
-     |        splice_locked         | Bob's splice_locked is sent concurrently with Alice's update_add_htlc and commit_sig: this is fine.
-     |<-----------------------------|
      |       revoke_and_ack         |
      |<-----------------------------|
      |         commit_sig           |

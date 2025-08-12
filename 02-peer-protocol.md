@@ -3296,12 +3296,17 @@ messages are), they are independent of requirements here.
     1. type: 0 (`next_funding`)
     2. data:
         * [`sha256`:`next_funding_txid`]
-    1. type: 1 (`your_last_funding_locked`)
-    2. data:
-        * [`sha256`:`your_last_funding_locked_txid`]
-    1. type: 3 (`my_current_funding_locked`)
+    1. type: 5 (`my_current_funding_locked`)
     2. data:
         * [`sha256`:`my_current_funding_locked_txid`]
+        * [`byte`:`retransmit_flags`]
+
+The `retransmit_flags` bitfield is used to let our peer know which messages
+we expect them to retransmit after the reconnection:
+
+| Bit Position  | Name                      |
+| ------------- | --------------------------|
+| 0             | `announcement_signatures` |
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
@@ -3361,35 +3366,24 @@ The sending node:
   - otherwise:
     - MUST NOT set `next_funding_txid`.
   - if `option_splice` was negotiated:
-    - MUST set `your_last_funding_locked` to the txid of the last `splice_locked` it received.
-    - if it never received `splice_locked` for any transaction, but it received `channel_ready`:
-      - MUST set `your_last_funding_locked` to the txid of the channel funding transaction.
-    - otherwise (it has never received `channel_ready` or `splice_locked`):
-      - MUST NOT set `your_last_funding_locked`.
     - if a splice transaction reached acceptable depth while disconnected:
-      - MUST set `my_current_funding_locked` to the txid of the latest such transaction.
-      - MUST send `splice_locked` for that transaction after exchanging `channel_reestablish`.
+      - MUST include `my_current_funding_locked` with the txid of the latest such transaction.
     - otherwise:
-      - MUST set `my_current_funding_locked` to the txid of the last `splice_locked` it sent.
+      - MUST include `my_current_funding_locked` with the txid of the last `splice_locked` it sent.
       - if it never sent `splice_locked` for any transaction, but it sent `channel_ready`:
-        - MUST set `my_current_funding_locked` to the txid of the channel funding transaction.
+        - MUST include `my_current_funding_locked` with the txid of the channel funding transaction.
       - otherwise (it has never sent `channel_ready` or `splice_locked`):
-        - MUST NOT set `my_current_funding_locked`.
+        - MUST NOT include `my_current_funding_locked`.
       - if `my_current_funding_locked` is included:
         - if `announce_channel` is set for this channel:
           - if it has not received `announcement_signatures` for that transaction:
-            - MUST retransmit `channel_ready` or `splice_locked` after exchanging `channel_reestablish`.
-        - if it receives `channel_ready` for that transaction after exchanging `channel_reestablish`:
-          - MUST retransmit `channel_ready` in response, if not already sent since reconnecting.
-        - if it receives `splice_locked` for that transaction after exchanging `channel_reestablish`:
-          - MUST retransmit `splice_locked` in response, if not already sent since reconnecting.
+            - MUST set the `announcement_signatures` bit to `1` in `retransmit_flags`.
+        - otherwise:
+          - MUST set the `announcement_signatures` bit to `0` in `retransmit_flags`.
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
-    sent and received and `option_splice` was NOT negotiated:
-    - MUST retransmit `channel_ready`.
-  - if `option_splice` was negotiated and `your_last_funding_locked` is not
-    set in the `channel_reestablish` it received:
+    sent and received:
     - MUST retransmit `channel_ready`.
   - otherwise:
     - MUST NOT retransmit `channel_ready`, but MAY send `channel_ready` with
@@ -3458,9 +3452,11 @@ A receiving node:
     those splice transactions, for which it hasn't received `splice_locked` yet:
     - MUST process `my_current_funding_locked` as if it was receiving `splice_locked`
       for this `txid`.
-  - if `your_last_funding_locked` is set and it does not match the most recent
-    `splice_locked` it has sent:
-    - MUST retransmit `splice_locked`.
+  - if `my_current_funding_locked` is included with the `announcement_signatures` bit
+    set in the `retransmit_flags`:
+    - if `announce_channel` is set for this channel and the receiving node is ready
+      to send `announcement_signatures` for the corresponding splice transaction:
+      - MUST retransmit `announcement_signatures`.
 
 A node:
   - MUST NOT assume that previously-transmitted messages were lost,
@@ -3536,14 +3532,16 @@ interactive transaction construction, or safely abort that transaction
 if it was not signed by one of the peers, who has thus already removed
 it from its state.
 
-`your_last_funding_locked` allows peers to detect that their `splice_locked`
-was lost during the disconnection and must be retransmitted. When a splice
-transaction reaches acceptable depth while peers are disconnected, it also
-allows locking that splice transaction immediately after `channel_reestablish`
-instead of waiting for the `splice_locked` message, which could otherwise
-create a race condition with channel updates. For more details about this
-race condition, see [this example](./bolt02/splicing-test.md#disconnection-with-concurrent-splice_locked).
-Redundant `splice_locked` messages are harmless and can be safely ignored.
+`my_current_funding_locked` is equivalent to sending `splice_locked`, but is
+handled atomically during `channel_reestablish` (instead of requiring a
+retransmission of the `splice_locked` message). This is useful to avoid race
+conditions with channel updates (for more details about this race condition,
+see [this example](./bolt02/splicing-test.md#disconnection-with-concurrent-splice_locked)).
+It handles the case where the `splice_locked` message was lost during the
+disconnection, or when a splice transaction reaches acceptable depth while
+peers are disconnected. It also allows requesting a retransmission of the
+`announcement_signatures` message for the latest splice transaction, in case
+it wasn't received before disconnecting.
 
 # Authors
 

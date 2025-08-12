@@ -96,9 +96,9 @@ A node:
     - If it receives `announcement_signatures` for the funding transaction:
       - MUST respond with its own `announcement_signatures` message.
     - If it has NOT previously received `announcement_signatures` for a splice transaction:
-      - MUST retransmit `splice_locked` for that splice transaction.
-      - After receiving the remote `splice_locked`:
-        - MUST send its `announcement_signatures` message.
+      - MUST SET the `announcement_signatures` bit in the `retransmit_flags` of `my_current_funding_locked`.
+    - If the `announcement_signatures` bit is set in the *remote* `retransmit_flags`:
+      - MUST retransmit its `announcement_signatures` message.
 
 A recipient node:
   - If the `short_channel_id` doesn't match one of its funding transactions:
