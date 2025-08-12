@@ -228,7 +228,7 @@ The receiving node:
         - SHOULD store this `channel_announcement`.
   - once its funding output has been spent OR reorganized out:
     - SHOULD forget a channel after a 72-block delay.
-    - MUST NOT rebroadcast this `channel_announcement` to its peers.
+    - SHOULD NOT rebroadcast this `channel_announcement` to its peers.
 
 ### Rationale
 
@@ -510,7 +510,7 @@ The receiving node:
     channels.
   - if the channel output has been spent:
     - MUST ignore `channel_update`s, unless they have the `disable` bit set to 1.
-    - MUST NOT rebroadcast `channel_update`s to its peers, unless they have the
+    - SHOULD NOT rebroadcast `channel_update`s to its peers, unless they have the
     `disable` bit set to 1.
   - SHOULD accept `channel_update`s for its own channels (even if non-public),
   in order to learn the associated origin nodes' forwarding parameters.
@@ -875,7 +875,7 @@ The receiver:
   - If a `channel_announcement` has no corresponding `channel_update`s:
     - MUST NOT send the `channel_announcement`.
   - If the funding output of the `channel_announcement` has been spent:
-    - MUST NOT send the `channel_announcement`.
+    - SHOULD NOT send the `channel_announcement`.
   - Otherwise:
     - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
     - MUST consider whether to send the `channel_announcement` after receiving the first corresponding `channel_update`.
