@@ -184,7 +184,7 @@ A writer:
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
     - MUST use the minimum `data_length` possible, i.e. no leading 0 field-elements.
-  - MAY include one `n` field. (Otherwise performing signature recovery is required)
+  - MAY include one `n` field. (Otherwise performing public-key recovery is required)
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
     - for Bitcoin payments:
@@ -220,7 +220,11 @@ A reader:
   - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed
   description.
   - if a valid `n` field is provided:
-    - MUST use the `n` field to validate the signature instead of performing signature recovery.
+    - MUST use the `n` field to validate the signature instead of performing public-key recovery.
+    - If the signature is not compliant with the low-S standard rule<sup>[low-S](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+      - MUST fail the payment
+  - otherwise:
+    - MUST perform ECDSA public-key recovery and accept both high-S and low-S signatures.
   - if a valid `s` field is not provided:
     - MUST fail the payment.
   - otherwise:
@@ -249,7 +253,7 @@ The `m` field allows metadata to be attached to the payment. This supports
 applications where the recipient doesn't keep any context for the payment.
 
 The `n` field can be used to explicitly specify the destination node ID,
-instead of requiring signature recovery.
+instead of requiring public-key recovery.
 
 The `x` field gives warning as to when a payment will be
 refused: mainly to avoid confusion. The default was chosen
