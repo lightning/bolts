@@ -243,7 +243,7 @@ The human-readable prefix for offers is `lno`.
         * [`recurrence_paywindow`:`recurrence_paywindow`]
     1. type: 29 (`offer_recurrence_limit`)
     2. data:
-        * [`tu32`:`max_period`]
+        * [`tu32`:`max_period_index`]
 
 1. subtype: `recurrence`
 2. data:
@@ -286,7 +286,7 @@ Thus, each offer containing a recurring payment has:
    * `seconds_after`, defining how many seconds after the start of the period a payment will be accepted.
   If this field is missing, payment will be accepted during the prior period and the paid-for period.
 
-Note that the `offer_absolute_expiry` field already covers the case where an offer is no longer valid after January 1st 2021.
+Note: you can create an recurring offer with a fixed start which can only be used from the first period, using `offer_absolute_expiry`.  For example, my weekly book club starts January 1st 2026, for $5 a week: by setting `offer_absolute_expiry` to January 8th 2026, I ensure nobody can join after the first week.  Now, if only I could require them to actually read this week's book!
 
 For wallets which don't (yet) support recurrence, the basic recurrence field comes in two variants: `offer_recurrence_compulsory` if they should not attempt a payment, and `offer_recurrence_optional` if it still makes sense for them to attempt a single payment.
 
@@ -381,8 +381,8 @@ A writer of an offer:
       - MUST set `time_unit` to 0 (seconds), 1 (days), 2 (months) or 3 (years).
       - MUST set `period` to how often (in `time-unit`) it wants to be paid.
       - if there is a maximum number of payments:
-        - MUST include `offer_recurrence_limit` with `max_period` set to the maximum number of payments
-        - MUST NOT set `max_period` to 0.
+        - MUST include `offer_recurrence_limit` with `max_period_index` set to the maximum number of payments
+        - MUST NOT set `max_period_index` to 0.
       - otherwise:
         - MUST NOT include `offer_recurrence_limit`.
       - if periods are always at specific time offsets:
@@ -442,7 +442,7 @@ A reader of an offer:
   - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are set:
     - if `time_unit` is not one of 0, 1, 2 or 3:
        - MUST NOT respond to the offer.
-    - if `offer_recurrence_limit` is set and `max_period` is 0:
+    - if `offer_recurrence_limit` is set and `max_period_index` is 0:
        - MUST NOT respond to the offer.
   - otherwise: (no recurrence):
     - if it `offer_recurrence_paywindow`, `offer_recurrence_limit` or `offer_recurrence_base` are set:
@@ -565,7 +565,7 @@ while still allowing signature validation.
         * [`recurrence_paywindow`:`recurrence_paywindow`]
     1. type: 29 (`offer_recurrence_limit`)
     2. data:
-        * [`tu32`:`max_period`]
+        * [`tu32`:`max_period_index`]
     1. type: 80 (`invreq_chain`)
     2. data:
         * [`chain_hash`:`chain`]
@@ -651,7 +651,7 @@ The writer:
       - otherwise:
         - MUST NOT include `invreq_recurrence_start`
       - if `offer_recurrence_limit` is present:
-        - MUST NOT send an `invoice_request` for a period greater than `max_period`
+        - MUST NOT send an `invoice_request` for a period index greater than `max_period_index`
       - SHOULD NOT send an `invoice_request` for a period which has already passed.
       - if `offer_recurrence_paywindow` is present:
         - if `recurrence_basetime` is present or `recurrence_counter` is non-zero:
@@ -735,7 +735,7 @@ The reader:
         - MUST reject the invoice request if there is a `invreq_recurrence_start` field.
         - MUST consider the period index for this request to be the `invreq_recurrence_counter` `counter` field.
       - if `offer_recurrence_limit` is present:
-        - MUST reject the invoice request if the period index is greater than `max_period`.
+        - MUST reject the invoice request if the period index is greater than `max_period_index`.
       - MUST calculate the period using the period index as detailed in [Period Calculation](#offer-period-calculation).
       - MUST reject the invoice request if an invoice has prevously been paid for this offer, `offer_issuer_id`, `invreq_metadata` and `invreq_recurrence_counter`.
       - if `invreq_recurrence_counter` is zero (initial request):
@@ -857,7 +857,7 @@ the `onion_message` `invoice` field.
         * [`recurrence_paywindow`:`recurrence_paywindow`]
     1. type: 29 (`offer_recurrence_limit`)
     2. data:
-        * [`tu32`:`max_period`]
+        * [`tu32`:`max_period_index`]
     1. type: 80 (`invreq_chain`)
     2. data:
         * [`chain_hash`:`chain`]
