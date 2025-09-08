@@ -227,7 +227,8 @@ The receiving node:
       - otherwise:
         - SHOULD store this `channel_announcement`.
   - once its funding output has been spent OR reorganized out:
-    - SHOULD forget a channel after a 12-block delay.
+    - SHOULD forget a channel after a 72-block delay.
+    - SHOULD NOT rebroadcast this `channel_announcement` to its peers.
 
 ### Rationale
 
@@ -252,7 +253,7 @@ optional) features will have _odd_ feature bits, while incompatible features
 will have _even_ feature bits
 (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
 
-A delay of 12 blocks is used when forgetting a channel on funding output spend
+A delay of 72 blocks is used when forgetting a channel on funding output spend
 as to permit a new `channel_announcement` to propagate which indicates this
 channel was spliced.
 
@@ -485,7 +486,7 @@ The origin node:
   signal a channel's temporary unavailability (e.g. due to a loss of
   connectivity) OR permanent unavailability (e.g. prior to an on-chain
   settlement).
-    - MAY sent a subsequent `channel_update` with the `disable` bit set to 0 to
+    - MAY send a subsequent `channel_update` with the `disable` bit set to 0 to
     re-enable the channel.
   - MUST set `timestamp` to greater than 0, AND to greater than any
   previously-sent `channel_update` for this `short_channel_id`.
@@ -504,10 +505,13 @@ The origin node:
     - SHOULD keep accepting the previous channel parameters for 10 minutes
 
 The receiving node:
-  - if the `short_channel_id` does NOT match a previous `channel_announcement`,
-  OR if the channel has been closed in the meantime:
+  - if the `short_channel_id` does NOT match a previous `channel_announcement`:
     - MUST ignore `channel_update`s that do NOT correspond to one of its own
     channels.
+  - if the channel output has been spent:
+    - MUST ignore `channel_update`s, unless they have the `disable` bit set to 1.
+    - SHOULD NOT rebroadcast `channel_update`s to its peers, unless they have the
+    `disable` bit set to 1.
   - SHOULD accept `channel_update`s for its own channels (even if non-public),
   in order to learn the associated origin nodes' forwarding parameters.
   - if `signature` is not a valid signature, using `node_id` of the
@@ -870,6 +874,8 @@ The receiver:
       `first_timestamp` plus `timestamp_range`.
   - If a `channel_announcement` has no corresponding `channel_update`s:
     - MUST NOT send the `channel_announcement`.
+  - If the funding output of the `channel_announcement` has been spent:
+    - SHOULD NOT send the `channel_announcement`.
   - Otherwise:
     - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
     - MUST consider whether to send the `channel_announcement` after receiving the first corresponding `channel_update`.
@@ -958,7 +964,7 @@ The origin node:
 A node:
   - SHOULD monitor the funding transactions in the blockchain, to identify
   channels that are being closed.
-  - if the funding output of a channel is spent and received 12 block confirmations:
+  - if the funding output of a channel is spent and received 72 block confirmations:
     - SHOULD be removed from the local network view AND be considered closed.
   - if the announced node no longer has any associated open channels:
     - MAY prune nodes added through `node_announcement` messages from their
