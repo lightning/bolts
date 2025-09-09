@@ -107,18 +107,18 @@ The data part of a Lightning invoice consists of multiple sections:
 
 1. `timestamp`: seconds-since-1970 (35 bits, big-endian)
 1. zero or more tagged parts
-1. `signature`: Bitcoin-style signature of above (520 bits)
+1. `signature`: compact ECDSA/secp256k1 signature of the above (520 bits: 64-byte R||S + 1-byte recovery id)
 
 ## Requirements
 
 A writer:
   - MUST set `timestamp` to the number of seconds since Midnight 1 January 1970, UTC in
   big-endian.
-  - MUST set `signature` to a valid 512-bit secp256k1 signature of the SHA2 256-bit hash of the
-  human-readable part, represented as UTF-8 bytes, concatenated with the
-  data part (excluding the signature) with 0 bits appended to pad the
-  data to the next byte boundary, with a trailing byte containing
-  the recovery ID (0, 1, 2, or 3).
+  - MUST set `signature` to a valid compact ECDSA signature over secp256k1 of the SHA-256
+  hash of: the human-readable part (as UTF-8 bytes) concatenated with the data part
+  (excluding the signature), with 0 bits appended to pad to a byte boundary.
+  The signature is encoded as 64 bytes (R || S), followed by a trailing 1-byte
+  recovery id in {0,1,2,3}.
 
 A reader:
   - MUST check that the `signature` is valid (see the `n` tagged field specified below).
