@@ -47,6 +47,7 @@ The Context column decodes as follows:
 | 26/27 | `option_shutdown_anysegwit`       | Future segwit versions allowed in `shutdown`              | IN       |                             | [BOLT #2][bolt02-shutdown]                                            |
 | 28/29 | `option_dual_fund`                | Use v2 of channel open, enables dual funding              | IN       |                             | [BOLT #2](02-peer-protocol.md)                                        |
 | 34/35 | `option_quiesce`                  | Support for `stfu` message                                | IN       |                             | [BOLT #2][bolt02-quiescence]                                          |
+| 36/37 | `option_attribution_data`      | Can generate/relay attribution data in `update_fail_htlc` and `update_fulfill_htlc`  | IN9      |                   | [BOLT #4][bolt04-attribution-data]   |
 | 38/39 | `option_onion_messages`           | Can forward onion messages                                | IN       |                             | [BOLT #7](04-onion-routing.md#onion-messages)                         |
 | 42/43 | `option_provide_storage`          | Can store other nodes' encrypted backup data              | IN       |                             | [BOLT #1](01-messaging.md#peer-storage)                               |
 | 44/45 | `option_channel_type`             | ASSUMED                                                   | IN       |                             |                                                                       |
@@ -103,9 +104,10 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt02-shutdown]: 02-peer-protocol.md#closing-initiation-shutdown
 [bolt02-quiescence]: 02-peer-protocol.md#channel-quiescence
 [bolt02-channel-ready]: 02-peer-protocol.md#the-channel_ready-message
-[bolt04]: 04-onion-routing.md
+[bolt04-attribution-data]: 04-onion-routing.md#returning-errors
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
 [bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
 [bolt04-route-blinding]: 04-onion-routing.md#route-blinding
+[bolt04-attributable-errors]: 04-onion-routing.md
 [ml-sighash-single-harmful]: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-September/002796.html
