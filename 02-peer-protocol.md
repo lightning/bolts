@@ -1823,6 +1823,10 @@ The receiving node:
     - MUST send `commitment_signed`.
   - If it should sign first, as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):
     - MUST send `tx_signatures`.
+    - Note that since the initiator sends `tx_add_input` for the shared input
+      (corresponding to the previous channel output), 100% of the previous channel
+      capacity is attributed to the initiator when computing who must send
+      `tx_signatures` first (instead of using each node's previous balance).
 
 On reconnection:
   - If `next_funding_txid` matches the splice transaction:
