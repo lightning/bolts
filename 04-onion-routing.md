@@ -673,7 +673,7 @@ If the final destination does not support `encrypted_trampinfo` it will ignore t
     1. type: 8 (`incoming_payment_secret`)
     2. data:
         * [`32*byte`:`payment_secret`]
-    1. type: 10 (`incoming_payment_metadata`)
+    1. type: 10 (`payment_metadata`)
     2. data:
         * [`...*byte`:`payment_metadata`]
     1. type: 12 (`incoming_amount_msat`)
@@ -685,9 +685,6 @@ If the final destination does not support `encrypted_trampinfo` it will ignore t
     1. type: 16 (`outgoing_payment_secret`)
     2. data:
         * [`32*byte`:`payment_secret`]
-    1. type: 18 (`outgoing_payment_metadata`)
-    2. data:
-        * [`...*byte`:`payment_metadata`]
     1. type: 20 (`blinded_paths`)
     2. data:
         * [`...*blinded_path`:`paths`]
@@ -697,21 +694,20 @@ If the final destination does not support `encrypted_trampinfo` it will ignore t
 
 ## Requirements
 
-The initial sender of a "minitramp" payment builds it backwards from final destination:
+The initial sender of a "minitramp" payment builds it *backwards* from final destination:
 - MUST create a `trampinfo` (#1) for the payment destination:
   - MUST NOT set `amount_to_send`, `next_cltv_value`, `next_node`, `blinded_paths`, `blinded_payinfo` or `minitramp`.
-  - MUST set `outgoing_payment_secret`, `outgoing_payment_metadata`, `total_amount_msat` to the values which would normally set in the final `payload`.
+  - MUST set `outgoing_payment_secret`, `payment_metadata`, `total_amount_msat` to the values which would normally set in the final `payload`.
   - If the payment destination is known to support `option_minitrampoline`:
     - SHOULD set `incoming_payment_secret` to the SHA256 hash of `outgoing_payment_secret`.
-    - SHOULD set `incoming_payment_metadata` to random data (16 bytes in the case of `incoming_payment_metadata`).
   - Otherwise:
-    - MUST set `incoming_payment_secret` and `incoming_payment_metadata` to `outgoing_payment_secret` and `outgoing_payment_metadata`.
+    - MUST set `incoming_payment_secret` to `outgoing_payment_secret`.
   - MAY use `padding` to disguise that this is the final destination.
 - MUST create a `trampinfo` (#2) for the previous trampoline:
   - MUST set `minitramp`.`trampkey` to the public key of a random secret.
   - MUST set `minitramp`.`encrypted_trampinfo` to the encrypted `trampinfo` created for the payment destination.
   - MUST set `outgoing_payment_secret` to `incoming_payment_secret` in `trampinfo` #1.
-  - MUST set `outgoing_payment_metadata` to `incoming_payment_metadata` in `trampinfo` #1.
+  - MAY set `payment_metadata` to a random value.
   - MUST set `amount_to_send` and `next_cltv_value` to the values expected by the payment destination.
   - MUST set `blinded_paths` and `blinded_payinfo` as supplied by the invoice.
   - If it sets `blinded_paths`:
@@ -721,19 +717,19 @@ The initial sender of a "minitramp" payment builds it backwards from final desti
   - MUST set `incoming_amount_msat` and `incoming_ctlv` to the values expected at this destination.
   - MUST set `total_amount_msat` to the `incoming_amount_msat` of `trampinfo` #1
   - MUST set `next_cltv_value` to the `incoming_ctlv` of `trampinfo` #1
-  - SHOULD set `incoming_payment_secret` and `incoming_payment_metadata` to random data (16 bytes in the case of `incoming_payment_metadata`).
+  - SHOULD set `incoming_payment_secret` and to random data.
 - If it creates another `trampinfo` (#3 onwards);
   - MUST set `minitramp`.`trampkey` to the public key of a random secret.
   - MUST set `minitramp`.`encrypted_trampinfo` to the encrypted previous `trampinfo`
   - MUST set `outgoing_payment_secret` to `incoming_payment_secret` in the previous `trampinfo`.
-  - MUST set `outgoing_payment_metadata` to `incoming_payment_metadata` in the previous `trampinfo`.
-  - SHOULD set `incoming_payment_secret` and `incoming_payment_metadata` to random data (16 bytes in the case of `incoming_payment_metadata`).
+  - MAY set `payment_metadata` to a random value.
+  - SHOULD set `incoming_payment_secret` to random data.
   - MUST set `total_amount_msat` to the `incoming_amount_msat` of the previous `trampinfo`
   - MUST set `next_cltv_value` to the `incoming_ctlv` of the previous `trampinfo`
   - MUST set `next_node` to the node id of the next trampoline
 - MUST create a payment to the first trampoline node:
   - MUST put the last-produced `minitramp` into the final `payload` for each payment part.
-  - MUST set `payment_secret` and `payment_metadata` to the `incoming_payment_secret` and `incoming_payment_metadata` of the last-produced `trampinfo`.
+  - MUST set `payment_secret` to the `incoming_payment_secret` of the last-produced `trampinfo`.
 
 The recipient:
 - MUST process all parts of the payment as normal.
@@ -742,14 +738,13 @@ The recipient:
     - If `encrypted_trampinfo` does not decrypt into a valid `trampinfo`:
       - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
       - Check for trampoline misbehaviour (below)
-    - If `trampinfo`.`incoming_amount_msat` or `trampinfo`.`incoming_ctlv` are not equal to the incoming HTLC
+    - If `trampinfo`.`incoming_amount_msat` or `trampinfo`.`incoming_ctlv` are less than the incoming HTLC
       - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
     - If neither `node_id` nor `blinded_paths` are present (we are the final destination):
       - If `payment_secret` in `payload` is not equal to `trampinfo`.`incoming_payment_secret`:
         - Reject payment
         - Check for trampoline misbehaviour (below)
-      - If `payment_metadata` in `payload` is not equal to `trampinfo`.`incoming_payment_metadata`:
-        - Reject payment
+      - SHOULD process the payment as if the `payload` contained the `minitramp` `payment_secret` and `payment_metadata`.
     - Otherwise: (forwarding):
       - If both `next_node` and `blinded_paths` are present:
         - Reject payment
