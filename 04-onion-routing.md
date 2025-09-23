@@ -189,6 +189,10 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
 
 1. `tlv_stream`: `payload`
 2. types:
+    1. type: 1 (`minitramp`)
+    2. data:
+        * [`pubkey`:`trampkey`]
+        * [`...*byte`:`encrypted_trampinfo`]
     1. type: 2 (`amt_to_forward`)
     2. data:
         * [`tu64`:`amt_to_forward`]
@@ -633,6 +637,127 @@ may contain the following TLV fields:
 Encrypted recipient data is created by the final recipient to give to the
 sender, containing instructions for the node on how to handle the message (it can also be created by the sender themselves: the node forwarding cannot tell).  It's used
 in both payment onions and onion messages onions.  See [Route Blinding](#route-blinding).
+
+
+# Minitrampoline Support
+
+This allows outsourcing routing, with limited privacy protections.  The destination notes the `encrypted_trampinfo` field in the onion payload, and decrypts it to find `trampinfo` tlv stream, which indicates the next recipient, and a `encrypted_trampinfo` for that recipient (which may be the final recipient).
+
+We share the encryption scheme used by the onion, except the key is explicitly given in the `trampkey` tlv field.
+
+The `trampinfo` can contain another `encrypted_trampinfo` to allow for chaining minitrampolines.  It is odd, so if the final recipient does not support `option_minitrampoline` it will ignore it: in this case the `payment_secret` and `payment_metadata` fields must be the correct ones for the payment, thus trusting the final minitrampoline node in the case of amountless bolt11 invoices.
+
+Encryption is done using the same scheme as `encrypted_recipient_data`, with `trampkey` as `E`:
+  - $`ss = SHA256(k * E)`$ (standard ECDH)
+  - $`rho = HMAC256(\text{"rho"}, ss)`$
+  - Use $`rho`$ as a key with ChaCha20-Poly1305 and an all-zero nonce key.
+
+If the final destination does not support `encrypted_trampinfo` it will ignore the `minitramp` field, so in this case the `payment_secret` and `payment_metadata` have to be correct for the payment: if the payment is not for a specified amount, this may allow the final trampoline to try forwarding less than the full amount.  However, if the final destination does understand `encrypted_trampinfo` then it will ensure the amounts, `payment_secret` and `payment_metadata` are correct, and it will never accept future attempts to pay this invoice if it detects a discrepancy.  This unknown helps keep the trampoline nodes honest while the network transitions.
+
+
+1. `tlv_stream`: `minitramp_payload`
+2. types:
+    1. type: 1 (`minitramp`)
+    2. data:
+        * [`pubkey`:`trampkey`]
+        * [`...*byte`:`encrypted_trampinfo`]
+    1. type: 2 (`amount_to_send`)
+    2. data:
+        * [`tu64`:`amount`]
+    1. type: 4 (`next_cltv_value`)
+    2. data:
+        * [`tu32`:`next_cltv_value`]
+    1. type: 6 (`next_node`)
+    2. data:
+        * [`publey`:`next`]
+    1. type: 8 (`incoming_payment_secret`)
+    2. data:
+        * [`32*byte`:`payment_secret`]
+    1. type: 10 (`incoming_payment_metadata`)
+    2. data:
+        * [`...*byte`:`payment_metadata`]
+    1. type: 12 (`incoming_amount_msat`)
+    2. data:
+        * [`tu64`:`msat`]
+    1. type: 14 (`incoming_ctlv`)
+    2. data:
+        * [`tu32`:`ctlv`]
+    1. type: 16 (`outgoing_payment_secret`)
+    2. data:
+        * [`32*byte`:`payment_secret`]
+    1. type: 18 (`outgoing_payment_metadata`)
+    2. data:
+        * [`...*byte`:`payment_metadata`]
+    1. type: 20 (`blinded_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
+    1. type: 22 (`blinded_payinfo`)
+    2. data:
+        * [`...*blinded_payinfo`:`payinfo`]
+
+## Requirements
+
+The initial sender of a "minitramp" payment builds it backwards from final destination:
+- MUST create a `trampinfo` (#1) for the payment destination:
+  - MUST NOT set `amount_to_send`, `next_cltv_value`, `next_node`, `blinded_paths`, `blinded_payinfo` or `minitramp`.
+  - MUST set `outgoing_payment_secret`, `outgoing_payment_metadata`, `total_amount_msat` to the values which would normally set in the final `payload`.
+  - If the payment destination is known to support `option_minitrampoline`:
+    - SHOULD set `incoming_payment_secret` and `incoming_payment_metadata` to random data (16 bytes in the case of `incoming_payment_metadata`).
+  - Otherwise:
+    - MUST set `incoming_payment_secret` and `incoming_payment_metadata` to `outgoing_payment_secret` and `outgoing_payment_metadata`.
+  - MAY use `padding` to disguise that this is the final destination.
+- MUST create a `trampinfo` (#2) for the previous trampoline:
+  - MUST set `minitramp`.`trampkey` to the public key of a random secret.
+  - MUST set `minitramp`.`encrypted_trampinfo` to the encrypted `trampinfo` created for the payment destination.
+  - MUST set `outgoing_payment_secret` to `incoming_payment_secret` in `trampinfo` #1.
+  - MUST set `outgoing_payment_metadata` to `incoming_payment_metadata` in `trampinfo` #1.
+  - MUST set `amount_to_send` and `next_cltv_value` to the values expected by the payment destination.
+  - MUST set `blinded_paths` and `blinded_payinfo` as supplied by the invoice.
+  - If it sets `blinded_paths`:
+    - MUST NOT set `next_node`.
+  - Otherwise:
+    - MUST set `next_node` to the node id of the payment destination.
+  - MUST set `incoming_amount_msat` and `incoming_ctlv` to the values expected at this destination.
+  - MUST set `total_amount_msat` to the `incoming_amount_msat` of `trampinfo` #1
+  - MUST set `next_cltv_value` to the `incoming_ctlv` of `trampinfo` #1
+  - SHOULD set `incoming_payment_secret` and `incoming_payment_metadata` to random data (16 bytes in the case of `incoming_payment_metadata`).
+- If it creates another `trampinfo` (#3 onwards);
+  - MUST set `minitramp`.`trampkey` to the public key of a random secret.
+  - MUST set `minitramp`.`encrypted_trampinfo` to the encrypted previous `trampinfo`
+  - MUST set `outgoing_payment_secret` to `incoming_payment_secret` in the previous `trampinfo`.
+  - MUST set `outgoing_payment_metadata` to `incoming_payment_metadata` in the previous `trampinfo`.
+  - SHOULD set `incoming_payment_secret` and `incoming_payment_metadata` to random data (16 bytes in the case of `incoming_payment_metadata`).
+  - MUST set `total_amount_msat` to the `incoming_amount_msat` of the previous `trampinfo`
+  - MUST set `next_cltv_value` to the `incoming_ctlv` of the previous `trampinfo`
+  - MUST set `next_node` to the node id of the next trampoline
+- MUST create a payment to the first trampoline node:
+  - MUST put the last-produced `minitramp` into the final `payload` for each payment part.
+  - MUST set `payment_secret` and `payment_metadata` to the `incoming_payment_secret` and `incoming_payment_metadata` of the last-produced `trampinfo`.
+
+The recipient:
+- MUST process all parts of the payment as normal.
+- If this is the final node (no more onion to unwrap), and `minitramp` is present:
+  - If `encrypted_trampinfo` does not decrypt into a valid `trampinfo`:
+    - Return an error (FIXME)
+  - If `trampinfo`.`incoming_amount_msat` or `trampinfo`.`incoming_ctlv` are not equal to the incoming HTLC
+    - Reject payment
+  - If neither `node_id` nor `blinded_paths` are present (we are the final destination):
+    - If `payment_secret` in `payload` is not equal to `trampinfo`.`incoming_payment_secret`:
+      - Don't ever accept payment of this invoice
+      - Reject payment
+    - If `payment_metadata` in `payload` is not equal to `trampinfo`.`incoming_payment_metadata`:
+      - Don't ever accept payment of this invoice
+      - Reject payment
+  - Otherwise: (forwarding):
+    - If both `next_node` and `blinded_paths` are present:
+      - Reject
+     - Determine a route to `next_node` or `blinded_paths` for `amount_to_send` using `next_cltv_value`.
+  - If the incoming amount or cltv is insufficient:
+      - Don't ever accept payment of this invoice
+      - Reject payment
+  - If the number of `blinded_paths` and `blinded_payinfo` do not match:
+    - Reject
+   - MUST include `trampinfo`.`minitramp`, `outgoing_payment_secret` (as `payment_secret`) and `outgoing_payment_info` (as `payment_metadata`) in the inner `payload` of the payment onion.
 
 
 # Accepting and Forwarding a Payment
