@@ -742,18 +742,24 @@ The recipient:
       - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
     - If neither `node_id` nor `blinded_paths` are present (we are the final destination):
       - If `payment_secret` in `payload` is not equal to `trampinfo`.`incoming_payment_secret`:
-        - Reject payment
+        - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
         - Check for trampoline misbehaviour (below)
       - SHOULD process the payment as if the `payload` contained the `minitramp` `payment_secret` and `payment_metadata`.
     - Otherwise: (forwarding):
       - If both `next_node` and `blinded_paths` are present:
-        - Reject payment
-      - Determine a route to `next_node` or `blinded_paths` for `amount_to_send` using `next_cltv_value`.
-      - If the incoming amount or cltv is insufficient:
-         - Reject payment
+        - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
       - If the number of `blinded_paths` and `blinded_payinfo` do not match:
-        - Reject payment
+        - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
+      - Determine a route to `next_node` or `blinded_paths` for `amount_to_send` using `next_cltv_value`.
+      - If no route can be found:
+        - Fail all HTLCs with `unknown_next_trampoline`.
+      - If the incoming amount or cltv is insufficient:
+        - Fail all HTLCs with `trampoline_fee_or_expiry_insufficient`.
       - MUST include `trampinfo`.`minitramp`, `outgoing_payment_secret` (as `payment_secret`) and `outgoing_payment_info` (as `payment_metadata`) in the inner `payload` of the payment onion.
+      - If the payment fails:
+        - Fail all HTLCs with `temporary_trampoline_failure`.
+      - Otherwise:
+        - Use the preimage to succeed all HTLCs.
   - Otherwise (`minitramp` is NOT present):
     - Check for trampoline misbehaviour (below)
 
@@ -1426,6 +1432,28 @@ reasonable time.
    * [`sha256`:`sha256_of_onion`]
 
 An error occurred within the blinded path.
+
+1. type: NODE|25 (`temporary_trampoline_failure`)
+
+The trampoline node was unable to relay the payment to the next trampoline
+node, but may be able to handle it, or others, later.
+This error usually indicates that routes were found but failed because of
+temporary failures at intermediate hops.
+
+1. type: NODE|26 (`trampoline_fee_or_expiry_insufficient`)
+2. data:
+   * [`u32`:`fee_base_msat`]
+   * [`u32`:`fee_proportional_millionths`]
+   * [`u16`:`cltv_expiry_delta`]
+
+The fee amount or cltv value was below that required by the trampoline node to
+forward to the next trampoline node, but there are routes available if the
+sender retries with the fees and cltv provided in the error data.
+
+1. type: PERM|27 (`unknown_next_trampoline`)
+
+The trampoline onion specified an `outgoing_node_id` that cannot be reached
+from the processing node.
 
 ### Requirements
 
