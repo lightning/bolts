@@ -702,7 +702,8 @@ The initial sender of a "minitramp" payment builds it backwards from final desti
   - MUST NOT set `amount_to_send`, `next_cltv_value`, `next_node`, `blinded_paths`, `blinded_payinfo` or `minitramp`.
   - MUST set `outgoing_payment_secret`, `outgoing_payment_metadata`, `total_amount_msat` to the values which would normally set in the final `payload`.
   - If the payment destination is known to support `option_minitrampoline`:
-    - SHOULD set `incoming_payment_secret` and `incoming_payment_metadata` to random data (16 bytes in the case of `incoming_payment_metadata`).
+    - SHOULD set `incoming_payment_secret` to the SHA256 hash of `outgoing_payment_secret`.
+    - SHOULD set `incoming_payment_metadata` to random data (16 bytes in the case of `incoming_payment_metadata`).
   - Otherwise:
     - MUST set `incoming_payment_secret` and `incoming_payment_metadata` to `outgoing_payment_secret` and `outgoing_payment_metadata`.
   - MAY use `padding` to disguise that this is the final destination.
@@ -736,29 +737,40 @@ The initial sender of a "minitramp" payment builds it backwards from final desti
 
 The recipient:
 - MUST process all parts of the payment as normal.
-- If this is the final node (no more onion to unwrap), and `minitramp` is present:
-  - If `encrypted_trampinfo` does not decrypt into a valid `trampinfo`:
-    - Return an error (FIXME)
-  - If `trampinfo`.`incoming_amount_msat` or `trampinfo`.`incoming_ctlv` are not equal to the incoming HTLC
-    - Reject payment
-  - If neither `node_id` nor `blinded_paths` are present (we are the final destination):
-    - If `payment_secret` in `payload` is not equal to `trampinfo`.`incoming_payment_secret`:
-      - Don't ever accept payment of this invoice
-      - Reject payment
-    - If `payment_metadata` in `payload` is not equal to `trampinfo`.`incoming_payment_metadata`:
-      - Don't ever accept payment of this invoice
-      - Reject payment
-  - Otherwise: (forwarding):
-    - If both `next_node` and `blinded_paths` are present:
-      - Reject
-     - Determine a route to `next_node` or `blinded_paths` for `amount_to_send` using `next_cltv_value`.
-  - If the incoming amount or cltv is insufficient:
-      - Don't ever accept payment of this invoice
-      - Reject payment
-  - If the number of `blinded_paths` and `blinded_payinfo` do not match:
-    - Reject
-   - MUST include `trampinfo`.`minitramp`, `outgoing_payment_secret` (as `payment_secret`) and `outgoing_payment_info` (as `payment_metadata`) in the inner `payload` of the payment onion.
+- If this is the final node (no more onion to unwrap):
+  - If `minitramp` is present:
+    - If `encrypted_trampinfo` does not decrypt into a valid `trampinfo`:
+      - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
+      - Check for trampoline misbehaviour (below)
+    - If `trampinfo`.`incoming_amount_msat` or `trampinfo`.`incoming_ctlv` are not equal to the incoming HTLC
+      - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
+    - If neither `node_id` nor `blinded_paths` are present (we are the final destination):
+      - If `payment_secret` in `payload` is not equal to `trampinfo`.`incoming_payment_secret`:
+        - Reject payment
+        - Check for trampoline misbehaviour (below)
+      - If `payment_metadata` in `payload` is not equal to `trampinfo`.`incoming_payment_metadata`:
+        - Reject payment
+    - Otherwise: (forwarding):
+      - If both `next_node` and `blinded_paths` are present:
+        - Reject payment
+      - Determine a route to `next_node` or `blinded_paths` for `amount_to_send` using `next_cltv_value`.
+      - If the incoming amount or cltv is insufficient:
+         - Reject payment
+      - If the number of `blinded_paths` and `blinded_payinfo` do not match:
+        - Reject payment
+      - MUST include `trampinfo`.`minitramp`, `outgoing_payment_secret` (as `payment_secret`) and `outgoing_payment_info` (as `payment_metadata`) in the inner `payload` of the payment onion.
+  - Otherwise (`minitramp` is NOT present):
+    - Check for trampoline misbehaviour (below)
 
+Checking for trampoline misbehaviour:
+  - If `payload`.`payment_secret` is the SHA256 of the expected `payment_secret` for this payment:
+    - SHOULD NOT accept any future payment for this invoice (e.g. expire invoice immediately).
+
+## Rationale
+
+If the recipient supports minitrampoline, then the `payment_secret` and amount are secure: a trampoline cannot interfere with these and still have the payment work.  However, if the recipient does not support it, then interference is possible: a malicious trampoline can try to make a payment using the `payment_hash` and `payment_secret`, and if it succeeds it knows that the next hop is the final destination, and if the amount of the invoice is variable, can extract an arbitrary fee.
+
+To steal from a non-minitramp final node, a malicious trampoline attempts this, would have to set the `payment_secret` in the payload to the `outgoing_payment_secret` it is given.  But then it has to replace or omit the `trampinfo`, which will cause a minitramp node to fail the payment and any future attempts, denying it the fee it would otherwise gain (and possibly causing the payer to try another, more reliable trampoline).
 
 # Accepting and Forwarding a Payment
 
