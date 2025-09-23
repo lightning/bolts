@@ -26,6 +26,7 @@ All data fields are unsigned big-endian unless otherwise specified.
     * [The `error` and `warning` Messages](#the-error-and-warning-messages)
   * [Control Messages](#control-messages)
     * [The `ping` and `pong` Messages](#the-ping-and-pong-messages)
+  * [Network Message Padding](#network-message-padding)
   * [Peer Storage](#peer-storage)
     * [The `peer_storage` and `peer_storage_retrieval` Messages](#the-peer_storage-and-peer_storage_retrieval-messages)
   * [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
@@ -130,10 +131,11 @@ messages, a `tlv_stream` is typically placed after all currently defined fields.
 The `type` is encoded using the BigSize format. It functions as a
 message-specific, 64-bit identifier for the `tlv_record` determining how the
 contents of `value` should be decoded. `type` identifiers below 2^16 are
-reserved for use in this specification. `type` identifiers greater than or equal
-to 2^16 are available for custom records. Any record not defined in this
-specification is considered a custom record. This includes experimental and
-application-specific messages.
+reserved for use in this specification. `type` identifiers greater than or
+equal to 2^16 are available for custom records (except 2^64-1, which is
+reserved for message padding). Any record not defined in this specification is
+considered a custom record. This includes experimental and application-specific
+messages.
 
 The `length` is encoded using the BigSize format signaling the size of
 `value` in bytes.
@@ -503,6 +505,64 @@ every message maximally).
 
 Finally, the usage of periodic `ping` messages serves to promote frequent key
 rotations as specified within [BOLT #8](08-transport.md).
+
+## Network Message Padding
+
+Peers that negotiate `option_message_padding` agree to pad transmitted network
+message sizes to obfuscate the length of the original payload.
+
+To this end, they append a TLV record with type `18446744073709551615`
+(BigSize/`u64` maximum value) in the `extension` [TLV
+stream](#type-length-value-format) of all messages following `Init`.
+
+1. `tlv_stream`: `padding_tlvs`
+2. types:
+   1. type: `18446744073709551615` (`padding_type`)
+   2. data:
+     * [`length*bytes`:`padding_bytes`]
+
+### Requirements:
+
+A sending node that negotiated `option_provide_storage`:
+
+  - SHOULD append a TLV record of `padding_type` in all sent Lightning messages if their type is less than `32768`.
+  - MUST NOT apply padding to custom messages (i.e., any with types `32768`-`65535`).
+  - SHOULD choose the size of `padding_bytes` so that all sent messages have a fixed payload size >= 1452 bytes pre-encryption (1486 bytes post).
+
+A receiving node that negotiated `option_provide_storage`:
+
+  - SHOULD ignore and discard the `padding_bytes` data.
+
+### Rationale:
+Unpadded network messages might, even though Noise-encrypted, leak information
+about their contents to observing third parties. Therefore, it's in order to
+minimize the information leakage by padding any transmitted network messages to
+the same target size, reaching a uniform distribution of network message sizes.
+
+The `padding_type` was chosen to be odd to allow receivers to trivially ignore
+and discard them according to 'it's-okay-to-be-odd' rules in a
+backwards-compatible manner. It was furthermore chosen to be the BigSize/`u64`
+maximum value to allow senders to append the padding TLV record as a last step
+without infringing on the `tlv_stream` ordering requirements Note that the
+padding MUST NOT be applied to custom messages as it's not guaranteed that all
+application layer protocols are able to handle a TLV `extension` and apply
+'it's-okay-to-be-odd' rules.
+
+While the specific padding strategies/thresholds employed are left to
+implementations, they SHOULD pad all messages sizes to fixed values that cover
+the largest message sizes during payment activity: In the base case, a
+serialized `update_add_htlc` message is 1452 bytes: 2 (`type`) + 32
+(`channel_id`) + 8 (`htlc_id`) + 8 (`amount_msat`) + 32 (`payment_hash`) + 4
+(`cltv_expiry`) + 1366 (`onion_routing_packet`). The Noise encryption step then
+adds 2 (encrypted message length) + 16 (encrypted message length MAC) bytes +
+16 (encrypted message MAC), resulting in 1486 bytes TCP payload. Therefore
+implementations SHOULD pad all messages resulting in uniform message sizes of
+of 1452 bytes pre- or 1486 post-encryption.
+
+Note however that this base case doesn't take into account any of the optional
+fields on `update_add_htlc`, so implementations might choose to set larger
+padding threshold to have `update_add_htlc` messages not stand out if any of
+these fields are included.
 
 ## Peer storage
 
