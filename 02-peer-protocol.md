@@ -3387,7 +3387,8 @@ The sending node:
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
-    sent and received:
+    sent and received, and none of those `channel_reestablish` messages
+    contain `my_current_funding_locked` for a splice transaction:
     - MUST retransmit `channel_ready`.
   - otherwise:
     - MUST NOT retransmit `channel_ready`, but MAY send `channel_ready` with
@@ -3516,10 +3517,10 @@ commitment number 0 is created during opening.
 `commitment_signed` for commitment number 1 is send and then
 the revocation for commitment number 0 is received.
 
-`channel_ready` is implicitly acknowledged by the start of normal
-operation, which is known to have begun after a `commitment_signed` has been
-received — hence, the test for a `next_commitment_number` greater
-than 1.
+`channel_ready` is implicitly acknowledged by the start of normal operation,
+which is known to have begun after a `commitment_signed` has been received
+(hence, the test for a `next_commitment_number` greater than 1) or after a
+splice transaction has been locked.
 
 A node, which has somehow fallen
 behind (e.g. has been restored from old backup), can detect that it has fallen
