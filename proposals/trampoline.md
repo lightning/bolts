@@ -594,6 +594,127 @@ Alice --+--> | channel_id: 5         | ---> I2 ---> | | amount_fwd: 2500 msat | 
                                                     +---------------------------+
 ```
 
+## Multi-Trampoline MPP
+
+We can even go further and split a trampoline payment across many trampoline
+paths, by reusing the standard MPP mechanism, but at the trampoline onion
+layer instead of the outer onion.
+
+For example, Alice could split a payment between two trampoline routes, one
+that goes through T1 and another one that goes through T2. In each of these
+trampoline routes, she may use MPP to reach each trampoline node. T1 and T2
+only see part of the total amount, and don't know that another trampoline
+route is used in parallel.
+
+```text
+                                                            HTLC(1500 msat, 600112 cltv)
+                                                            +---------------------------+
+                                                            | amount_fwd: 1500 msat     |
+                                                            | expiry: 600112            |
+                    HTLC(1560 msat, 600124 cltv)            | payment_secret: aaaaa     |
+                     +-----------------------+              | total_amount: 2800 msat   |
+                     | amount_fwd: 1500 msat |              | trampoline_onion:         |                                                                  HTLC1(1100 msat, 600000 cltv)
+                     | expiry: 600112        |              | +-----------------------+ |                                                                 +-----------------------------+
+                +--> | channel_id: 3         | ---> I1 ---> | | amount_fwd: 2500 msat | | --+                                                             | amount_fwd: 1100 msat       |
+                |    |-----------------------|              | | expiry: 600000        | |   |                                                             | expiry: 600000              |
+                |    |     (encrypted)       |              | | node_id: Bob          | |   |                                                             | payment_secret: xxxxx       |
+                |    +-----------------------+              | +-----------------------+ |   |                     HTLC(1150 msat, 600080 cltv)            | total_amount: 2500 msat     |
+                |                                           | |      (encrypted)      | |   |                      +-----------------------+              | trampoline_onion:           |
+                |                                           | +-----------------------+ |   |                      | amount_fwd: 1100 msat |              | +-------------------------+ |
+                |                                           +---------------------------+   |                      | expiry: 600000        |              | | amount_fwd: 2500 msat   | |
+                |                                           |             EOF           |   |                 +--> | channel_id: 561       | ---> I4 ---> | | expiry: 600000          | | --+
+                |                                           +---------------------------+   |                 |    |-----------------------|              | | total_amount: 5200 msat | |   |
+                |                                            HTLC(800 msat, 600112 cltv)    |                 |    |     (encrypted)       |              | | payment_secret: yyyyy   | |   |
+                |                                           +---------------------------+   |                 |    +-----------------------+              | +-------------------------+ |   |
+                |                                           | amount_fwd: 800 msat      |   |                 |                                           | |         EOF             | |   |
+                |                                           | expiry: 600112            |   |                 |                                           | +-------------------------+ |   |
+                |   HTLC(820 msat, 600130 cltv)             | payment_secret: aaaaa     |   |                 |                                           +-----------------------------+   |
+                |    +-----------------------+              | total_amount: 2800 msat   |   |                 |                                           |             EOF             |   |
+                |    | amount_fwd: 800 msat  |              | trampoline_onion:         |   |                 |                                           +-----------------------------+   |
+                |    | expiry: 600112        |              | +-----------------------+ |   |                 |                                                                             |
+        +-------+--> | channel_id: 5         | ---> I2 ---> | | amount_fwd: 2500 msat | | --+---->  T1  ------+                                                                             +----+
+        |       |    |-----------------------|              | | expiry: 600000        | |   |  (fee 170 msat) |                                            HTLC2(1400 msat, 600000 cltv)    |    |
+        |       |    |     (encrypted)       |              | | node_id: Bob          | |   |    (delta 32)   |                                           +-----------------------------+   |    |
+        |       |    +-----------------------+              | +-----------------------+ |   |                 |                                           | amount_fwd: 1400 msat       |   |    |
+        |       |                                           | |      (encrypted)      | |   |                 |                                           | expiry: 600000              |   |    |
+        |       |                                           | +-----------------------+ |   |                 |                                           | payment_secret: xxxxx       |   |    |
+        |       |                                           +---------------------------+   |                 |   HTLC(1480 msat, 600065 cltv)            | total_amount: 2500 msat     |   |    |
+        |       |                                           |             EOF           |   |                 |    +-----------------------+              | trampoline_onion:           |   |    |
+        |       |                                           +---------------------------+   |                 |    | amount_fwd: 1400 msat |              | +-------------------------+ |   |    |
+        |       |                                            HTLC(500 msat, 600112 cltv)    |                 |    | expiry: 600000        |              | | amount_fwd: 2500 msat   | |   |    |
+        |       |                                           +---------------------------+   |                 +--> | channel_id: 1105      | ---> I5 ---> | | expiry: 600000          | | --+    |
+        |       |                                           | amount_fwd: 500 msat      |   |                      |-----------------------|              | | total_amount: 5200 msat | |        |
+        |       |                                           | expiry: 600112            |   |                      |     (encrypted)       |              | | payment_secret: yyyyy   | |        |
+        |       |   HTLC(510 msat, 600120 cltv)             | payment_secret: aaaaa     |   |                      +-----------------------+              | +-------------------------+ |        |
+        |       |    +-----------------------+              | total_amount: 2800 msat   |   |                                                             | |         EOF             | |        |
+        |       |    | amount_fwd: 500 msat  |              | trampoline_onion:         |   |                                                             | +-------------------------+ |        |
+        |       |    | expiry: 600112        |              | +-----------------------+ |   |                                                             +-----------------------------+        |
+        |       +--> | channel_id: 7         | ---> I3 ---> | | amount_fwd: 2500 msat | | --+                                                             |             EOF             |        |
+        |            |-----------------------|              | | expiry: 600000        | |                                                                 +-----------------------------+        |
+        |            |     (encrypted)       |              | | node_id: Bob          | |                                                                                                        |
+        |            +-----------------------+              | +-----------------------+ |                                                                                                        |
+        |                                                   | |      (encrypted)      | |                                                                                                        |
+        |                                                   | +-----------------------+ |                                                                                                        |
+        |                                                   +---------------------------+                                                                                                        |
+        |                                                   |             EOF           |                                                                                                        |
+        |                                                   +---------------------------+                                                                                                        |
+        |                                                                                                                                                                                        |
+Alice --+                                                                                                                                                                                        +--> Bob
+        |                                                                                                                                                                                        |
+        |                                                                                                                                                                                        |
+        |                                                   HTLC(1500 msat, 600112 cltv)                                                                                                         |
+        |                                                   +---------------------------+                                                                                                        |
+        |                                                   | amount_fwd: 1500 msat     |                                                                                                        |
+        |                                                   | expiry: 600112            |                                                                                                        |
+        |           HTLC(1560 msat, 600124 cltv)            | payment_secret: bbbbb     |                                                                                                        |
+        |            +-----------------------+              | total_amount: 3000 msat   |                                                                                                        |
+        |            | amount_fwd: 1500 msat |              | trampoline_onion:         |                                                                  HTLC3(1200 msat, 600000 cltv)         |
+        |            | expiry: 600112        |              | +-----------------------+ |                                                                 +-----------------------------+        |
+        |       +--> | channel_id: 4         | ---> J1 ---> | | amount_fwd: 2700 msat | | --+                                                             | amount_fwd: 1200 msat       |        |
+        |       |    |-----------------------|              | | expiry: 600000        | |   |                                                             | expiry: 600000              |        |
+        |       |    |     (encrypted)       |              | | node_id: Bob          | |   |                                                             | payment_secret: zzzzz       |        |
+        |       |    +-----------------------+              | +-----------------------+ |   |                     HTLC(1250 msat, 600080 cltv)            | total_amount: 2700 msat     |        |
+        |       |                                           | |      (encrypted)      | |   |                      +-----------------------+              | trampoline_onion:           |        |
+        |       |                                           | +-----------------------+ |   |                      | amount_fwd: 1200 msat |              | +-------------------------+ |        |
+        |       |                                           +---------------------------+   |                      | expiry: 600000        |              | | amount_fwd: 2700 msat   | |        |
+        |       |                                           |             EOF           |   |                 +--> | channel_id: 563       | ---> J4 ---> | | expiry: 600000          | | --+    |
+        |       |                                           +---------------------------+   |                 |    |-----------------------|              | | total_amount: 5200 msat | |   |    |
+        |       |                                            HTLC(900 msat, 600112 cltv)    |                 |    |     (encrypted)       |              | | payment_secret: yyyyy   | |   |    |
+        |       |                                           +---------------------------+   |                 |    +-----------------------+              | +-------------------------+ |   |    |
+        |       |                                           | amount_fwd: 900 msat      |   |                 |                                           | |         EOF             | |   |    |
+        |       |                                           | expiry: 600112            |   |                 |                                           | +-------------------------+ |   |    |
+        |       |   HTLC(920 msat, 600130 cltv)             | payment_secret: bbbbb     |   |                 |                                           +-----------------------------+   |    |
+        |       |    +-----------------------+              | total_amount: 3000 msat   |   |                 |                                           |             EOF             |   |    |
+        |       |    | amount_fwd: 900 msat  |              | trampoline_onion:         |   |                 |                                           +-----------------------------+   |    |
+        |       |    | expiry: 600112        |              | +-----------------------+ |   |                 |                                                                             |    |
+        +-------+--> | channel_id: 6         | ---> J2 ---> | | amount_fwd: 2700 msat | | --+---->  T2  ------+                                                                             +----+
+                |    |-----------------------|              | | expiry: 600000        | |   |  (fee 170 msat) |                                            HTLC4(1500 msat, 600000 cltv)    |
+                |    |     (encrypted)       |              | | node_id: Bob          | |   |    (delta 32)   |                                           +-----------------------------+   |
+                |    +-----------------------+              | +-----------------------+ |   |                 |                                           | amount_fwd: 1500 msat       |   |
+                |                                           | |      (encrypted)      | |   |                 |                                           | expiry: 600000              |   |
+                |                                           | +-----------------------+ |   |                 |                                           | payment_secret: zzzzz       |   |
+                |                                           +---------------------------+   |                 |   HTLC(1580 msat, 600065 cltv)            | total_amount: 2700 msat     |   |
+                |                                           |             EOF           |   |                 |    +-----------------------+              | trampoline_onion:           |   |
+                |                                           +---------------------------+   |                 |    | amount_fwd: 1500 msat |              | +-------------------------+ |   |
+                |                                            HTLC(600 msat, 600112 cltv)    |                 |    | expiry: 600000        |              | | amount_fwd: 2700 msat   | |   |
+                |                                           +---------------------------+   |                 +--> | channel_id: 1108      | ---> J5 ---> | | expiry: 600000          | | --+
+                |                                           | amount_fwd: 600 msat      |   |                      |-----------------------|              | | total_amount: 5200 msat | |
+                |                                           | expiry: 600112            |   |                      |     (encrypted)       |              | | payment_secret: yyyyy   | |
+                |   HTLC(610 msat, 600120 cltv)             | payment_secret: bbbbb     |   |                      +-----------------------+              | +-------------------------+ |
+                |    +-----------------------+              | total_amount: 3000 msat   |   |                                                             | |         EOF             | |
+                |    | amount_fwd: 600 msat  |              | trampoline_onion:         |   |                                                             | +-------------------------+ |
+                |    | expiry: 600112        |              | +-----------------------+ |   |                                                             +-----------------------------+
+                +--> | channel_id: 8         | ---> J3 ---> | | amount_fwd: 2700 msat | | --+                                                             |             EOF             |
+                     |-----------------------|              | | expiry: 600000        | |                                                                 +-----------------------------+
+                     |     (encrypted)       |              | | node_id: Bob          | |
+                     +-----------------------+              | +-----------------------+ |
+                                                            | |      (encrypted)      | |
+                                                            | +-----------------------+ |
+                                                            +---------------------------+
+                                                            |             EOF           |
+                                                            +---------------------------+
+```
+
 ## Trampoline fees
 
 An important question that comes to mind if how senders choose the fee budget
