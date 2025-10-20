@@ -1671,6 +1671,9 @@ Once shutdown is complete, the channel is empty of HTLCs, there are no commitmen
 for which a revocation is owed, and all updates are included on both commitments,
 the final current commitment transactions will have no HTLCs.
 
+If `option_simple_close` is not negotiated, see [Legacy Closing
+Negotiation](#legacy-closing-negotiation-closing_signed) below.
+
 Each peer creates their own closing transaction where they pay the fee, and sends
 `closing_complete` to the other peer with the transaction details. The other peer
 simply signs that transaction and sends back `closing_sig`. Each peer will thus
@@ -1722,6 +1725,10 @@ which allows increasing the fees and changing the output script.
 Note: the details and requirements for the transaction being signed are in [BOLT 3](03-transactions.md#closing-transaction).
 
 An output is *dust* if the amount is less than the [Bitcoin Core Dust Thresholds](03-transactions.md#dust-limits).
+
+Note: These requirements only apply if `option_simple_close` is
+negotiated, otherwise the requirements are in [Legacy Closing
+Negotiation](#legacy-closing-negotiation-closing_signed).
 
 Both nodes:
   - After a `shutdown` has been sent and received, AND no HTLCs remain in either commitment transaction:
@@ -1849,7 +1856,10 @@ also costs more to spend.
 Once shutdown is complete, the channel is empty of HTLCs, there are no commitments
 for which a revocation is owed, and all updates are included on both commitments,
 the final current commitment transactions will have no HTLCs, and closing fee
-negotiation begins.  The funder chooses a fee it thinks is fair, and
+negotiation begins: if `option_simple_close` is negotiated, the section above applies,
+otherwise this legacy section applies.
+
+The funder chooses a fee it thinks is fair, and
 signs the closing transaction with the `scriptpubkey` fields from the
 `shutdown` messages (along with its chosen fee) and sends the signature;
 the other node then replies similarly, using a fee it thinks is fair.  This
@@ -1876,6 +1886,10 @@ reply with the same value (completing after three messages).
         * [`u64`:`max_fee_satoshis`]
 
 #### Requirements
+
+Note: These requirements only apply if `option_simple_close` is NOT
+negotiated, otherwise the requirements [Closing Negotiation:
+`closing_complete` and `closing_sig`](#closing-negotiation-closing_complete-and-closing_sig) apply.
 
 The funding node:
   - after `shutdown` has been received, AND no HTLCs remain in either commitment transaction:
