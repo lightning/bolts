@@ -35,8 +35,8 @@ operation, and closing.
     * [Channel Quiescence](#channel-quiescence)
     * [Channel Close](#channel-close)
       * [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
-      * [Closing Negotiation: `closing_signed`](#closing-negotiation-closing_signed)
       * [Closing Negotiation: `closing_complete` and `closing_sig`](#closing-negotiation-closing_complete-and-closing_sig)
+      * [Legacy Closing Negotiation: `closing_signed`](#legacy-closing-negotiation-closing_signed)
     * [Normal Operation](#normal-operation)
       * [Forwarding HTLCs](#forwarding-htlcs)
       * [`cltv_expiry_delta` Selection](#cltv_expiry_delta-selection)
@@ -1665,120 +1665,6 @@ there are two forms in script: one which pushes up to 75 bytes, and a longer
 one (`OP_PUSHDATA1`) which is needed for 76-80 bytes.
 
 
-### Closing Negotiation: `closing_signed`
-
-Once shutdown is complete, the channel is empty of HTLCs, there are no commitments
-for which a revocation is owed, and all updates are included on both commitments,
-the final current commitment transactions will have no HTLCs, and closing fee
-negotiation begins.  The funder chooses a fee it thinks is fair, and
-signs the closing transaction with the `scriptpubkey` fields from the
-`shutdown` messages (along with its chosen fee) and sends the signature;
-the other node then replies similarly, using a fee it thinks is fair.  This
-exchange continues until both agree on the same fee or when one side fails
-the channel.
-
-In the modern method, the funder sends its permissible fee range, and the
-non-funder has to pick a fee in this range. If the non-funder chooses the same
-value, negotiation is complete after two messages, otherwise the funder will
-reply with the same value (completing after three messages).
-
-1. type: 39 (`closing_signed`)
-2. data:
-   * [`channel_id`:`channel_id`]
-   * [`u64`:`fee_satoshis`]
-   * [`signature`:`signature`]
-   * [`closing_signed_tlvs`:`tlvs`]
-
-1. `tlv_stream`: `closing_signed_tlvs`
-2. types:
-    1. type: 1 (`fee_range`)
-    2. data:
-        * [`u64`:`min_fee_satoshis`]
-        * [`u64`:`max_fee_satoshis`]
-
-#### Requirements
-
-The funding node:
-  - after `shutdown` has been received, AND no HTLCs remain in either commitment transaction:
-    - SHOULD send a `closing_signed` message.
-
-The sending node:
-  - SHOULD set the initial `fee_satoshis` according to its estimate of cost of
-  inclusion in a block.
-  - SHOULD set `fee_range` according to the minimum and maximum fees it is
-  prepared to pay for a close transaction.
-  - if it doesn't receive a `closing_signed` response after a reasonable amount of time:
-    - MUST fail the channel
-  - if it is not the funder:
-    - SHOULD set `max_fee_satoshis` to at least the `max_fee_satoshis` received
-    - SHOULD set `min_fee_satoshis` to a fairly low value
-  - MUST set `signature` to the Bitcoin signature of the close transaction,
-  as specified in [BOLT #3](03-transactions.md#closing-transaction).
-
-The receiving node:
-  - if the `signature` is not valid for either variant of closing transaction
-  specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
-    - MUST send a `warning` and close the connection, or send an
-      `error` and fail the channel.
-  - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
-    - SHOULD sign and broadcast the final closing transaction.
-    - MAY close the connection.
-  - if `fee_satoshis` matches its previously sent `fee_range`:
-    - SHOULD use `fee_satoshis` to sign and broadcast the final closing transaction
-    - SHOULD reply with a `closing_signed` with the same `fee_satoshis` value if it is different from its previously sent `fee_satoshis`
-    - MAY close the connection.
-  - if the message contains a `fee_range`:
-    - if there is no overlap between that and its own `fee_range`:
-      - SHOULD send a warning
-      - MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time
-    - otherwise:
-      - if it is the funder:
-        - if `fee_satoshis` is not in the overlap between the sent and received `fee_range`:
-          - MUST fail the channel
-        - otherwise:
-          - MUST reply with the same `fee_satoshis`.
-      - otherwise (it is not the funder):
-        - if it has already sent a `closing_signed`:
-          - if `fee_satoshis` is not the same as the value it sent:
-            - MUST fail the channel
-        - otherwise:
-          - MUST propose a `fee_satoshis` in the overlap between received and (about-to-be) sent `fee_range`.
-  - otherwise, if `fee_satoshis` is not strictly between its last-sent `fee_satoshis`
-  and its previously-received `fee_satoshis`, UNLESS it has since reconnected:
-    - SHOULD send a `warning` and close the connection, or send an
-      `error` and fail the channel.
-  - otherwise, if the receiver agrees with the fee:
-    - SHOULD reply with a `closing_signed` with the same `fee_satoshis` value.
-  - otherwise:
-    - MUST propose a value "strictly between" the received `fee_satoshis`
-    and its previously-sent `fee_satoshis`.
-
-The receiving node:
-  - if one of the outputs in the closing transaction is below the dust limit for its `scriptpubkey` (see [BOLT 3](03-transactions.md#dust-limits)):
-    - MUST fail the channel
-
-#### Rationale
-
-When `fee_range` is not provided, the "strictly between" requirement ensures
-that forward progress is made, even if only by a single satoshi at a time.
-To avoid keeping state and to handle the corner case, where fees have shifted
-between disconnection and reconnection, negotiation restarts on reconnection.
-
-Note there is limited risk if the closing transaction is
-delayed, but it will be broadcast very soon; so there is usually no
-reason to pay a premium for rapid processing.
-
-Note that the non-funder is not paying the fee, so there is no reason for it
-to have a maximum feerate. It may want a minimum feerate, however, to ensure
-that the transaction propagates. It can always use CPFP later to speed up
-confirmation if necessary, so that minimum should be low.
-
-It may happen that the closing transaction doesn't meet bitcoin's default relay
-policies (e.g. when using a non-segwit shutdown script for an output below 546
-satoshis, which is possible if `dust_limit_satoshis` is below 546 satoshis).
-No funds are at risk when that happens, but the channel must be force-closed as
-the closing transaction will likely never reach miners.
-
 ### Closing Negotiation: `closing_complete` and `closing_sig`
 
 Once shutdown is complete, the channel is empty of HTLCs, there are no commitments
@@ -1957,6 +1843,120 @@ minimal fee. If neither side proposes a fee which will relay, the negotiation ca
 or the final commitment transaction can be spent. In practice, the opener has an incentive to
 offer a reasonable closing fee, as they would pay the fee for the commitment transaction, which
 also costs more to spend.
+
+### Legacy Closing Negotiation: `closing_signed`
+
+Once shutdown is complete, the channel is empty of HTLCs, there are no commitments
+for which a revocation is owed, and all updates are included on both commitments,
+the final current commitment transactions will have no HTLCs, and closing fee
+negotiation begins.  The funder chooses a fee it thinks is fair, and
+signs the closing transaction with the `scriptpubkey` fields from the
+`shutdown` messages (along with its chosen fee) and sends the signature;
+the other node then replies similarly, using a fee it thinks is fair.  This
+exchange continues until both agree on the same fee or when one side fails
+the channel.
+
+In the modern method, the funder sends its permissible fee range, and the
+non-funder has to pick a fee in this range. If the non-funder chooses the same
+value, negotiation is complete after two messages, otherwise the funder will
+reply with the same value (completing after three messages).
+
+1. type: 39 (`closing_signed`)
+2. data:
+   * [`channel_id`:`channel_id`]
+   * [`u64`:`fee_satoshis`]
+   * [`signature`:`signature`]
+   * [`closing_signed_tlvs`:`tlvs`]
+
+1. `tlv_stream`: `closing_signed_tlvs`
+2. types:
+    1. type: 1 (`fee_range`)
+    2. data:
+        * [`u64`:`min_fee_satoshis`]
+        * [`u64`:`max_fee_satoshis`]
+
+#### Requirements
+
+The funding node:
+  - after `shutdown` has been received, AND no HTLCs remain in either commitment transaction:
+    - SHOULD send a `closing_signed` message.
+
+The sending node:
+  - SHOULD set the initial `fee_satoshis` according to its estimate of cost of
+  inclusion in a block.
+  - SHOULD set `fee_range` according to the minimum and maximum fees it is
+  prepared to pay for a close transaction.
+  - if it doesn't receive a `closing_signed` response after a reasonable amount of time:
+    - MUST fail the channel
+  - if it is not the funder:
+    - SHOULD set `max_fee_satoshis` to at least the `max_fee_satoshis` received
+    - SHOULD set `min_fee_satoshis` to a fairly low value
+  - MUST set `signature` to the Bitcoin signature of the close transaction,
+  as specified in [BOLT #3](03-transactions.md#closing-transaction).
+
+The receiving node:
+  - if the `signature` is not valid for either variant of closing transaction
+  specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+    - MUST send a `warning` and close the connection, or send an
+      `error` and fail the channel.
+  - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
+    - SHOULD sign and broadcast the final closing transaction.
+    - MAY close the connection.
+  - if `fee_satoshis` matches its previously sent `fee_range`:
+    - SHOULD use `fee_satoshis` to sign and broadcast the final closing transaction
+    - SHOULD reply with a `closing_signed` with the same `fee_satoshis` value if it is different from its previously sent `fee_satoshis`
+    - MAY close the connection.
+  - if the message contains a `fee_range`:
+    - if there is no overlap between that and its own `fee_range`:
+      - SHOULD send a warning
+      - MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time
+    - otherwise:
+      - if it is the funder:
+        - if `fee_satoshis` is not in the overlap between the sent and received `fee_range`:
+          - MUST fail the channel
+        - otherwise:
+          - MUST reply with the same `fee_satoshis`.
+      - otherwise (it is not the funder):
+        - if it has already sent a `closing_signed`:
+          - if `fee_satoshis` is not the same as the value it sent:
+            - MUST fail the channel
+        - otherwise:
+          - MUST propose a `fee_satoshis` in the overlap between received and (about-to-be) sent `fee_range`.
+  - otherwise, if `fee_satoshis` is not strictly between its last-sent `fee_satoshis`
+  and its previously-received `fee_satoshis`, UNLESS it has since reconnected:
+    - SHOULD send a `warning` and close the connection, or send an
+      `error` and fail the channel.
+  - otherwise, if the receiver agrees with the fee:
+    - SHOULD reply with a `closing_signed` with the same `fee_satoshis` value.
+  - otherwise:
+    - MUST propose a value "strictly between" the received `fee_satoshis`
+    and its previously-sent `fee_satoshis`.
+
+The receiving node:
+  - if one of the outputs in the closing transaction is below the dust limit for its `scriptpubkey` (see [BOLT 3](03-transactions.md#dust-limits)):
+    - MUST fail the channel
+
+#### Rationale
+
+When `fee_range` is not provided, the "strictly between" requirement ensures
+that forward progress is made, even if only by a single satoshi at a time.
+To avoid keeping state and to handle the corner case, where fees have shifted
+between disconnection and reconnection, negotiation restarts on reconnection.
+
+Note there is limited risk if the closing transaction is
+delayed, but it will be broadcast very soon; so there is usually no
+reason to pay a premium for rapid processing.
+
+Note that the non-funder is not paying the fee, so there is no reason for it
+to have a maximum feerate. It may want a minimum feerate, however, to ensure
+that the transaction propagates. It can always use CPFP later to speed up
+confirmation if necessary, so that minimum should be low.
+
+It may happen that the closing transaction doesn't meet bitcoin's default relay
+policies (e.g. when using a non-segwit shutdown script for an output below 546
+satoshis, which is possible if `dust_limit_satoshis` is below 546 satoshis).
+No funds are at risk when that happens, but the channel must be force-closed as
+the closing transaction will likely never reach miners.
 
 ## Normal Operation
 
