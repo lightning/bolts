@@ -3372,18 +3372,18 @@ The sending node:
   - if `option_splice` was negotiated:
     - if a splice transaction reached acceptable depth while disconnected:
       - MUST include `my_current_funding_locked` with the txid of the latest such transaction.
-    - otherwise:
+    - otherwise, if it has already sent `splice_locked` for any transaction:
       - MUST include `my_current_funding_locked` with the txid of the last `splice_locked` it sent.
-      - if it never sent `splice_locked` for any transaction, but it sent `channel_ready`:
-        - MUST include `my_current_funding_locked` with the txid of the channel funding transaction.
-      - otherwise (it has never sent `channel_ready` or `splice_locked`):
-        - MUST NOT include `my_current_funding_locked`.
-      - if `my_current_funding_locked` is included:
-        - if `announce_channel` is set for this channel:
-          - if it has not received `announcement_signatures` for that transaction:
-            - MUST set the `announcement_signatures` bit to `1` in `retransmit_flags`.
-        - otherwise:
-          - MUST set the `announcement_signatures` bit to `0` in `retransmit_flags`.
+    - otherwise, if it has already sent `channel_ready`:
+      - MUST include `my_current_funding_locked` with the txid of the channel funding transaction.
+    - otherwise (it has never sent `channel_ready` or `splice_locked`):
+      - MUST NOT include `my_current_funding_locked`.
+    - if `my_current_funding_locked` is included:
+      - if `announce_channel` is set for this channel:
+        - if it has not received `announcement_signatures` for that transaction:
+          - MUST set the `announcement_signatures` bit to `1` in `retransmit_flags`.
+      - otherwise:
+        - MUST set the `announcement_signatures` bit to `0` in `retransmit_flags`.
 
 A node:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
