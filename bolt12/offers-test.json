@@ -574,6 +574,11 @@
     "bolt12": "lno1pqpzwyqkyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvxg"
   },
   {
+    "description": "Missing offer_amount with offer_currency",
+    "valid": false,
+    "bolt12": "lno1qcp4256ypgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvxg"
+  },
+  {
     "description": "Missing offer_issuer_id and no offer_path",
     "valid": false,
     "bolt12": "lno1pgx9getnwss8vetrw3hhyuc"
