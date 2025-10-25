@@ -107,18 +107,18 @@ The data part of a Lightning invoice consists of multiple sections:
 
 1. `timestamp`: seconds-since-1970 (35 bits, big-endian)
 1. zero or more tagged parts
-1. `signature`: Bitcoin-style signature of above (520 bits)
+1. `signature`: compact ECDSA/secp256k1 signature of the above (520 bits: 64-byte R||S + 1-byte recovery id)
 
 ## Requirements
 
 A writer:
   - MUST set `timestamp` to the number of seconds since Midnight 1 January 1970, UTC in
   big-endian.
-  - MUST set `signature` to a valid 512-bit secp256k1 signature of the SHA2 256-bit hash of the
-  human-readable part, represented as UTF-8 bytes, concatenated with the
-  data part (excluding the signature) with 0 bits appended to pad the
-  data to the next byte boundary, with a trailing byte containing
-  the recovery ID (0, 1, 2, or 3).
+  - MUST set `signature` to a valid compact ECDSA signature over secp256k1 of the SHA-256
+  hash of: the human-readable part (as UTF-8 bytes) concatenated with the data part
+  (excluding the signature), with 0 bits appended to pad to a byte boundary.
+  The signature is encoded as 64 bytes (R || S), followed by a trailing 1-byte
+  recovery id in {0,1,2,3}.
 
 A reader:
   - MUST check that the `signature` is valid (see the `n` tagged field specified below).
@@ -184,7 +184,7 @@ A writer:
     - MUST set `c` to the minimum `cltv_expiry` it will accept for the last
     HTLC in the route.
     - MUST use the minimum `data_length` possible, i.e. no leading 0 field-elements.
-  - MAY include one `n` field. (Otherwise performing signature recovery is required)
+  - MAY include one `n` field. (Otherwise performing public-key recovery is required)
     - MUST set `n` to the public key used to create the `signature`.
   - MAY include one or more `f` fields.
     - for Bitcoin payments:
@@ -220,7 +220,11 @@ A reader:
   - MUST check that the SHA2 256-bit hash in the `h` field exactly matches the hashed
   description.
   - if a valid `n` field is provided:
-    - MUST use the `n` field to validate the signature instead of performing signature recovery.
+    - MUST use the `n` field to validate the signature instead of performing public-key recovery.
+    - If the signature is not compliant with the low-S standard rule<sup>[low-S](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+      - MUST fail the payment
+  - otherwise:
+    - MUST perform ECDSA public-key recovery and accept both high-S and low-S signatures.
   - if a valid `s` field is not provided:
     - MUST fail the payment.
   - otherwise:
@@ -249,7 +253,7 @@ The `m` field allows metadata to be attached to the payment. This supports
 applications where the recipient doesn't keep any context for the payment.
 
 The `n` field can be used to explicitly specify the destination node ID,
-instead of requiring signature recovery.
+instead of requiring public-key recovery.
 
 The `x` field gives warning as to when a payment will be
 refused: mainly to avoid confusion. The default was chosen
@@ -768,6 +772,34 @@ Breakdown:
   * `gqqqqqqsgq`: [b01000000000000000000000000000000000100000100000000] = 8 + 14 + 48
 * `7hf8he7ecf7n4ffphs6awl9t6676rrclv9ckg3d3ncn7fct63p6s365duk5wrk202cfy3aj5xnnp5gs3vrdvruverwwq7yzhkf5a3xqp`: signature
 * `d05wjc`: Bech32 checksum
+
+> ### Public-key recovery with high-S signature
+> lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq9qrsgq357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap2r09nt4ndd0unm3z9u5t48y6ucv4r5sg7lk98c77ctvjczkspk5qprc90gx
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `s`: payment secret
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: payment secret 1111111111111111111111111111111111111111111111111111111111111111
+* `p`: payment hash
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypq`: payment hash 0001020304050607080900010203040506070809000102030405060708090102
+* `d`: short description
+  * `pl`: `data_length` (`p` = 1, `l` = 31; 1 * 32 + 31 == 63)
+  * `2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq`: 'Please consider supporting this project'
+* `9`: features
+  * `qr`: `data_length` (`q` = 0, `r` = 3; 0 * 32 + 3 == 3)
+  * `sgq`: b100000100000000
+* `357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap2r09nt4ndd0unm3z9u5t48y6ucv4r5sg7lk98c77ctvjczkspk5qp`: signature
+* `rc90gx`: Bech32 checksum
+* Signature breakdown:
+  * `8d3ce9e28357337f62da0162d9454df827f83cfe499aeb1c1db349d4d8112742a1bcb35d66d6bf93dc445e51753935cc32a3a411efd8a7c7bd85b25815a01b50` hex of signature data (32-byte r, 32-byte s)
+  * `1` (int) recovery flag contained in `signature`
+  * `6c6e62630b25fe64500d04444444444444444444444444444444444444444444444444444444444444444021a00008101820283038404800081018202830384048000810182028303840480810343f506c6561736520636f6e736964657220737570706f7274696e6720746869732070726f6a6563740500e08000` hex of data for signing (prefix + data after separator up to the start of the signature)
+  * `6daf4d488be41ce7cbb487cab1ef2975e5efcea879b20d421f0ef86b07cbb987` hex of SHA256 of the preimage
 
 # Examples of Invalid Invoices
 
