@@ -54,6 +54,7 @@ The Context column decodes as follows:
 | 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                             | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
 | 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | INT      | `option_scid_alias`         | [BOLT #2][bolt02-channel-ready]                                       |
 | 60/61 | `option_simple_close`             | Simplified closing negotiation                            | IN       | `option_shutdown_anysegwit` | [BOLT #2][bolt02-simple-close]                                        |
+| 66/67 | `option_path_queries`               | Node supports `query_path` messages | IN       |                             | [BOLT #7](07-routing-gossip.md#path-query-messages)                   |
 
 ## Requirements
 
