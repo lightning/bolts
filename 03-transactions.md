@@ -45,6 +45,7 @@ This details the exact format of on-chain transactions, which both sides need to
   * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
   * [Appendix F: Commitment and HTLC Transaction Test Vectors (anchors)](#appendix-f-commitment-and-htlc-transaction-test-vectors-anchors)
   * [Appendix G: Dual Funded Transaction Test Vectors](#appendix-g-dual-funded-transaction-test-vectors)
+  * [Appendix H: Commitment and HTLC Transaction Test Vectors (zero-fee-commitments)](#appendix-h-commitment-and-htlc-transaction-test-vectors-zero-fee-commitments)
   * [References](#references)
   * [Authors](#authors)
 
@@ -2413,6 +2414,12 @@ Note locktime is set to 120.
 ```
 02000000000102b932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430200000000fdffffffb932b0669cd0394d0d5bcc27e01ab8c511f1662a6799925b346c0cf18fca03430000000000fdffffff03e5effa02000000001600141ca1cca8855bad6bc1ea5436edd8cff10b7e448b1cf0fa020000000016001444cb0c39f93ecc372b5851725bd29d865d333b100084d71700000000220020297b92c238163e820b82486084634b4846b86a3c658d87b9384192e6bea98ec50247304402207de9ba56bb9f641372e805782575ee840a899e61021c8b1572b3ec1d5b5950e9022069e9ba998915dae193d3c25cb89b5e64370e6a3a7755e7f31cf6d7cbc2a49f6d0121034695f5b7864c580bf11f9f8cb1a94eb336f2ce9ef872d2ae1a90ee276c772484022068656c6c6f2074686572652c2074686973206973206120626974636f6e2121212782012088a820add57dfe5277079d069ca4ad4893c96de91f88ffb981fdc6a2a34d5336c66aff8778000000
 ```
+
+# Appendix H: Commitment and HTLC Transaction Test Vectors (zero-fee-commitments)
+
+Test vectors [are provided](./bolt03/zero-fee-commitments-test.json) that detail commitment and HTLC
+transactions created using `zero_fee_commitments` in various scenarios. All parameters are provided
+to ensure that implementations generate exactly the same signed transactions.
 
 # References
 
