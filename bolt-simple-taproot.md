@@ -563,8 +563,7 @@ Note that these TLV types exist across different messages, but their type IDs ar
 #### local_nonces
 - type: 22
 - data:
-   * [`u16`: `num_entries`]
-   * [`num_entries * nonce_entry`: `entries`]
+   * [`... * nonce_entry`: `entries`]
 
 where `nonce_entry` is:
    * [`32*byte`: `txid`]
@@ -1213,9 +1212,8 @@ The sender:
 - MUST set `next_local_nonce` to a fresh, unique `musig2` nonce as specified by
   `bip-musig2`
 - For taproot channels, SHOULD also populate the `local_nonces` field:
-  - MUST include at least one entry with an empty hash (32 zero bytes) as the key,
-    containing the primary commitment nonce
-  - The value for the empty hash key MUST match the value in `next_local_nonce`
+  - MUST include one entry for each active commitment transaction,
+    indexed by the commitment transaction's funding txid.
   - MAY include additional entries for in-progress splice transactions
   - MUST sort entries by TXID in lexicographical order when encoding
 
@@ -1226,8 +1224,8 @@ The recipient:
 - When `local_nonces` field is present:
   - MUST prioritize `local_nonces` over `next_local_nonce` for obtaining the
     commitment nonce
-  - MUST use the nonce associated with the empty hash key (32 zero bytes) as the
-    primary commitment nonce
+  - MUST fail the channel if an active commitment funding txid is missing in
+    `next_local_nonces`.
   - MAY store additional nonces for splice coordination
 - For taproot channels, if neither `next_local_nonce` nor `local_nonces` contains
   a valid nonce, MUST fail the channel
@@ -1248,20 +1246,20 @@ A node:
 
 ### Splice Coordination
 
-Splicing allows parties to modify the funding output of an existing channel without
-closing it. During splice operations, multiple commitment transactions may exist
-concurrently, each requiring its own MuSig2 nonce coordination. The `local_nonces`
-field enables this coordination by mapping transaction IDs to their respective nonces.
+Splicing allows parties to modify the funding output of an existing channel
+without closing it. During splice operations, multiple commitment transactions
+may exist concurrently, each requiring its own MuSig2 nonce coordination. The
+`local_nonces` field enables this coordination by mapping transaction IDs to
+their respective nonces.
 
 #### Splice Nonce Management
 
 During splice negotiation:
 
-- Each splice transaction MUST have a unique TXID as the key in the `local_nonces` map
-- The primary (non-splice) commitment transaction MUST use an empty hash (32 zero
-  bytes) as its key
-- Parties MUST include nonces for all active splice transactions in their
-  `local_nonces` map
+- Each splice transaction MUST have a unique TXID as the key in the
+`local_nonces` map
+- Parties MUST include nonces for all active commitment transactions in their
+  `next_local_nonces` map, indexed by their funding tx id.
 - Completed or abandoned splices SHOULD have their nonces removed from the map in
   subsequent messages
 
@@ -1289,11 +1287,8 @@ When multiple splices are pending:
 
 ##### Backward Compatibility
 
-Nodes that do not support splicing:
-
-- Will ignore the `local_nonces` field (due to its even TLV type number)
-- Can continue to use the single `next_local_nonce` field
-- Will not be able to participate in splice operations
+Nodes that do not support splicing will simply use a nonce map with a single
+entry indexed by the commitment transaction's funding tx id.
 
 ### Funding Transactions
 
