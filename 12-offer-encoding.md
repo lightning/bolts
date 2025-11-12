@@ -644,10 +644,10 @@ the `onion_message` `invoice` field.
         * [`name_len*byte`:`name`]
         * [`u8`:`domain_len`]
         * [`domain_len*byte`:`domain`]
-    1. type: 93 (`accountable`)
     1. type: 160 (`invoice_paths`)
     2. data:
         * [`...*blinded_path`:`paths`]
+    1. type: 161 (`accountable`)
     1. type: 162 (`invoice_blindedpay`)
     2. data:
         * [`...*blinded_payinfo`:`payinfo`]
