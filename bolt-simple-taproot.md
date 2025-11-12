@@ -503,10 +503,10 @@ handle channel breaches.
 Inheriting the structure put forth in BOLT 9, we define a new feature bit to be
 placed in the `init` message, and the `node_announcement` message.
 
-| Bits  | Name                             | Description                                               | Context  | Dependencies      | Link                                  |
-|-------|----------------------------------|-----------------------------------------------------------|----------|-------------------|---------------------------------------|
-| 80/81 | `option_simple_taproot`| Node supports simple taproot channels | IN | `option_channel_type` | TODO(roasbeef): link |
-| 180/181 | `option_simple_taproot_staging`| Node supports simple taproot channels | IN | `option_channel_type` | TODO(roasbeef): link |
+| Bits    | Name                           | Description                                               | Context  | Dependencies                                 | Link                                  |
+|---------|--------------------------------|-----------------------------------------------------------|----------|----------------------------------------------|---------------------------------------|
+| 80/81   | `option_simple_taproot`        | Node supports simple taproot channels                     | IN       | `option_channel_type`, `option_simple_close` | TODO(roasbeef): link                  |
+| 180/181 | `option_simple_taproot_staging`| Node supports simple taproot channels                     | IN       | `option_channel_type`                        | TODO(roasbeef): link                  |
 
 Note that we allocate _two_ pairs of feature bits: one the final version of
 this protocol proposal, and the higher bits (+100) for preliminary experimental
@@ -819,90 +819,7 @@ A receiving node:
  - MUST verify that the `shutdown_nonce` value is a valid `musig2` public nonce.
  - MUST store this nonce for use when verifying the peer's `closing_sig` messages.
 
-#### `closing_signed` Extensions
-
-We add a new TLV to the `closing_signed`
-message's existing `tlv_stream`:
-
-1. `tlv_stream`: `closing_signed_tlvs`
-2. types:
-   1. type: 6 (`partial_signature`)
-   2. data:
-      * [`32*byte`: `partial_signature`]
-
-Both sides **MUST** provide this new TLV field.
-
-Once all partial signatures are known, the `PartialSigAgg` algorithm is used to
-aggregate the partial signature into a final, valid [BIP
-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki) Schnorr
-signature.
-
-#### Requirements
-
-The sender:
-
-  - MUST set the original, non-TLV `signature` field to a 0-byte-array of length
-    64.
-  
-  - MUST retrieve the `musig2` public key previously aggregated from the sorted
-    `funding_pubkey`s using the `KeyAgg` algorithm from `bip-musig2`.
-  
-  - MUST generate use the `NonceGen` algorithm to generate a unique nonce.
-  
-  - MUST use the generated secret nonce and the calculated aggregate nonce to
-    construct a `musig2` partial signature for the sender's remote commitment
-    using the `Sign` algorithm from `bip-musig2`.
-  
-  - MUST include the partial signature and the public counterpart of the
-    generated nonce in the `partial_signature` field.
-  
-  - If they are the responder:
-
-    - MUST returned a `closing_signed` message accepting the initiator's fee
-      rate.
-
-The recipient:
-
-  - MUST fail the channel if `signature` is non-zero.
-  
-  - MUST fail the channel if `partial_signature` is absent.
-  
-  - MUST compute the aggregate nonce from:
-  
-    - the `shutdown_nonce` field the recipient previously sent in the
-      `shutdown` message.
-  
-    - the `public_nonce` included as part of the `partial_signature_with_nonce`
-      field
-  
-  - MUST verify the `partial_signature` field using the
-    `PartialSigVerifyInternal` algorithm of `bip-musig2`:
-  
-    - if the partial signature is invalid, MUST fail the channel
-
-  - If they are the initiator: 
-
-    - MUST combine the received signature using the `msugi2.PartialSigAgg`
-      algorithm to yield a final schnorr signature that can be placed into the
-      co-op close txn for broadcast
-
-#### Rationale
-
-Compared to the regular co-op close flow, for taproot channels, there is no
-sort of fee rate negotiation. The regular segwit v0 channels permit either side
-to accept a prior offer by a peer that it would have accepted in the current
-round. For musig2, as each signature comes with nonce state, the prior offer
-may actually be using distinct nonce state, rendering it unable to be comined
-for the final transaction broadcast.
-
-Instead, the responder will simply accept what the initiator proposes. The
-responder can always CPFP after the fact if they require a higher fee rate. The
-initiator is the one that pays fees directly (coming out of their settled
-output), so the responder will always have their full funds delivered to them.
-This change ensures that cooperative close always succeeds after a single
-round.
-
-### RBF Cooperative Close Extensions
+### Channel Cooperative Close Extensions
 
 The modern RBF-based cooperative close protocol using `closing_complete` and
 `closing_sig` messages (as specified in BOLT #2) requires additional extensions
