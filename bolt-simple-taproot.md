@@ -340,7 +340,7 @@ In this scenario are nonce generated via a counter is deemed to be safe as:
 
   2. Each commitment state has a unique number which is currently encoded as a
      48-bit integer across the sequence and lock time of the commitment
-     transaction. 
+     transaction.
 
   3. The shachain scheme is used today to generate a fresh nonce-like value for
      the revocation scheme of today's penalty based channels.
@@ -367,15 +367,15 @@ reproduced:
   2. Derive a _new_ shachain root to be used to generate `musig2` secret nonces
      via a `HMAC` invocation as: `musig2_shachain_root = hmac(msg,
      shachain_root_hash)`, where `msg` is any string that can serve to uniquely
-     bind the produced secret to this dedicated context. A recommend value is
-     the ASCII string `taproot-rev-root`.
+     bind the produced secret to this dedicated context. A recommended value is
+     the ASCII string `taproot-rev-root` concatenated with the `funding_txid`
+     (which allows deriving distinct deterministic shachains when splicing).
 
   3. Given a commitment height/number (`N`), the verification nonce to send to
      the remote party party can be derived by obtaining the `Nth` shachain leaf
      preimage `k_i`. The verification nonce to be derived by calling the
      `musig2.NonceGen` algorithm with the required values, and the `rand'`
      value set to `k_i`.
-
 
 #### Nonce Handling
 
