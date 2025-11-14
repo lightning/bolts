@@ -2354,6 +2354,12 @@ To supply the preimage:
    * [`channel_id`:`channel_id`]
    * [`u64`:`id`]
    * [`32*byte`:`payment_preimage`]
+1. `tlv_stream`: `update_fulfill_htlc_tlvs`
+2. types:
+    1. type: 1 (`attribution_data`)
+    2. data:
+        * [`20*u32`:`htlc_hold_times`]
+        * [`210*sha256[..4]`:`truncated_hmacs`]
 
 For a timed out or route-failed HTLC:
 
@@ -2363,6 +2369,12 @@ For a timed out or route-failed HTLC:
    * [`u64`:`id`]
    * [`u16`:`len`]
    * [`len*byte`:`reason`]
+1. `tlv_stream`: `update_fail_htlc_tlvs`
+2. types:
+    1. type: 1 (`attribution_data`)
+    2. data:
+        * [`20*u32`:`htlc_hold_times`]
+        * [`210*sha256[..4]`:`truncated_hmacs`]
 
 The `reason` field is an opaque encrypted blob for the benefit of the
 original HTLC initiator, as defined in [BOLT #4](04-onion-routing.md);
@@ -2401,6 +2413,9 @@ A node:
         `invalid_onion_blinding` failure code for any local or downstream errors.
       - SHOULD use the `sha256_of_onion` of the onion it received.
       - MAY use an all zero `sha256_of_onion`.
+  - When supporting `option_attribution_data`:
+    - if `path_key` is not set in the incoming `update_add_htlc`:
+      - MUST initialize `attribution_data` and include it in `update_fail_htlc` and `update_fulfill_htlc`. See [BOLT04](04-onion-routing.md).
 
 A receiving node:
   - if the `id` does not correspond to an HTLC in its current commitment transaction:
