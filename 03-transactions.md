@@ -139,8 +139,7 @@ The output is spent by an input with `nSequence` field set to `1` and witness:
 
     <remote_sig>
 
-Otherwise, this output is a simple P2WPKH to `remotepubkey`. Note: the remote's commitment transaction uses your `localpubkey` for their
-`to_remote` output to yourself.
+Otherwise, this output is a simple P2WPKH to `remotepubkey`.
 
 #### `to_local_anchor` and `to_remote_anchor` Output (option_anchors)
 
@@ -1036,8 +1035,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_IF: 1 byte
         - OP_CHECKSIG: 1 byte
         - OP_ELSE: 1 byte
-        - OP_DATA: 1 byte (remotepubkey length)
-        - remotepubkey: 33 bytes
+        - OP_DATA: 1 byte (remote_htlcpubkey length)
+        - remote_htlcpubkey: 33 bytes
         - OP_SWAP: 1 byte
         - OP_SIZE: 1 byte
         - OP_DATA: 1 byte (32 length)
@@ -1050,8 +1049,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_EQUALVERIFY: 1 byte
         - 2: 1 byte
         - OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localpubkey length)
-		- localpubkey: 33 bytes
+		- OP_DATA: 1 byte (local_htlcpubkey length)
+		- local_htlcpubkey: 33 bytes
         - 2: 1 byte
         - OP_CHECKMULTISIG: 1 byte
         - OP_ELSE: 1 byte
@@ -1076,8 +1075,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
         - OP_IF: 1 byte
         - OP_CHECKSIG: 1 byte
         - OP_ELSE: 1 byte
-		- OP_DATA: 1 byte (remotepubkey length)
-		- remotepubkey: 33 bytes
+		- OP_DATA: 1 byte (remote_htlcpubkey length)
+		- remote_htlcpubkey: 33 bytes
 		- OP_SWAP: 1 byte
 		- OP_SIZE: 1 byte
 		- OP_DATA: 1 byte (32 length)
@@ -1087,8 +1086,8 @@ The *expected weight* of an HTLC transaction is calculated as follows:
 		- OP_DROP: 1 byte
 		- 2: 1 byte
 		- OP_SWAP: 1 byte
-		- OP_DATA: 1 byte (localpubkey length)
-		- localpubkey: 33 bytes
+		- OP_DATA: 1 byte (local_htlcpubkey length)
+		- local_htlcpubkey: 33 bytes
 		- 2: 1 byte
 		- OP_CHECKMULTISIG: 1 byte
 		- OP_ELSE: 1 byte
