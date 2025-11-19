@@ -781,6 +781,7 @@ The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
   - set `feerate_per_kw` to at least the rate it estimates would cause the transaction to be immediately included in a block.
   - set `dust_limit_satoshis` to a sufficient value to allow commitment transactions to propagate through the Bitcoin network.
+  - set `dust_limit_satoshis` to a sufficient value to allow HTLC transactions to propagate through the Bitcoin network.
   - set `htlc_minimum_msat` to the minimum value HTLC it's willing to accept from this peer.
 
 The receiving node MUST:
@@ -801,7 +802,7 @@ The receiving node MAY fail the channel if:
   - it considers `max_htlc_value_in_flight_msat` too small.
   - it considers `channel_reserve_satoshis` too large.
   - it considers `max_accepted_htlcs` too small.
-  - it considers `dust_limit_satoshis` too large.
+  - it considers `dust_limit_satoshis` too large (see [BOLT 3](03-transactions.md#dust-limits)).
 
 The receiving node MUST fail the channel if:
   - the `chain_hash` value is set to a hash of a chain that is unknown to the receiver.
@@ -842,7 +843,10 @@ are above both `dust_limit_satoshis`.
 
 The receiver should not accept large `dust_limit_satoshis`, as this could be
 used in griefing attacks, where the peer publishes its commitment with a lot
-of dust htlcs, which effectively become miner fees.
+of dust htlcs, which effectively become miner fees. But it must allow values
+higher than the standard Bitcoin Core dust limits, since HTLC outputs need to
+be spent by a second-stage transaction at a feerate matching the current
+on-chain feerate.
 
 Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
 
