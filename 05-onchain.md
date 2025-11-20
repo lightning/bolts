@@ -41,6 +41,7 @@ encounters any of the above situations, on-chain.
 	  * [Penalty Transactions Weight Calculation](#penalty-transactions-weight-calculation)
   * [Generation of HTLC Transactions](#generation-of-htlc-transactions)
   * [General Requirements](#general-requirements)
+    * [Limitations of v3 transactions](#limitations-of-v3-transactions)
   * [Appendix A: Expected Weights](#appendix-a-expected-weights)
 	* [Expected Weight of the `to_local` Penalty Transaction Witness](#expected-weight-of-the-to-local-penalty-transaction-witness)
 	* [Expected Weight of the `offered_htlc` Penalty Transaction Witness](#expected-weight-of-the-offered-htlc-penalty-transaction-witness)
@@ -90,7 +91,7 @@ trigger any action.
 # Commitment Transaction
 
 The local and remote nodes each hold a *commitment transaction*. Each of these
-commitment transactions has up to six types of outputs:
+commitment transactions has up to seven types of outputs:
 
 1. _local node's main output_: Zero or one output, to pay to the *local node's*
 delayed_pubkey.
@@ -100,9 +101,10 @@ delayed_pubkey.
 funding_pubkey.
 4. _remote node's anchor output_: one output paying to the *remote node's*
 funding_pubkey.
-5. _local node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to pay
+5. _shared anchor_: one output spendable by anyone (pay-to-anchor).
+6. _local node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to pay
 the *remote node* in return for a payment preimage.
-6. _remote node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to
+7. _remote node's offered HTLCs_: Zero or more pending payments (*HTLCs*), to
 pay the *local node* in return for a payment preimage.
 
 To incentivize the local and remote nodes to cooperate, an `OP_CHECKSEQUENCEVERIFY`
@@ -148,10 +150,14 @@ A node:
         - otherwise:
           - MUST broadcast the *last commitment transaction*, for which it has a
           signature, to perform a *unilateral close*.
-          - MUST spend any `to_local_anchor` output, providing sufficient fees as incentive to include the commitment transaction in a block.
-          Special care must be taken when spending to a third-party, because this re-introduces the vulnerability that was
-          addressed by adding the CSV delay to the non-anchor outputs.
-          - SHOULD use [replace-by-fee](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki) or other mechanism on the spending transaction if it proves insufficient for timely inclusion in a block.
+          - MUST spend any `to_local_anchor` or `shared_anchor` output, providing sufficient fees
+          as incentive to include the commitment transaction in a block. For `to_local_anchor`,
+          special care must be taken when spending to a third-party, because this re-introduces
+          the pinning vulnerability that was addressed by adding the CSV delay to the non-anchor
+          outputs.
+          - SHOULD use [replace-by-fee](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki)
+          or other mechanism on the spending transaction if it proves insufficient for timely
+          inclusion in a block.
 
 ## Rationale
 
@@ -166,10 +172,10 @@ need not consume resources monitoring the channel state.
 There exists a bias towards preferring mutual closes over unilateral closes,
 because outputs of the former are unencumbered by a delay and are directly
 spendable by wallets. In addition, mutual close fees tend to be less exaggerated
-than those of commitment transactions (or in the case of `option_anchors`,
-the commitment transaction may require a child transaction to cause it to be mined). So, the only reason not to use the
-signature from `closing_signed` would be if the fee offered was too small for
-it to be processed.
+than those of commitment transactions (or in the case of commitments using anchor
+outputs, the commitment transaction may require a child transaction to cause it
+to be mined). So, the only reason not to use the mutual close transaction would
+be if the fee offered was too small for it to be processed.
 
 # Mutual Close Handling
 
@@ -279,8 +285,7 @@ The local HTLC-timeout transaction needs to be used to time out the HTLC (to
 prevent the remote node fulfilling it and claiming the funds) before the
 local node can back-fail any corresponding incoming HTLC, using
 `update_fail_htlc` (presumably with reason `permanent_channel_failure`), as
-detailed in
-[BOLT #2](02-peer-protocol.md#forwarding-htlcs).
+detailed in [BOLT #2](02-peer-protocol.md#forwarding-htlcs).
 If the incoming HTLC is also on-chain, a node must simply wait for it to
 timeout: there is no way to signal early failure.
 
@@ -537,8 +542,13 @@ A local node:
   using the revocation private key.
   - SHOULD extract the payment preimage from the transaction input witness, if
   it's not already known.
-  - if `option_anchors` applies:
+  - if `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used for HTLC transactions
+  (i.e. `option_anchors` or `zero_fee_commitments` applies):
     - MAY use a single transaction to *resolve* all the outputs.
+    - If `zero_fee_commitments` applies:
+      - MUST NOT exceed the 10kvB limit of v3 transactions, otherwise the
+        transaction may not reach miners (as explained in the section
+        about [v3 limitations](#limitations-of-v3-transactions) below).
     - if confirmation doesn't happen before reaching `security_delay` blocks from
   expiry:
       - SHOULD *resolve* revoked outputs in their own, separate penalty transactions. A previous
@@ -554,8 +564,9 @@ A single transaction that resolves all the outputs will be under the
 standard size limit because of the 483 HTLC-per-party limit (see
 [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
 
-Note: if `option_anchors` applies, the cheating node can pin spends of its
-HTLC-timeout/HTLC-success outputs thanks to SIGHASH_SINGLE malleability.
+Note: when `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used for HTLC transactions
+(i.e. `option_anchors` or `zero_fee_commitments`), the cheating node can pin
+spends of its HTLC-timeout/HTLC-success outputs.
 Using a single penalty transaction for all revoked outputs is thus unsafe as it
 could be blocked to propagate long enough for the _local node's `to_local` output_ 's
 relative locktime to expire and the cheating party escaping the penalty on this
@@ -610,25 +621,25 @@ Note: even if the `to_remote` output is not swept, the resulting
 
 # Generation of HTLC Transactions
 
-If `option_anchors` does not apply to the commitment transaction, then
-HTLC-timeout and HTLC-success transactions are complete transactions with
-(hopefully!) reasonable fees and must be used directly.
+If `option_anchors` and `zero_fee_commitments` do not apply, then HTLC-timeout
+and HTLC-success transactions are signed with `SIGHASH_ALL` and are complete
+transactions with (hopefully!) reasonable fees and must be used directly.
 
 Otherwise, `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` MUST be used on the
-HTLC signatures received from the peer, as this allows HTLC transactions to be combined with 
-other transactions.  The local signature MUST use `SIGHASH_ALL`, otherwise
-anyone can attach additional inputs and outputs to the tx.
+HTLC signatures received from the peer, as this allows HTLC transactions to be
+combined with other transactions. The local signature MUST use `SIGHASH_ALL`,
+otherwise anyone can attach additional inputs and outputs to the tx.
 
-If `option_anchors` applies, then the HTLC-timeout and
-HTLC-success transactions are signed with the input and output having the same
-value. This means they have a zero fee and MUST be combined with other inputs
-to arrive at a reasonable fee.
+If `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used, then the HTLC-timeout and
+HTLC-success transactions are signed with the input and output having the
+same value. This means they have a zero fee and MUST be combined with other
+inputs to arrive at a reasonable fee.
 
 ## Requirements
 
 A node which broadcasts an HTLC-success or HTLC-timeout transaction for a
 commitment transaction:
-  - if `option_anchors` applies:
+  - if `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` is used:
     - MUST combine it with inputs contributing sufficient fee to ensure timely
       inclusion in a block.
     - MAY combine it with other transactions.
@@ -648,6 +659,20 @@ A node:
   - MAY monitor (valid) broadcast transactions (a.k.a the mempool).
     - Note: watching for mempool transactions should result in lower latency
     HTLC redemptions.
+
+## Limitations of v3 transactions
+
+When `zero_fee_commitments` applies, we use v3 transactions, also known as
+TRUC transactions, which have different policy rules than v2 transactions.
+
+Implementers should read [BIP-431](https://github.com/bitcoin/bips/blob/master/bip-0431.mediawiki)
+to make sure they don't create transactions that aren't relayed by bitcoin
+nodes.
+
+The main limitation compared to v2 transactions (but not the only one) is
+that transactions are restricted to 10kvB (instead of 400kvB): when batching
+transactions (e.g. HTLC transactions), nodes MUST NOT exceed that limit,
+otherwise the transaction will not reach miners and funds may be at risk.
 
 # Appendix A: Expected Weights
 
