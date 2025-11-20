@@ -340,7 +340,7 @@ pair of channels is restricted to a subset of slots and liquidity.
 We define the following:
 - `general_bucket_slot_allocation`:
   - If the channel type allows a maximum of 483 HTLCs: 20
-  - If the channel type allows a maximum of 120 HTLCs: 5
+  - If the channel type allows a maximum of 114 HTLCs: 5
 - `general_bucket_liquidity_allocation` =
   `general bucket capacity * general_bucket_slot_allocation / general bucket slot total`
 
