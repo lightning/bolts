@@ -189,6 +189,10 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
 
 1. `tlv_stream`: `payload`
 2. types:
+    1. type: 1 (`minitramp`)
+    2. data:
+        * [`pubkey`:`trampkey`]
+        * [`...*byte`:`encrypted_trampinfo`]
     1. type: 2 (`amt_to_forward`)
     2. data:
         * [`tu64`:`amt_to_forward`]
@@ -637,6 +641,140 @@ Encrypted recipient data is created by the final recipient to give to the
 sender, containing instructions for the node on how to handle the message (it can also be created by the sender themselves: the node forwarding cannot tell).  It's used
 in both payment onions and onion messages onions.  See [Route Blinding](#route-blinding).
 
+
+# Minitrampoline Support
+
+This allows outsourcing routing, with limited privacy protections.  The destination notes the `encrypted_trampinfo` field in the onion payload, and decrypts it to find `trampinfo` tlv stream, which indicates the next recipient, and a `encrypted_trampinfo` for that recipient (which may be the final recipient).
+
+We share the encryption scheme used by the onion, except the key is explicitly given in the `trampkey` tlv field.
+
+The `trampinfo` can contain another `encrypted_trampinfo` to allow for chaining minitrampolines.  It is odd, so if the final recipient does not support `option_minitrampoline` it will ignore it: in this case the `payment_secret` and `payment_metadata` fields must be the correct ones for the payment, thus trusting the final minitrampoline node in the case of amountless bolt11 invoices.
+
+Encryption is done using the same scheme as `encrypted_recipient_data`, with `trampkey` as `E`:
+  - $`ss = SHA256(k * E)`$ (standard ECDH)
+  - $`rho = HMAC256(\text{"rho"}, ss)`$
+  - Use $`rho`$ as a key with ChaCha20-Poly1305 and an all-zero nonce key.
+
+If the final destination does not support `encrypted_trampinfo` it will ignore the `minitramp` field, so in this case the `payment_secret` and `payment_metadata` have to be correct for the payment: if the payment is not for a specified amount, this may allow the final trampoline to try forwarding less than the full amount.  However, if the final destination does understand `encrypted_trampinfo` then it will ensure the amounts, `payment_secret` and `payment_metadata` are correct, and it will never accept future attempts to pay this invoice if it detects a discrepancy.  This unknown helps keep the trampoline nodes honest while the network transitions.
+
+
+1. `tlv_stream`: `minitramp_payload`
+2. types:
+    1. type: 1 (`minitramp`)
+    2. data:
+        * [`pubkey`:`trampkey`]
+        * [`...*byte`:`encrypted_trampinfo`]
+    1. type: 2 (`amount_to_send`)
+    2. data:
+        * [`tu64`:`amount`]
+    1. type: 4 (`next_cltv_value`)
+    2. data:
+        * [`tu32`:`next_cltv_value`]
+    1. type: 6 (`next_node`)
+    2. data:
+        * [`publey`:`next`]
+    1. type: 8 (`incoming_payment_secret`)
+    2. data:
+        * [`32*byte`:`payment_secret`]
+    1. type: 10 (`payment_metadata`)
+    2. data:
+        * [`...*byte`:`payment_metadata`]
+    1. type: 12 (`incoming_amount_msat`)
+    2. data:
+        * [`tu64`:`msat`]
+    1. type: 14 (`incoming_ctlv`)
+    2. data:
+        * [`tu32`:`ctlv`]
+    1. type: 16 (`outgoing_payment_secret`)
+    2. data:
+        * [`32*byte`:`payment_secret`]
+    1. type: 20 (`blinded_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
+    1. type: 22 (`blinded_payinfo`)
+    2. data:
+        * [`...*blinded_payinfo`:`payinfo`]
+
+## Requirements
+
+The initial sender of a "minitramp" payment builds it *backwards* from final destination:
+- MUST create a `trampinfo` (#1) for the payment destination:
+  - MUST NOT set `amount_to_send`, `next_cltv_value`, `next_node`, `blinded_paths`, `blinded_payinfo` or `minitramp`.
+  - MUST set `outgoing_payment_secret`, `payment_metadata`, `total_amount_msat` to the values which would normally set in the final `payload`.
+  - If the payment destination is known to support `option_minitrampoline`:
+    - SHOULD set `incoming_payment_secret` to the SHA256 hash of `outgoing_payment_secret`.
+  - Otherwise:
+    - MUST set `incoming_payment_secret` to `outgoing_payment_secret`.
+  - MAY use `padding` to disguise that this is the final destination.
+- MUST create a `trampinfo` (#2) for the previous trampoline:
+  - MUST set `minitramp`.`trampkey` to the public key of a random secret.
+  - MUST set `minitramp`.`encrypted_trampinfo` to the encrypted `trampinfo` created for the payment destination.
+  - MUST set `outgoing_payment_secret` to `incoming_payment_secret` in `trampinfo` #1.
+  - MAY set `payment_metadata` to a random value.
+  - MUST set `amount_to_send` and `next_cltv_value` to the values expected by the payment destination.
+  - MUST set `blinded_paths` and `blinded_payinfo` as supplied by the invoice.
+  - If it sets `blinded_paths`:
+    - MUST NOT set `next_node`.
+  - Otherwise:
+    - MUST set `next_node` to the node id of the payment destination.
+  - MUST set `incoming_amount_msat` and `incoming_ctlv` to the values expected at this destination.
+  - MUST set `total_amount_msat` to the `incoming_amount_msat` of `trampinfo` #1
+  - MUST set `next_cltv_value` to the `incoming_ctlv` of `trampinfo` #1
+  - SHOULD set `incoming_payment_secret` and to random data.
+- If it creates another `trampinfo` (#3 onwards);
+  - MUST set `minitramp`.`trampkey` to the public key of a random secret.
+  - MUST set `minitramp`.`encrypted_trampinfo` to the encrypted previous `trampinfo`
+  - MUST set `outgoing_payment_secret` to `incoming_payment_secret` in the previous `trampinfo`.
+  - MAY set `payment_metadata` to a random value.
+  - SHOULD set `incoming_payment_secret` to random data.
+  - MUST set `total_amount_msat` to the `incoming_amount_msat` of the previous `trampinfo`
+  - MUST set `next_cltv_value` to the `incoming_ctlv` of the previous `trampinfo`
+  - MUST set `next_node` to the node id of the next trampoline
+- MUST create a payment to the first trampoline node:
+  - MUST put the last-produced `minitramp` into the final `payload` for each payment part.
+  - MUST set `payment_secret` to the `incoming_payment_secret` of the last-produced `trampinfo`.
+
+The recipient:
+- MUST process all parts of the payment as normal.
+- If this is the final node (no more onion to unwrap):
+  - If `minitramp` is present:
+    - If `encrypted_trampinfo` does not decrypt into a valid `trampinfo`:
+      - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
+      - Check for trampoline misbehaviour (below)
+    - If `trampinfo`.`incoming_amount_msat` or `trampinfo`.`incoming_ctlv` are less than the incoming HTLC
+      - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
+    - If neither `node_id` nor `blinded_paths` are present (we are the final destination):
+      - If `payment_secret` in `payload` is not equal to `trampinfo`.`incoming_payment_secret`:
+        - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
+        - Check for trampoline misbehaviour (below)
+      - SHOULD process the payment as if the `payload` contained the `minitramp` `payment_secret` and `payment_metadata`.
+    - Otherwise: (forwarding):
+      - If both `next_node` and `blinded_paths` are present:
+        - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
+      - If the number of `blinded_paths` and `blinded_payinfo` do not match:
+        - Fail all HTLCs with `incorrect_or_unknown_payment_details`.
+      - Determine a route to `next_node` or `blinded_paths` for `amount_to_send` using `next_cltv_value`.
+      - If no route can be found:
+        - Fail all HTLCs with `unknown_next_trampoline`.
+      - If the incoming amount or cltv is insufficient:
+        - Fail all HTLCs with `trampoline_fee_or_expiry_insufficient`.
+      - MUST include `trampinfo`.`minitramp`, `outgoing_payment_secret` (as `payment_secret`) and `outgoing_payment_info` (as `payment_metadata`) in the inner `payload` of the payment onion.
+      - If the payment fails:
+        - Fail all HTLCs with `temporary_trampoline_failure`.
+      - Otherwise:
+        - Use the preimage to succeed all HTLCs.
+  - Otherwise (`minitramp` is NOT present):
+    - Check for trampoline misbehaviour (below)
+
+Checking for trampoline misbehaviour:
+  - If `payload`.`payment_secret` is the SHA256 of the expected `payment_secret` for this payment:
+    - SHOULD NOT accept any future payment for this invoice (e.g. expire invoice immediately).
+
+## Rationale
+
+If the recipient supports minitrampoline, then the `payment_secret` and amount are secure: a trampoline cannot interfere with these and still have the payment work.  However, if the recipient does not support it, then interference is possible: a malicious trampoline can try to make a payment using the `payment_hash` and `payment_secret`, and if it succeeds it knows that the next hop is the final destination, and if the amount of the invoice is variable, can extract an arbitrary fee.
+
+To steal from a non-minitramp final node, a malicious trampoline attempts this, would have to set the `payment_secret` in the payload to the `outgoing_payment_secret` it is given.  But then it has to replace or omit the `trampinfo`, which will cause a minitramp node to fail the payment and any future attempts, denying it the fee it would otherwise gain (and possibly causing the payer to try another, more reliable trampoline).
 
 # Accepting and Forwarding a Payment
 
@@ -1427,6 +1565,28 @@ reasonable time.
    * [`sha256`:`sha256_of_onion`]
 
 An error occurred within the blinded path.
+
+1. type: NODE|25 (`temporary_trampoline_failure`)
+
+The trampoline node was unable to relay the payment to the next trampoline
+node, but may be able to handle it, or others, later.
+This error usually indicates that routes were found but failed because of
+temporary failures at intermediate hops.
+
+1. type: NODE|26 (`trampoline_fee_or_expiry_insufficient`)
+2. data:
+   * [`u32`:`fee_base_msat`]
+   * [`u32`:`fee_proportional_millionths`]
+   * [`u16`:`cltv_expiry_delta`]
+
+The fee amount or cltv value was below that required by the trampoline node to
+forward to the next trampoline node, but there are routes available if the
+sender retries with the fees and cltv provided in the error data.
+
+1. type: PERM|27 (`unknown_next_trampoline`)
+
+The trampoline onion specified an `outgoing_node_id` that cannot be reached
+from the processing node.
 
 ### Requirements
 

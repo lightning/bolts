@@ -55,6 +55,7 @@ The Context column decodes as follows:
 | 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                             | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
 | 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | INT      | `option_scid_alias`         | [BOLT #2][bolt02-channel-ready]                                       |
 | 60/61 | `option_simple_close`             | Simplified closing negotiation                            | IN       | `option_shutdown_anysegwit` | [BOLT #2][bolt02-simple-close]                                        |
+| 58/59 | `option_minitrampoline`           | Will forward payments via encrypted instructions          | IN       |                             | [BOLT #4][bolt04-minitramp]                                        |
 
 ## Requirements
 
@@ -108,6 +109,7 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt07-sync]: 07-routing-gossip.md#initial-sync
 [bolt07-query]: 07-routing-gossip.md#query-messages
 [bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
+[bolt04-minitramp]: 04-onion-routing.md#minitrampoline-support
 [bolt04-route-blinding]: 04-onion-routing.md#route-blinding
 [bolt04-attributable-errors]: 04-onion-routing.md
 [ml-sighash-single-harmful]: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-September/002796.html
