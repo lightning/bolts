@@ -336,6 +336,7 @@ The reader:
   - If it is the final node:
     - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it is not present.
     - MUST return an error if:
+      - `short_channel_id` is present.
       - incoming `amount_msat` < `amt_to_forward`.
       - incoming `cltv_expiry` < `outgoing_cltv_value`.
       - incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
