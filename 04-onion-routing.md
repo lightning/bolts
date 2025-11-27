@@ -264,6 +264,10 @@ The creator of `encrypted_recipient_data` (usually, the recipient of payment):
     - `total_fee_proportional_millionths(n+1) = ((total_fee_proportional_millionths(n) + fee_proportional_millionths(n+1)) * 1000000 + total_fee_proportional_millionths(n) * fee_proportional_millionths(n+1) + 1000000 - 1) / 1000000`
     - `total_cltv_delta = cltv_delta(0) + cltv_delta(1) + ... + cltv_delta(n) + min_final_cltv_expiry_delta`
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
+  - if the blinded route will be used in an invoice with an `accountable` field set:
+    - MUST include `upgrade_accountability` for every node in the blinded route.
+  - otherwise:
+    - MUST NOT include `upgrade_accountability`.
 
 The writer of the TLV `payload`:
 
@@ -293,7 +297,8 @@ The writer of the TLV `payload`:
         - MUST include `payment_metadata` with every HTLC
         - MUST not apply any limits to the size of `payment_metadata` except the limits implied by the fixed onion size
   - if the recipient provided an invoice with an `accountable` field set:
-    - MUST include `upgrade_accountability` for every node in the route.
+    - MUST include `upgrade_accountability` for every node in the non-blinded part of the route.
+    - MUST NOT include `upgrade_accountability` for nodes inside the blinded route.
   - otherwise:
     - MUST NOT include `upgrade_accountability`.
 
@@ -350,7 +355,7 @@ The reader:
       - `accountable` is set in the incoming `update_add_htlc` but `accountable` was not set in the invoice. 
   - Otherwise:
     - MUST return an error if:
-      - `accountable` is set in the incoming `update_add_htlc` but `upgrade_accountability` was not set in the payload.
+      - `accountable` is set in the incoming `update_add_htlc` but `upgrade_accountability` was not set in the onion payload or in `encrypted_recipient_data`.
 
 Additional requirements are specified [here](#basic-multi-part-payments) for
 multi-part payments, and [here](#route-blinding) for blinded payments.
@@ -623,6 +628,7 @@ may contain the following TLV fields:
     1. type: 2 (`short_channel_id`)
     2. data:
         * [`short_channel_id`:`short_channel_id`]
+    1. type: 3 (`upgrade_accountability`)
     1. type: 4 (`next_node_id`)
     2. data:
         * [`point`:`node_id`]
