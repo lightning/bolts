@@ -464,6 +464,10 @@ The sender:
     - MUST set `funding_output_contribution`
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If it contributed to previous transactions:
+    - MUST send `tx_add_input` with at least one input that it used in previous
+      transaction construction attempts, to ensure that the new transaction
+      double-spends all other attempts.
 
 The recipient:
   - MUST respond either with `tx_abort` or with `tx_ack_rbf`
@@ -514,6 +518,10 @@ The sender:
     - MUST set `funding_output_contribution`
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If it contributed to previous transactions:
+    - MUST send `tx_add_input` with at least one input that it used in previous
+      transaction construction attempts, to ensure that the new transaction
+      double-spends all other attempts.
 
 The recipient:
   - MUST respond with `tx_abort` or with a `tx_add_input` message,
@@ -1396,7 +1404,10 @@ a transaction paying more fees to make the channel confirm faster.
 #### Requirements
 
 The sender of `tx_init_rbf`:
-  - MUST be the *initiator*
+  - MAY be either the *initiator* or the *accepter*
+    - If the sender is the accepter, it becomes the initiator of the `interactive-tx` session and thus:
+      - MUST send `tx_add_output` for the channel output
+      - MUST pay the fees for the shared transaction fields
   - MUST NOT have sent or received a `channel_ready` message.
 
 The recipient:
@@ -1418,6 +1429,10 @@ It's recommended that a peer, rather than fail the RBF negotiation due to
 a large feerate change, instead sets their `sats` to zero, and decline to
 participate further in the channel funding: by not contributing, they
 may obtain incoming liquidity at no cost.
+
+We allow both nodes to initiate RBF, because any one of them may want to take
+this opportunity to contribute additional funds to the channel without
+waiting for the initial funding transaction to confirm.
 
 ## Channel Quiescence
 
