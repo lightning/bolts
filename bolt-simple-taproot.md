@@ -832,7 +832,7 @@ For taproot channels using the modern RBF cooperative close flow, final nonces
 are delivered just-in-time with signatures using an asymmetric pattern:
 
 - `closing_complete` uses `PartialSigWithNonce` (98 bytes) to bundle the
-  signature with the next closee nonce
+  signature with the next closer nonce
 
 - `closing_sig` uses `PartialSig` (32 bytes) with a separate `NextCloseeNonce`
   field
