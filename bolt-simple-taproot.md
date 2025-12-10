@@ -340,7 +340,7 @@ In this scenario are nonce generated via a counter is deemed to be safe as:
 
   2. Each commitment state has a unique number which is currently encoded as a
      48-bit integer across the sequence and lock time of the commitment
-     transaction. 
+     transaction.
 
   3. The shachain scheme is used today to generate a fresh nonce-like value for
      the revocation scheme of today's penalty based channels.
@@ -367,15 +367,15 @@ reproduced:
   2. Derive a _new_ shachain root to be used to generate `musig2` secret nonces
      via a `HMAC` invocation as: `musig2_shachain_root = hmac(msg,
      shachain_root_hash)`, where `msg` is any string that can serve to uniquely
-     bind the produced secret to this dedicated context. A recommend value is
-     the ASCII string `taproot-rev-root`.
+     bind the produced secret to this dedicated context. A recommended value is
+     the ASCII string `taproot-rev-root` concatenated with the `funding_txid`
+     (which allows deriving distinct deterministic shachains when splicing).
 
   3. Given a commitment height/number (`N`), the verification nonce to send to
      the remote party party can be derived by obtaining the `Nth` shachain leaf
      preimage `k_i`. The verification nonce to be derived by calling the
      `musig2.NonceGen` algorithm with the required values, and the `rand'`
      value set to `k_i`.
-
 
 #### Nonce Handling
 
@@ -503,10 +503,10 @@ handle channel breaches.
 Inheriting the structure put forth in BOLT 9, we define a new feature bit to be
 placed in the `init` message, and the `node_announcement` message.
 
-| Bits  | Name                             | Description                                               | Context  | Dependencies      | Link                                  |
-|-------|----------------------------------|-----------------------------------------------------------|----------|-------------------|---------------------------------------|
-| 80/81 | `option_simple_taproot`| Node supports simple taproot channels | IN | `option_channel_type` | TODO(roasbeef): link |
-| 180/181 | `option_simple_taproot_staging`| Node supports simple taproot channels | IN | `option_channel_type` | TODO(roasbeef): link |
+| Bits    | Name                           | Description                                               | Context  | Dependencies                                 | Link                                  |
+|---------|--------------------------------|-----------------------------------------------------------|----------|----------------------------------------------|---------------------------------------|
+| 80/81   | `option_simple_taproot`        | Node supports simple taproot channels                     | IN       | `option_channel_type`, `option_simple_close` | TODO(roasbeef): link                  |
+| 180/181 | `option_simple_taproot_staging`| Node supports simple taproot channels                     | IN       | `option_channel_type`                        | TODO(roasbeef): link                  |
 
 Note that we allocate _two_ pairs of feature bits: one the final version of
 this protocol proposal, and the higher bits (+100) for preliminary experimental
@@ -534,7 +534,6 @@ feature bit would not be able to open publicly advertised channels.
 Throughout this document, we assume that `option_simple_taproot` was
 negotiated, and also the `option_simple_taproot` channel type is used.
 
-
 ### New TLV Types
 
 Note that these TLV types exist across different messages, but their type IDs are always the same.
@@ -560,13 +559,13 @@ Note that these TLV types exist across different messages, but their type IDs ar
 - data:
    * [`66*byte`: `public_nonce`]
 
-#### local_nonces
+#### next_local_nonces
 - type: 22
 - data:
-   * [`... * nonce_entry`: `entries`]
+   * [`...*nonce_entry`: `entries`]
 
 where `nonce_entry` is:
-   * [`32*byte`: `txid`]
+   * [`32*byte`: `funding_txid`]
    * [`66*byte`: `public_nonce`]
 
 ### Channel Funding
@@ -602,7 +601,6 @@ The sending node:
 The receiving node MUST fail the channel if:
 
   - the message doesn't include a `next_local_nonce` value.
-
   - the specified public nonce cannot be parsed as two compressed secp256k1
     points
 
@@ -793,7 +791,7 @@ For taproot channels, the shutdown message includes a single nonce:
 2. types:
     1. type: 8 (`shutdown_nonce`)
     2. data:
-        * [`66*byte`:`nonces`]
+        * [`66*byte`:`public_nonce`]
 
 The `shutdown_nonce` represents the sender's "closee nonce" - the nonce they
 will use when sending `closing_sig` messages. This applies to both the legacy
@@ -821,90 +819,7 @@ A receiving node:
  - MUST verify that the `shutdown_nonce` value is a valid `musig2` public nonce.
  - MUST store this nonce for use when verifying the peer's `closing_sig` messages.
 
-#### `closing_signed` Extensions
-
-We add a new TLV to the `closing_signed`
-message's existing `tlv_stream`:
-
-1. `tlv_stream`: `closing_signed_tlvs`
-2. types:
-   1. type: 6 (`partial_signature`)
-   2. data:
-      * [`32*byte`: `partial_signature`]
-
-Both sides **MUST** provide this new TLV field.
-
-Once all partial signatures are known, the `PartialSigAgg` algorithm is used to
-aggregate the partial signature into a final, valid [BIP
-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki) Schnorr
-signature.
-
-#### Requirements
-
-The sender:
-
-  - MUST set the original, non-TLV `signature` field to a 0-byte-array of length
-    64.
-  
-  - MUST retrieve the `musig2` public key previously aggregated from the sorted
-    `funding_pubkey`s using the `KeyAgg` algorithm from `bip-musig2`.
-  
-  - MUST generate use the `NonceGen` algorithm to generate a unique nonce.
-  
-  - MUST use the generated secret nonce and the calculated aggregate nonce to
-    construct a `musig2` partial signature for the sender's remote commitment
-    using the `Sign` algorithm from `bip-musig2`.
-  
-  - MUST include the partial signature and the public counterpart of the
-    generated nonce in the `partial_signature` field.
-  
-  - If they are the responder:
-
-    - MUST returned a `closing_signed` message accepting the initiator's fee
-      rate.
-
-The recipient:
-
-  - MUST fail the channel if `signature` is non-zero.
-  
-  - MUST fail the channel if `partial_signature` is absent.
-  
-  - MUST compute the aggregate nonce from:
-  
-    - the `shutdown_nonce` field the recipient previously sent in the
-      `shutdown` message.
-  
-    - the `public_nonce` included as part of the `partial_signature_with_nonce`
-      field
-  
-  - MUST verify the `partial_signature` field using the
-    `PartialSigVerifyInternal` algorithm of `bip-musig2`:
-  
-    - if the partial signature is invalid, MUST fail the channel
-
-  - If they are the initiator: 
-
-    - MUST combine the received signature using the `msugi2.PartialSigAgg`
-      algorithm to yield a final schnorr signature that can be placed into the
-      co-op close txn for broadcast
-
-#### Rationale
-
-Compared to the regular co-op close flow, for taproot channels, there is no
-sort of fee rate negotiation. The regular segwit v0 channels permit either side
-to accept a prior offer by a peer that it would have accepted in the current
-round. For musig2, as each signature comes with nonce state, the prior offer
-may actually be using distinct nonce state, rendering it unable to be comined
-for the final transaction broadcast.
-
-Instead, the responder will simply accept what the initiator proposes. The
-responder can always CPFP after the fact if they require a higher fee rate. The
-initiator is the one that pays fees directly (coming out of their settled
-output), so the responder will always have their full funds delivered to them.
-This change ensures that cooperative close always succeeds after a single
-round.
-
-### RBF Cooperative Close Extensions
+### Channel Cooperative Close Extensions
 
 The modern RBF-based cooperative close protocol using `closing_complete` and
 `closing_sig` messages (as specified in BOLT #2) requires additional extensions
@@ -948,8 +863,9 @@ to support MuSig2 signatures with JIT nonce delivery:
 Note: The TLV type numbers (5, 6, 7) are different from the non-taproot types
 (1, 2, 3) to distinguish taproot signatures. Each `partial_sig_with_nonce`
 contains:
+
 - 32 bytes: MuSig2 partial signature
-- 66 bytes: The sender's next closee nonce for potential RBF iterations
+- 66 bytes: The sender's closer nonce used to produce the partial signature
 
 ##### Requirements
 
@@ -976,14 +892,16 @@ The receiver of `closing_complete` (aka. "the closee"):
   - For taproot channels:
     - MUST verify that signature fields contain `PartialSigWithNonce` (98
       bytes)
-    - MUST extract the partial signature (first 32 bytes) and the sender's next
-      closee nonce (remaining 66 bytes)
-    - MUST use the extracted nonce for verification (along with their own
-      closee nonce)
-    - MUST compute the aggregate nonce from:
-      - the `shutdown_nonce` the recipient previously sent (their closee nonce)
-      - the appropriate nonce for the closer role (from shutdown or previous
-        RBF round)
+    - MUST extract the partial signature (first 32 bytes) and the sender's
+      closer nonce (remaining 66 bytes)
+    - MUST compute the aggregate nonce by combining the closer nonce received
+      with:
+      - For the first closing transaction:
+        - the `shutdown_nonce` the receiver previously sent (their closee
+          nonce)
+      - For RBF iterations:
+        - the `next_closee_nonce` the receiver sent in their previous
+          `closing_sig` message
     - MUST verify the partial signature using the `PartialSigVerifyInternal`
       algorithm of `bip-musig2`
     - MUST store (in memory) the extracted nonce for potential future RBF
@@ -1010,14 +928,13 @@ separate next nonce field:
         * [`66*byte`:`public_nonce`]
 
 Note: Unlike `closing_complete`, `closing_sig` separates the signature from the
-next nonce:
+next nonce (which will be used for the *next* RBF attempt signature):
 
 - The partial signature (32 bytes) is sent in the appropriate TLV field based
   on output presence
 - The `next_closee_nonce` (66 bytes) is sent separately in TLV type 22
-- The receiver (the closer) already knows the current signing nonce from either
-  the `shutdown` message or the previous `PartialSigWithNonce` in
-  `closing_complete`
+- The receiver (the closer) already knows the current closee signing nonce from
+  either the `shutdown` message or the previous `next_closee_nonce`
 
 ##### Requirements
 
@@ -1026,13 +943,17 @@ The sender of `closing_sig`:
   - For taproot channels:
     - MUST provide a 32-byte partial signature in the appropriate TLV field
       based on output presence
-    - MUST use the `shutdown_nonce` sent in their own `shutdown` message as
-      their closee nonce
+    - For the first closing transaction:
+      - MUST use the `shutdown_nonce` sent in their own `shutdown` message as
+        their closee nonce
+    - For RBF iterations:
+      - MUST use the `next_closee_nonce` sent in their own previous
+        `closing_sig` message as their closee nonce
     - MUST use the nonce provided in the `PartialSigWithNonce` message of the
       received `closing_complete` message as the closer nonce.
     - MUST generate the partial signature using the `Sign` algorithm from
       `bip-musig2`
-    - SHOULD include `next_closee_nonce` for potential future RBF iterations
+    - MUST include `next_closee_nonce` for potential future RBF iterations
     - MUST generate `next_closee_nonce` using the `NonceGen` algorithm from
       `bip-musig2` if included
 
@@ -1042,15 +963,14 @@ The receiver of `closing_sig`:
     - MUST verify that signature fields contain 32-byte partial signatures
     - MUST use the appropriate nonces for verification:
       - The sender's closee nonce (from their `shutdown` message or previous
-      RBF round)
-      - The receiver's own closer nonce (locally generated)
+        `closing_sig`)
+      - The receiver's own closer nonce included in `closing_complete`
     - MUST verify the partial signature using `PartialSigVerifyInternal` from
       `bip-musig2`
     - MUST combine both partial signatures using `PartialSigAgg` to create the
       final schnorr signature
     - MUST broadcast the closing transaction with the aggregated signature
-    - SHOULD store `next_closee_nonce` if provided for potential future RBF
-      iterations
+    - SHOULD store `next_closee_nonce` for potential future RBF iterations
 
 #### RBF Nonce Rotation Protocol
 
@@ -1068,7 +988,8 @@ just-in-time (JIT) with signatures using an asymmetric pattern:
      - The bundling is necessary because the closee doesn't know this nonce yet
    - `closing_sig` (from closee): Uses `PartialSig` (32 bytes) +
      `NextCloseeNonce` field
-     - Separates the signature from the next closee nonce
+     - Separates the signature from the next closee nonce because this nonce
+       is for the *next* RBF attempt, not the one currently being signed
 
 3. **Asymmetric Roles**:
    - **Closer**: The party sending `closing_complete`, proposing a new fee
@@ -1079,7 +1000,7 @@ just-in-time (JIT) with signatures using an asymmetric pattern:
 
 With this JIT nonce approach for coop close, an implementation only needs to
 store (in memory) the current closee nonce for the remote and local party. When
-either side is ready to sign, it'll generate a new closer nonce, and then that
+either side is ready to sign, it'll generate a new closer nonce, and send that
 along with the sig.
 
 ##### Security Considerations
@@ -1162,28 +1083,30 @@ A new TLV stream is added to the `revoke_and_ack` message:
 
 1. `tlv_stream`: `revoke_and_ack_tlvs`
 2. types:
-   1. type: 4 (`next_local_nonce`)
+   1. type: 22 (`next_local_nonces`)
    2. data:
-      * [`66*byte`: `public_nonce`]
+      * [`...*nonce_entry`: `nonces`]
 
 Similar to sending the `next_per_commitment_point`, we also send the _next_
-`musig2` nonces, after we revoke a state. Sending this nonce allows the remote
+`musig2` nonces, after we revoke a state. Sending these nonces allows the remote
 party to propose another state transition as soon as the message is received.
 
 ##### Requirements
 
 The sender:
 
-- MUST use the `musig2.NonceGen` algorithm to generate a unique nonce to send
-  in the `next_local_nonce` field.
+- MUST use the `musig2.NonceGen` algorithm to generate unique nonces to send
+  in the `next_local_nonces` field.
+- MUST include one entry for each active commitment transaction, indexed by the
+  commitment transaction's `funding_txid`.
 
 The recipient:
 
-- MUST fail the channel if `next_local_nonce` is absent.
-
+- MUST fail the channel if `next_local_nonces` is absent.
+- MUST fail the channel if an active commitment's `funding_txid` is missing in
+  `next_local_nonces`.
 - If the local nonce generation is non-deterministic and the recipient co-signs
   commitments only upon pending broadcast:
-
   - MUST **securely** store the local nonce.
 
 ### Message Retransmission
@@ -1194,41 +1117,28 @@ We add a new TLV field to the `channel_reestablish` message:
 
 1. `tlv_stream`: `channel_reestablish_tlvs`
 2. types:
-   1. type: 4 (`next_local_nonce`)
+   1. type: 22 (`next_local_nonces`)
    2. data:
-      * [`66*byte`: `public_nonce`]
-   3. type: 22 (`local_nonces`)
-   4. data:
-      * [`local_nonces`: `nonces_map`]
+      * [`...*nonce_entry`: `nonces`]
 
-Similar to the `next_per_commitment_point`, by sending the `next_local_nonce`
-value in this message, we ensure that the remote party has our public nonce,
-which is required to generate a new commitment signature.
+Similar to the `next_per_commitment_point`, by sending the `next_local_nonces`
+value in this message, we ensure that the remote party has our public nonces,
+which are required to generate new commitment signatures.
 
 ##### Requirements
 
 The sender:
 
-- MUST set `next_local_nonce` to a fresh, unique `musig2` nonce as specified by
-  `bip-musig2`
-- For taproot channels, SHOULD also populate the `local_nonces` field:
-  - MUST include one entry for each active commitment transaction,
-    indexed by the commitment transaction's funding txid.
-  - MAY include additional entries for in-progress splice transactions
-  - MUST sort entries by TXID in lexicographical order when encoding
+- MUST set `next_local_nonces` to fresh, unique `musig2` nonces as specified by
+  `bip-musig2`.
+- MUST include one entry for each active commitment transaction, indexed by the
+  commitment transaction's `funding_txid`.
 
 The recipient:
 
-- MUST fail the channel if `next_local_nonce` is absent, or cannot be parsed as
-  two compressed secp256k1 points.
-- When `local_nonces` field is present:
-  - MUST prioritize `local_nonces` over `next_local_nonce` for obtaining the
-    commitment nonce
-  - MUST fail the channel if an active commitment funding txid is missing in
-    `next_local_nonces`.
-  - MAY store additional nonces for splice coordination
-- For taproot channels, if neither `next_local_nonce` nor `local_nonces` contains
-  a valid nonce, MUST fail the channel
+- MUST fail the channel if `next_local_nonces` is absent, or cannot be parsed.
+- MUST fail the channel if an active commitment's `funding_txid` is missing in
+  `next_local_nonces`.
 
 A node:
 
@@ -1242,26 +1152,24 @@ A node:
       `commitment_signed`
   
   - THEN it must regenerate the partial signature using the newly received
-    `next_local_nonce`
+    `next_local_nonces`
 
 ### Splice Coordination
 
 Splicing allows parties to modify the funding output of an existing channel
 without closing it. During splice operations, multiple commitment transactions
 may exist concurrently, each requiring its own MuSig2 nonce coordination. The
-`local_nonces` field enables this coordination by mapping transaction IDs to
-their respective nonces.
+`next_local_nonces` field enables this coordination by mapping transaction IDs
+to their respective nonces.
 
 #### Splice Nonce Management
 
 During splice negotiation:
 
 - Each splice transaction MUST have a unique TXID as the key in the
-`local_nonces` map
+  `next_local_nonces` map
 - Parties MUST include nonces for all active commitment transactions in their
-  `next_local_nonces` map, indexed by their funding tx id.
-- Completed or abandoned splices SHOULD have their nonces removed from the map in
-  subsequent messages
+  `next_local_nonces` map, indexed by their `funding_txid`
 
 ##### Requirements for Splice Coordination
 
@@ -1269,26 +1177,21 @@ When a splice is initiated:
 
 - The initiating party MUST generate a fresh nonce for the splice transaction
 - Both parties MUST add the splice TXID and corresponding nonce to their
-  `local_nonces` map
-- The nonce MUST be communicated in the next `commitment_signed` or
+  `next_local_nonces` map
+- The nonce MUST be communicated in the next `revoke_and_ack` or
   `channel_reestablish` message
-
-When a splice is completed:
-
-- Parties SHOULD remove the splice TXID from their `local_nonces` map
-- The primary commitment nonce SHOULD be updated to reflect the new funding output
 
 When multiple splices are pending:
 
 - Each splice MUST have a distinct TXID and nonce pair
 - Nonces MUST NOT be reused across different splice transactions
-- The `local_nonces` map MAY contain multiple entries during concurrent splice
-  operations
+- The `next_local_nonces` map MUST contain multiple entries during concurrent
+  splice operations
 
 ##### Backward Compatibility
 
 Nodes that do not support splicing will simply use a nonce map with a single
-entry indexed by the commitment transaction's funding tx id.
+entry indexed by the commitment transaction's `funding_txid`.
 
 ### Funding Transactions
 
