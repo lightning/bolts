@@ -295,7 +295,7 @@ A reader of an offer:
     - if the node does not accept bitcoin invoices:
       - MUST NOT respond to the offer
   - otherwise: (`offer_chains` is set):
-    - if the node does not accept invoices for any of the `chains`:
+    - if the node does not accept invoices for at least one of the `chains`:
       - MUST NOT respond to the offer
   - if `offer_amount` is set and `offer_description` is not set:
     - MUST NOT respond to the offer.
@@ -347,6 +347,12 @@ useful in a system which bases it on available stock.  It would be
 painful to have to special-case the "only one left" offer generation.
 
 Offers can be used to simply send money without expecting anything in return (tips, kudos, donations, etc), which means the description field is optional (the `offer_issuer` field is very useful for this case!); if you are charging for something specific, the description is vital for the user to know what it was they paid for.
+
+An empty `offer_chains` (present but with zero entries) is explicitly invalid
+because it would make invoice requests impossible. The payer cannot set
+`invreq_chain` to "one of `offer_chains`" when there are no chains listed.
+Rejecting such offers early provides clear feedback rather than leaving
+implementations to fail at the invoice request stage.
 
 # Invoice Requests
 
