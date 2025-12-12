@@ -69,8 +69,12 @@ The origin node:
   * MUST NOT set feature bits in fields not specified by the table above.
   * MUST NOT set both the optional and mandatory bits.
   * MUST set all transitive feature dependencies.
-  * MUST support:
+  * SHOULD require all `ASSUMED` features and therefore set their even bits:
+    * `option_data_loss_protect`
     * `var_onion_optin`
+    * `option_static_remotekey`
+    * `payment_secret`
+    * `option_channel_type`
 
 The receiving node:
   * if both the optional and the mandatory feature bits in a pair are set,
