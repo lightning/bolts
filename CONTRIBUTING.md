@@ -149,7 +149,7 @@ entire conversations.
 There is a [mailing
 list](https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev)
 for larger feature discussion, a [GitHub
-repository](https://github.com/lightningnetwork/lightning-rfc) for
+repository](https://github.com/lightning/bolts) for
 explicit issues and pull requests, and a bi-weekly IRC meeting on
 #lightning-dev on Freenode, currently held at 5:30am Tuesday, 
 Adelaide/Australia timezone (eg. Tuesday 23rd July 2019 05:30 == Mon, 22
