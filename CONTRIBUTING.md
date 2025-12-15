@@ -146,8 +146,8 @@ entire conversations.
 
 ## Specification Modification Process
 
-Larger features are discussed on [Delving
-Bitcoin](https://delvingbitcoin.org/tag/lightning). The [GitHub repository](
+Larger features are discussed on [Delving Bitcoin](
+https://delvingbitcoin.org/tag/lightning). The [GitHub repository](
 https://github.com/lightning/bolts) is used for explicit issues and pull
 requests. There is also a regular lightning spec meeting, and a pinned issue in
 the Github repository will advertise the date and time. Previous discussions
