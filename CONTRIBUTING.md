@@ -146,14 +146,13 @@ entire conversations.
 
 ## Specification Modification Process
 
-There is a [mailing
-list](https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev)
-for larger feature discussion, a [GitHub
-repository](https://github.com/lightningnetwork/lightning-rfc) for
-explicit issues and pull requests, and a bi-weekly IRC meeting on
-#lightning-dev on Freenode, currently held at 5:30am Tuesday, 
-Adelaide/Australia timezone (eg. Tuesday 23rd July 2019 05:30 == Mon, 22
-Jul 2019 20:00 UTC).
+Larger features are discussed on [Delving Bitcoin](
+https://delvingbitcoin.org/tag/lightning). The [GitHub repository](
+https://github.com/lightning/bolts) is used for explicit issues and pull
+requests. There is also a regular lightning spec meeting, and a pinned issue in
+the Github repository will advertise the date and time. Previous discussions
+used the `lightning-dev` mailing list: an archive can be found [here](
+https://www.mail-archive.com/lightning-dev@lists.linuxfoundation.org/).
 
 Spelling, typo and formatting changes are accepted once two contributors
 ack and there are no nacks.  All other changes get approved and minuted at
