@@ -2742,7 +2742,7 @@ A node:
     - MUST reuse the same commitment number for its next `commitment_signed`.
   - otherwise:
     - if `next_commitment_number` is not equal to the commitment number of the
-      next `commitment_signed` the receiving node will send:
+      next `commitment_signed` the receiving node would send:
       - SHOULD send an `error` and fail the channel.
   - if `next_revocation_number` is equal to the commitment number of
   the last `revoke_and_ack` the receiving node sent, AND the receiving node
