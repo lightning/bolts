@@ -573,6 +573,11 @@ second-stage HTLC transactions, to ensure that outputs added to the commitment
 transaction can actually be claimed on-chain, otherwise they may pollute the
 utxo set indefinitely. At a minimum, nodes should allow their peer to use a
 `dust_limit_satoshis` that is higher than the values defined by Bitcoin Core.
+We cannot predict future feerates, so this will not always work and can still
+result in HTLC outputs that are unspendable if the on-chain fees are too high.
+We cannot use very large `dust_limit_satoshis` values either since it would
+create too much dust exposure in the commitment transaction (more details
+[here](/02-peer-protocol.md#bounding-exposure-to-trimmed-in-flight-htlcs-max_dust_htlc_exposure_msat)).
 
 ### Pay to pubkey hash (p2pkh)
 
