@@ -2436,6 +2436,8 @@ A receiving node:
     - MUST return an error in the `update_fail_htlc` sent to the link which
       originally sent the HTLC, using the `failure_code` given and setting the
       data to `sha256_of_onion`.
+  - SHOULD add a random delay before sending `update_fulfill_htlc`,
+    `update_fail_htlc`, `update_fail_malformed_htlc`.
 
 #### Rationale
 
@@ -2457,6 +2459,20 @@ such detection is left as an option.
 
 Nodes inside a blinded route must use `invalid_onion_blinding` to avoid
 leaking information to senders trying to probe the blinded route.
+
+Receiving nodes should wait for a random amount of time before responding to
+incoming HTLCs with `update_fulfill_htlc` / `update_fail_malformed_htlc` /
+`update_fail_htlc` to impair the capabilities of a potential adversary trying
+to deanonymize them based on message timing analysis. The delay distribution
+and parameters should be chosen so that they disallow an adversary to be
+certain about the origin of any response messages while keeping efficiency in
+mind, i.e., the chosen approach should aim to maximize the adversarial
+uncertainty gained per millisecond added delay. In practice this could mean to
+start a limited random walk on the graph and for each traversed hop add a
+plausible per-hop delay sampled from a suitable random latency distribution
+(e.g., log-normal). In aggregate, this would create a plausible extended path
+similar to the 'shadow route extension' as discussed in [BOLT
+#7](07-routing-gossip.md#recommendations-for-routing).
 
 ### Committing Updates So Far: `commitment_signed`
 
