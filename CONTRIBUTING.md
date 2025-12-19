@@ -156,7 +156,7 @@ https://www.mail-archive.com/lightning-dev@lists.linuxfoundation.org/).
 
 Spelling, typo and formatting changes are accepted once two contributors
 ack and there are no nacks.  All other changes get approved and minuted at
-the IRC meeting.  Protocol changes require two independent implementations
+the spec meeting.  Protocol changes require two independent implementations
 which successfully inter-operate; be patient as spec changes are hard to
 fix later, so agreement can take some time.
 
