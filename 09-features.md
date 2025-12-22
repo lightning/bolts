@@ -55,6 +55,7 @@ The Context column decodes as follows:
 | 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                             | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
 | 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | INT      | `option_scid_alias`         | [BOLT #2][bolt02-channel-ready]                                       |
 | 60/61 | `option_simple_close`             | Simplified closing negotiation                            | IN       | `option_shutdown_anysegwit` | [BOLT #2][bolt02-simple-close]                                        |
+| 68/69 | `option_message_padding`          | Network message padding                                   | I        |                             | [BOLT #1][bolt01-network-message-padding]                             |
 
 ## Requirements
 
@@ -97,6 +98,7 @@ known to be set, and do not need to be validated at every feature gate.
 <br>
 This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
 
+[bolt01-network-message-padding]: 01-messaging.md#network-message-padding
 [bolt02-retransmit]: 02-peer-protocol.md#message-retransmission
 [bolt02-open]: 02-peer-protocol.md#the-open_channel-message
 [bolt02-simple-close]: 02-peer-protocol.md#closing-negotiation-closing_complete-and-closing_sig
