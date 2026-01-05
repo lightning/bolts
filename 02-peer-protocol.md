@@ -2683,15 +2683,24 @@ messages are), they are independent of requirements here.
 
 1. `tlv_stream`: `channel_reestablish_tlvs`
 2. types:
-    1. type: 0 (`next_funding`)
+    1. type: 1 (`next_funding`)
     2. data:
         * [`sha256`:`next_funding_txid`]
+        * [`byte`:`retransmit_flags`]
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
 are independent for each peer in the channel and start at 0.
 They're only explicitly relayed to the other node in the case of
 re-establishment, otherwise they are implicit.
+
+The `next_funding.retransmit_flags` bitfield is used to let the
+receiving peer know which messages they must retransmit for the
+corresponding `next_funding_txid` after the reconnection:
+
+| Bit Position  | Name                |
+| ------------- | --------------------|
+| 0             | `commitment_signed` |
 
 ### Requirements
 
@@ -2739,11 +2748,17 @@ The sending node:
     - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret` it received
   - if it has sent `commitment_signed` for an interactive transaction construction but
     it has not received `tx_signatures`:
+    - MUST include the `next_funding` TLV.
     - MUST set `next_funding_txid` to the txid of that interactive transaction.
+    - if it has not received `commitment_signed` for this `next_funding_txid`:
+      - MUST set the `commitment_signed` bit in `retransmit_flags`.
   - otherwise:
-    - MUST NOT set `next_funding_txid`.
+    - MUST NOT include the `next_funding` TLV.
 
 A node:
+  - if `next_commitment_number` is zero:
+    - MUST immediately fail the channel and broadcast any relevant latest commitment
+      transaction.
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
   sent and received:
     - MUST retransmit `channel_ready`.
@@ -2756,12 +2771,8 @@ A node:
   the last `commitment_signed` message the receiving node has sent:
     - MUST reuse the same commitment number for its next `commitment_signed`.
   - otherwise:
-    - if `next_commitment_number` is not 1 greater than the
-  commitment number of the last `commitment_signed` message the receiving
-  node has sent:
-      - SHOULD send an `error` and fail the channel.
-    - if it has not sent `commitment_signed`, AND `next_commitment_number`
-    is not equal to 1:
+    - if `next_commitment_number` is not equal to the commitment number of the
+      next `commitment_signed` that the receiving node would send:
       - SHOULD send an `error` and fail the channel.
   - if `next_revocation_number` is equal to the commitment number of
   the last `revoke_and_ack` the receiving node sent, AND the receiving node
@@ -2791,10 +2802,11 @@ A node:
       - SHOULD send an `error` and fail the channel.
 
 A receiving node:
-  - if `next_funding_txid` is set:
+  - if the `next_funding` TLV is set:
     - if `next_funding_txid` matches the latest interactive funding transaction:
       - if it has not received `tx_signatures` for that funding transaction:
-        - MUST retransmit its `commitment_signed` for that funding transaction.
+        - if the `commitment_signed` bit is set in `retransmit_flags`:
+          - MUST retransmit its `commitment_signed` for that funding transaction.
         - if it has already received `commitment_signed` and it should sign first,
           as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):
           - MUST send its `tx_signatures` for that funding transaction.
@@ -2883,7 +2895,7 @@ transaction to the chain. The other node should wait for that `error` to give
 the fallen-behind node an opportunity to fix its state first (e.g by restarting
 with a different backup).
 
-`next_funding_txid` allows peers to finalize the signing steps of an
+The `next_funding` TLV allows peers to finalize the signing steps of an
 interactive transaction construction, or safely abort that transaction
 if it was not signed by one of the peers, who has thus already removed
 it from its state.
