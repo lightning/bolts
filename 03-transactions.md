@@ -280,11 +280,15 @@ To redeem the HTLC, the HTLC-success transaction is used as detailed below. This
 ### Trimmed Outputs
 
 Each peer specifies a `dust_limit_satoshis` below which outputs should
-not be produced; these outputs that are not produced are termed "trimmed". A trimmed output is
-considered too small to be worth creating and is instead added
-to the commitment transaction fee. For HTLCs, it needs to be taken into
-account that the second-stage HTLC transaction may also be below the
-limit.
+not be produced; these outputs that are not produced are termed "trimmed".
+A trimmed output is considered too small to be worth creating: it is instead
+either added to the commitment transaction fee.
+
+For HTLCs, it needs to be taken into account that the second-stage HTLC
+transaction may also be below the limit. Note that when using `option_anchors`,
+HTLC transactions don't include a fee and thus don't contribute to trimming:
+setting a higher `dust_limit_satoshis` makes sense for those channels to ensure
+that outputs are economical to spend.
 
 #### Requirements
 
@@ -550,6 +554,7 @@ Bitcoin Core defines the following dust thresholds:
 - pay to script hash (p2sh): 540 satoshis
 - pay to witness pubkey hash (p2wpkh): 294 satoshis
 - pay to witness script hash (p2wsh): 330 satoshis
+- pay to anchor (p2a): 240 satoshis
 - unknown segwit versions: 354 satoshis
 - `OP_RETURN` outputs: these are never dust
 
@@ -558,6 +563,20 @@ is explained in the following sections.
 
 In all these sections, the calculations are done with a feerate of 3000 sat/kB
 as per Bitcoin Core's implementation.
+
+Note that since the introduction of `option_anchors`, the second-stage HTLC
+transaction's weight is not taken into account when deciding whether outputs
+should be included in the commitment transaction or not. It thus makes sense
+to use a `dust_limit_satoshis` that takes into account the cost of those
+second-stage HTLC transactions, to ensure that outputs added to the commitment
+transaction can actually be claimed on-chain, otherwise they may pollute the
+utxo set indefinitely. At a minimum, nodes should allow their peer to use a
+`dust_limit_satoshis` that is higher than the values defined by Bitcoin Core.
+We cannot predict future feerates, so this will not always work and can still
+result in HTLC outputs that are unspendable if the on-chain fees are too high.
+We cannot use very large `dust_limit_satoshis` values either since it would
+create too much dust exposure in the commitment transaction (more details
+[here](/02-peer-protocol.md#bounding-exposure-to-trimmed-in-flight-htlcs-max_dust_htlc_exposure_msat)).
 
 ### Pay to pubkey hash (p2pkh)
 
