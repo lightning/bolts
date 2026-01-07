@@ -647,7 +647,7 @@ the `onion_message` `invoice` field.
     1. type: 160 (`invoice_paths`)
     2. data:
         * [`...*blinded_path`:`paths`]
-    1. type: 161 (`accountable`)
+    1. type: 161 (`invoice_accountable`)
     1. type: 162 (`invoice_blindedpay`)
     2. data:
         * [`...*blinded_payinfo`:`payinfo`]
@@ -747,9 +747,9 @@ A writer of an invoice:
     - MUST set `features` in each `blinded_payinfo` to match `encrypted_data_tlv`.`allowed_features` (or empty, if no `allowed_features`).
     - SHOULD ignore any payment which does not use one of the paths.
   - if the invoice will be resolved within 90 seconds of HTLC(s) arrival:
-    - SHOULD set `accountable`.
+    - SHOULD set `invoice_accountable`.
   - otherwise:
-    - MUST NOT set `accountable`.
+    - MUST NOT set `invoice_accountable`.
 
 A reader of an invoice:
   - MUST reject the invoice if `invoice_amount` is not present.
