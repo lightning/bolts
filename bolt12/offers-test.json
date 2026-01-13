@@ -592,5 +592,10 @@
     "description": "offer_chains with zero entries",
     "valid": false,
     "bolt12": "lno1qgqpvggrt0j7j3uzp9n549hxpu0sxlmpwe2ql5qplgwkg628wrzk5acfcskq"
+  },
+  {
+    "description": "Bech32 padding exceeds 4-bit limit",
+    "valid": false,
+    "bolt12": "lno1zcss9mk8y3wkklfvevcrszlmu23kfrxh49px20665dqwmn4p72pkseseq"
   }
 ]
