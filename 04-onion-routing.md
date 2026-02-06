@@ -798,7 +798,7 @@ following operations:
 
  - The _rho_-key and _mu_-key are generated using the hop's shared secret.
  - `shift_size` is defined as the length of the `hop_payload` plus the bigsize encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the bigsize encoding of `l`.
- - The `hop_payload` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
+ - The `hop_payloads` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
  bytes that exceed its 1300-byte size.
  - The bigsize-serialized length, serialized `hop_payload` and `hmac` are copied into the following `shift_size` bytes.
  - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
