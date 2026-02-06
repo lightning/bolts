@@ -756,7 +756,8 @@ public keys for `n_1` to `n_r` and generates a random 32-byte `sessionkey`.
 Optionally, the sender may pass in _associated data_, i.e. data that the
 packet commits to but that is not included in the packet itself. Associated
 data will be included in the HMACs and must match the associated data provided
-during integrity verification at each hop.
+during integrity verification at each hop. The `payment_hash` is commonly used for
+this purpose.
 
 To construct the onion, the sender initializes the ephemeral private key for the
 first hop `ek_1` to the `sessionkey` and derives from it the corresponding
