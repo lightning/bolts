@@ -98,6 +98,8 @@ There are a number of conventions adhered to throughout this document:
  - Each hop in the route has a variable length `hop_payload`.
     - The variable length `hop_payload` is prefixed with a `bigsize` encoding
       the length in bytes, excluding the prefix and the trailing HMAC.
+ - These `hop_payload`s are used to build the combined payload in the packet,
+   also referred to as `hop_payloads` or the mix-header.
 
 # Key Generation
 
