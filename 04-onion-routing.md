@@ -990,7 +990,8 @@ obfuscating the added `0x00`-bytes at the end.
 In order to compute the correct HMAC, the origin node has to pre-generate the
 `hop_payloads` for each hop, including the incrementally obfuscated padding added
 by each hop. This incrementally obfuscated padding is referred to as the
-`filler`.
+`filler`. Keep in mind that while the mix-header is generated in reverse-route order,
+the filler is generated in route order.
 
 The following example code shows how the filler is generated in Go:
 
