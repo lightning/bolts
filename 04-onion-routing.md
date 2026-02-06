@@ -819,6 +819,8 @@ the obfuscated `hop_payloads`.
 The following Go code is an example implementation of the packet construction:
 
 ```Go
+const RoutingInfoSize int32 = 1300
+
 func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey,
 	hopsData []HopData, assocData []byte) (*OnionPacket, error) {
 
@@ -852,17 +854,17 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 	}
 
 	// Generate the padding, called "filler strings" in the paper.
-	filler := generateHeaderPadding("rho", numHops, hopDataSize, hopSharedSecrets)
+	filler := generateHeaderPadding(numHops, hopSharedSecrets)
 
 	// Allocate and initialize fields to zero-filled slices
-	var mixHeader [routingInfoSize]byte
-	var nextHmac [hmacSize]byte
+	var mixHeader [RoutingInfoSize]byte
+	var nextHmac [32]byte
         
-        // Our starting packet needs to be filled out with random bytes, we
-        // generate some deterministically using the session private key.
-        paddingKey := generateKey("pad", sessionKey.Serialize())
-        paddingBytes := generateCipherStream(paddingKey, routingInfoSize)
-        copy(mixHeader[:], paddingBytes)
+  // Our starting packet needs to be filled out with random bytes, we
+  // generate some deterministically using the session private key.
+  paddingKey := generateKey("pad", sessionKey.Serialize())
+  paddingBytes := generateCipherStream(paddingKey, RoutingInfoSize)
+  copy(mixHeader[:], paddingBytes)
 
 	// Compute the routing information for each hop along with a
 	// MAC of the routing information using the shared key for that hop.
@@ -873,13 +875,13 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 		hopsData[i].HMAC = nextHmac
 
 		// Shift and obfuscate routing information
-		streamBytes := generateCipherStream(rhoKey, numStreamBytes)
+		streamBytes := generateCipherStream(rhoKey, RoutingInfoSize)
 
 		rightShift(mixHeader[:], hopDataSize)
 		buf := &bytes.Buffer{}
 		hopsData[i].Encode(buf)
 		copy(mixHeader[:], buf.Bytes())
-		xor(mixHeader[:], mixHeader[:], streamBytes[:routingInfoSize])
+		xor(mixHeader[:], mixHeader[:], streamBytes[:RoutingInfoSize])
 
 		// These need to be overwritten, so every node generates a correct padding
 		if i == numHops-1 {
@@ -993,30 +995,36 @@ by each hop. This incrementally obfuscated padding is referred to as the
 The following example code shows how the filler is generated in Go:
 
 ```Go
-func generateFiller(key string, numHops int, hopSize int, sharedSecrets [][sharedSecretSize]byte) []byte {
-	fillerSize := uint((numMaxHops + 1) * hopSize)
+const (
+  // The mix-header in Lightning is a max of 1300 bytes
+  NumMaxHops int = 20
+  HopSize = 65
+)
+
+func generateFiller(numHops int, sharedSecrets [][sharedSecretSize]byte) []byte {
+	fillerSize := uint((NumMaxHops + 1) * HopSize)
 	filler := make([]byte, fillerSize)
 
 	// The last hop does not obfuscate, it's not forwarding anymore.
 	for i := 0; i < numHops-1; i++ {
 
 		// Left-shift the field
-		copy(filler[:], filler[hopSize:])
+		copy(filler[:], filler[HopSize:])
 
 		// Zero-fill the last hop
-		copy(filler[len(filler)-hopSize:], bytes.Repeat([]byte{0x00}, hopSize))
+		copy(filler[len(filler)-HopSize:], bytes.Repeat([]byte{0x00}, HopSize))
 
 		// Generate pseudo-random byte stream
-		streamKey := generateKey(key, sharedSecrets[i])
+		streamKey := generateKey("rho", sharedSecrets[i])
 		streamBytes := generateCipherStream(streamKey, fillerSize)
 
 		// Obfuscate
 		xor(filler, filler, streamBytes)
 	}
 
-	// Cut filler down to the correct length (numHops+1)*hopSize
+	// Cut filler down to the correct length (numHops+1)*HopSize
 	// bytes will be prepended by the packet generation.
-	return filler[(numMaxHops-numHops+2)*hopSize:]
+	return filler[(NumMaxHops-numHops+2)*HopSize:]
 }
 ```
 
