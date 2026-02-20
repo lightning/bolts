@@ -465,9 +465,9 @@ The sender:
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
   - If it contributed to previous transactions:
-    - MUST send `tx_add_input` with at least one input that it used in previous
-      transaction construction attempts, to ensure that the new transaction
-      double-spends all other attempts.
+    - MUST ensure that the new transaction double-spends all other attempts,
+      by sending `tx_add_input` with at least one input
+      from each previous transaction construction attempt.
 
 The recipient:
   - MUST respond either with `tx_abort` or with `tx_ack_rbf`
@@ -519,9 +519,9 @@ The sender:
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
   - If it contributed to previous transactions:
-    - MUST send `tx_add_input` with at least one input that it used in previous
-      transaction construction attempts, to ensure that the new transaction
-      double-spends all other attempts.
+    - MUST ensure that the new transaction double-spends all other attempts,
+      by sending `tx_add_input` with at least one input
+      from each previous transaction construction attempt.
 
 The recipient:
   - MUST respond with `tx_abort` or with a `tx_add_input` message,
