@@ -33,11 +33,9 @@ Created: 2022-04-20
       - [`funding_created` Extensions](#funding_created-extensions)
       - [`funding_signed` Extensions](#funding_signed-extensions)
       - [`channel_ready` Extensions](#channel_ready-extensions)
-    + [Cooperative Closure](#cooperative-closure)
+    + [RBF Cooperative Close](#rbf-cooperative-close)
       - [`shutdown` Extensions](#shutdown-extensions)
-      - [`closing_signed` Extensions](#closing_signed-extensions)
-    + [RBF Cooperative Close Extensions](#rbf-cooperative-close-extensions)
-      - [New TLV Types for RBF Cooperative Close](#new-tlv-types-for-rbf-cooperative-close)
+      - [JIT (Just-In-Time) Nonce Pattern](#jit-just-in-time-nonce-pattern)
       - [`closing_complete` Extensions](#closing_complete-extensions)
       - [`closing_sig` Extensions](#closing_sig-extensions)
       - [RBF Nonce Rotation Protocol](#rbf-nonce-rotation-protocol)
@@ -762,21 +760,15 @@ The recipient:
 
 - MUST fail the channel if `next_local_nonce` is absent.
 
-### Cooperative Closure
+### RBF Cooperative Close
 
-Compared to the base segwit v0 channel type, for simple taproot channels, the
-co-op close transaction now always signals RBF. In other words, the sequence
-field of the sole input to the cooperative close transaction MUST be
-less-than-or-equal to `0xfffffffd`. This enables a future cooperative closure
-flow to support increasing the fee of subsequent close offers via RBF.
+For simple taproot channels, the cooperative close protocol uses
+`closing_complete` and `closing_sig` messages (as specified in BOLT #2) with
+extensions for MuSig2 signature generation and RBF (Replace-By-Fee) iterations.
 
-In addition, rather than adopt the existing cooperative closure fee rate
-"negotiation", the responder SHOULD now always accept the offer sent by the
-initiator. In other words, the cooperative close process now terminates after
-exactly 1 RTTs: initiator sends sigs with offer, with the responder echo'ing
-back the same fee rate. This serves to ensure that the co-op close process
-always terminates deterministically, and also plays nicer with the nonces: only
-a single message is ever signed by both sides for a coop close workflow.
+The sequence field of the sole input to the cooperative close transaction MUST
+be less-than-or-equal to `0xfffffffd`. This enables increasing the fee of
+subsequent close offers via RBF.
 
 #### `shutdown` Extensions
 
@@ -794,12 +786,9 @@ For taproot channels, the shutdown message includes a single nonce:
         * [`66*byte`:`public_nonce`]
 
 The `shutdown_nonce` represents the sender's "closee nonce" - the nonce they
-will use when sending `closing_sig` messages. This applies to both the legacy
-`closing_signed` flow and the modern RBF flow using
-`closing_complete`/`closing_sig`.
+will use when sending `closing_sig` messages.
 
-For the modern RBF flow, additional nonces are provided just-in-time (JIT) with
-signatures:
+Additional nonces are provided just-in-time (JIT) with signatures:
 
 - `closing_complete` uses `PartialSigWithNonce` which includes the sender's
 next closee nonce
@@ -819,17 +808,10 @@ A receiving node:
  - MUST verify that the `shutdown_nonce` value is a valid `musig2` public nonce.
  - MUST store this nonce for use when verifying the peer's `closing_sig` messages.
 
-### Channel Cooperative Close Extensions
-
-The modern RBF-based cooperative close protocol using `closing_complete` and
-`closing_sig` messages (as specified in BOLT #2) requires additional extensions
-for taproot channels to support MuSig2 signature generation and RBF
-(Replace-By-Fee) iterations.
-
 #### JIT (Just-In-Time) Nonce Pattern
 
-For taproot channels using the modern RBF cooperative close flow, final nonces
-are delivered just-in-time with signatures using an asymmetric pattern:
+Final nonces are delivered just-in-time with signatures using an asymmetric
+pattern:
 
 - `closing_complete` uses `PartialSigWithNonce` (98 bytes) to bundle the
   signature with the next closer nonce
@@ -1405,8 +1387,6 @@ be set at 1.
 In order to spend an accepted HTLC, via either script path, an
 `inclusion_proof` must be specified along with the control block. This
 `inclusion_proof` is simply the `tap_leaf` hash of the path _not_ taken.
-
-TODO(roasbeef): specify full witnesses?
 
 #### HTLC Second Level Transactions
 
