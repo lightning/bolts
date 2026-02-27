@@ -338,9 +338,7 @@ To protect the general bucket from trivial denial of service, each forwarding
 pair of channels is restricted to a subset of slots and liquidity.
 
 We define the following:
-- `general_bucket_slot_allocation`:
-  - If the channel type allows a maximum of 483 HTLCs: 20
-  - If the channel type allows a maximum of 114 HTLCs: 5
+- `general_bucket_slot_allocation` = `max(5, general bucket slot total*5/100)`
 - `general_bucket_liquidity_allocation` =
   `general bucket capacity * general_bucket_slot_allocation / general bucket slot total`
 
@@ -371,9 +369,10 @@ manipulate assignment.
 
 The default slot allocations provided are chosen such that it it highly
 improbable that any two channels are granted the same set of resources, making
-it difficult for an attacker to crowd out honest traffic. With these defaults,
-an attacker will need to open approximately 50 channels in expectation to gain
-access to all general resources.
+it difficult for an attacker to crowd out honest traffic. With the defaults
+proposed in this document, an attacker would need to open, in expectation, 38
+channels to occupy all the slots in a `option_zero_fee_commitments` channel
+(assuming `max_accepted_htlcs` = 114, assigning 40% of those slots to general).
 
 ### Congestion Bucket
 
