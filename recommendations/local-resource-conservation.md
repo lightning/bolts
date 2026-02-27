@@ -343,11 +343,12 @@ We define the following:
   `general bucket capacity * general_bucket_slot_allocation / general bucket slot total`
 
 Each `(incoming scid, outgoing scid)` is deterministically assigned slots:
-```
-for i = 0; i < general_bucket_slot_allocation {
-  slot = sha256(concat(salt, incoming scid, outgoing scid, i)) % general bucket slot total
-}
-```
+- Create a `ChaCha20` stream keyed with `salt` and using
+  `incoming_scid[0:4]|outgoing_scid` as a nonce.
+- Read 4 bytes, interpret as a little-endian uint32 and take
+  modulo `general_bucket_slot_total`.
+- Repeat until `general_bucket_slot_allocation` unique slot indexes
+  have been generated.
 
 Where `salt`:
 - MUST be randomly chosen and unique per channel.
@@ -365,7 +366,9 @@ more expensive for an attacker to exhaust resources, as opening a channel incurs
 a cost, while still allowing reasonable usage by honest peers. Salting 
 resource assignment ensures that the attacker cannot detect which resources
 they will be assigned, and thus cannot strategically open new channels to
-manipulate assignment.
+manipulate assignment. To produce a 12 byte nonce, we choose to reduce the input
+from `incoming_scid` to 4 bytes because the `outgoing_scid` belongs to the
+adversary and incurs a cost to attempt to manipulate.
 
 The default slot allocations provided are chosen such that it it highly
 improbable that any two channels are granted the same set of resources, making
@@ -373,6 +376,7 @@ it difficult for an attacker to crowd out honest traffic. With the defaults
 proposed in this document, an attacker would need to open, in expectation, 38
 channels to occupy all the slots in a `option_zero_fee_commitments` channel
 (assuming `max_accepted_htlcs` = 114, assigning 40% of those slots to general).
+
 
 ### Congestion Bucket
 
