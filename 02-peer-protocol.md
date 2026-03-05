@@ -213,6 +213,11 @@ This message contains a transaction input.
    1. type: 0 (`shared_input_txid`)
    2. data:
      * [`sha256`:`funding_txid`]
+   1. type: 2 (`prevtx_details`)
+   2. data:
+     * [`sha256`:`prevtx_txid`]
+     * [`u64`:`amount_satoshis`]
+     * [`...*byte`:`scriptpubkey`]
 
 #### Requirements
 
@@ -221,6 +226,9 @@ The sending node:
   - MUST use a unique `serial_id` for each input currently added to the
     transaction
   - MUST set `sequence` to be less than or equal to 4294967293 (`0xFFFFFFFD`)
+  - If the transaction splices an existing taproot channel or only uses taproot inputs:
+    - MAY omit `prevtx` (and set `prevtx_len` to `0`) and provide the amount and script
+      of the output being spent in `prevtx_details` instead
   - MUST NOT re-transmit inputs it has received from the peer
   - if is the *initiator*:
     - MUST send even `serial_id`s
@@ -232,10 +240,16 @@ The receiving node:
   - MUST fail the negotiation if:
     - `sequence` is set to `0xFFFFFFFE` or `0xFFFFFFFF`
     - if `prevtx_len` is `0`:
-      - `shared_input_txid` is not set
-      - `shared_input_txid` and `prevtx_vout` don't match the previous funding output
-      - a previously added (and not removed) input already exists with `shared_input_txid` set
+      - `shared_input_txid` is not set and `prevtx_details` is not set either
+      - if `shared_input_txid` is set:
+        - `shared_input_txid` and `prevtx_vout` don't match the previous funding output
+        - a previously added (and not removed) input already exists with `shared_input_txid` set
+      - if `prevtx_details` is set:
+        - `prevtx_details` and `prevtx_vout` are identical to a previously added (and not removed) input
+        - the `scriptpubKey` in `prevtx_details` is not exactly a 1-byte push opcode (for the numeric
+          values `1` to `16`) followed by a data push between 2 and 40 bytes
     - if `prevtx_len` is not `0`:
+      - `prevtx_details` is also set
       - `prevtx` and `prevtx_vout` are identical to a previously added (and not removed) input
       - `prevtx` is not a valid transaction
       - `prevtx_vout` is greater or equal to the number of outputs on `prevtx`
@@ -256,7 +270,9 @@ Inputs in the constructed transaction MUST be sorted by `serial_id`.
 `prevtx` is the serialized transaction that contains the output this input
 spends, used to verify that the input is non-malleable. It can be ommitted
 (`prevtx_len` set to `0`) when both peers already know that the input is
-non-malleable (e.g. when it is the previous funding output).
+non-malleable (e.g. when it is the previous funding output or when both
+participants sign a taproot input). Ommitting this field allows spending
+transactions that exceed 65kB and saves bandwidth.
 
 `prevtx_vout` is the index of the output being spent.
 
@@ -390,6 +406,8 @@ The receiving node:
       - the *initiator*'s fees do not cover the `common` fields
     - there are more than 252 inputs
     - there are more than 252 outputs
+    - there are inputs that use `prevtx_details` instead of providing the
+      whole `prevtx` but some inputs are not taproot inputs
     - the estimated weight of the tx is greater than 400,000 (`MAX_STANDARD_TX_WEIGHT`)
 
 #### Rationale
@@ -404,6 +422,9 @@ For the `minimum fee` calculation see [BOLT #3](03-transactions.md#calculating-f
 
 The maximum inputs and outputs are capped at 252. This effectively fixes
 the byte size of the input and output counts on the transaction to one (1).
+
+Using `prevtx_details` instead of providing the whole `prevtx` is restricted
+to taproot inputs, otherwise the transaction can be malleated.
 
 ### The `tx_signatures` Message
 
