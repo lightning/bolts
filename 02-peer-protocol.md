@@ -389,6 +389,16 @@ contributions.
 2. data:
     * [`channel_id`:`channel_id`]
 
+1. `tlv_stream`: `tx_complete_tlvs`
+2. types:
+   1. type: 4 (`commit_nonces`)
+   2. data:
+     * [`66*byte`: `current_local_commit_nonce`]
+     * [`66*byte`: `next_local_commit_nonce`]
+   1. type: 6 (`funding_nonce`)
+   2. data:
+     * [`66*byte`: `local_funding_nonce`]
+
 #### Requirements
 
 The nodes:
@@ -446,6 +456,9 @@ to taproot inputs, otherwise the transaction can be malleated.
    1. type: 0 (`shared_input_signature`)
    2. data:
      * [`signature`:`signature`]
+   1. type: 2 (`shared_input_partial_signature`)
+   2. data:
+     * [`98*byte`: `partial_signature || public_nonce`]
 
 #### Requirements
 
@@ -1801,6 +1814,14 @@ output to the transaction and paying the fees for its weight.
 
 ##### Requirements
 
+The sending node:
+  - When splicing a taproot channel:
+    - MUST include a random musig2 nonce that will be used for their
+      partial signature of the previous channel output in `funding_nonce`.
+    - MUST include `commit_nonces`, which contains their verification
+      nonce for the current and next commitment transactions spending
+      the interactive transaction being constructed.
+
 The receiving node:
   - MUST compute the channel balance for each side by adding their respective
     `funding_contribution_satoshis` to their previous channel balance.
@@ -1808,6 +1829,8 @@ The receiving node:
     - There is not exactly one input spending the current funding transaction.
     - There is not exactly one channel funding output using the funding public
       keys and funding contributions from `splice_init` and `splice_ack`.
+    - The transaction is splicing a taproot channel and `commit_nonces` or
+      `funding_nonce` is missing.
     - This is an RBF attempt and the transaction's total fees is less than
       the last successfully negotiated splice transaction's fees.
     - Either side has added an output other than the channel funding output
@@ -1868,16 +1891,28 @@ exchange if a disconnection happens.
 ##### Requirements
 
 The sending node:
-  - MUST set `shared_input_signature` to a valid ECDSA signature for the
-    `tx_add_input` spending the previous channel funding output using the
-    `funding_pubkey` that matches this input.
+  - When splicing a taproot channel:
+    - MUST set `shared_input_partial_signature` to a valid musig2 partial
+      signature for the `tx_add_input` spending the previous channel funding
+      output using the `funding_nonce`s exchanged in `tx_complete`.
+  - Otherwise:
+    - MUST set `shared_input_signature` to a valid ECDSA signature for the
+      `tx_add_input` spending the previous channel funding output using the
+      `funding_pubkey` that matches this input.
 
 The receiving node:
-  - If `shared_input_signature` is not set:
-    - MUST send an `error` and fail the channel.
-  - If `shared_input_signature` is not valid or non-compliant with the
-    LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
-    - MUST send an `error` and fail the channel.
+  - When splicing a taproot channel:
+    - If `shared_input_partial_signature` is not set:
+      - MUST send an `error` and fail the channel.
+    - If `shared_input_partial_signature` is not a valid partial signature
+      using the `funding_nonce`s exchanged in `tx_complete`:
+      - MUST send an `error` and fail the channel.
+  - Otherwise:
+    - If `shared_input_signature` is not set:
+      - MUST send an `error` and fail the channel.
+    - If `shared_input_signature` is not valid or non-compliant with the
+      LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+      - MUST send an `error` and fail the channel.
   - MUST consider the channel no longer quiescent.
 
 On reconnection:
@@ -3360,6 +3395,9 @@ messages are), they are independent of requirements here.
     2. data:
         * [`sha256`:`my_current_funding_locked_txid`]
         * [`byte`:`retransmit_flags`]
+    1. type: 24 (`current_commit_nonce`)
+    2. data:
+        * [`66*byte`: `current_local_commit_nonce`]
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
@@ -3433,6 +3471,8 @@ The sending node:
     - MUST set `next_funding_txid` to the txid of that interactive transaction.
     - if it has not received `commitment_signed` for this `next_funding_txid`:
       - MUST set the `commitment_signed` bit in `retransmit_flags`.
+      - If this is a taproot channel:
+        - MUST include its verification nonce in `current_commit_nonce`.
   - otherwise:
     - MUST NOT include the `next_funding` TLV.
   - if `option_splice` was negotiated:
@@ -3504,6 +3544,8 @@ A receiving node:
       - if it has not received `tx_signatures` for that funding transaction:
         - if the `commitment_signed` bit is set in `retransmit_flags`:
           - MUST retransmit its `commitment_signed` for that funding transaction.
+          - If this is a taproot channel:
+            - MUST use the `current_commit_nonce` provided.
         - if it has already received `commitment_signed` and it should sign first,
           as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):
           - MUST send its `tx_signatures` for that funding transaction.
