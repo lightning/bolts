@@ -766,10 +766,6 @@ For simple taproot channels, the cooperative close protocol uses
 `closing_complete` and `closing_sig` messages (as specified in BOLT #2) with
 extensions for MuSig2 signature generation and RBF (Replace-By-Fee) iterations.
 
-The sequence field of the sole input to the cooperative close transaction MUST
-be less-than-or-equal to `0xfffffffd`. This enables increasing the fee of
-subsequent close offers via RBF.
-
 #### `shutdown` Extensions
 
 For taproot channels, the shutdown message includes a single nonce:
@@ -791,7 +787,7 @@ will use when sending `closing_sig` messages.
 Additional nonces are provided just-in-time (JIT) with signatures:
 
 - `closing_complete` uses `PartialSigWithNonce` which includes the sender's
-next closee nonce
+closer nonce
 
 - `closing_sig` uses just `PartialSig` (no nonce) since the receiver already
 knows the nonce
