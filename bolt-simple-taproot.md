@@ -1475,6 +1475,79 @@ Channel parameters used: `funding_amount = 10,000,000 sat`,
 `dust_limit = 354 sat` (taproot dust), `csv_delay = 144 blocks`,
 `commit_height = 42`, `fee_per_kw` as specified per test case.
 
+### Key Derivation Labels
+
+The following labels are used with `SHA256(seed || label)` to derive each
+private key:
+
+| Key | Label |
+|-----|-------|
+| `local_funding_privkey` | `"local-funding"` |
+| `remote_funding_privkey` | `"remote-funding"` |
+| `local_payment_basepoint_secret` | `"local-payment-basepoint"` |
+| `remote_payment_basepoint_secret` | `"remote-payment-basepoint"` |
+| `local_delayed_payment_basepoint_secret` | `"local-delayed-payment-basepoint"` |
+| `remote_revocation_basepoint_secret` | `"remote-revocation-basepoint"` |
+| `local_htlc_basepoint_secret` | `"local-htlc-basepoint"` |
+| `remote_htlc_basepoint_secret` | `"remote-htlc-basepoint"` |
+| `local_per_commit_secret` | `"local-per-commit-secret"` |
+
+### MuSig2 Nonce Generation
+
+MuSig2 partial signatures require deterministic nonces so that test vectors are
+reproducible across implementations. The signing randomness for each party's
+JIT nonces is derived as `SHA256(seed || label)` using:
+
+| Party | Label |
+|-------|-------|
+| Local signer | `"local-signing-rand"` |
+| Remote signer | `"remote-signing-rand"` |
+
+The resulting 32-byte hash is used as the nonce randomness input to the MuSig2
+signing session. Each transaction test case includes `local_nonce` and
+`remote_nonce` fields (66-byte compressed public nonces) so implementations can
+verify the nonces were derived correctly and reconstruct the combined signature.
+
+### Commitment Transaction Signatures
+
+The `remote_partial_sig` field in each transaction test case is a 32-byte
+MuSig2 partial signature scalar (hex-encoded). This is the remote party's
+contribution to the combined Schnorr signature on the commitment transaction.
+The commitment transaction witness contains the final aggregated 64-byte
+Schnorr signature produced by combining both parties' partial signatures.
+
+### HTLC Resolution Transactions
+
+Each `htlc_descs` entry describes a second-level HTLC transaction that spends
+from one of the commitment transaction's HTLC outputs. The entries are ordered
+by their corresponding commitment transaction output index (BIP 69 ordering),
+which matches the order of `htlc_signature` messages exchanged during the
+commitment signing protocol.
+
+The `remote_partial_sig_hex` for HTLC transactions is a 64-byte Schnorr
+signature (not a MuSig2 partial sig), since HTLC second-level transactions use
+a regular tapscript spend path rather than a keyspend MuSig2 path.
+
+The `resolution_tx_hex` contains the fully serialized second-level transaction
+with a complete witness stack. For HTLC-success transactions, the witness
+layout is:
+
+    <remote_htlcsig> <local_htlcsig> <payment_preimage> <htlc_success_script> <control_block>
+
+For HTLC-timeout transactions, the witness layout is:
+
+    <remote_htlcsig> <local_htlcsig> <htlc_timeout_script> <control_block>
+
+### HTLC Trimming
+
+Taproot channels use zero-fee HTLC transactions, meaning the HTLC output value
+on the commitment transaction equals the HTLC amount directly (no fee is
+deducted from the output). As a result, HTLC trimming depends solely on whether
+the HTLC amount falls below the `dust_limit_satoshis`, not on the fee rate. The
+"commitment tx with some HTLCs trimmed" test case uses `dust_limit = 2500 sat`
+to trim the three smallest test HTLCs (1000, 2000, and 2000 sats), leaving only
+the 3000 and 4000 sat HTLCs on the commitment transaction.
+
 Implementations SHOULD regenerate these vectors from the seed using the
 derivation method described above and verify that all intermediate values
 (keys, scripts, leaf hashes, transactions) match.
