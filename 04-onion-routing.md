@@ -214,6 +214,7 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
     1. type: 18 (`total_amount_msat`)
     2. data:
         * [`tu64`:`total_msat`]
+    1. type: 19 (`upgrade_accountability`)
 
 `short_channel_id` is the ID of the outgoing channel used to route the
 message; the receiving peer should operate the other end of this channel.
@@ -240,6 +241,9 @@ The requirements ensure consistency in responding to an unexpected
 `outgoing_cltv_value`, whether it is the final node or not, to avoid
 leaking its position in the route.
 
+`upgrade_accountability` is a marker field that indicates that the 
+forwarding node may set `accountable` in its `update_add_htlc`.
+
 ### Requirements
 
 The creator of `encrypted_recipient_data` (usually, the recipient of payment):
@@ -260,6 +264,10 @@ The creator of `encrypted_recipient_data` (usually, the recipient of payment):
     - `total_fee_proportional_millionths(n+1) = ((total_fee_proportional_millionths(n) + fee_proportional_millionths(n+1)) * 1000000 + total_fee_proportional_millionths(n) * fee_proportional_millionths(n+1) + 1000000 - 1) / 1000000`
     - `total_cltv_delta = cltv_delta(0) + cltv_delta(1) + ... + cltv_delta(n) + min_final_cltv_expiry_delta`
   - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
+  - if the blinded route will be used in an invoice with an `accountable` field set:
+    - MUST include `upgrade_accountability` for every node in the blinded route.
+  - otherwise:
+    - MUST NOT include `upgrade_accountability`.
 
 The writer of the TLV `payload`:
 
@@ -288,6 +296,11 @@ The writer of the TLV `payload`:
       - if the recipient provided `payment_metadata`:
         - MUST include `payment_metadata` with every HTLC
         - MUST not apply any limits to the size of `payment_metadata` except the limits implied by the fixed onion size
+  - if the recipient provided an invoice with an `accountable` field set:
+    - MUST include `upgrade_accountability` for every node in the non-blinded part of the route.
+    - MUST NOT include `upgrade_accountability` for nodes inside the blinded route.
+  - otherwise:
+    - MUST NOT include `upgrade_accountability`.
 
 The reader:
 
@@ -339,6 +352,10 @@ The reader:
       - incoming `amount_msat` < `amt_to_forward`.
       - incoming `cltv_expiry` < `outgoing_cltv_value`.
       - incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
+      - `accountable` is set in the incoming `update_add_htlc` but `accountable` was not set in the invoice. 
+  - Otherwise:
+    - MUST return an error if:
+      - `accountable` is set in the incoming `update_add_htlc` but `upgrade_accountability` was not set in the onion payload or in `encrypted_recipient_data`.
 
 Additional requirements are specified [here](#basic-multi-part-payments) for
 multi-part payments, and [here](#route-blinding) for blinded payments.
@@ -435,6 +452,11 @@ An implementation may choose not to fulfill an HTLC set which
 otherwise meets the amount criterion (eg. some other failure, or
 invoice timeout), however if it were to fulfill only some of them,
 intermediary nodes could simply claim the remaining ones.
+
+`accountable` may only be set in `update_add_htlc` if the receiving 
+node provided an `accountable` signal in its invoice. If the 
+`update_add_htlc` signal is not consistent, a node along the route
+has corrupted this value.
 
 ## Route Blinding
 
@@ -609,6 +631,7 @@ may contain the following TLV fields:
     1. type: 2 (`short_channel_id`)
     2. data:
         * [`short_channel_id`:`short_channel_id`]
+    1. type: 3 (`upgrade_accountability`)
     1. type: 4 (`next_node_id`)
     2. data:
         * [`point`:`node_id`]
