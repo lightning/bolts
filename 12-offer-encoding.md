@@ -240,6 +240,7 @@ A writer of an offer:
     - SHOULD omit `offer_chains`, implying that bitcoin is only chain.
   - if a specific minimum `offer_amount` is required for successful payment:
     - MUST set `offer_amount` to the amount expected (per item).
+    - MUST set `offer_amount` greater than zero.
     - if the currency for `offer_amount` is that of all entries in `chains`:
       - MUST specify `offer_amount` in multiples of the minimum lightning-payable unit
         (e.g. milli-satoshis for bitcoin).
@@ -298,6 +299,8 @@ A reader of an offer:
     - if the node does not accept invoices for at least one of the `chains`:
       - MUST NOT respond to the offer
   - if `offer_amount` is set and `offer_description` is not set:
+    - MUST NOT respond to the offer.
+  - if `offer_amount` is set and is not greater than zero:
     - MUST NOT respond to the offer.
   - if `offer_currency` is set and `offer_amount` is not set:
     - MUST NOT respond to the offer.

@@ -579,6 +579,57 @@
     "bolt12": "lno1qcp4256ypgx9getnwss8vetrw3hhyuckyypwa3eyt44h6txtxquqh7lz5djge4afgfjn7k4rgrkuag0jsd5xvxg"
   },
   {
+    "description": "Invalid: zero offer_amount",
+    "valid": false,
+    "bolt12": "lno1pqqq5qqkyyp4he0fg7pqje62jmnq78cr0ashv4q06qql58tyd9rhp3t2wuyugtq",
+    "field info": "offer_amount is 0",
+    "fields": [
+      {
+        "type": 8,
+        "length": 0,
+        "hex": ""
+      },
+      {
+        "type": 10,
+        "length": 0,
+        "hex": ""
+      },
+      {
+        "type": 22,
+        "length": 33,
+        "hex": "035be5e9478209674a96e60f1f037f6176540fd001fa1d64694770c56a7709c42c"
+      }
+    ]
+  },
+  {
+    "description": "Invalid: zero offer_amount with currency",
+    "valid": false,
+    "bolt12": "lno1qcp4256ypqqq5qqkyyp4he0fg7pqje62jmnq78cr0ashv4q06qql58tyd9rhp3t2wuyugtq",
+    "field info": "offer_amount is 0, offer_currency is USD",
+    "fields": [
+      {
+        "type": 6,
+        "length": 3,
+        "hex": "555344"
+      },
+      {
+        "type": 8,
+        "length": 0,
+        "hex": ""
+      },
+      {
+        "type": 10,
+        "length": 0,
+        "hex": ""
+      },
+      {
+        "type": 22,
+        "length": 33,
+        "hex": "035be5e9478209674a96e60f1f037f6176540fd001fa1d64694770c56a7709c42c"
+      }
+    ]
+  },
+  {
     "description": "Missing offer_issuer_id and no offer_path",
     "valid": false,
     "bolt12": "lno1pgx9getnwss8vetrw3hhyuc"
