@@ -1504,9 +1504,42 @@ JIT nonces is derived as `SHA256(seed || label)` using:
 | Remote signer | `"remote-signing-rand"` |
 
 The resulting 32-byte hash is used as the nonce randomness input to the MuSig2
-signing session. Each transaction test case includes `local_nonce` and
-`remote_nonce` fields (66-byte compressed public nonces) so implementations can
-verify the nonces were derived correctly and reconstruct the combined signature.
+signing session.
+
+Because different MuSig2 implementations (e.g., libsecp256k1-zkp vs btcd) may
+produce different nonces from the same randomness input, the test vectors
+include both the raw secret nonces and the derived public nonces so that
+implementations can inject them directly rather than re-derive them.
+
+Each transaction test case includes the following nonce fields:
+
+| Field | Size | Description |
+|-------|------|-------------|
+| `local_nonce` | 66 bytes | Local party's public nonce for this commitment tx |
+| `remote_nonce` | 66 bytes | Remote party's public nonce for this commitment tx |
+| `local_sec_nonce` | 97 bytes | Local party's secret nonce (two 32-byte scalars + 33-byte pubkey) |
+| `remote_sec_nonce` | 97 bytes | Remote party's secret nonce (two 32-byte scalars + 33-byte pubkey) |
+
+All nonces in a given test case correspond to the **same commitment
+transaction** (the local party's commitment, as produced by `ForceClose`).
+Specifically:
+
+  - `local_nonce` / `local_sec_nonce`: the verification nonce that the local
+    party contributes to the MuSig2 session for their own commitment. This
+    nonce is generated during the initial nonce exchange (or nonce rotation
+    after a prior commitment update) and sent to the remote party.
+
+  - `remote_nonce` / `remote_sec_nonce`: the JIT signing nonce that the remote
+    party generates when producing their partial signature on the local party's
+    commitment transaction.
+
+To replay the MuSig2 signing from the test vectors:
+
+  1. Aggregate the two public nonces using `NonceAgg` from BIP-327.
+  2. Use each party's secret nonce with `Sign` to reproduce their partial
+     signature.
+  3. Combine both partial signatures to obtain the final 64-byte Schnorr
+     signature, which should match the commitment transaction witness.
 
 ### Commitment Transaction Signatures
 
