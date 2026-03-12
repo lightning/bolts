@@ -1440,8 +1440,8 @@ A HTLC-Timeout transaction has the following structure:
         * `htlc_script_root = tapscript_root([htlc_timeout])`
         * `htlc_timeout`:
         ```
-        <local_delayedpubkey> OP_CHECKSIG
-        <to_self_delay> OP_CHECKSEQUENCEVERIFY OP_DROP
+        <local_delayedpubkey> OP_CHECKSIGVERIFY
+        <to_self_delay> OP_CHECKSEQUENCEVERIFY
         ```
 
 # Appendix
