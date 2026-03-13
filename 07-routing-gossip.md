@@ -819,7 +819,7 @@ The receiver of `query_channel_range`:
     - MUST set `sync_complete` to `false` if this is not the final `reply_channel_range`.
     - the final `reply_channel_range` message:
       - MUST have `first_blocknum` plus `number_of_blocks` equal or greater than the `query_channel_range` `first_blocknum` plus `number_of_blocks`.
-    - MUST set `sync_complete` to `true`.
+      - MUST set `sync_complete` to `true`.
 
 If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
 - if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_channel_id`s in `encoded_short_ids`
