@@ -98,6 +98,8 @@ There are a number of conventions adhered to throughout this document:
  - Each hop in the route has a variable length `hop_payload`.
     - The variable length `hop_payload` is prefixed with a `bigsize` encoding
       the length in bytes, excluding the prefix and the trailing HMAC.
+ - These `hop_payload`s are used to build the combined payload in the packet,
+   also referred to as `hop_payloads` or the mix-header.
 
 # Key Generation
 
@@ -754,7 +756,8 @@ public keys for `n_1` to `n_r` and generates a random 32-byte `sessionkey`.
 Optionally, the sender may pass in _associated data_, i.e. data that the
 packet commits to but that is not included in the packet itself. Associated
 data will be included in the HMACs and must match the associated data provided
-during integrity verification at each hop.
+during integrity verification at each hop. The `payment_hash` is commonly used for
+this purpose.
 
 To construct the onion, the sender initializes the ephemeral private key for the
 first hop `ek_1` to the `sessionkey` and derives from it the corresponding
@@ -796,11 +799,12 @@ following operations:
 
  - The _rho_-key and _mu_-key are generated using the hop's shared secret.
  - `shift_size` is defined as the length of the `hop_payload` plus the bigsize encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the bigsize encoding of `l`.
- - The `hop_payload` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
+ - The `hop_payloads` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
  bytes that exceed its 1300-byte size.
- - The bigsize-serialized length, serialized `hop_payload` and `hmac` are copied into the following `shift_size` bytes.
- - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
- which is then applied, with `XOR`, to the `hop_payloads` field.
+ - The bigsize-serialized length, serialized `hop_payload` and `hmac` are copied into the `shift_size` bytes as the
+   beginning of the mix-header.
+ - The _rho_-key is used to generate a 1300 byte pseudo-random stream
+   which is then applied, with `XOR`, to the `hop_payloads` field.
  - If this is the last hop, i.e. the first iteration, then the tail of the
  `hop_payloads` field is overwritten with the routing information `filler`.
  - The next HMAC is computed (with the _mu_-key as HMAC-key) over the
@@ -816,6 +820,8 @@ the obfuscated `hop_payloads`.
 The following Go code is an example implementation of the packet construction:
 
 ```Go
+const RoutingInfoSize int32 = 1300
+
 func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey,
 	hopsData []HopData, assocData []byte) (*OnionPacket, error) {
 
@@ -849,17 +855,17 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 	}
 
 	// Generate the padding, called "filler strings" in the paper.
-	filler := generateHeaderPadding("rho", numHops, hopDataSize, hopSharedSecrets)
+	filler := generateHeaderPadding(numHops, hopSharedSecrets)
 
 	// Allocate and initialize fields to zero-filled slices
-	var mixHeader [routingInfoSize]byte
-	var nextHmac [hmacSize]byte
+	var mixHeader [RoutingInfoSize]byte
+	var nextHmac [32]byte
         
-        // Our starting packet needs to be filled out with random bytes, we
-        // generate some deterministically using the session private key.
-        paddingKey := generateKey("pad", sessionKey.Serialize())
-        paddingBytes := generateCipherStream(paddingKey, routingInfoSize)
-        copy(mixHeader[:], paddingBytes)
+  // Our starting packet needs to be filled out with random bytes, we
+  // generate some deterministically using the session private key.
+  paddingKey := generateKey("pad", sessionKey.Serialize())
+  paddingBytes := generateCipherStream(paddingKey, RoutingInfoSize)
+  copy(mixHeader[:], paddingBytes)
 
 	// Compute the routing information for each hop along with a
 	// MAC of the routing information using the shared key for that hop.
@@ -870,13 +876,13 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 		hopsData[i].HMAC = nextHmac
 
 		// Shift and obfuscate routing information
-		streamBytes := generateCipherStream(rhoKey, numStreamBytes)
+		streamBytes := generateCipherStream(rhoKey, RoutingInfoSize)
 
 		rightShift(mixHeader[:], hopDataSize)
 		buf := &bytes.Buffer{}
 		hopsData[i].Encode(buf)
 		copy(mixHeader[:], buf.Bytes())
-		xor(mixHeader[:], mixHeader[:], streamBytes[:routingInfoSize])
+		xor(mixHeader[:], mixHeader[:], streamBytes[:RoutingInfoSize])
 
 		// These need to be overwritten, so every node generates a correct padding
 		if i == numHops-1 {
@@ -985,35 +991,42 @@ obfuscating the added `0x00`-bytes at the end.
 In order to compute the correct HMAC, the origin node has to pre-generate the
 `hop_payloads` for each hop, including the incrementally obfuscated padding added
 by each hop. This incrementally obfuscated padding is referred to as the
-`filler`.
+`filler`. Keep in mind that while the mix-header is generated in reverse-route order,
+the filler is generated in route order.
 
 The following example code shows how the filler is generated in Go:
 
 ```Go
-func generateFiller(key string, numHops int, hopSize int, sharedSecrets [][sharedSecretSize]byte) []byte {
-	fillerSize := uint((numMaxHops + 1) * hopSize)
+const (
+  // The mix-header in Lightning is a max of 1300 bytes
+  NumMaxHops int = 20
+  HopSize = 65
+)
+
+func generateFiller(numHops int, sharedSecrets [][sharedSecretSize]byte) []byte {
+	fillerSize := uint((NumMaxHops + 1) * HopSize)
 	filler := make([]byte, fillerSize)
 
 	// The last hop does not obfuscate, it's not forwarding anymore.
 	for i := 0; i < numHops-1; i++ {
 
 		// Left-shift the field
-		copy(filler[:], filler[hopSize:])
+		copy(filler[:], filler[HopSize:])
 
 		// Zero-fill the last hop
-		copy(filler[len(filler)-hopSize:], bytes.Repeat([]byte{0x00}, hopSize))
+		copy(filler[len(filler)-HopSize:], bytes.Repeat([]byte{0x00}, HopSize))
 
 		// Generate pseudo-random byte stream
-		streamKey := generateKey(key, sharedSecrets[i])
+		streamKey := generateKey("rho", sharedSecrets[i])
 		streamBytes := generateCipherStream(streamKey, fillerSize)
 
 		// Obfuscate
 		xor(filler, filler, streamBytes)
 	}
 
-	// Cut filler down to the correct length (numHops+1)*hopSize
+	// Cut filler down to the correct length (numHops+1)*HopSize
 	// bytes will be prepended by the packet generation.
-	return filler[(numMaxHops-numHops+2)*hopSize:]
+	return filler[(NumMaxHops-numHops+2)*HopSize:]
 }
 ```
 
