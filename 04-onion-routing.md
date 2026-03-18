@@ -1506,7 +1506,7 @@ A _forwarding node_ and a _final node_ MAY:
   - if the ephemeral key in the onion is unparsable:
     - return an `invalid_onion_key` error.
 
-An _intermediate hop_ MUST NOT, but the _final node_:
+An _forwarding node_ MUST NOT, but a _final node_ MUST:
   - if the payment hash has already been paid:
     - MAY treat the payment hash as unknown.
     - MAY succeed in accepting the HTLC.
