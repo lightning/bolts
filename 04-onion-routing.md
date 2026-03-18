@@ -1457,8 +1457,7 @@ An _erring node_ MAY:
 A _forwarding node_ MUST:
   - if `path_key` is set in the incoming `update_add_htlc`:
     - return an `invalid_onion_blinding` error.
-  - if `current_path_key` is set in the onion payload and it is not the
-    final node:
+  - if `current_path_key` is set in the onion payload:
     - return an `invalid_onion_blinding` error.
   - otherwise:
     - select one of the above error codes when creating an error message.
