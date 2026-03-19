@@ -458,8 +458,11 @@ completed.
 #### Requirements
 
 The sender:
-  - MUST set `feerate` greater than or equal to 25/24 times the `feerate`
-    of the previously constructed transaction, rounded down.
+  - MUST set `feerate` greater than or equal to the maximum of:
+    - 25/24 times the `feerate` of the previously constructed transaction,
+      rounded down.
+    - 25 sat per kw greater than the `feerate` of the previously
+      constructed transaction.
   - If it contributes to the transaction's funding output:
     - MUST set `funding_output_contribution`
   - If it requires the receiving node to only use confirmed inputs:
@@ -472,8 +475,11 @@ The sender:
 The recipient:
   - MUST respond either with `tx_abort` or with `tx_ack_rbf`
   - MUST respond with `tx_abort` if:
-    - the `feerate` is not greater than or equal to 25/24 times `feerate`
-      of the last successfully constructed transaction
+    - the `feerate` is not greater than or equal to the maximum of:
+      - 25/24 times the `feerate` of the last successfully constructed
+        transaction, rounded down.
+      - 25 sat per kw greater than the `feerate` of the last successfully
+        constructed transaction
   - MAY send `tx_abort` for any reason
   - MUST fail the negotiation if:
     - `require_confirmed_inputs` is set but it cannot provide confirmed inputs
@@ -481,11 +487,16 @@ The recipient:
 #### Rationale
 
 `feerate` is the feerate this transaction will pay. It must be at least
-1/24 greater than the last used `feerate`, rounded down to the nearest
-satoshi to ensure there is progress.
+the maximum of 25/24 times the previous `feerate` (rounded down) and 25
+sat per kw above the previous `feerate`. The multiplicative rule ensures
+progress at higher feerates, while the additive floor of 25 sat per kw
+(0.1 sat/vB) ensures that the replacement transaction meets BIP125's
+minimum relay fee requirement (default `incrementalRelayFee` of 0.1
+sat/vB since Bitcoin Core v30.0), which the multiplicative increase alone
+could fail to satisfy at low feerates.
 
-E.g. if the last `feerate` was 520, the next sent `feerate` must be 541
-(520 * 25 / 24 = 541.667, rounded down to 541).
+E.g. if the last `feerate` was 520, the next sent `feerate` must be at
+least 545 (max(520 * 25 / 24, 520 + 25) = max(541, 545) = 545).
 
 If the previous transaction confirms in the middle of an RBF attempt,
 the attempt MUST be abandoned.
