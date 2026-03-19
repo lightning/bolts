@@ -458,8 +458,8 @@ completed.
 #### Requirements
 
 The sender:
-  - MUST set `feerate` greater than or equal to 25/24 times the `feerate`
-    of the previously constructed transaction, rounded down.
+  - MUST set `feerate` at least 25 sat per kw greater than the `feerate`
+    of the previously constructed transaction.
   - If it contributes to the transaction's funding output:
     - MUST set `funding_output_contribution`
   - If it requires the receiving node to only use confirmed inputs:
@@ -472,7 +472,7 @@ The sender:
 The recipient:
   - MUST respond either with `tx_abort` or with `tx_ack_rbf`
   - MUST respond with `tx_abort` if:
-    - the `feerate` is not greater than or equal to 25/24 times `feerate`
+    - the `feerate` is not at least 25 sat per kw greater than the `feerate`
       of the last successfully constructed transaction
   - MAY send `tx_abort` for any reason
   - MUST fail the negotiation if:
@@ -481,11 +481,14 @@ The recipient:
 #### Rationale
 
 `feerate` is the feerate this transaction will pay. It must be at least
-1/24 greater than the last used `feerate`, rounded down to the nearest
-satoshi to ensure there is progress.
+25 sat per kw greater than the last used `feerate`. This fixed additive
+increment ensures that the replacement transaction meets BIP125's minimum
+relay fee requirement (default `incrementalRelayFee` of 0.1 sat/vB since
+Bitcoin Core v30.0), which a small multiplicative increase could fail to
+satisfy at low feerates.
 
-E.g. if the last `feerate` was 520, the next sent `feerate` must be 541
-(520 * 25 / 24 = 541.667, rounded down to 541).
+E.g. if the last `feerate` was 520, the next sent `feerate` must be at
+least 545 (520 + 25 = 545).
 
 If the previous transaction confirms in the middle of an RBF attempt,
 the attempt MUST be abandoned.
