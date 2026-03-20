@@ -1277,12 +1277,19 @@ packet. This is then stored as the `reason` field of the `update_htlc_fail` mess
 
 For trampoline payments, intermediate trampoline nodes first decrypt the
 downstream error using the `ammag` and `um` keys for their forward path
-as described in the [origin node section](#origin-node). If the error comes
-from an intermediate node _before_ the next trampoline node, they may replace
-it with their own error for the origin node, otherwise they must encrypt on
-top of the next trampoline node's error by applying the obfuscation step twice:
-first with the `ammag` key derived from their trampoline shared secret, then
-with the `ammag` key derived from their outer onion shared secret.
+as described in the [origin node section](#origin-node).
+
+If the error comes from an intermediate node _before_ the next trampoline node,
+they may replace it with their own error for the origin node, otherwise they
+must encrypt on top of the next trampoline node's error by applying the
+obfuscation step twice: first with the `ammag` key derived from their trampoline
+shared secret, then with the `ammag` key derived from their outer onion shared
+secret. This ensures that the error message is encrypted for the original sender.
+Note that it is also possible for intermediate trampoline hops to only do the
+obfuscation with the `ammag` key derived from their outer onion shared secret,
+in which case the error message will be encrypted for the previous trampoline
+hop, which may or may not be the original sender (this can make sense for some
+error messages like `mpp_timeout`).
 
 ### Transformation of `attribution_data`  
 
