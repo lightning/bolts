@@ -1197,7 +1197,13 @@ otherwise they must encrypt on top of the next trampoline node's error.
 
 Intermediate trampoline hops apply the obfuscation step twice: first with the
 `ammag` key derived from their trampoline shared secret, then with the `ammag`
-key derived from their outer onion shared secret.
+key derived from their outer onion shared secret. This ensures that the error
+message is encrypted for the original sender. Note that it is also possible
+for intermediate trampoline hops to only do the obfuscation with the `ammag`
+key derived from their outer onion shared secret, in which case the error
+message will be encrypted for the previous trampoline hop, which may or may
+not be the original sender (this can make sense for some error messages like
+`mpp_timeout`).
 
 The origin node first iteratively decrypts the error message using the keys
 derived from the outer onion's shared secrets. If the result does not match
