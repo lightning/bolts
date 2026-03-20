@@ -524,6 +524,14 @@ When processing a `trampoline_onion_packet`, a receiving node:
 - Otherwise, if it supports `trampoline_routing`:
   - MUST process the `trampoline_onion_packet` as an `onion_packet`.
   - MUST fail the HTLC if dictated by the requirements under [Failure Messages](#failure-messages).
+    - If it is part of a blinded path:
+      - If it is the introduction node of the blinded path:
+        - MUST send `update_fail_htlc` with the most relevant error message.
+      - Otherwise:
+        - MUST send `update_fail_htlc` with the `invalid_onion_blinding` error message.
+      - When receiving an error message from the next node:
+        - MUST discard its content instead of re-encrypting it.
+        - MUST send `update_fail_htlc` with `invalid_onion_blinding` instead.
   - If it is not the final node:
     - If the incoming payment is a multi-part payment:
       - MUST wait to receive all the payment parts before forwarding.
