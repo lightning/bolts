@@ -1457,19 +1457,12 @@ An _erring node_ MAY:
 A _forwarding node_ MUST:
   - if `path_key` is set in the incoming `update_add_htlc`:
     - return an `invalid_onion_blinding` error.
-  - if `current_path_key` is set in the onion payload and it is not the
-    final node:
+  - if `current_path_key` is set in the onion payload:
     - return an `invalid_onion_blinding` error.
   - otherwise:
     - select one of the above error codes when creating an error message.
 
 A _forwarding node_ MAY, but a _final node_ MUST NOT:
-  - if the onion `version` byte is unknown:
-    - return an `invalid_onion_version` error.
-  - if the onion HMAC is incorrect:
-    - return an `invalid_onion_hmac` error.
-  - if the ephemeral key in the onion is unparsable:
-    - return an `invalid_onion_key` error.
   - if during forwarding to its receiving peer, an otherwise unspecified,
   transient error occurs in the outgoing channel (e.g. channel capacity reached,
   too many in-flight HTLCs, etc.):
@@ -1504,7 +1497,15 @@ A _forwarding node_ MAY, but a _final node_ MUST NOT:
     - report the current channel setting for the outgoing channel.
     - return a `channel_disabled` error.
 
-An _intermediate hop_ MUST NOT, but the _final node_:
+A _forwarding node_ and a _final node_ MAY:
+  - if the onion `version` byte is unknown:
+    - return an `invalid_onion_version` error.
+  - if the onion HMAC is incorrect:
+    - return an `invalid_onion_hmac` error.
+  - if the ephemeral key in the onion is unparsable:
+    - return an `invalid_onion_key` error.
+
+An _forwarding node_ MUST NOT, but a _final node_ MUST:
   - if the payment hash has already been paid:
     - MAY treat the payment hash as unknown.
     - MAY succeed in accepting the HTLC.
