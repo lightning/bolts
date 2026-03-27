@@ -2231,6 +2231,10 @@ which allows increasing the fees and changing the output script.
    * [`u32`:`locktime`]
    * [`closing_tlvs`:`tlvs`]
 
+
+<!-- Needed to separate lists -->
+
+
 1. type: 41 (`closing_sig`)
 2. data:
    * [`channel_id`:`channel_id`]
@@ -2241,6 +2245,10 @@ which allows increasing the fees and changing the output script.
    * [`u64`:`fee_satoshis`]
    * [`u32`:`locktime`]
    * [`closing_tlvs`:`tlvs`]
+
+
+<!-- Needed to separate lists -->
+
 
 1. `tlv_stream`: `closing_tlvs`
 2. types:
