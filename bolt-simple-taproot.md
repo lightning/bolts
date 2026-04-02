@@ -472,16 +472,18 @@ Simple Taproot Channel design.
 The multisig output becomes a single P2TR key, with `musig2` key aggregation
 used to combine two keys into one.
 
-For commitment transactions, we inherit the anchor output semantics, meaning
+For commitment transactions, when using `nVersion = 2`, we inherit the anchor output semantics, meaning
 there are two outputs used for CPFP, with all other scripts inheriting a `1
-CSV` restriction.
+CSV` restriction. When using `nVersion = 3`, we inherit the zero-fee
+commitments semantics, where one shared anchor is used for CPFP.
 
-The local output of the commitment transaction uses a script-path based
+When using `nVersion = 2`, the local output of the commitment transaction uses a script-path based
 revocation scheme in order to ensure that the information needed by 3rd parties
 to sweep the anchor outputs is always revealed on chain.
 
 The remote output of the commitment transaction uses the `combined_funding_key`
-as the top-level internal key, and then commits to a normal remote script.
+as the top-level internal key, and then commits to a normal remote script if
+`nVersion = 2`, or no scripts if `nVersion = 3`.
 
 Anchor outputs use the `local_delayedpubkey` and the `remotepubkey` of both
 parties as the top-level internal key committing to the script `16 CSV`. Unless
@@ -501,10 +503,12 @@ handle channel breaches.
 Inheriting the structure put forth in BOLT 9, we define a new feature bit to be
 placed in the `init` message, and the `node_announcement` message.
 
-| Bits    | Name                           | Description                                               | Context  | Dependencies                                 | Link                                  |
-|---------|--------------------------------|-----------------------------------------------------------|----------|----------------------------------------------|---------------------------------------|
-| 80/81   | `option_simple_taproot`        | Node supports simple taproot channels                     | IN       | `option_channel_type`, `option_simple_close` | TODO(roasbeef): link                  |
-| 180/181 | `option_simple_taproot_staging`| Node supports simple taproot channels                     | IN       | `option_channel_type`                        | TODO(roasbeef): link                  |
+| Bits    | Name                                   | Description                                       | Context  | Dependencies                                 | Link                                  |
+|---------|----------------------------------------|---------------------------------------------------|----------|----------------------------------------------|---------------------------------------|
+| 80/81   | `option_simple_taproot`                | Node supports simple taproot channels             | IN       | `option_channel_type`, `option_simple_close` | TODO(roasbeef): link                  |
+| 82/83   | `taproot_zero_fee_commitments`         | Node supports taproot zero-fee transactions       | IN       | `option_channel_type`, `option_simple_close` | [BOLT #3][bolt03-shared-anchor]       |
+| 180/181 | `option_simple_taproot_staging`        | Node supports simple taproot channels             | IN       | `option_channel_type`                        | TODO(roasbeef): link                  |
+| 182/183 | `taproot_zero_fee_commitments_staging` | Node supports taproot zero-fee transactions       | IN       | `option_channel_type`, `option_simple_close` | [BOLT #3][bolt03-shared-anchor]       |
 
 Note that we allocate _two_ pairs of feature bits: one the final version of
 this protocol proposal, and the higher bits (+100) for preliminary experimental
@@ -519,8 +523,8 @@ The Context column decodes as follows:
  * `C+`: presented in the `channel_announcement` message, but always even (required).
  * `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
 
-The `option_simple_taproot` feature bit also becomes a defined channel type
-feature bit for explicit channel negotiation.
+The `option_simple_taproot` and `taproot_zero_fee_commitments` feature bits
+also become defined channel types for explicit channel negotiation.
 
 It's important to note that given the early version of this channel type
 _cannot_ be announced on the public network (gossip protocol changes are
@@ -529,8 +533,9 @@ default channel type. As a result, this channel type SHOULD only be used with
 _explicit_ channel negotiation. Otherwise, two parties that advertise the
 feature bit would not be able to open publicly advertised channels.
 
-Throughout this document, we assume that `option_simple_taproot` was
-negotiated, and also the `option_simple_taproot` channel type is used.
+Throughout this document, we assume that `option_simple_taproot` or
+`taproot_zero_fee_commitments` was negotiated, and that the corresponding
+channel type is used.
 
 ### New TLV Types
 
@@ -595,12 +600,17 @@ The sending node:
   - MUST use the `NonceGen` algorithm defined in `bip-musig2` to generate
     `next_local_nonce` to ensure it generates nonces in a safe manner.
   - MUST not set the `announce_channel` bit.
+  - if `channel_type` includes `taproot_zero_fee_commitments`:
+    - MUST set `feerate_per_kw` to `0`.
 
 The receiving node MUST fail the channel if:
 
   - the message doesn't include a `next_local_nonce` value.
   - the specified public nonce cannot be parsed as two compressed secp256k1
     points
+  - `channel_type` includes `taproot_zero_fee_commitments` and:
+    - `max_accepted_htlcs` is greater than 114.
+    - `feerate_per_kw` is not `0`.
 
 ##### Rationale
 
@@ -1199,6 +1209,8 @@ any keys aggregated via musig2 also are assumed to use the `KeySort` routine
 
 #### To Local Outputs
 
+##### With `option_simple_taproot`
+
 For the simple taproot commitment type, we use the same flow of revocation or
 delay, while re-using the NUMS point to ensure that the internal key is always
 revealed (script path always taken). This ensures that the anchor outputs can
@@ -1256,9 +1268,51 @@ A valid witness is then:
 
 As with base channels, the `nSequence` field must be set to `to_self_delay`.
 
+##### With `taproot_zero_fee_commitments`
+
+When using `nVersion = 3`, we use a single P2A output that doesn't need any
+public key information. We thus don't need to use the NUMS point and simply
+use the revocation key as internal key.
+
+The `to_local` output has the following form:
+
+  * `OP_1 to_local_output_key`
+  * where:
+    * `to_local_output_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || to_delay_script_root)*G`
+    * `to_delay_script_root = tapscript_root([to_delay_script])`
+    * `to_delay_script` is the delay script:
+        ```
+        <local_delayedpubkey> OP_CHECKSIGVERIFY
+        <to_self_delay> OP_CHECKSEQUENCEVERIFY
+        ```
+
+In the case of a commitment breach, it is trivial to sweep all outputs by using
+the key-path with the revealed revocation secret. A valid witness is thus
+simply a signature using the `revocation_key`:
+```
+<revoke_sig>
+```
+
+In the case of a routine force close, the script path must be revealed so the
+broadcaster can sweep their funds after a delay. The control block to spend is
+only `33` bytes, as it just includes the internal key (along with the y-parity
+bit and leaf version):
+``` 
+delay_control_block = (output_key_y_parity | 0xc0) || revocation_pubkey || to_delay_script
+```
+
+A valid witness is then:
+```
+<local_delayedsig> <to_delay_script> <delay_control_block>
+```
+
+As with base channels, the `nSequence` field must be set to `to_self_delay`.
+
 #### To Remote Outputs
 
-As we inherit the anchor output, semantics we want to ensure that the remote
+##### With `option_simple_taproot`
+
+As we inherit the anchor output semantics, we want to ensure that the remote
 party can unilaterally sweep their funds after the 1 block CSV delay. In order
 to achieve this property, we'll utilize a NUMS point (`simple_taproot_nums`) By
 using this point as the internal key, we ensure that the remote party isn't
@@ -1293,7 +1347,25 @@ where `to_remote_control_block` is:
 
 The `sequence` field of the input MUST also be set to `1`. 
 
+##### With `taproot_zero_fee_commitments`
+
+When using `nVersion = 3`, the remote party can immediately unilaterally
+sweep their funds. We don't need the NUMS point.
+
+The `to_remote` output has the following form:
+
+  * `OP_1 to_remote_output_key`
+  * where:
+    * `to_remote_output_key = remotepubkey + tagged_hash("TapTweak", remotepubkey)*G`
+
+A valid witness is simply a signature using the `remotepubkey`:
+```
+<remote_sig>
+```
+
 #### Anchor Outputs
+
+##### With `option_simple_taproot`
 
 For simple taproot channels (`option_simple_taproot`) we'll maintain the same
 form as base segwit channels, but instead will utilize `local_delayedpubkey`
@@ -1324,6 +1396,20 @@ where `anchor_control_block` is:
 
 `nSequence` needs to be set to 16.
 
+##### With `taproot_zero_fee_commitments`
+
+We use the same form as `zero_fee_commitments` and thus include a single
+standard P2A (pay-to-anchor) script.
+
+This anchor output has the following form:
+
+  * `OP_1 <0x4e73>`
+
+Spending of the output requires the following (empty) witness:
+```
+<>
+```
+
 ### HTLC Scripts & Transactions
 
 #### Offered HTLCs
@@ -1331,6 +1417,9 @@ where `anchor_control_block` is:
 We retain the same second-level HTLC mappings as base channels. The main
 modifications are using the revocation public key as the internal key, and
 splitting the timeout and success paths into individual script leaves.
+
+The HTLC-success script includes a `1 CSV` when using `nVersion = 2`, but
+omits it when using `nVersion = 3`.
 
 An offered HTLC has the following form:
 
@@ -1344,11 +1433,17 @@ An offered HTLC has the following form:
         <remote_htlcpubkey> OP_CHECKSIG
         ```
     * `htlc_success`:
-        ```
-        OP_SIZE 32 OP_EQUALVERIFY OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
-        <remote_htlcpubkey> OP_CHECKSIGVERIFY
-        1 OP_CHECKSEQUENCEVERIFY
-        ```
+      * if `nVersion = 2`:
+          ```
+          OP_SIZE 32 OP_EQUALVERIFY OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
+          <remote_htlcpubkey> OP_CHECKSIGVERIFY
+          1 OP_CHECKSEQUENCEVERIFY
+          ```
+      * if `nVersion = 3`:
+          ```
+          <remote_htlcpubkey> OP_CHECKSIGVERIFY
+          OP_SIZE 32 OP_EQUALVERIFY OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUAL
+          ```
 
 In order to spend a offered HTLC, via either script path, an `inclusion_proof`
 must be specified along with the control block. This `inclusion_proof` is
@@ -1363,11 +1458,17 @@ Accepted HTLCs inherit a similar format:
     * `accepted_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
     * `htlc_script_root = tapscript_root([htlc_timeout, htlc_success])`
     * `htlc_timeout`:
-        ```
-        <remote_htlcpubkey> OP_CHECKSIGVERIFY
-        1 OP_CHECKSEQUENCEVERIFY OP_VERIFY
-        <cltv_expiry> OP_CHECKLOCKTIMEVERIFY
-        ```
+      * if `nVersion = 2`:
+          ```
+          <remote_htlcpubkey> OP_CHECKSIGVERIFY
+          1 OP_CHECKSEQUENCEVERIFY OP_VERIFY
+          <cltv_expiry> OP_CHECKLOCKTIMEVERIFY
+          ```
+      * if `nVersion = 3`:
+          ```
+          <remote_htlcpubkey> OP_CHECKSIGVERIFY
+          <cltv_expiry> OP_CHECKLOCKTIMEVERIFY
+          ```
     * `htlc_success`:
         ```
         OP_SIZE 32 OP_EQUALVERIFY OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
@@ -1376,9 +1477,9 @@ Accepted HTLCs inherit a similar format:
         ```
 
 Note that there is no `OP_CHECKSEQUENCEVERIFY` in the offered HTLC's timeout
-path nor in the accepted HTLC's success path. This is not needed here as these
-paths require a remote signature that commits to the sequence, which needs to
-be set at 1.
+path nor in the accepted HTLC's success path, even when using `nVersion = 2`.
+This is not needed here as these paths require a remote signature that commits
+to the sequence, which needs to be set at 1.
 
 In order to spend an accepted HTLC, via either script path, an
 `inclusion_proof` must be specified along with the control block. This
@@ -1400,12 +1501,12 @@ change input.
 
 A HTLC-Success transaction has the following structure:
 
-  * version: 2
+  * version: 2 for `option_simple_taproot`, 3 for `taproot_zero_fee_commitments`
   * locktime: 0
   * input:
     * txid: commitment_tx
     * vout: htlc_index
-    * sequence: 1
+    * sequence: 1 for `option_simple_taproot`, 0 for `taproot_zero_fee_commitments`
     * witness: `<remotehtlcsig> <localhtlcsig> <preimage> <htlc_success_script> <control_block>`
   * output:
     * value: htlc_value
@@ -1424,12 +1525,12 @@ A HTLC-Success transaction has the following structure:
 
 A HTLC-Timeout transaction has the following structure:
 
-  * version: 2
+  * version: 2 for `option_simple_taproot`, 3 for `taproot_zero_fee_commitments`
   * locktime: cltv_expiry
   * input:
     * txid: commitment_tx
     * vout: htlc_index
-    * sequence: 1
+    * sequence: 1 for `option_simple_taproot`, 0 for `taproot_zero_fee_commitments`
     * witness: `<remotehtlcsig> <localhtlcsig> <htlc_timeout_script> <control_block>`
   * output:
     * value: htlc_value
@@ -1914,3 +2015,5 @@ and a modified revocation scheme which this proposal takes inspiration from.
 
 Arik and Wilmer Paulino for suggesting the "JIT nonce" approach used in this
 specification when sending musig2 partial signatures.
+
+[bolt03-shared-anchor]: 03-transactions.md#shared_anchor-output-zero_fee_commitments
