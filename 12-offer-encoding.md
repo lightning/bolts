@@ -366,7 +366,7 @@ the onion message.
 
 The second case is publishing an invoice request without an offer,
 such as via QR code.  It contains neither `offer_issuer_id` nor `offer_paths`, setting the
-`invreq_payer_id` (and possibly `invreq_paths`) instead, as it in the one paying: the
+`invreq_payer_id` (and possibly `invreq_paths`) instead, as it is the one paying: the
 other offer fields are filled by the creator of the `invoice_request`,
 forming a kind of offer-to-send-money.
 
@@ -1011,16 +1011,16 @@ other fields).
         * [`bip340sig`:`sig`]
     1. type: 242 (`preimage`)
     2. data:
-	    * [`32*byte`:`premage`]
+        * [`32*byte`:`preimage`]
     1. type: 244 (`omitted_tlvs`)
     2. data:
-	    * [`...*bigsize`:`missing`]
+        * [`...*bigsize`:`missing`]
     1. type: 246 (`missing_hashes`)
     2. data:
-	    * [`...*sha256`:`hashes`]
+        * [`...*sha256`:`hashes`]
     1. type: 248 (`leaf_hashes`)
     2. data:
-	    * [`...*sha256`:`hashes`]
+        * [`...*sha256`:`hashes`]
     1. type: 250 (`payer_signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -1038,12 +1038,12 @@ A writer of a payer_proof:
     - MUST append the nonce (H("LnNonce"||TLV0,type)) to `leaf_hashes`.
   - otherwise, if the TLV type is not zero:
     - MUST append a *marker number* to `omitted_tlvs`
-	- If the previous TLV type was included:
+    - If the previous TLV type was included:
       - The *marker number* is that previous tlv type, plus one.
     - Otherwise, if `omitted_tlvs` is empty:
       - The *marker number* is 1.
-	- Otherwise:
-      - The *marker number* is greater than the last `omitted_tlvs` entry.
+    - Otherwise:
+      - The *marker number* is one greater than the last `omitted_tlvs` entry.
 - MUST NOT include non-signature TLV elements which do not come from the invoice.
 - MUST include the minimal set of merkle hashes of missing merkle leaves or nodes in `missing_hashes`, in ascending type order.
 - MUST copy `signature` into the payer_proof.
@@ -1057,11 +1057,22 @@ A reader of a payer_proof:
   - `omitted_tlvs` contains 0.
   - `omitted_tlvs` contains signature TLV element number (240 through 1000 inclusive).
   - `omitted_tlvs` contains the number of an included TLV field.
-  - `omitted_tlvs` contains more than one number larger than the largest included non-signature TLV element.
+  - `omitted_tlvs` is not one greater than:
+     - an included TLV number, or
+     - the previous `omitted_tlvs` or 0 if it is the first number.
   - `leaf_hashes` does not contain exactly one hash for each non-signature TLV field.
   - There are not exactly enough `missing_hashes` to reconstruct the merkle tree.
   - `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation) (with `messagename` "invoice").
   - `payer_signature`.`sig` is not a valid signature using `invreq_payer_id` as described in [Signature Calculation](#signature-calculation), using `msg` SHA256(`payer_signature`.`note` || merkle-root).
+
+
+### Rationale
+
+We disallow including `invreq_metadata`: that is the hashing nonce, thus allowing brute-force of omitted fields.
+
+`invreq_payer_id` is the key whose signature we have to attach to the proof, and `invoice_node_id` and `signature` are needed to validate the original invoice. `invoice_features` may indicate additional details in future which would require additional fields to be in the proof.
+
+The `note` in the `payer_signature` field allows a challenge-response system to be implemented: someone requiring proof can ask for a signature with a particular note.  It can also be empty.
 
 ## Example for Payer Proofs
 
@@ -1096,7 +1107,7 @@ marked with `(o)`:
 
 Note that the signature TLV 250 is not included in the merkle tree.
 
-`leaf_hashes` contains the nonce hashes for the present non-signature TLVS:
+`leaf_hashes` contains the nonce hashes for the present non-signature TLVs:
 
 1. H("LnNonce"||TLV0,10)
 2. H("LnNonce"||TLV0,40)
@@ -1112,6 +1123,7 @@ order:
 2. Merkle of (Merkle of H("LnLeaf",TLV20) and H("LnNonce"||TLV0,20))
    and (Merkle of H("LnLeaf",TLV30) and H("LnNonce"||TLV0,30))
 3. Merkle of H("LnLeaf",TLV50) and H("LnNonce"||TLV0,50)
+4. Merkle of H("LnLeaf",TLV60) and H("LnNonce"||TLV0,60)
 
 The `omitted_tlvs` array is based on the omitted tlvs: [0, 20, 30, 50,
 60].  It uses the minimal values which hide the real field numbers without changing their order, `0` is implied (as
