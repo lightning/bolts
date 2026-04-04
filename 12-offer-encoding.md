@@ -378,8 +378,9 @@ A writer of an offer:
     - MAY use `offer_recurrence_optional` if a payment of a single period would be useful (compatibility with pre-recurrence readers).
     - MUST NOT use `offer_recurrence_optional` if `offer_recurrence_base` is present.
   - if it includes either `offer_recurrence_optional` or `offer_recurrence_compulsory`:
-      - MUST set `time_unit` to 0 (seconds), 1 (days), 2 (months) or 3 (years).
+      - MUST set `time_unit` to 0 (seconds), 1 (days)  or 2 (months).
       - MUST set `period` to how often (in `time-unit`) it wants to be paid.
+      - MUST NOT set `period` to 0.
       - if there is a maximum number of payments:
         - MUST include `offer_recurrence_limit` with `max_period_index` set to the maximum number of payments
         - MUST NOT set `max_period_index` to 0.
@@ -440,7 +441,9 @@ A reader of an offer:
   - if the current time is after `offer_absolute_expiry`:
     - MUST NOT make an initial response to the offer (i.e. continuing an existing offer with recurrence is ok)
   - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are set:
-    - if `time_unit` is not one of 0, 1, 2 or 3:
+    - if `time_unit` is not one of 0, 1, or 2:
+       - MUST NOT respond to the offer.
+    - if `period` is 0:
        - MUST NOT respond to the offer.
     - if `offer_recurrence_limit` is set and `max_period_index` is 0:
        - MUST NOT respond to the offer.
