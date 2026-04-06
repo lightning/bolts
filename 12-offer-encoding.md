@@ -1044,8 +1044,10 @@ A writer of a payer_proof:
       - The *marker number* is 1.
     - Otherwise:
       - The *marker number* is one greater than the last `omitted_tlvs` entry.
+- If `omitted_tlvs` is empty:
+  - MAY omit `omitted_tlvs` from the payer_proof.
 - MUST NOT include non-signature TLV elements which do not come from the invoice.
-- MUST include the minimal set of merkle hashes of missing merkle leaves or nodes in `missing_hashes`, in ascending type order.
+- MUST populate `missing_hashes` with the merkle hash of each node which has exactly one branch entirely omitted, in depth-first smallest-to-largest TLV order.
 - MUST copy `signature` into the payer_proof.
 - MUST set `payer_signature`.`sig` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id` using `msg` SHA256(`payer_signature`.`note` || merkle-root).
 
@@ -1061,7 +1063,7 @@ A reader of a payer_proof:
      - an included TLV number, or
      - the previous `omitted_tlvs` or 0 if it is the first number.
   - `leaf_hashes` does not contain exactly one hash for each non-signature TLV field.
-  - There are not exactly enough `missing_hashes` to reconstruct the merkle tree.
+  - There are not exactly enough `missing_hashes` to reconstruct the merkle tree root.
   - `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation) (with `messagename` "invoice").
   - `payer_signature`.`sig` is not a valid signature using `invreq_payer_id` as described in [Signature Calculation](#signature-calculation), using `msg` SHA256(`payer_signature`.`note` || merkle-root).
 
@@ -1133,7 +1135,8 @@ The algorithm for creating `missing_hashes` is most easily implemented
 in a recursive fashion, traversing smallest-to-largest TLV
 (left-to-right in the above representation).  When you need to combine
 two hashes where one side is entirely omitted and the other is not,
-append that hash to `missing_hashes`.
+append that hash to `missing_hashes`.  Note that this is not always the
+same as having `missing_hashes` in ascending TLV order.
 
 Reconstruction is the exact opposite: when you need to combine a hash
 where one side is entirely omitted and the other is not, pull a hash
