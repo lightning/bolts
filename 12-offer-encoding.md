@@ -1047,13 +1047,13 @@ A writer of a payer_proof:
 - If `omitted_tlvs` is empty:
   - MAY omit `omitted_tlvs` from the payer_proof.
 - MUST NOT include non-signature TLV elements which do not come from the invoice.
-- MUST populate `missing_hashes` with the merkle hash of each node which has exactly one branch entirely omitted, in depth-first smallest-to-largest TLV order.
+- MUST populate `missing_hashes` with the merkle hash of the omitted branch of each internal node that has exactly one branch entirely omitted, in depth-first smallest-to-largest TLV order.
 - MUST copy `signature` into the payer_proof.
 - MUST set `payer_signature`.`sig` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id` using `msg` SHA256(`payer_signature`.`note` || merkle-root).
 
 A reader of a payer_proof:
 - MUST reject the payer_proof if:
-  - `invreq_payer_id`, `invoice_payment_hash`, `invoice_node_id`, `signature` or `payer_signature` are missing.
+  - `invreq_payer_id`, `invoice_payment_hash`, `invoice_node_id`, `signature`, `preimage` or `payer_signature` are missing.
   - SHA256(`preimage`) does not equal `invoice_payment_hash`.
   - `omitted_tlvs` are not in strict ascending order (no duplicates).
   - `omitted_tlvs` contains 0.
@@ -1063,7 +1063,7 @@ A reader of a payer_proof:
      - an included TLV number, or
      - the previous `omitted_tlvs` or 0 if it is the first number.
   - `leaf_hashes` does not contain exactly one hash for each non-signature TLV field.
-  - There are not exactly enough `missing_hashes` to reconstruct the merkle tree root.
+  - There are not exactly enough `missing_hashes` to reconstruct the merkle tree root using the `omitted_tlvs` values (with `0` implied as the first omitted TLV).
   - `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation) (with `messagename` "invoice").
   - `payer_signature`.`sig` is not a valid signature using `invreq_payer_id` as described in [Signature Calculation](#signature-calculation), using `msg` SHA256(`payer_signature`.`note` || merkle-root).
 
@@ -1072,7 +1072,7 @@ A reader of a payer_proof:
 
 We disallow including `invreq_metadata`: that is the hashing nonce, thus allowing brute-force of omitted fields.
 
-`invreq_payer_id` is the key whose signature we have to attach to the proof, and `invoice_node_id` and `signature` are needed to validate the original invoice. `invoice_features` may indicate additional details in future which would require additional fields to be in the proof.
+`invreq_payer_id` is the key whose signature we have to attach to the proof, and `invoice_node_id` and `signature` are needed to validate the original invoice.  `invoice_features` may indicate additional details in future which would require additional fields to be in the proof.  Note that `invoice_amount` is not compulsory, though it would probably be very useful in most cases.
 
 The `note` in the `payer_signature` field allows a challenge-response system to be implemented: someone requiring proof can ask for a signature with a particular note.  It can also be empty.
 
@@ -1088,7 +1088,7 @@ following fields:
 40 - Included
 50 - Omitted
 60 - Omitted
-240 - Included
+240 - Omitted (signature field)
 
 Here is the full signature Merkle tree, with omitted nodes
 marked with `(o)`:
@@ -1104,10 +1104,10 @@ marked with `(o)`:
      / \         / \           / \           \
     /   \       /   \         /   \           \
    /     \     /     \       /     \           \
-0(o)     10  20(o)   30(o)  40     50(o)       60(o)    240
+0(o)     10  20(o)   30(o)  40     50(o)       60(o)
 ```
 
-Note that the signature TLV 250 is not included in the merkle tree.
+Note that the signature TLV 240 is not included in the merkle tree.
 
 `leaf_hashes` contains the nonce hashes for the present non-signature TLVs:
 
@@ -1144,7 +1144,8 @@ from `missing_hashes`.  If there are insufficient `missing_hashes`, or
 it isn't empty when you have completed the merkle tree, the number of
 `missing_hashes` was incorrect.
 
-FIXME: Give examples and test vectors!
+See the [Payer Proof Test Vectors](bolt12/payer-proof-test.json) for more
+examples.
 
 ## Rationale
 
