@@ -1009,21 +1009,23 @@ other fields).
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
-    1. type: 242 (`preimage`)
-    2. data:
-        * [`32*byte`:`preimage`]
-    1. type: 244 (`omitted_tlvs`)
-    2. data:
-        * [`...*bigsize`:`missing`]
-    1. type: 246 (`missing_hashes`)
-    2. data:
-        * [`...*sha256`:`hashes`]
-    1. type: 248 (`leaf_hashes`)
-    2. data:
-        * [`...*sha256`:`hashes`]
-    1. type: 250 (`payer_signature`)
+    1. type: 241 (`proof_signature`)
     2. data:
         * [`bip340sig`:`sig`]
+    1. type: 1001 (`preimage`)
+    2. data:
+        * [`32*byte`:`preimage`]
+    1. type: 1002 (`omitted_tlvs`)
+    2. data:
+        * [`...*bigsize`:`missing`]
+    1. type: 1003 (`missing_hashes`)
+    2. data:
+        * [`...*sha256`:`hashes`]
+    1. type: 1004 (`leaf_hashes`)
+    2. data:
+        * [`...*sha256`:`hashes`]
+    1. type: 1005 (`proof_note`)
+    2. data:
         * [`...*utf8`:`note`]
 
 ## Requirements
@@ -1046,10 +1048,9 @@ A writer of a payer_proof:
       - The *marker number* is one greater than the last `omitted_tlvs` entry.
 - If `omitted_tlvs` is empty:
   - MAY omit `omitted_tlvs` from the payer_proof.
-- MUST NOT include non-signature TLV elements which do not come from the invoice.
 - MUST populate `missing_hashes` with the merkle hash of the omitted branch of each internal node that has exactly one branch entirely omitted, in depth-first smallest-to-largest TLV order.
 - MUST copy `signature` into the payer_proof.
-- MUST set `payer_signature`.`sig` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id` using `msg` SHA256(`payer_signature`.`note` || merkle-root).
+- MUST set `proof_signature` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id` using the merkle-root as the `msg`.
 
 A reader of a payer_proof:
 - MUST reject the payer_proof if:
@@ -1064,17 +1065,23 @@ A reader of a payer_proof:
      - the previous `omitted_tlvs` or 0 if it is the first number.
   - `leaf_hashes` does not contain exactly one hash for each non-signature TLV field.
   - There are not exactly enough `missing_hashes` to reconstruct the merkle tree root using the `omitted_tlvs` values (with `0` implied as the first omitted TLV).
-  - `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation) (with `messagename` "invoice").
-  - `payer_signature`.`sig` is not a valid signature using `invreq_payer_id` as described in [Signature Calculation](#signature-calculation), using `msg` SHA256(`payer_signature`.`note` || merkle-root).
+  - `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation) (with `messagename` "invoice") of the merkle-root of the invoice (i.e. without fields 1001 through 999999999 inclusive).
+  - `proof_signature` is not a valid signature using `invreq_payer_id` as described in [Signature Calculation](#signature-calculation), using `msg` merkle-root.
 
 
 ### Rationale
+
+Using the invoice as a base enshrines information about the payment including important offer and invoice_request fields.  However, many fields are not useful (such as payment paths), or may compromise privacy (such as invreq_payer_note containing delivery address information), so being able to elide them while still allowing signature validation is vital.
 
 We disallow including `invreq_metadata`: that is the hashing nonce, thus allowing brute-force of omitted fields.
 
 `invreq_payer_id` is the key whose signature we have to attach to the proof, and `invoice_node_id` and `signature` are needed to validate the original invoice.  `invoice_features` may indicate additional details in future which would require additional fields to be in the proof.  Note that `invoice_amount` is not compulsory, though it would probably be very useful in most cases.
 
-The `note` in the `payer_signature` field allows a challenge-response system to be implemented: someone requiring proof can ask for a signature with a particular note.  It can also be empty.
+The requirement to include minimal hashes (rather than one for every unknown leaf) minimizes the size, especially when many consecutive fields are omitted.  As the exact TLV types of omitted TLVs are unimportant (as long as ordering is maintained), we renumber them to be minimal, as further obfuscation of values.
+
+The proof fields are outside the established offer, invoice request and invoice TLV ranges, and above the signature range (240-1000), so they are committed to by the `proof_signature`.
+
+The optional `proof_note` field allows a challenge-response system to be implemented: someone requiring proof can ask for a signature with a particular note.  It can also be missing.
 
 ## Example for Payer Proofs
 
@@ -1146,16 +1153,6 @@ it isn't empty when you have completed the merkle tree, the number of
 
 See the [Payer Proof Test Vectors](bolt12/payer-proof-test.json) for more
 examples.
-
-## Rationale
-
-Using the invoice as a base enshrines information about the payment including important offer and invoice_request fields.  However, many fields are not useful (such as payment paths), or may compromise privacy (such as invreq_payer_note containing delivery address information), so being able to elide them while still allowing signature validation is vital.
-
-Avoiding including TLV0 (which is required to be unguessable), and publishing the nonce-leaf-hashes for each included TLV means that you cannot brute-force the values of any unknown leaves.  For example, while you know the merkle of H("LnLeaf",TLV50) and H("LnNonce"||TLV0,50), you cannot determine H("LnNonce"||TLV0,50).
-
-The requirement to include minimal hashes (rather than one for every unknown leaf) minimizes the size, especially when many consecutive fields are omitted.  As the exact TLV types of omitted TLVs are unimportant (as long as ordering is maintained), we renumber them to be minimal, as further obfuscation of values.
-
-The `payer_signature` proves that the same key signed this proof as signed the invoice_request: the `note` field provides room for an arbitrary challenge or self-identification.
 
 # FIXME: Possible future extensions:
 
