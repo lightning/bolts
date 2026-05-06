@@ -657,7 +657,7 @@ The writer:
         - MUST NOT send an `invoice_request` for a period index greater than `max_period_index`
       - SHOULD NOT send an `invoice_request` for a period which has already passed.
       - if `offer_recurrence_paywindow` is present:
-        - if `recurrence_basetime` is present or `recurrence_counter` is non-zero:
+        - if `offer_recurrence_base` is present or `recurrence_counter` is non-zero:
           - SHOULD NOT send an `invoice_request` for a period prior to `seconds_before` seconds before that period start.
           - SHOULD NOT send an `invoice_request` for a period later than `seconds_after` seconds past that period start.
       - otherwise:
