@@ -1043,6 +1043,8 @@ A writer of a payer_proof:
       - The *marker number* is that previous tlv type, plus one.
     - Otherwise, if `proof_omitted_tlvs` is empty:
       - The *marker number* is 1.
+    - Otherwise, if the last `proof_omitted_tlvs` entry is 239:
+      - The *marker number* is 1000000000.
     - Otherwise:
       - The *marker number* is one greater than the last `proof_omitted_tlvs` entry.
 - If `proof_omitted_tlvs` is empty:
@@ -1050,7 +1052,7 @@ A writer of a payer_proof:
 - MAY include an annotation on the proof in `proof_note`.
 - MUST populate `proof_missing_hashes` with the merkle hash of the omitted branch of each internal node that has exactly one branch entirely omitted, in post-order depth-first smallest-to-largest TLV order.
 - MUST copy `signature` into the payer_proof.
-- MUST set `proof_signature` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id` using the merkle-root as the `msg` and a `first_tlv` value of 0x0000 (i.e. type 0, length 0).
+- MUST set `proof_signature` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
 
 A reader of a payer_proof:
 - MUST reject the payer_proof if:
@@ -1063,10 +1065,10 @@ A reader of a payer_proof:
   - `proof_omitted_tlvs` is not one greater than:
      - an included TLV number, or
      - the previous `proof_omitted_tlvs` or 0 if it is the first number.
-  - `proof_leaf_hashes` does not contain exactly one hash for each non-signature TLV field.
+  - `proof_leaf_hashes` does not contain exactly one hash for each field in ranges 1 to 239 and 1000000000 to 3999999999.
   - There are not exactly enough `proof_missing_hashes` to reconstruct the merkle tree root using the `proof_omitted_tlvs` values (with `0` implied as the first omitted TLV).
   - `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation) (with `messagename` "invoice") of the reconstructed merkle-root of the invoice (i.e. without fields 1001 through 999999999 inclusive).
-  - `proof_signature` is not a valid signature using `invreq_payer_id` as described in [Signature Calculation](#signature-calculation), using `msg` merkle-root and a `first_tlv` value of 0x0000 (i.e. type 0, length 0).
+  - `proof_signature` is not a valid signature using `invreq_payer_id` as described in [Signature Calculation](#signature-calculation).
 
 
 ### Rationale
@@ -1173,7 +1175,6 @@ examples.
 7. All-zero offer_id == gratuitous payment.
 8. Streaming invoices?
 9. Re-add recurrence.
-10. Re-add `invreq_refund_for` to support proofs.
 11. Re-add `invoice_replace` for requesting replacement of a (stuck-payment) 
     invoice with a new one.
 12. Allow non-offer `invoice_request` with alternate currencies?
