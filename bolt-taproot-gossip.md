@@ -519,7 +519,7 @@ announced its fee levels and expiry, using `channel_update_2`.
         * [`short_channel_id`:`short_channel_id`]
     1. type: 6 (`capacity_satoshis`)
     2. data:
-        * [`u64`:`capacity_satoshis`]
+        * [`tu64`:`capacity_satoshis`]
     1. type: 8 (`node_id_1`)
     2. data:
         * [`point`:`node_id_1`]
@@ -625,7 +625,7 @@ The receiver:
             - SHOULD queue the message for rebroadcasting.
             - MAY choose NOT to for messages longer than the minimum expected
               length.
-        - if it has previously received a valid `channel_announcement_v2`, for
+        - if it has previously received a valid `channel_announcement_2`, for
           the same transaction, in the same block, but for a different
           `node_id_1` or `node_id_2`:
             - SHOULD blacklist the previous message's `node_id_1` and `node_id_2`,
@@ -665,32 +665,32 @@ by multiple keys since MuSig2 can be used to construct the single signature.
 1. `tlv_stream`: `node_announcement_2_tlvs`
 2. types:
     1. type: 0 (`features`)
+    2. data:
+        * [`...*byte`:`features`]
     1. type: 1 (`color`)
     2. data:
         * [`rgb_color`:`rgb_color`]
-    2. data:
-        * [`...*byte`: `features`]
     1. type: 2 (`block_height`)
+    2. data:
+        * [`u32`:`block_height`]
     1. type: 3 (`alias`)
     2. data:
         * [`...*utf8`:`alias`]
-    2. data:
-        * [`u32`: `block_height`]
     1. type: 4 (`node_id`)
     2. data:
         * [`point`:`node_id`]
     1. type: 5 (`ipv4_addrs`)
     2. data:
-        * [`...*ipv4_addr`: `ipv4_addresses`]
+        * [`...*ipv4_addr`:`ipv4_addresses`]
     1. type: 7 (`ipv6_addrs`)
     2. data:
-        * [`...*ipv6_addr`: `ipv6_addresses`]
+        * [`...*ipv6_addr`:`ipv6_addresses`]
     1. type: 9 (`tor_v3_addrs`)
     2. data:
-        * [`...*tor_v3_addr`: `tor_v3_addresses`]
+        * [`...*tor_v3_addr`:`tor_v3_addresses`]
     1. type: 11 (`dns_hostnames`)
     2. data:
-        * [`...*dns_hostname`: `dns_hostnames`]
+        * [`...*dns_hostname`:`dns_hostnames`]
     1. type: 160 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -862,16 +862,16 @@ multiple times, in order to change fees.
         * [`u16`:`cltv_expiry_delta`]
     1. type: 12 (`htlc_minimum_msat`)
     2. data:
-        * [`u64`:`htlc_minimum_msat`]
+        * [`tu64`:`htlc_minimum_msat`]
     1. type: 14 (`htlc_maximum_msat`)
     2. data:
-        * [`u64`:`htlc_maximum_msat`]
+        * [`tu64`:`htlc_maximum_msat`]
     1. type: 16 (`fee_base_msat`)
     2. data:
-        * [`u32`:`fee_base_msat`]
+        * [`tu32`:`fee_base_msat`]
     1. type: 18 (`fee_proportional_millionths`)
     2. data:
-        * [`u32`:`fee_proportional_millionths`]
+        * [`tu32`:`fee_proportional_millionths`]
     1. type: 160 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -984,7 +984,7 @@ The receiving node:
 - SHOULD accept `channel_update_2`s for its own channels (even if non-public),
   in order to learn the associated origin nodes' forwarding parameters.
 - if `signature` is NOT a valid [BIP340][bip-340] signature (using `node_id`
-  over the message):
+  over `MsgHash("channel_update_2", "signature", m)`):
     - SHOULD send a `warning` and close the connection.
     - MUST NOT process the message further.
 
@@ -1014,14 +1014,14 @@ they will each have the following information:
 - `node_2` will know:
     - `bitcoin_priv_key_2`, `node_ID_priv_key_2`,
     - `bitcoin_key_1`,
-    - `node_ID_1`,
+    - `node_ID_2`,
     - `announcement_node_secnonce_2` and `announcement_node_pubnonce_2`,
     - `announcement_bitcoin_secnonce_2` and `announcement_bitcoin_pubnonce_2`,
     - `announcement_node_pubnonce_1`,
     - `announcement_bitcoin_pubnonce_1`,
 
 With the above information, both nodes can now start calculating the partial
-signatures that will be exchanged in the `announcement_signatures_v2` message.
+signatures that will be exchanged in the `announcement_signatures_2` message.
 
 Firstly, the aggregate public key, `P_agg`, that the signature will be valid for
 can be calculated as follows:
@@ -1246,7 +1246,8 @@ The signature can then be verified as follows:
 
 The following `MsgHash` function is defined which can be used to construct a
 32-byte message that can be used as a valid input to the [BIP-340][bip-340]
-signing and verification algorithms.
+signing and verification algorithms. This is the same tagged-hash format used
+by [BOLT #12][bolt-12].
 
 _MsgHash:_
 - _inputs_:
@@ -1277,6 +1278,7 @@ ideas mentioned in the following references:
 
 [bolt-7]: ./07-routing-gossip.md
 [bolt-3]: ./03-transactions.md
+[bolt-12]: ./12-offer-encoding.md
 [bolt-7-alias-security]: ./07-routing-gossip.md#security-considerations-for-node-aliases
 [bolt-9-features]: ./09-features.md#bolt-9-assigned-feature-flags
 [bolt-11]: ./11-payment-encoding.md
@@ -1287,14 +1289,14 @@ ideas mentioned in the following references:
 [bip-340]: https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki
 [bip-340-verify]: https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki#verification
 [simple-taproot-chans]: https://github.com/lightning/bolts/pull/995
-[musig-keysort]: https://github.com/jonasnick/bips/blob/musig2/bip-musig2.mediawiki#key-sorting
-[musig-keyagg]: https://github.com/jonasnick/bips/blob/musig2/bip-musig2.mediawiki#key-aggregation
-[musig-signing]: https://github.com/jonasnick/bips/blob/musig2/bip-musig2.mediawiki#signing
+[musig-keysort]: https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki#key-sorting
+[musig-keyagg]: https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki#key-aggregation
+[musig-signing]: https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki#signing
 [bip86-tweak]: https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki#address-derivation
-[bip-musig2]: https://github.com/jonasnick/bips/blob/musig2/bip-musig2.mediawiki
-[musig-session-ctx]: https://github.com/jonasnick/bips/blob/musig2/bip-musig2.mediawiki#session-context
-[musig-notation]: https://github.com/jonasnick/bips/blob/musig2/bip-musig2.mediawiki#notation
-[musig-partial-sig-agg]: https://github.com/jonasnick/bips/blob/musig2/bip-musig2.mediawiki#partial-signature-aggregation
+[bip-musig2]: https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki
+[musig-session-ctx]: https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki#session-context
+[musig-notation]: https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki#notation
+[musig-partial-sig-agg]: https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki#partial-signature-aggregation
 [secp256k1]: https://www.secg.org/sec2-v2.pdf
 [punycode]: https://en.wikipedia.org/wiki/Punycode
 [prop224]: https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt
