@@ -872,9 +872,10 @@ The security considerations for node aliases mentioned in
 
 After a channel has been initially announced via `channel_announcement_2`, each
 side independently announces the fees and minimum expiry delta it requires to
-relay HTLCs through this channel. Each uses the 8-byte short channel id that
-matches the `channel_announcement_2` and the `second_peer` field to
-indicate which end of the channel it's on (origin or final). A node can do this
+relay HTLCs through this channel. Each identifies the channel by reusing the
+[`sciddir_or_pubkey`][bolt-1-types] type (constrained to the `sciddir` form),
+which packs the 8-byte channel id together with a one-byte direction tag that
+indicates which end of the channel sent the update. A node can do this
 multiple times, in order to change fees.
 
 1. type: 271 (`channel_update_2`)
@@ -888,14 +889,13 @@ multiple times, in order to change fees.
         * [`chain_hash`:`chain_hash`]
     1. type: 2 (`short_channel_id`)
     2. data:
-        * [`short_channel_id`:`short_channel_id`]
+        * [`sciddir_or_pubkey`:`short_channel_id`]
     1. type: 4 (`block_height`)
     2. data:
         * [`u32`:`block_height`]
     1. type: 6 (`disable_flags`)
     2. data:
         * [`byte`:`disable_flags`]
-    1. type: 8 (`second_peer`)
     1. type: 10 (`cltv_expiry_delta`)
     2. data:
         * [`u16`:`cltv_expiry_delta`]
@@ -935,8 +935,12 @@ If the `permanant` bit is set, then the channel can be considered closed.
 
 - The `chain_hash` is used to identify the blockchain containing the channel
   being referred to.
-- `short_channel_id` is the unique identifier of the channel. If the channel is
-  unannounced, then this may be set to an agreed upon alias.
+- `short_channel_id` is a [`sciddir_or_pubkey`][bolt-1-types] in the `sciddir`
+  form (the `pubkey` form MUST NOT be used). It is the 9-byte concatenation of
+  a direction byte and the 8-byte channel id from the corresponding
+  `channel_announcement_2`: the direction byte is `0` when the update is from
+  `node_id_1` and `1` when from `node_id_2`. If the channel is unannounced,
+  the channel id portion may be set to an agreed-upon alias.
 - `block_height` is the timestamp associated with the message. A node may not
   send two `channel_update` messages with the same `block_height`. The
   `block_height` must also be greater than or equal to the block height
@@ -945,10 +949,6 @@ If the `permanant` bit is set, then the channel can be considered closed.
 - The `disable` bit field can be used to advertise to the network that a channel
   is disabled and that it should not be used for routing. The individual
   `disable_flags` bits can be used to communicate more fine-grained information.
-- The `second_peer` is used to indicate which node in the channel node pair has
-  created and signed this message. If present, the node was `node_id_2` in the
-  `channel_announcment_2`, otherwise the node is `node_id_1` in the
-  `channel_announcement_2` message.
 - `cltv_expiry_delta` is the number of blocks that the node will subtract from
   an incoming HTLC's `cltv_expiry`.
 - `htlc_minimum_msat` is the minimum HTLC value (in millisatoshi) that the
@@ -989,18 +989,21 @@ The origin node:
   any channel advertised via `channel_announcement_2`.
 - MUST NOT send a created `channel_update_2` before `channel_ready` has been
   received.
+- MUST set the `short_channel_id` direction byte to `0` if it is `node_id_1`
+  in the corresponding `channel_announcement_2`, or to `1` if it is `node_id_2`.
 - For an unannounced channel (i.e. one where `announcement_signatures_2` has
   not been exchanged):
     - MAY create a `channel_update_2` to communicate the channel parameters to
       the channel peer.
-    - MUST set the `short_channel_id` to either an `alias` it has received from
-      the peer, or the real channel `short_channel_id`.
+    - MUST set the channel-id portion of `short_channel_id` to either an
+      `alias` it has received from the peer, or the real channel
+      `short_channel_id`.
     - MUST NOT forward such a `channel_update_2` to other peers, for privacy
       reasons.
 - For announced channels:
-    - MUST set `chain_hash` AND `short_channel_id` to match the 32-byte hash AND
-      8-byte channel ID that uniquely identifies the channel specified in the
-      `channel_announcement_2` message.
+    - MUST set `chain_hash` AND the channel-id portion of `short_channel_id`
+      to match the 32-byte hash AND 8-byte channel ID that uniquely identifies
+      the channel specified in the `channel_announcement_2` message.
 - MUST set `signature` to a valid [BIP340][bip-340] signature for its own
   `node_id` key. The message to be signed is
   `MsgHash("channel_update_2", "signature", m)` where `m` is the serialised
@@ -1017,14 +1020,22 @@ The receiving node:
     - SHOULD send a `warning`.
     - MAY close the connection.
     - MUST ignore the message.
-- If the `short_channel_id` does NOT match a previous `channel_announcement_2`
-  or `channel_announcement`, OR if the channel has been closed in the meantime:
+- If `short_channel_id` is not in the `sciddir` form (i.e. its first byte is
+  neither `0` nor `1`):
+    - SHOULD send a `warning`.
+    - MAY close the connection.
+    - MUST ignore the message.
+- Let `signing_node_id` be `node_id_1` if the `short_channel_id` direction
+  byte is `0`, and `node_id_2` otherwise.
+- If the channel-id portion of `short_channel_id` does NOT match a previous
+  `channel_announcement_2` or `channel_announcement`, OR if the channel has
+  been closed in the meantime:
     - MUST ignore `channel_update_2`s that do NOT correspond to one of its own
       channels.
 - SHOULD accept `channel_update_2`s for its own channels (even if non-public),
   in order to learn the associated origin nodes' forwarding parameters.
-- if `signature` is NOT a valid [BIP340][bip-340] signature (using `node_id`
-  over `MsgHash("channel_update_2", "signature", m)`):
+- if `signature` is NOT a valid [BIP340][bip-340] signature (using
+  `signing_node_id` over `MsgHash("channel_update_2", "signature", m)`):
     - SHOULD send a `warning` and close the connection.
     - MUST ignore the message.
 
@@ -1206,6 +1217,7 @@ ideas mentioned in the following references:
   Channel Announcements + Proof Verification which expands on the details of how
   taproot channel verification should work.
 
+[bolt-1-types]: ./01-messaging.md#fundamental-types
 [bolt-7]: ./07-routing-gossip.md
 [bolt-3]: ./03-transactions.md
 [bolt-12]: ./12-offer-encoding.md

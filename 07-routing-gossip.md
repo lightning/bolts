@@ -953,12 +953,10 @@ The addition of timestamp and checksum fields allow a peer to omit querying for 
 
 1. `tlv_stream`: `gossip_timestamps_filter_tlvs`
 2. types:
-    1. type: 2 (`first_block`)
+    1. type: 2 (`block_height_range`)
     2. data:
-        * [`u32`:`block_height`]
-   1. type: 4 (`block_height_range`)
-   2. data:
-       * [`u32`:`num_blocks`]
+        * [`u32`:`first_block_height`]
+        * [`tu32`:`num_blocks`]
 
 This message allows a node to constrain future gossip messages to
 a specific range.  A node which wants any gossip messages has
@@ -982,14 +980,14 @@ The receiver:
     `channel_update` and `node_announcement`.
     - MAY wait for the next outgoing gossip flush to send these.
   - SHOULD send all gossip messages whose `block_height` is greater than or 
-    equal to `first_block`, and less than `first_block` plus `num_blocks`. 
+    equal to `first_block_height`, and less than `first_block_height` plus `num_blocks`. 
   - SHOULD send gossip messages as it generates them regardless of `timestamp`/`block_height`.
   - Otherwise (relayed gossip):
     - SHOULD restrict future gossip messages to those whose `timestamp`
       is greater or equal to `first_timestamp`, and less than
       `first_timestamp` plus `timestamp_range` or whose `block_height` is 
-      greater than or equal to `first_block`, and less than `first_block` plus 
-      `num_blocks`.
+      greater than or equal to `first_block_height`, and less than 
+      `first_block_height` plus `num_blocks`.
   - If a `channel_announcement`/`_2` has no corresponding `channel_update`/`_2`s:
     - MUST NOT send the `channel_announcement`/`_2`.
   - Otherwise:
