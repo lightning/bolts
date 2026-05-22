@@ -30,9 +30,6 @@ and that use a pure TLV based structure.
 * [Appendix A: Algorithms](#appendix-a-algorithms)
     * [Partial Signature Calculation](#partial-signature-calculation)
     * [Partial Signature Verification](#partial-signature-verification)
-    * [Verifying the `channel_announcement_2` signature](#verifying-the-channelannouncement2-signature)
-        * [The 3-of-3 MuSig2 Scenario](#the-3-of-3-musig2-scenario)
-        * [The 4-of-4 MuSig2 Scenario](#the-4-of-4-musig2-scenario)
     * [Signature Message Construction](#signature-message-construction)
 * [Appendix B: Test Vectors](#appendix-b-test-vectors)
 * [Acknowledgements](#acknowledgements)
@@ -606,23 +603,28 @@ The sender:
   message.
 
 The receiver:
-
-- If `short_channel_id`, `outpoint`, `capacity_satoshis`, `node_id_1`, `node_id_2` or `signature` are missing:
+- if `short_channel_id`, `outpoint`, `capacity_satoshis`, `node_id_1`, `node_id_2` or `signature` are missing:
     - SHOULD send a `warning`.
     - MAY close the connection.
     - MUST ignore the message.
-- Either the `short_channel_id` or the `outpoint` may be used to retrieve the
-  channel's funding script. This can then be used to determine if the channel in
-  question is a P2WSH channel or a P2TR channel.
-- If the channel is a P2WSH channel:
-    - If `bitcoin_key_1` or `bitcoin_key_2` fields are missing, or `merkle_root_hash` is present:
-        - MUST ignore the message.
-- If `signature` field is not valid according to the rules defined in
-  [Verifying the `channel_announcement_2` signature](#verifying-the-channel_announcement_2-signature):
+- MUST use either the `short_channel_id` or the `outpoint` to retrieve the channel's claimed funding output:
+  - if no such unspent output is found:
+    - MAY send a `warning`.
+    - MUST ignore the message.
+    - SHOULD NOT close the connection.
+- if the output amount is less than `capacity_satoshis`:
     - SHOULD send a `warning`.
     - MAY close the connection.
     - MUST ignore the message.
-- If `node_id_1` OR `node_id_2` are blacklisted:
+- if the output does not correspond to both `short_channel_id` and `outpoint`:
+    - SHOULD send a `warning`.
+    - MAY close the connection.
+    - MUST ignore the message.
+- if channel announcement validation (see below) fails:
+    - SHOULD send a `warning`.
+    - MAY close the connection.
+    - MUST ignore the message.
+- if `node_id_1` OR `node_id_2` are blacklisted:
     - SHOULD ignore the message.
 - otherwise:
     - if the transaction referred to was NOT previously announced as a channel:
@@ -638,6 +640,35 @@ The receiver:
         - SHOULD store this `channel_announcement`.
 - Once this announced output has been spent OR reorganized out:
     - SHOULD forget a channel after a 72-block delay.
+
+Channel announcement validation:
+- If the output scriptpubkey is neither P2WSH (i.e. 0x00 0x20 [32 bytes]) nor P2TR (i.e. 0x51 0x20 [32 bytes]):
+    - validation fails.
+- If the scriptpubkey is P2TR:
+    - Let `taproot_key` be the x-only key formed by the last 32 bytes of the scriptpubkey.
+- if both `bitcoin_key_1` and `bitcoin_key_2` are present:
+    - If the scriptpubkey is a P2WSH:
+        - if `merkle_root_hash` is present:
+            - validation fails.
+        - if the last 32 bytes of the scriptpubkey do not match the SHA256 of `2 <lesser_bitcoin_key> <greater_bitcoin_key> 2 OP_CHECKMULTISIG` (where lesser and greater are the `bitcoin_key_1` and `bitcoin_key_2` ordered as defined in [BOLT 3](03-transactions.md#funding-transaction-output)):
+            - validation fails
+    - otherwise (P2TR):
+        - Let P_internal = KeyAgg(MuSig2.KeySort(`bitcoin_key_1`, `bitcoin_key_2`))
+        - if `merkle_root_hash` is not present:
+            - if `taproot_key` != P_internal:
+                - validation fails
+        - otherwise:
+            - let `p` = `bytes(P_internal)`
+            - let `t = H("TapTweak", p || merkle_root_hash)` where `H` is the BIP340 tagged hash function defined in [BOLT #12][bolt-12]
+            - if `taproot_key != P_internal + t*G`:
+                - validation fails
+    - Let P_agg = MuSig2.KeyAgg(MuSig2.KeySort(`node_id_1`, `node_id_2`, `bitcoin_key_1`, `bitcoin_key_2`))
+- otherwise (not both bitcoin_key fields):
+    - if either `bitcoin_key_1` or `bitcoin_key_2` are present:
+        - validation fails
+    - Let P_agg = MuSig2.KeyAgg(MuSig2.KeySort(`node_id_1`, `node_id_2`, taproot_key))
+- if `signature` is not a valid signature using P_agg over MsgHash("channel_announcement_2", "signature", message)`:
+    - validation fails
 
 #### TLV Defaults
 
@@ -1130,117 +1161,6 @@ found in the [MuSig2][musig-session-ctx] spec.
 - Let `P = a_n*P_n + a_b*P_b`
 - Let `g = 1` if `has_even_y(Q)`, otherwise `let g = -1 mod n`
 - Fail if `s*G != R_e + e*g*P`
-
-## Verifying the `channel_announcement_2` signature
-
-For all the following cases, it should be verified that the output at the
-provided `short_channel_id` or `outpoint` is an unspent P2WSH or P2TR output.
-
-### The 3-of-3 MuSig2 Scenario
-
-In the case where the funding transaction is a P2TR output and the received
-`channel_announcement_2` message is does not have the optional `bitcoin_key_*`
-fields, the signature of the message should be verified as a 3-of-3 MuSig2
-signature. The keys involved are: `node_id_1`, `node_id_2` and the taproot
-output key (`tr_output_key`) found in the channel's funding output specified by
-the provided `short_channel_id`.
-
-The full list of inputs required:
-- `node_id_1`
-- `node_id_2`
-- `tr_output_key`
-- `msg`: the serialised `channel_announcement_2` tlv stream.
-- `sig`: the 64-byte BIP340 signature found in the `signature` field of the
-  `channel_announcement_2` message. This signature must be parsed into `R` and
-  `s` values as defined in BIP327.
-
-The aggregate key can be calculated as follows:
-
-```
-P_agg = MuSig2.KeyAgg(MuSig2.KeySort(`node_id_1`, `node_id_2`, `tr_output_key`))
-```
-
-The signature can then be verified as follows:
-- Let `pk` = `bytes(P_agg)` where the `bytes` function is defined in BIP340.
-- Let `m` = `MsgHash("channel_announcement_2", "signature", msg)`
-- Use the BIP340 `Verify` function to determine if the signature is valid by
-  passing in `pk`, `m` and `sig`.
-
-### The 4-of-4 MuSig2 Scenario
-
-There are two possibilities here: the channel is a P2WSH channel or a P2TR
-channel.
-
-#### P2WSH Channels
-
-In the case where the funding transaction is a P2WSH output, then the received
-`channel_announcement_2` message MUST have both the optional `bitcoin_key_*`
-fields and the `merkle_root_hash` should not be set. The verifier must then
-ensure that the funding output matches the following P2WSH script:
-
-    `2 <bitcoin_key_1> <bitcoin_key_2> 2 OP_CHECKMULTISIG`
-
-After this has been verified, the signature of the message should be verified.
-This is the same for P2TR channels and is described below.
-
-#### P2TR Channels
-
-In the case where the funding transaction is a P2TR output and the received
-`channel_announcement_2` message has both the optional `bitcoin_key_*` fields,
-the signature of the message should be verified as a 4-of-4 MuSig2 signature.
-The keys involved are: `node_id_1`, `node_id_2`, `bitcoin_key_1` and
-`bitcoin_key_2`. The message may also optionally contain the
-`merkle_root_hash` field in this case.
-
-Before the actual signature verification is done, it should first be asserted
-that the taproot output key found in the funding output is in-fact made up of
-the provided bitcoin keys. This can be done as follows:
-
-First, calculate the aggregate key used as the internal key for the taproot
-output, `P_internal`:
-
-```
-P_internal = KeyAgg(MuSig2.KeySort(`bitcoin_key_1`, `bitcoin_key_2`))
-```
-
-- Let `P_o` be the taproot output key found on-chain in the funding output
-  referred to by the SCID.
-- if the `merkle_root_hash` field is _not_ provided:
-    - Fail the check if `P_internal != P_o`
-- otherwise, if the `merkle_root_hash` is provided:
-    - let `p` = `bytes(P_internal)`
-    - let `t = hash_TapTweak(p || merkle_root_hash)` where `hash_TapTweak` uses
-      the `hash_name(x)` method defined in BIP340.
-    - Fail if `P_o != P_internal + t*G`
-
-If the above check is successful, then it has been shown that the output key
-is constructed from the two provided bitcoin keys.
-
-#### Signature Verification
-
-For both the above cases, the following signature verification applies:
-
-The full list of inputs required:
-- `node_id_1`
-- `node_id_2`
-- `bitcoin_key_1`
-- `bitcoin_key_2`
-- `msg`: the serialised signed range of the `channel_announcement_2` message.
-- `sig`: the 64-byte BIP340 signature found in the `signature` field of the
-  `channel_announcement_2` message. This signature must be parsed into `R` and
-  `s` values as defined in BIP327.
-
-The aggregate key can be calculated as follows:
-
-```
-P_agg = MuSig2.KeyAgg(MuSig2.KeySort(`node_id_1`, `node_id_2`, `bitcoin_key_1`, `bitcoin_key_2`))
-```
-
-The signature can then be verified as follows:
-- Let `pk` = `bytes(P_agg)` where the `bytes` function is defined in BIP340.
-- Let `m` = `MsgHash("channel_announcement_2", "signature", msg)`
-- Use the BIP340 `Verify` function to determine if the signature is valid by
-  passing in `pk`, `m` and `sig`.
 
 ## Signature Message Construction
 
