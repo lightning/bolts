@@ -1329,7 +1329,7 @@ _MsgHash:_
       defined in [Pure TLV messages](#pure-tlv-messages).
 
 - Let `tag` = "lightning" || `message_name` || `field_name`
-- return SHA256(SHA256(`tag`) || SHA256(`tag`) || SHA256(`message`))
+- return SHA256(SHA256(`tag`) || SHA256(`tag`) || `message`)
 
 # Appendix B: Test Vectors
 
