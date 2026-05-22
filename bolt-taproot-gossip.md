@@ -234,6 +234,18 @@ the following convenient types are defined:
 All the messages defined in this document are pure TLV streams. The signed TLV
 range is defined as the inclusive ranges: 0 to 159 and 1000000000 to 2999999999.
 
+When a signature TLV in a message commits to "the message" via
+`MsgHash(message_name, field_name, m)` (see
+[Signature Message Construction](#signature-message-construction)), `m` is the
+**canonical concatenation of every TLV record in the message whose `type`
+falls within the signed range, in strictly ascending `type` order**. Each
+record is serialised as `<bigsize type><bigsize length><value>` exactly as it
+appears on the wire. `m` does **not** include the message-type prefix, any
+outer length prefix, or any TLV records whose `type` is outside the signed
+range (most notably the signature TLV itself, which lives at type 160). TLVs
+that are absent from the wire message contribute nothing to `m`, even if a
+default value is defined for them.
+
 ### Feature Bits
 
 The proposed gossip upgrade is quite large and will require a lot of new code
@@ -1250,7 +1262,8 @@ _MsgHash:_
 - _inputs_:
     * `message_name`: UTF-8 string
     * `field_name`: UTF-8 string
-    * `message`: byte array
+    * `message`: byte array — the canonical signed-range TLV byte sequence
+      defined in [Pure TLV messages](#pure-tlv-messages).
 
 - Let `tag` = "lightning" || `message_name` || `field_name`
 - return SHA256(SHA256(`tag`) || SHA256(`tag`) || SHA256(`message`))
