@@ -911,6 +911,12 @@ multiple times, in order to change fees.
     1. type: 18 (`fee_proportional_millionths`)
     2. data:
         * [`tu32`:`fee_proportional_millionths`]
+    1. type: 20 (`inbound_fee_base_msat`)
+    2. data:
+        * [`tu32`:`inbound_fee_base_msat`]
+    1. type: 22 (`inbound_fee_proportional_millionths`)
+    2. data:
+        * [`tu32`:`inbound_fee_proportional_millionths`]
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -958,24 +964,48 @@ If the `permanant` bit is set, then the channel can be considered closed.
     - MUST be less than or equal to the channel capacity
     - MUST be less than or equal to the `max_htlc_value_in_flight_msat` it
       received from the peer in the `open_channel` message.
-- `fee_base_msat` is the base fee (in millisatoshis) that the node will charge
-  for an HTLC.
-- `fee_proportional_millionths` is the amount (in millionths of a satoshi) that
-  node will charge per transferred satoshi.
+- `fee_base_msat` is the **outbound** base fee (in millisatoshis) that the node
+  will charge for forwarding an HTLC out via this channel.
+- `fee_proportional_millionths` is the **outbound** amount (in millionths of a
+  satoshi) that the node will charge per transferred satoshi for forwarding an
+  HTLC out via this channel.
+- `inbound_fee_base_msat` is the additional base fee (in millisatoshis) that
+  the node charges for forwarding an HTLC that *arrived* on this channel,
+  regardless of which channel it is forwarded out via. This fee is positive
+  only (`tu32`), meaning a node MAY surcharge for receiving HTLCs over the
+  channel but MUST NOT advertise a discount.
+- `inbound_fee_proportional_millionths` is the additional amount (in millionths
+  of a satoshi) that the node charges per transferred satoshi for forwarding
+  an HTLC that arrived on this channel. Positive only, same constraint as
+  above.
+- The total fee a sender should expect for forwarding an HTLC `in_channel ->
+  out_channel` is:
+  ```
+  total_fee = out.fee_base_msat
+            + in.inbound_fee_base_msat
+            + amount_msat * (out.fee_proportional_millionths
+                            + in.inbound_fee_proportional_millionths)
+              / 1_000_000
+  ```
+  Where `in` is the `channel_update_2` of the channel the HTLC arrived on and
+  `out` is the `channel_update_2` of the channel the HTLC will be forwarded
+  out via, both belonging to the forwarding node.
 
 #### TLV Defaults
 
-For types 0, 6, 10, 12, 16 and 18, the following defaults apply if the
+For types 0, 6, 10, 12, 16, 18, 20 and 22, the following defaults apply if the
 TLV is not present in the message:
 
-| `channel_update_2` TLV Type        | Default Value                                                      | Comment                                                                                     |
-|------------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| 0  (`chain_hash`)                  | `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000` | The hash of the genesis block of the mainnet Bitcoin blockchain.                            | 
-| 6  (`disable`)                     | empty                                                              |                                                                                             | 
-| 10 (`cltv_expiry_delta`)           | 80                                                                 |                                                                                             | 
-| 12 (`htlc_minimum_msat`)           | 1                                                                  |                                                                                             | 
-| 16 (`fee_base_msat`)               | 1000                                                               |                                                                                             | 
-| 18 (`fee_proportional_millionths`) | 1                                                                  |                                                                                             |
+| `channel_update_2` TLV Type                | Default Value                                                      | Comment                                                                                     |
+|--------------------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| 0  (`chain_hash`)                          | `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000` | The hash of the genesis block of the mainnet Bitcoin blockchain.                            | 
+| 6  (`disable`)                             | empty                                                              |                                                                                             | 
+| 10 (`cltv_expiry_delta`)                   | 80                                                                 |                                                                                             | 
+| 12 (`htlc_minimum_msat`)                   | 1                                                                  |                                                                                             | 
+| 16 (`fee_base_msat`)                       | 1000                                                               |                                                                                             | 
+| 18 (`fee_proportional_millionths`)         | 1                                                                  |                                                                                             |
+| 20 (`inbound_fee_base_msat`)               | 0                                                                  | No inbound surcharge.                                                                       |
+| 22 (`inbound_fee_proportional_millionths`) | 0                                                                  | No inbound surcharge.                                                                       |
 
 #### Requirements
 
