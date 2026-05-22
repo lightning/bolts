@@ -768,9 +768,6 @@ The sender:
   `node_announcement_2` it has previously created. The `blockheight` should
   always be greater than or equal to funding block of the oldest channel that
   the node has advertised via `channel_announcement_2`.
-- If the node wishes to announce its willingness to accept incoming network
-  connections:
-    - SHOULD set at least one of types 7-10.
 - SHOULD set an address type (`ipv4_address`, `ipv6_address`, `tor_v3_address`
   and/or `dns_hostname`) for each public network address that expects incoming
   connections.
@@ -804,7 +801,7 @@ The receiver:
     - Unless paying a [BOLT #11][bolt-11] invoice which does not have the same
       bit(s) set, MUST NOT attempt to send payments _to_ the node.
     - MUST NOT route a payment _through_ the node.
-- if `port` is equal to 0 for any `ipv6_addr` OR `ipv4_addr` OR `hostname`:
+- if `port` is equal to 0 for any `ipv6_addr` OR `ipv4_addr` OR `dns_hostname`:
     - SHOULD ignore that address.
 - if `node_id` is NOT previously known from a `channel_announcement_2`
   message, OR if `blockheight` is NOT greater than the
