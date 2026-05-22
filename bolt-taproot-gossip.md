@@ -22,6 +22,8 @@ and that use a pure TLV based structure.
         * [`option_gossip_announce_private`](#option_gossip_announce_private)
     * [`open_channel` Extensions](#open_channel-extensions)
     * [`channel_ready` Extensions](#channel_ready-extensions)
+    * [`splice_locked` Extensions](#splice_locked-extensions)
+    * [`channel_reestablish` Extensions](#channel_reestablish-extensions)
     * [`announcement_signatures` Extra requirements](#announcement_signatures-extra-requirements)
     * [The `announcement_signatures_2` Message](#the-announcement_signatures_2-message)
     * [The `channel_announcement_2` Message](#the-channel_announcement_2-message)
@@ -351,9 +353,6 @@ The sender:
       must be set to the public nonce to be used for signing with the node's
       node ID key and the `announcement_bitcoin_pubnonce` must be set to the
       public nonce to be used for signing with the node's bitcoin key.
-    - Upon reconnection, if a fully signed `channel_announcement_2` has not yet
-      been constructed:
-        - SHOULD re-send `channel_ready` with the nonce fields set.
     - Once a `channel_ready` message with the nonce fields has been both sent
       and received:
         - MUST proceed with constructing and sending the
@@ -365,9 +364,6 @@ The sender:
     - If the nonce fields are set, then the node MUST proceed with
       constructing and sending the `announcement_signatures_2` message
       in preparation for advertising the channel using the V2 protocol.
-        - Upon reconnection, if a fully signed `channel_announcement_2` has not
-          yet been constructed:
-        - SHOULD re-send `channel_ready` with the nonce fields set.
     - Once a `channel_ready` message with the nonce fields has been both sent
       and received:
         - MUST proceed with constructing and sending the
@@ -406,6 +402,102 @@ It cannot be a requirement that a node include the nonce fields in the
 `channel_ready` multiple times throughout the life of the channel to update it's
 preferred channel alias, and it does not make sense to require that the nonce
 fields be populated once the channel has already been announced.
+
+Reconnection-time retransmission of `announcement_signatures_2` is handled by
+the `channel_reestablish` extensions defined below; `channel_ready` is not
+re-sent for that purpose.
+
+### `splice_locked` Extensions
+
+After a splice has reached acceptable depth, the channel needs to be
+re-announced under the new funding transaction. This is done with the same
+`announcement_signatures_2` flow used at initial channel open, but parameterised
+by the splice funding transaction rather than the original one. To exchange
+fresh MuSig2 nonces for the new signing session, the same two TLVs defined for
+`channel_ready` are also attached to `splice_locked`:
+
+1. `tlv_stream`: `splice_locked_tlvs`
+2. types:
+    1. type: 0 (`announcement_node_pubnonce`)
+    2. data:
+        * [`66*byte`:`public_nonce`]
+    1. type: 2 (`announcement_bitcoin_pubnonce`)
+    2. data:
+        * [`66*byte`:`public_nonce`]
+
+#### Requirements
+
+The requirements mirror those for the `channel_ready` extensions: if the
+channel was announced (or is to be announced via `option_gossip_announce_private`)
+and `option_gossip_v2` (or `option_gossip_v2_p2wsh` for P2WSH channels) was
+negotiated, the sender MUST include both nonce fields, and the recipient MUST
+either accept both fields or ignore the message.
+
+Both nonces are bound to the `splice_txid` carried by the same `splice_locked`
+message. Once each side has sent and received a `splice_locked` carrying the
+nonces, both MUST proceed with constructing and sending an
+`announcement_signatures_2` message for the new funding transaction.
+
+### `channel_reestablish` Extensions
+
+On reconnection a node may need its peer to retransmit an
+`announcement_signatures_2` message it has not yet received for the current
+funding transaction (initial open or any splice). This extension reuses the
+`my_current_funding_locked` retransmission machinery defined in
+[BOLT #2 §Message Retransmission](02-peer-protocol.md#message-retransmission):
+
+- A new bit is allocated in the `my_current_funding_locked.retransmit_flags`
+  bitfield:
+
+  | Bit Position | Name                       |
+  | ------------ | -------------------------- |
+  | 1            | `announcement_signatures_2`|
+
+  A node sets this bit to ask its peer to retransmit
+  `announcement_signatures_2` for the funding transaction identified by
+  `my_current_funding_locked_txid`.
+
+- A new TLV is added to `channel_reestablish_tlvs` carrying the fresh MuSig2
+  nonces for that signing session:
+
+  1. type: 7 (`announcement_nonces`)
+  2. data:
+      * [`66*byte`:`announcement_node_pubnonce`]
+      * [`66*byte`:`announcement_bitcoin_pubnonce`]
+
+  The nonces apply to the funding transaction identified by
+  `my_current_funding_locked_txid` in the same `channel_reestablish`.
+
+#### Requirements
+
+A node:
+
+- If it sets bit 1 of `my_current_funding_locked.retransmit_flags`:
+    - MUST also include the `announcement_nonces` TLV in the same
+      `channel_reestablish` message, with freshly generated nonces.
+    - MUST NOT reuse nonces from a prior signing session, since MuSig2 nonce
+      reuse is catastrophic.
+- Upon receiving a `channel_reestablish` whose
+  `my_current_funding_locked.retransmit_flags` has bit 1 set:
+    - If `announcement_nonces` is not present:
+        - MUST ignore the bit-1 request.
+        - SHOULD send a `warning`.
+    - Otherwise, once it has also sent its own `channel_reestablish` carrying
+      its own `announcement_nonces` TLV:
+        - MUST retransmit `announcement_signatures_2` for the funding
+          transaction identified by `my_current_funding_locked_txid`, signing
+          the new MuSig2 session under the peer's nonces and its own nonces.
+
+#### Rationale
+
+Re-sending `channel_ready` to retrigger announcement signing was incompatible
+with splicing: `channel_ready` corresponds to the original funding transaction
+only, and overloading it to mean "redo announcement signing for the latest
+funding" conflates the two. `channel_reestablish` already carries the
+"please retransmit the announcement for this funding tx" primitive — extending
+it to also carry the matching MuSig2 nonces is the natural place to put the
+new behaviour, and the same wiring works for initial channel open and every
+subsequent splice.
 
 ### `announcement_signatures` Extra requirements
 
@@ -446,6 +538,9 @@ This message can be sent in two cases:
     2. data:
         * [`partial_signature`:`node_partial_signature`]
         * [`partial_signature`:`bitcoin_partial_signature`]
+    1. type: 6 (`funding_txid`)
+    2. data:
+        * [`sha256`:`funding_txid`]
 
 
 #### Requirements:
@@ -463,6 +558,10 @@ A node:
     - MUST send the `announcement_signatures_2` message once a `channel_ready`
       message containing the announcement nonces has been sent and received AND
       the funding transaction has at least six confirmations.
+    - MUST set `funding_txid` to the txid of the funding transaction for which
+      these partial signatures are being produced. For initial channel open
+      this is the original funding transaction; for a spliced channel this is
+      the txid of the splice transaction last confirmed via `splice_locked`.
     - MUST set `node_partial_signature` and `bitcoin_partial_signature` to the
       two standard MuSig2 partial signatures it produced (one with its
       `node_ID` key, one with its `bitcoin_key`), as described in
@@ -471,31 +570,44 @@ A node:
       m)` where `m` is the canonical signed-range TLV byte sequence of the
       `channel_announcement_2` message (see
       [`MsgHash`](#signature-message-construction)).
+- if a `splice_locked` carrying both announcement nonce fields has been sent
+  and received for a new splice transaction:
+    - MUST send a fresh `announcement_signatures_2` for the new
+      `funding_txid` (the splice transaction's txid).
 - otherwise if the `option_gossip_announce_private` bit has been negotiated:
     - MAY send the `announcement_signatures_2` message at any point during the
       channel's lifetime with the same constraints as defined above.
 - otherwise:
     - MUST NOT send the `announcement_signatures_2` message.
-- upon reconnection (once the above timing requirements have been met):
-    - MUST re-send a `channel_ready` message with the nonce fields set and await
-      a reply.
-    - Then, MUST respond to the first `announcement_signatures_2` message with
-      its own `announcement_signatures_2` message.
-    - if it has NOT received an `announcement_signatures_2` message:
-        - SHOULD retransmit the `channel_ready` and `announcement_signatures_2`
-          messages.
+- upon reconnection, if `announcement_signatures_2` for the current funding
+  transaction has not yet been both sent and received:
+    - MUST set bit 1 of `my_current_funding_locked.retransmit_flags` in its
+      `channel_reestablish` message, with `my_current_funding_locked_txid`
+      equal to the current `funding_txid`, AND include the `announcement_nonces`
+      TLV with freshly-generated nonces (see
+      [`channel_reestablish` Extensions](#channel_reestablish-extensions)).
+    - MUST NOT re-send `channel_ready` (nor `splice_locked`) for the purpose
+      of restarting the announcement-signing flow; the
+      `channel_reestablish` flow above replaces it.
 
 A recipient node:
-- if the `short_channel_id` is NOT correct:
+- if `funding_txid` does NOT match any funding transaction it has
+  established with the sender (initial open or any subsequent splice):
+    - SHOULD send a `warning` and close the connection, or send an
+      `error` and fail the channel.
+- if `short_channel_id` is NOT the canonical scid of the funding output
+  named by `funding_txid`:
     - SHOULD send a `warning` and close the connection, or send an
       `error` and fail the channel.
 - if either `node_partial_signature` or `bitcoin_partial_signature` is NOT
   valid as per [Partial Signature Verification](#partial-signature-verification):
     - MAY send a `warning` and close the connection, or send an
       `error` and fail the channel.
-- if it has sent AND received a valid `announcement_signatures_2` message:
+- if it has sent AND received a valid `announcement_signatures_2` message
+  for the same `funding_txid`:
     - SHOULD queue the `channel_announcement_2` message for its peers.
-- if it has not sent `channel_ready`:
+- if it has not exchanged the announcement nonces for `funding_txid` (via
+  `channel_ready`, `splice_locked` or `channel_reestablish.announcement_nonces`):
     - MAY send a `warning` and close the connection, or send an `error` and fail
       the channel.
 
