@@ -442,8 +442,10 @@ This message can be sent in two cases:
     1. type: 2 (`short_channel_id`)
     2. data:
         * [`short_channel_id`:`short_channel_id`]
-    1. type: 4 (`partial_signature`)
-        * [`partial_signature`:`partial_signature`]
+    1. type: 4 (`partial_signatures`)
+    2. data:
+        * [`partial_signature`:`node_partial_signature`]
+        * [`partial_signature`:`bitcoin_partial_signature`]
 
 
 #### Requirements:
@@ -461,12 +463,14 @@ A node:
     - MUST send the `announcement_signatures_2` message once a `channel_ready`
       message containing the announcement nonces has been sent and received AND
       the funding transaction has at least six confirmations.
-    - MUST set the `partial_signature` field to the 32-byte `partial_sig` value
-      of the partial signature calculated as described in [Partial Signature
-      Calculation](#partial-signature-calculation). The message to be signed is
-      `MsgHash("channel_announcement", "signature", m)` where `m` is the
-      serialisation of the `channel_announcement_2` message tlv stream (see the
-      [`MsgHash`](#signature-message-construction) definition).
+    - MUST set `node_partial_signature` and `bitcoin_partial_signature` to the
+      two standard MuSig2 partial signatures it produced (one with its
+      `node_ID` key, one with its `bitcoin_key`), as described in
+      [Partial Signature Calculation](#partial-signature-calculation). The
+      message signed by both is `MsgHash("channel_announcement_2", "signature",
+      m)` where `m` is the canonical signed-range TLV byte sequence of the
+      `channel_announcement_2` message (see
+      [`MsgHash`](#signature-message-construction)).
 - otherwise if the `option_gossip_announce_private` bit has been negotiated:
     - MAY send the `announcement_signatures_2` message at any point during the
       channel's lifetime with the same constraints as defined above.
@@ -485,8 +489,8 @@ A recipient node:
 - if the `short_channel_id` is NOT correct:
     - SHOULD send a `warning` and close the connection, or send an
       `error` and fail the channel.
-- if the `partial_signature` is NOT valid as
-  per [Partial Signature Verification](#partial-signature-verification):
+- if either `node_partial_signature` or `bitcoin_partial_signature` is NOT
+  valid as per [Partial Signature Verification](#partial-signature-verification):
     - MAY send a `warning` and close the connection, or send an
       `error` and fail the channel.
 - if it has sent AND received a valid `announcement_signatures_2` message:
@@ -497,13 +501,14 @@ A recipient node:
 
 #### Rationale
 
-The message contains the necessary partial signature, by the sender, that the
-recipient will be able to combine with their own partial signature to construct
-the signature to put in the `channel_announcement_2` message. Unlike the legacy
-`announcement_signatures` message, `announcement_signatures_2` only has one
-signature field. This field is a MuSig2 partial signature which is the
-aggregation of the two signatures that the sender would have created (one for
-`bitcoin_key_x` and another for `node_ID_x`).
+The message contains the two MuSig2 partial signatures the sender produced —
+one with its `node_ID` key and one with its `bitcoin_key` — bundled together
+in a single 64-byte TLV. The recipient verifies each partial signature with
+the standard MuSig2 `PartialSigVerify` routine, then once both peers'
+contributions are available the four partial signatures can be aggregated
+into the final BIP340 signature placed in `channel_announcement_2`. Carrying
+the two partial sigs raw — rather than pre-aggregated into one 32-byte value —
+keeps the verifier on stock MuSig2 primitives.
 
 ### The `channel_announcement_2` Message
 
@@ -1132,86 +1137,70 @@ of the `Session Context`, which we will call `session_ctx`, can be defined:
 - `v`: 0
 - `m`: `msg`
 
-Both peers, `node_1` and `node_2` will need to construct two partial signatures.
-One for their `bitcoin_key` and one for their `node_ID` and aggregate those.
+Both peers, `node_1` and `node_2`, each produce two standard MuSig2 partial
+signatures and send both in their `announcement_signatures_2` message: one
+with their `node_ID` private key and one with their `bitcoin_key` private key.
 
 - `node_1`:
     - calculates a partial signature for `node_ID_1` as follows:
        ```
-       partial_sig_node_1 = MuSig2.Sign(announcement_node_secnonce_1, node_ID_priv_key_1, session_ctx) 
+       node_partial_signature_1 = MuSig2.Sign(announcement_node_secnonce_1, node_ID_priv_key_1, session_ctx)
        ```
-    - calculates a partial signature for `bitcoin_ID_1` as follows:
+    - calculates a partial signature for `bitcoin_key_1` as follows:
        ```
-       partial_sig_bitcoin_1 = MuSig2.Sign(announcement_bitcoin_secnonce_1, bitcoin_priv_key_1, session_ctx) 
+       bitcoin_partial_signature_1 = MuSig2.Sign(announcement_bitcoin_secnonce_1, bitcoin_priv_key_1, session_ctx)
        ```
-    - calculates `partial_sig_1` as follows:
-       ```
-       partial_sig_1 =  MuSig2.PartialSigAgg(partial_sig_node_1, partial_sig_bitcoin_1, session_ctx)
-       ```
+    - sends both in the `partial_signatures` TLV of `announcement_signatures_2`.
 
 - `node_2`:
     - calculates a partial signature for `node_ID_2` as follows:
        ```
-       partial_sig_node_2 = MuSig2.Sign(announcement_node_secnonce_2, node_ID_priv_key_2, session_ctx) 
+       node_partial_signature_2 = MuSig2.Sign(announcement_node_secnonce_2, node_ID_priv_key_2, session_ctx)
        ```
-    - calculates a partial signature for `bitcoin_ID_2` as follows:
+    - calculates a partial signature for `bitcoin_key_2` as follows:
        ```
-       partial_sig_bitcoin_2 = MuSig2.Sign(announcement_bitcoin_secnonce_2, bitcoin_priv_key_2, session_ctx) 
+       bitcoin_partial_signature_2 = MuSig2.Sign(announcement_bitcoin_secnonce_2, bitcoin_priv_key_2, session_ctx)
        ```
-    - calculates `partial_sig_2` as follows:
-       ```
-       partial_sig_2 =  MuSig2.PartialSigAgg(partial_sig_node_2, partial_sig_bitcoin_2, session_ctx)
-       ```     
+    - sends both in the `partial_signatures` TLV of `announcement_signatures_2`.
 
-Note that since there are no tweaks involved in this MuSig2 signing flow,
-signature aggregation is simply the addition of the two signatures:
+Once both peers have exchanged `announcement_signatures_2`, each node has all
+four partial signatures and can produce the final BIP340 signature placed in
+`channel_announcement_2` using the standard MuSig2 aggregation:
 
 ```
-    partial_sig = (partial_sig_node + partial_sig_bitcoin) % n
+final_sig = MuSig2.PartialSigAgg(
+    [node_partial_signature_1, bitcoin_partial_signature_1,
+     node_partial_signature_2, bitcoin_partial_signature_2],
+    session_ctx)
 ```
-
-Where `n` is the [secp256k1][secp256k1] curve order.
 
 ## Partial Signature Verification
 
-Since the partial signature put in `announcement_signatures_2` is the addition
-of two of four signatures required to make up the final MuSig2 signature, the
-verification of the partial signature is slightly different from what is
-specified in the MuSig2 spec. The slightly adjusted algorithm will be defined
-here. The notation used is the same as defined in the [MuSig2][musig-notation]
-spec.
+Each `announcement_signatures_2` message carries two standard MuSig2 partial
+signatures from the peer. Both are verified using the unmodified
+`PartialSigVerify` routine from the [MuSig2][bip-musig2] spec.
 
-The inputs are:
+The inputs available to the verifier are:
 
-- `partial_sig` sent by the peer in the `announcement_signatures_2` message.
-- The `node_ID` and `bitcoin_key` of the peer.
-- The `announcement_node_pubnonce` and `announcement_bitcoin_pubnonce` sent by
-  the peer in the `channel_ready` message.
-- The `session_ctx` as shown
-  in [Partial Signature Calculation](#partial-signature-calculation).
+- `node_partial_signature` and `bitcoin_partial_signature` from the
+  `partial_signatures` TLV of the received `announcement_signatures_2`.
+- The peer's `node_ID` and `bitcoin_key`.
+- The peer's `announcement_node_pubnonce` and `announcement_bitcoin_pubnonce`
+  (received earlier in `channel_ready`).
+- The `session_ctx` defined in
+  [Partial Signature Calculation](#partial-signature-calculation).
 
-Verification steps:
+Verification:
 
-Note that the `GetSessionValues` and `GetSessionKeyAggCoeff` definitions can be
-found in the [MuSig2][musig-session-ctx] spec.
+- Run `MuSig2.PartialSigVerify(node_partial_signature, [announcement_node_pubnonce], [node_ID], [], session_ctx)`.
+  Fail if it returns false.
+- Run `MuSig2.PartialSigVerify(bitcoin_partial_signature, [announcement_bitcoin_pubnonce], [bitcoin_key], [], session_ctx)`.
+  Fail if it returns false.
 
-- Let `(Q, _, _, b, R, e) = GetSessionValues(session_ctx)`
-- Let `s = int(psig); fail if s >= n`
-- Let `R_n1 = cpoint(announcement_node_pubnonce[0:33])`
-- Let `R_n2 = cpoint(announcement_node_pubnonce[33:66])`
-- Let `R_b1 = cpoint(announcement_bitcoin_pubnonce[0:33])`
-- Let `R_b2 = cpoint(announcement_bitcoin_pubnonce[33:66])`
-- Let `R_1 = R_n1 + R_b1`
-- Let `R_2 = b*(R_n2 + R_b2)`
-- Let `R_e' = R_1 + R_2`
-- Let `R_e = R_e'` if `has_even_y(R)`, otherwise let `R_e = -R_e'`
-- Let `P_n = node_ID`
-- Let `P_b = bitcoin_key`
-- Let `a_n = GetSessionKeyAggCoeff(session_ctx, P_n)`
-- Let `a_b = GetSessionKeyAggCoeff(session_ctx, P_b)`
-- Let `P = a_n*P_n + a_b*P_b`
-- Let `g = 1` if `has_even_y(Q)`, otherwise `let g = -1 mod n`
-- Fail if `s*G != R_e + e*g*P`
+(The exact `PartialSigVerify` argument list depends on the MuSig2 library
+in use; the point is that each partial signature is checked individually
+against the signer's pubkey, the signer's pubnonce, and the shared
+`session_ctx` — no custom verifier is required.)
 
 ## Signature Message Construction
 
