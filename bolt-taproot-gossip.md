@@ -543,7 +543,7 @@ announced its fee levels and expiry, using `channel_update_2`.
         * [`point`:`bitcoin_key_2`]
     1. type: 16 (`merkle_root_hash`)
     2. data:
-        * [`32*byte`:`hash`]
+        * [`sha256`:`hash`]
     1. type: 18 (`outpoint`)
     2. data:
         * [`sha256`:`txid`]
