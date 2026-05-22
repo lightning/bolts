@@ -178,15 +178,33 @@ A block height based timestamp results in more natural rate limiting for gossip
 messages: nodes are allowed to send at most one announcement and update per
 block. To allow for bursts, nodes are encouraged not to use the latest block
 height for their latest announcements/updates but rather to backdate and use
-older block heights that they have not used in an announcement/update. There of
-course needs to be a limit on the start block height that the node can use:
-for `channel_update_2` messages, the lowest allowed `blockheight` is the block
-height in which the channel funding transaction was mined and all updates after
-the initial one must have increasing block heights. Nodes are then responsible
-for building up their own timestamp buffer: if they want to be able to send
-multiple `channel_update_2` messages per block, then they will need to ensure
-that there are blocks during which they do not broadcast any updates. This
-provides an incentive for nodes not to spam the network with too many updates.
+older block heights that they have not used in an announcement/update.
+Backdating only applies to messages whose `block_height` is chosen by the
+sender, namely `channel_update_2` and `node_announcement_2`;
+`channel_announcement_2` is tied to its on-chain funding transaction and has
+no sender-chosen timestamp.
+
+The backdate range is bounded on both sides. The upper bound is the current
+best block height. The lower bound is the larger of:
+
+- a per-message anchor: the funding block of the channel for
+  `channel_update_2`, or the funding block of the oldest channel the node has
+  advertised via `channel_announcement_2` for `node_announcement_2`; and
+- `current_block_height − max_backdate_blocks`.
+
+Without the second bound, a node whose anchor is far in the past (e.g. a
+channel funded months ago) could legally emit one update per intervening
+block, defeating the rate-limit story. With it, the usable backdate range
+collapses to the window peers will actually accept and relay anyway.
+
+`max_backdate_blocks` is defined as `2016` blocks (approximately
+two weeks at the Bitcoin block interval of ten minutes), chosen to match the
+staleness window used for legacy gossip in [BOLT #7][bolt-7]. Within those
+bounds nodes are responsible for building up their own timestamp buffer: if
+they want to be able to send multiple messages per block, they need to
+ensure that there are blocks during which they do not broadcast any
+updates. This provides an incentive for nodes not to spam the network with
+too many updates.
 
 ### Simplifies Channel Announcement Queries
 
@@ -924,9 +942,13 @@ The sender:
 - If the node sets the `alias`:
     - MUST use 32 bytes or less.
 - MUST set `block_height` to be greater than that of any previous
-  `node_announcement_2` it has previously created. The `blockheight` should
-  always be greater than or equal to funding block of the oldest channel that
-  the node has advertised via `channel_announcement_2`.
+  `node_announcement_2` it has previously created.
+- The `block_height` SHOULD be greater than or equal to the funding block of
+  the oldest channel that the node has advertised via
+  `channel_announcement_2`.
+- MUST NOT set `block_height` less than
+  `current_block_height − max_backdate_blocks` (see
+  [Rate Limiting](#rate-limiting)).
 - SHOULD set an address type (`ipv4_address`, `ipv6_address`, `tor_v3_address`
   and/or `dns_hostname`) for each public network address that expects incoming
   connections.
@@ -965,6 +987,10 @@ The receiver:
 - if `node_id` is NOT previously known from a `channel_announcement_2`
   message, OR if `blockheight` is NOT greater than the
   last-received `node_announcement_2` from this `node_id`:
+    - SHOULD ignore the message.
+- if `block_height` is less than
+  `current_block_height − max_backdate_blocks` (see
+  [Rate Limiting](#rate-limiting)):
     - SHOULD ignore the message.
 - otherwise:
     - if `block_height` is greater than the last-received `node_announcement_2`
@@ -1067,8 +1093,11 @@ If the `permanant` bit is set, then the channel can be considered closed.
 - `block_height` is the timestamp associated with the message. A node may not
   send two `channel_update` messages with the same `block_height`. The
   `block_height` must also be greater than or equal to the block height
-  indicated by the `short_channel_id` used in the `channel_announcement_2` and
-  must not be greater than current best block height.
+  indicated by the `short_channel_id` used in the `channel_announcement_2`,
+  must not be less than
+  `current_block_height − max_backdate_blocks` (see
+  [Rate Limiting](#rate-limiting)), and must not be greater than the current
+  best block height.
 - The `disable` bit field can be used to advertise to the network that a channel
   is disabled and that it should not be used for routing. The individual
   `disable_flags` bits can be used to communicate more fine-grained information.
@@ -1186,6 +1215,10 @@ The receiving node:
   `signing_node_id` over `MsgHash("channel_update_2", "signature", m)`):
     - SHOULD send a `warning` and close the connection.
     - MUST ignore the message.
+- if `block_height` is less than
+  `current_block_height − max_backdate_blocks` (see
+  [Rate Limiting](#rate-limiting)):
+    - SHOULD ignore the message.
 
 ### Query Messages
 
