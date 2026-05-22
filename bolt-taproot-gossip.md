@@ -989,6 +989,8 @@ The origin node:
   any channel advertised via `channel_announcement_2`.
 - MUST NOT send a created `channel_update_2` before `channel_ready` has been
   received.
+- MUST encode `short_channel_id` in the `sciddir` form of
+  [`sciddir_or_pubkey`][bolt-1-types] (the `pubkey` form MUST NOT be used).
 - MUST set the `short_channel_id` direction byte to `0` if it is `node_id_1`
   in the corresponding `channel_announcement_2`, or to `1` if it is `node_id_2`.
 - For an unannounced channel (i.e. one where `announcement_signatures_2` has
