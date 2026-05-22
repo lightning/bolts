@@ -232,7 +232,7 @@ the following convenient types are defined:
 ### Pure TLV messages
 
 All the messages defined in this document are pure TLV streams. The signed TLV
-range is defined as the inclusive ranges: 0 to 159 and 1000000000 to 2999999999.
+range is defined as the inclusive ranges: 0 to 239 and 1000000000 to 2999999999.
 
 When a signature TLV in a message commits to "the message" via
 `MsgHash(message_name, field_name, m)` (see
@@ -242,7 +242,7 @@ falls within the signed range, in strictly ascending `type` order**. Each
 record is serialised as `<bigsize type><bigsize length><value>` exactly as it
 appears on the wire. `m` does **not** include the message-type prefix, any
 outer length prefix, or any TLV records whose `type` is outside the signed
-range (most notably the signature TLV itself, which lives at type 160). TLVs
+range (most notably the signature TLV itself, which lives at type 240). TLVs
 that are absent from the wire message contribute nothing to `m`, even if a
 default value is defined for them.
 
@@ -551,7 +551,7 @@ announced its fee levels and expiry, using `channel_update_2`.
     2. data:
         * [`sha256`:`txid`]
         * [`u16`:`index`]
-    1. type: 160 (`signature`)
+    1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
 
@@ -693,7 +693,7 @@ by multiple keys since MuSig2 can be used to construct the single signature.
     1. type: 11 (`dns_hostnames`)
     2. data:
         * [`...*dns_hostname`:`dns_hostnames`]
-    1. type: 160 (`signature`)
+    1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
 
@@ -781,7 +781,7 @@ The sender:
 
 The receiver:
 
-- If type 0 (`features`), 2 (`block_height`), 4 (`node_id`) or 160 (`signature`) is missing:
+- If type 0 (`features`), 2 (`block_height`), 4 (`node_id`) or 240 (`signature`) is missing:
     - SHOULD send a `warning`.
     - MAY close the connection.
     - MUST ignore the message.
@@ -871,7 +871,7 @@ multiple times, in order to change fees.
     1. type: 18 (`fee_proportional_millionths`)
     2. data:
         * [`tu32`:`fee_proportional_millionths`]
-    1. type: 160 (`signature`)
+    1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
 
