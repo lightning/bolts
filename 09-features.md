@@ -28,12 +28,14 @@ The Context column decodes as follows:
 * `C-`: presented in the `channel_announcement` message, but always odd (optional).
 * `C+`: presented in the `channel_announcement` message, but always even (required).
 * `9`: presented in [BOLT 11](11-payment-encoding.md) invoices.
+* `2`: presented in [BOLT 12](12-offer-encoding.md) offers.
 * `B`: presented in the `allowed_features` field of a blinded path.
 * `T`: used in the `channel_type` field [when opening channels](02-peer-protocol.md#the-open_channel-message).
 
 | Bits  | Name                              | Description                                               | Context  | Dependencies                | Link                                                                  |
 |-------|-----------------------------------|-----------------------------------------------------------|----------|-----------------------------|-----------------------------------------------------------------------|
 | 0/1   | `option_data_loss_protect`        | ASSUMED                                                   |          |                             |                                                                       |
+| 2/3   | `option_bolt11_request`           | Invoice request for a bolt11 invoice                      | 2        |                             | [BOLT #12][bolt12-bolt11-req]                                         |
 | 4/5   | `option_upfront_shutdown_script`  | Commits to a shutdown scriptpubkey when opening channel   | IN       |                             | [BOLT #2][bolt02-open]                                                |
 | 6/7   | `gossip_queries`                  | Peer has useful gossip to share                           |          |                             |                                                                       |
 | 8/9   | `var_onion_optin`                 | ASSUMED                                                   |          |                             |                                                                       |
@@ -113,4 +115,5 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 [bolt04-mpp]: 04-onion-routing.md#basic-multi-part-payments
 [bolt04-route-blinding]: 04-onion-routing.md#route-blinding
 [bolt04-attributable-errors]: 04-onion-routing.md
+[bolt12-bolt11-req]: 12-offer-encoding.md#requrements-for-invoice-requests
 [ml-sighash-single-harmful]: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-September/002796.html
