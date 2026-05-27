@@ -1526,7 +1526,7 @@ An _intermediate hop_ MUST NOT, but the _final node_:
   - if the payment hash is unknown:
     - MUST fail the HTLC.
     - MUST return an `incorrect_or_unknown_payment_details` error.
-  - if the amount paid is more than twice the amount expected:
+  - if the amount paid exceeds the expected about by more than 5000msat or 1% (whatever is greater):
     - SHOULD fail the HTLC.
     - SHOULD return an `incorrect_or_unknown_payment_details` error.
       - Note: this allows the origin node to reduce information leakage by
