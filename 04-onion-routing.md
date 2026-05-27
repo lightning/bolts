@@ -395,7 +395,8 @@ The final node:
       all HTLCs in the set.
     - if the total `amt_to_forward` of this HTLC set is equal to or greater
       than `total_msat`:
-      - SHOULD fulfill all HTLCs in the HTLC set
+      - SHOULD fulfill the minimal subset of those HTLCs in the HTLC set which are required for payment
+      - SHOULD reject other "unnecessary" HTLCs in the HTLC set.
     - otherwise, if the total `amt_to_forward` of this HTLC set is less than
       `total_msat`:
       - MUST NOT fulfill any HTLCs in the HTLC set
@@ -435,6 +436,13 @@ An implementation may choose not to fulfill an HTLC set which
 otherwise meets the amount criterion (eg. some other failure, or
 invoice timeout), however if it were to fulfill only some of them,
 intermediary nodes could simply claim the remaining ones.
+
+There are cases where the sender attempts payments for the same invoice from multiple wallets
+(usually because one part of the first payment is stuck).  For example, a wallet could send
+50% of the payment in one part which arrives at the destination, and another 50% which does
+not.  The sender tries another wallet, which pays 100% of the payment.  In this case, the 50%
+HTLC should be rejected, as the 100% is sufficient.  This can be determined by ordering the
+HTLCs in the set in descending amount order, and iterating until the amount requirement is fulfilled.
 
 ## Route Blinding
 
