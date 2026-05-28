@@ -600,6 +600,9 @@ while still allowing signature validation.
     2. data:
         * [`tu32`:`period_offset`]
     1. type: 94 (`invreq_recurrence_cancel`)
+    1. type: 96 (`invreq_recurrence_prev_state`)
+    2. data:
+        * [`...*byte`:`state`]
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -647,6 +650,7 @@ The writer:
         - MUST use the same `invreq_payer_id` as the initial request.
         - MUST set `invreq_recurrence_counter` `counter` to one greater than the highest-paid invoice.
         - MAY set `invreq_recurrence_cancel`.
+        - MUST set or not set `invreq_recurrence_prev_state` as `invoice_recurrence_next_state` of the highest-paid invoice.
       - if `offer_recurrence_base` is present:
         - MUST include `invreq_recurrence_start`
         - MUST set `period_offset` to the period the sender wants for the initial request
@@ -731,6 +735,7 @@ The reader:
       - MUST reject the invoice request if the current time is after `offer_absolute_expiry`.
     - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
       - MUST reject the invoice request if there is no `invreq_recurrence_counter` field.
+      - SHOULD reject the invoice request if `invreq_recurrence_prev_state` is not identical to (or identically missing) the `invoice_recurrence_next_state` of the highest-paid invoice.
       - if `offer_recurrence_base` is present:
         - MUST reject the invoice request if there is no `invreq_recurrence_start` field.
         - MUST consider the period index for this request to be the `invreq_recurrence_start` field plus the `invreq_recurrence_counter` `counter` field.
@@ -740,7 +745,7 @@ The reader:
       - if `offer_recurrence_limit` is present:
         - MUST reject the invoice request if the period index is greater than `max_period_index`.
       - MUST calculate the period using the period index as detailed in [Period Calculation](#offer-period-calculation).
-      - MUST reject the invoice request if an invoice has prevously been paid for this offer, `offer_issuer_id`, `invreq_metadata` and `invreq_recurrence_counter`.
+      - SHOULD reject the invoice request if an invoice has prevously been paid for this offer, `offer_issuer_id`, `invreq_metadata` and `invreq_recurrence_counter`.
       - if `invreq_recurrence_counter` is zero (initial request):
         - MUST reject the invoice request if `invreq_recurrence_cancel` is present.
       - otherwise: (successive requests)
@@ -921,6 +926,9 @@ the `onion_message` `invoice` field.
     1. type: 177 (`invoice_recurrence_basetime`)
     2. data:
         * [`tu64`:`basetime`]
+    1. type: 178 (`invoice_recurrence_next_state`)
+    2. data:
+        * [`...*byte`:`state`]
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -994,8 +1002,10 @@ A writer of an invoice:
     - MUST set `invoice_recurrence_basetime`.`basetime` to the start of period #0 as calculated by [Period Calculation](#offer-period-calculation).
     - if it sets `invoice_relative_expiry`:
       - MUST NOT set `invoice_relative_expiry`.`seconds_from_creation` more than the number of seconds after `invoice_created_at` that payment for this period will be accepted.
+    - MUST set or not set `invoice_recurrence_next_state` to the expected `invreq_recurrence_prev_state` for the next invoice request.
   - otherwise:
     - MUST not set `invoice_recurrence_basetime`.
+    - MUST not set `invoice_recurrence_next_state`.
   - MUST include `invoice_paths` containing one or more paths to the node.
     - MUST specify `invoice_paths` in order of most-preferred to least-preferred if it has a preference.
     - MUST include `invoice_blindedpay` with exactly one `blinded_payinfo` for each `blinded_path` in `paths`, in order.
@@ -1050,6 +1060,8 @@ A reader of an invoice:
     - MUST ignore any `fallback_address` for which `address` does not meet known requirements for the given `version`
   - if `offer_recurrence_optional` or `offer_recurrence_compulsory` are present:
     - MUST reject the invoice if `invoice_recurrence_basetime` is not present.
+    - if `invoice_recurrence_next_state` is present:
+      - MUST save the contents for the next `invreq_recurrence_prev_state`.
     - if `invreq_recurrence_counter` is 0:
       - if `offer_recurrence_base` is present:
         - MUST reject the invoice if `invoice_recurrence_basetime`.`basetime` is not equal to `offer_recurrence_base`.`basetime`
@@ -1127,6 +1139,8 @@ For example, consider an offer with weekly recurrence (`time_unit`=1, `period`=7
 Note that the implementation of a trusted exchange rate service is left to the reader.
 
 Users can cancel their recurring payment at any time, but as a courtesy to the offer issuer (to differentiate from technical or unintended missing payments), the following invoice_request *is sent*, but it explicitly indicates the intention to cancel (optionally using `invreq_payer_note`).  The delay in sending this until the next payment is due also discourages early cancellation of service.  Note that this cancellation message is best-effort, since no reply is received.
+
+Invoice issuers for recurring offers can use the `invoice_recurrence_next_state` field to avoid storing their own state, knowing that the payers will return it in the next `invreq_recurrence_prev_state`.
 
 # Invoice Errors
 
