@@ -1638,8 +1638,7 @@ The `onionmsg_tlv` itself is a TLV: an intermediate node expects an
 using the `path_key` which it is handed along with the onion message.
 
 Field numbers 64 and above are reserved for payloads for the final
-hop, though these are not explicitly refused by non-final hops (unless
-even, of course!).
+hop.
 
 1. `tlv_stream`: `onionmsg_tlv`
 2. types:
