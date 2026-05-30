@@ -1070,6 +1070,7 @@ The sender:
   - if it is not the node opening the channel:
     - SHOULD wait until the funding transaction has reached `minimum_depth` before
       sending this message.
+    - MUST wait for at least 100 blocks if the funding transaction is the coinbase transaction.
   - MUST set `second_per_commitment_point` to the per-commitment point to be used
   for commitment transaction #1, derived as specified in
   [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
