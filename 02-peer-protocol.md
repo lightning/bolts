@@ -1657,6 +1657,9 @@ to indicate that one of the splice transactions reached acceptable depth.
 
 1. `tlv_stream`: `splice_init_tlvs`
 2. types:
+   1. type: 1 (`channel_type`)
+   2. data:
+        * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
 
 `funding_contribution_satoshis` is the amount the sender is adding to their
@@ -1681,6 +1684,8 @@ The sending node:
       the amount that will be added to its current channel balance.
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`.
+  - If it wants to change the `channel_type` of the channel:
+    - MUST set `channel_type` to the `channel_type` it wants to use.
   - SHOULD use a different `funding_pubkey` than the one used for the
     previous funding transaction.
 
@@ -1702,6 +1707,8 @@ The receiving node:
       and fail the channel.
   - If the `funding_feerate_perkw` is unacceptable:
     - MUST respond with `tx_abort`.
+  - If it doesn't want to update the channel to the provided `channel_type`:
+    - MUST respond with `tx_abort`.
   - If `funding_contribution_satoshis` is negative and its absolute value is
     greater than the sending node's current channel balance:
     - MUST send a `warning` and close the connection or send an `error`
@@ -1722,6 +1729,9 @@ The receiving node:
 
 1. `tlv_stream`: `splice_ack_tlvs`
 2. types:
+   1. type: 1 (`channel_type`)
+   2. data:
+        * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
 
 #### Requirements
@@ -1733,11 +1743,19 @@ The sending node:
     to contribute to the splice.
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`.
+  - If `channel_type` was set in `splice_init`:
+    - MUST set `channel_type` to the `channel_type` from `splice_init`.
 
 The receiving node:
   - If it has sent `splice_init`:
     - If `funding_contribution_satoshis` is negative and its absolute value is
       greater than the sending node's current channel balance:
+      - MUST send a `warning` and close the connection or send an `error`
+        and fail the channel.
+    - If `channel_type` is set but `channel_type` was not set in `splice_init`:
+      - MUST send a `warning` and close the connection or send an `error`
+        and fail the channel.    
+    - If `channel_type` does not match the `channel_type` from `splice_init`:
       - MUST send a `warning` and close the connection or send an `error`
         and fail the channel.
     - If it accepts the splice attempt:
@@ -1845,6 +1863,8 @@ The sending node:
       to the main balance of their respective sender.
     - Uses the same feerate as the existing commitment transaction.
     - Uses the same `commitment_number` as the existing commitment transaction.
+    - If `channel_type` was set in `splice_init` and `splice_ack`:
+      - MUST use that `channel_type` instead of the previous `channel_type`.
   - MUST send signatures for pending HTLCs.
   - MUST remember the details of this splice transaction.
 
