@@ -1785,7 +1785,10 @@ The writer:
 
 The reader:
 
-- SHOULD accept onion messages from peers without an established channel.
+- if it advertises `option_onion_messages_only_channels`:
+  - MUST NOT accept onion messages from peers without an established channel.
+- otherwise:
+  - SHOULD accept onion messages from peers without an established channel.
 - MAY rate-limit messages by dropping them.
 - MUST decrypt `onion_message_packet` using an empty `associated_data`, and `path_key`, as described in [Onion Decryption](04-onion-routing.md#onion-decryption) to extract an `onionmsg_tlv`.
 - If decryption fails, the result is not a valid `onionmsg_tlv`, or it contains unknown even types:
@@ -1826,6 +1829,19 @@ The reader:
 
 
 #### Rationale
+
+Accepting onion messages from channelless peers is the baseline: a node that
+advertises `option_onion_messages` is expected to accept onion messages from
+any connected peer.  This is a SHOULD rather than a MUST because acceptance
+is always best effort: a node may still drop messages due to rate-limiting.
+
+A node that wants to restrict acceptance to channel peers (e.g. to limit the
+DoS surface of free bandwidth/CPU for any node that can connect) advertises
+`option_onion_messages_only_channels` as an explicit opt-out.  A restrictive
+node should not silently drop these messages while advertising only the
+baseline: it has to advertise the bit, which makes the bit a reliable signal.
+A sender can therefore detect it and simply not attempt a relay it knows will
+fail, rather than sending a message that is silently dropped.
 
 Care must be taken that replies are only accepted using the exact
 reply_path given, otherwise probing is possible.  That means checking
