@@ -216,6 +216,8 @@ The receiving node:
     - MUST ignore the message.
   - if there is an unknown even bit in the `features` field:
     - MUST NOT attempt to route messages through the channel.
+  - if the `features` field is NOT minimally-encoded:
+    - MUST ignore the message.
   - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using
     `bitcoin_key_1` and `bitcoin_key_2`, as specified in
     [BOLT #3](03-transactions.md#funding-transaction-output)) OR the output is
@@ -338,8 +340,8 @@ The origin node:
   graphs.
     - Note: the first byte of `rgb_color` is the red value, the second byte is the
     green value, and the last byte is the blue value.
-  - MUST set `alias` to a valid UTF-8 string, with any `alias` trailing-bytes
-  equal to 0.
+  - MUST set `alias` to a valid UTF-8 string without characters in the unicode
+    "Other" (C*) General Category, with any `alias` trailing-bytes equal to 0.
   - SHOULD fill `addresses` with an address descriptor for each public network
   address that expects incoming connections.
   - MUST set `addrlen` to the number of bytes in `addresses`.
@@ -349,7 +351,7 @@ The origin node:
   - MUST NOT create an address descriptor with `port` equal to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
-  - SHOULD set `flen` to the minimum length required to hold the `features`
+  - MUST set `flen` to the minimum length required to hold the `features`
   bits it sets.
   - SHOULD not announce a Tor v2 onion service.
   - MUST NOT announce more than one `type 5` DNS hostname.
@@ -370,6 +372,11 @@ any future fields appended to the end):
     - Unless paying a [BOLT #11](11-payment-encoding.md) invoice which does not
       have the same bit(s) set, MUST NOT attempt to send payments _to_ the node.
     - MUST NOT route a payment _through_ the node.
+  - if `features` is NOT minimally-encoded:
+    - MUST ignore the message.
+  - if `alias` is NOT a valid UTF-8 string without characters in the unicode
+  "Cc", "Cf", "Cs", or "Co" General Category:
+    - MUST ignore the message.
   - SHOULD ignore the first `address descriptor` that does NOT match the types
   defined above.
   - if `addrlen` is insufficient to hold the address descriptors of the

@@ -259,11 +259,10 @@ The following convenience types are also defined:
 * `sciddir_or_pubkey`: either 9 or 33 bytes referencing or identifying a node, respectively
     * if the first byte is 0 or 1, then an 8-byte `short_channel_id` follows for a total of 9 bytes
         * 0 for the first byte indicates this refers to `node_id_1` in the `channel_announcement` for `short_channel_id`
-        * 1 for the first byte indicates this refers to `node_id_2` in the `channel_announcement` for `short_channel_id`
-          (see [BOLT #7](07-routing-gossip.md#the-channel_announcement-message)
+        * 1 for the first byte indicates this refers to `node_id_2` in the `channel_announcement` for `short_channel_id` (see [BOLT #7](07-routing-gossip.md#the-channel_announcement-message))
     * if the first byte is 2 or 3, then the value is a 33-byte `point`
 * `bigsize`: a variable-length, unsigned integer similar to Bitcoin's CompactSize encoding, but big-endian.  Described in [BigSize](#appendix-a-bigsize-test-vectors).
-* `utf8`: a byte as part of a UTF-8 string.  A writer MUST ensure an array of these is a valid UTF-8 string, a reader MAY reject any messages containing an array of these which is not a valid UTF-8 string.
+* `utf8`: a byte as part of a UTF-8 string. A writer MUST ensure that an array of these is a valid UTF-8 string without characters in the unicode "Other" (C*) General Category. A reader MUST reject any messages containing an array of these which is not a valid UTF-8 string without characters in the unicode "Cc", "Cf", "Cs", or "Co" General Category and MAY reject if it contains characters in the Unicode "Cn" (unassigned) General Category.
 
 ## Setup Messages
 
