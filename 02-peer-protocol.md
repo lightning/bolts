@@ -2929,6 +2929,15 @@ To supply the preimage:
     2. data:
         * [`20*u32`:`htlc_hold_times`]
         * [`210*sha256[..4]`:`truncated_hmacs`]
+    1. type: 3 (`fulfillment_payload`)
+    2. data:
+        * [`...*byte`:`fulfillment_payload`]
+
+The `fulfillment_payload` field is an opaque encrypted blob for the benefit of
+the original HTLC initiator, as defined in
+[BOLT #4](04-onion-routing.md#successful-payments). It mirrors the `reason`
+field of `update_fail_htlc`: the final node originates it, and intermediate
+nodes obfuscate and relay it.
 
 For a timed out or route-failed HTLC:
 
@@ -2985,6 +2994,8 @@ A node:
   - When supporting `option_attribution_data`:
     - if `path_key` is not set in the incoming `update_add_htlc`:
       - MUST initialize `attribution_data` and include it in `update_fail_htlc` and `update_fulfill_htlc`. See [BOLT04](04-onion-routing.md).
+    - if a `fulfillment_payload` is present in the `update_fulfill_htlc` received from the downstream node:
+      - MUST obfuscate and relay it in the outgoing `update_fulfill_htlc`, including in a blinded path. See [BOLT04](04-onion-routing.md).
 
 A receiving node:
   - if the `id` does not correspond to an HTLC in its current commitment transaction:
