@@ -10,6 +10,7 @@
   * [Invoice Requests](#invoice-requests)
   * [Invoices](#invoices)
   * [Invoice Errors](#invoice-errors)
+  * [Payer Proofs](#payer-proofs)
 
 # Limitations of BOLT 11
 
@@ -126,7 +127,7 @@ Each form is signed using one or more *signature TLV elements*: TLV
 types 240 through 1000 (inclusive).  For these,
 the tag is "lightning" || `messagename` || `fieldname`, and `msg` is the
 Merkle-root; "lightning" is the literal 9-byte ASCII string,
-`messagename` is the name of the TLV stream being signed (i.e. "invoice_request" or "invoice") and the `fieldname` is the TLV field containing the
+`messagename` is the name of the TLV stream being signed (i.e. "invoice_request", "invoice" or "payer_proof") and the `fieldname` is the TLV field containing the
 signature (e.g. "signature").
 
 The formulation of the Merkle tree is similar to that proposed in
@@ -365,7 +366,7 @@ the onion message.
 
 The second case is publishing an invoice request without an offer,
 such as via QR code.  It contains neither `offer_issuer_id` nor `offer_paths`, setting the
-`invreq_payer_id` (and possibly `invreq_paths`) instead, as it in the one paying: the
+`invreq_payer_id` (and possibly `invreq_paths`) instead, as it is the one paying: the
 other offer fields are filled by the creator of the `invoice_request`,
 forming a kind of offer-to-send-money.
 
@@ -745,6 +746,7 @@ A writer of an invoice:
     - MUST include `invoice_blindedpay` with exactly one `blinded_payinfo` for each `blinded_path` in `paths`, in order.
     - MUST set `features` in each `blinded_payinfo` to match `encrypted_data_tlv`.`allowed_features` (or empty, if no `allowed_features`).
     - SHOULD ignore any payment which does not use one of the paths.
+  - MUST NOT set any non-signature TLV fields outside the inclusive ranges: 0 to 239 and 1000000000 to 3999999999.
 
 A reader of an invoice:
   - MUST reject the invoice if `invoice_amount` is not present.
@@ -841,7 +843,7 @@ confirm the invoice_node_id for this case.
 
 Raw invoices (not based on an invoice_request) are generally not
 supported, though an implementation is allowed to support them, and we
-may define the behavior in future.  The redundant requirement to check
+may define the behavior in the future.  The redundant requirement to check
 `invreq_chain` explicitly is a nod to this: if the invoice is
 a response to an invoice request, that field must have existed due
 to the invoice request requirements, and we also require it to be mirrored
@@ -890,11 +892,277 @@ Usually an error message is sufficient for diagnostics, however future
 enhancements may make automated handling useful.
 
 In particular, we could allow non-offer-response `invoice_request`s to
-omit `invreq_amount` in future and use offer fields to
+omit `invreq_amount` in the future and use offer fields to
 indicate alternate currencies.  ("I will send you 10c!").  Then the
 sender of the invoice would have to guess how many msat that was,
 and could use the `invoice_error` to indicate if the recipient disagreed
 with the conversion so the sender can send a new invoice.
+
+# Payer Proofs
+
+Payer proofs are proofs of invoice payment; the human-readable prefix for
+payer proofs is `lnp`.
+
+The payer proof is based on the `invoice` TLV stream, with the exception that
+`invreq_metadata` cannot be included.  Various other invoice fields may be
+omitted for privacy: numbers corresponding to (but not identical to) their
+position in the invoice are included, as well as the minimal hashes for
+missing merkle branches, to allow verification of the invoicing node's
+signature.
+
+To prove that this `payer_proof` was created by someone who has the secret key
+used to request the invoice in the first place, it includes a signature using
+the `invreq_payer_id`: this signs the proof fields and invoice fields.
+
+## TLV Fields for `payer_proof`
+
+1. `tlv_stream`: `payer_proof`
+2. types:
+    1. type: 2 (`offer_chains`)
+    2. data:
+        * [`...*chain_hash`:`chains`]
+    1. type: 4 (`offer_metadata`)
+    2. data:
+        * [`...*byte`:`data`]
+    1. type: 6 (`offer_currency`)
+    2. data:
+        * [`...*utf8`:`iso4217`]
+    1. type: 8 (`offer_amount`)
+    2. data:
+        * [`tu64`:`amount`]
+    1. type: 10 (`offer_description`)
+    2. data:
+        * [`...*utf8`:`description`]
+    1. type: 12 (`offer_features`)
+    2. data:
+        * [`...*byte`:`features`]
+    1. type: 14 (`offer_absolute_expiry`)
+    2. data:
+        * [`tu64`:`seconds_from_epoch`]
+    1. type: 16 (`offer_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
+    1. type: 18 (`offer_issuer`)
+    2. data:
+        * [`...*utf8`:`issuer`]
+    1. type: 20 (`offer_quantity_max`)
+    2. data:
+        * [`tu64`:`max`]
+    1. type: 22 (`offer_issuer_id`)
+    2. data:
+        * [`point`:`id`]
+    1. type: 80 (`invreq_chain`)
+    2. data:
+        * [`chain_hash`:`chain`]
+    1. type: 82 (`invreq_amount`)
+    2. data:
+        * [`tu64`:`msat`]
+    1. type: 84 (`invreq_features`)
+    2. data:
+        * [`...*byte`:`features`]
+    1. type: 86 (`invreq_quantity`)
+    2. data:
+        * [`tu64`:`quantity`]
+    1. type: 88 (`invreq_payer_id`)
+    2. data:
+        * [`point`:`key`]
+    1. type: 89 (`invreq_payer_note`)
+    2. data:
+        * [`...*utf8`:`note`]
+    1. type: 90 (`invreq_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
+    1. type: 91 (`invreq_bip_353_name`)
+    2. data:
+        * [`u8`:`name_len`]
+        * [`name_len*byte`:`name`]
+        * [`u8`:`domain_len`]
+        * [`domain_len*byte`:`domain`]
+    1. type: 160 (`invoice_paths`)
+    2. data:
+        * [`...*blinded_path`:`paths`]
+    1. type: 162 (`invoice_blindedpay`)
+    2. data:
+        * [`...*blinded_payinfo`:`payinfo`]
+    1. type: 164 (`invoice_created_at`)
+    2. data:
+        * [`tu64`:`timestamp`]
+    1. type: 166 (`invoice_relative_expiry`)
+    2. data:
+        * [`tu32`:`seconds_from_creation`]
+    1. type: 168 (`invoice_payment_hash`)
+    2. data:
+        * [`sha256`:`payment_hash`]
+    1. type: 170 (`invoice_amount`)
+    2. data:
+        * [`tu64`:`msat`]
+    1. type: 172 (`invoice_fallbacks`)
+    2. data:
+        * [`...*fallback_address`:`fallbacks`]
+    1. type: 174 (`invoice_features`)
+    2. data:
+        * [`...*byte`:`features`]
+    1. type: 176 (`invoice_node_id`)
+    2. data:
+        * [`point`:`node_id`]
+    1. type: 240 (`signature`)
+    2. data:
+        * [`bip340sig`:`sig`]
+    1. type: 241 (`proof_signature`)
+    2. data:
+        * [`bip340sig`:`sig`]
+    1. type: 1001 (`proof_preimage`)
+    2. data:
+        * [`32*byte`:`preimage`]
+    1. type: 1002 (`proof_omitted_tlvs`)
+    2. data:
+        * [`...*bigsize`:`missing`]
+    1. type: 1003 (`proof_missing_hashes`)
+    2. data:
+        * [`...*sha256`:`hashes`]
+    1. type: 1004 (`proof_leaf_hashes`)
+    2. data:
+        * [`...*sha256`:`hashes`]
+    1. type: 1005 (`proof_note`)
+    2. data:
+        * [`...*utf8`:`note`]
+
+## Requirements
+
+A writer of a payer_proof:
+- MUST NOT include `invreq_metadata`.
+- MUST include `invreq_payer_id`, `invoice_payment_hash`, `invoice_node_id`, `signature` and (if present) `invoice_features` from the invoice.
+- MUST include `proof_preimage` containing the `payment_preimage` returned from successful payment of this invoice.
+- For each non-signature TLV in the invoice in ascending-type order:
+  - If the field is to be included in the payer_proof:
+    - MUST copy it into the payer_proof.
+    - MUST append the nonce (H("LnNonce"||TLV0,type)) to `proof_leaf_hashes`.
+  - otherwise, if the TLV type is not zero:
+    - MUST append a *marker number* to `proof_omitted_tlvs`
+    - If the previous TLV type was included:
+      - The *marker number* is that previous tlv type, plus one.
+    - Otherwise, if `proof_omitted_tlvs` is empty:
+      - The *marker number* is 1.
+    - Otherwise, if the last `proof_omitted_tlvs` entry is 239:
+      - The *marker number* is 1000000000.
+    - Otherwise:
+      - The *marker number* is one greater than the last `proof_omitted_tlvs` entry.
+- If `proof_omitted_tlvs` is empty:
+  - MAY omit `proof_omitted_tlvs` from the payer_proof.
+- MAY include an annotation on the proof in `proof_note`.
+- MUST populate `proof_missing_hashes` with the merkle hash of the omitted branch of each internal node that has exactly one branch entirely omitted, in post-order depth-first smallest-to-largest TLV order.
+- MUST copy `signature` into the payer_proof.
+- MUST set `proof_signature` as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
+
+A reader of a payer_proof:
+- MUST reject the payer_proof if:
+  - `invreq_payer_id`, `invoice_payment_hash`, `invoice_node_id`, `signature`, `proof_preimage`, `proof_missing_hashes`, `proof_leaf_hashes` or `proof_signature` are missing.
+  - SHA256(`proof_preimage`) does not equal `invoice_payment_hash`.
+  - `proof_omitted_tlvs` are not in strict ascending order (no duplicates).
+  - `proof_omitted_tlvs` contains 0.
+  - `proof_omitted_tlvs` contains number outside both ranges 1 to 239 and 1000000000 to 3999999999.
+  - `proof_omitted_tlvs` contains the number of an included TLV field.
+  - `proof_omitted_tlvs` contains a number which is not:
+     - one greater than an included TLV number,
+     - one greater than the previous `proof_omitted_tlvs` entry, or 0 if it is the first number, or
+     - 1000000000, if the previous `proof_omitted_tlvs` entry is 239.
+  - `proof_leaf_hashes` does not contain exactly one hash for each field in ranges 1 to 239 and 1000000000 to 3999999999.
+  - There are not exactly enough `proof_missing_hashes` to reconstruct the merkle tree root using the `proof_omitted_tlvs` values (with `0` implied as the first omitted TLV).
+  - `signature` is not a valid signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation) (with `messagename` "invoice") of the reconstructed merkle-root of the invoice (i.e. without fields 1001 through 999999999 inclusive).
+  - `proof_signature` is not a valid signature using `invreq_payer_id` as described in [Signature Calculation](#signature-calculation).
+
+
+### Rationale
+
+Using the invoice as a base enshrines information about the payment including important offer and invoice_request fields.  However, many fields are not useful (such as payment paths), or may compromise privacy (such as invreq_payer_note containing delivery address information), so being able to elide them while still allowing signature validation is vital.
+
+We disallow including `invreq_metadata`: that is the hashing nonce, thus allowing brute-force of omitted fields.
+
+`invreq_payer_id` is the key whose signature we have to attach to the proof, and `invoice_node_id` and `signature` are needed to validate the original invoice.  `invoice_features` may indicate additional details in the future which would require additional fields to be in the proof.  Note that `invoice_amount` is not compulsory, though it would probably be very useful in most cases.
+
+The requirement to include minimal hashes (rather than one for every unknown leaf) minimizes the size, especially when many consecutive fields are omitted.  As the exact TLV types of omitted TLVs are unimportant (as long as ordering is maintained), we renumber them to be minimal, as further obfuscation of values.
+
+The proof fields are outside the established offer, invoice request and invoice TLV ranges, and above the signature range (240-1000), so they are committed to by the `proof_signature`.
+
+The optional `proof_note` field allows a challenge-response system to be implemented: someone requiring proof can ask for a signature with a particular note.  It can also be missing.
+
+## Example for Payer Proofs
+
+Consider a trivial TLV construct (not a valid invoice) which we are trying to prove, with the
+following fields:
+
+0 - Omitted
+10 - Omitted
+20 - Omitted
+30 - Omitted
+40 - Included
+50 - Omitted
+60 - Omitted
+240 - Omitted (signature field)
+
+Here is the full signature Merkle tree, with omitted nodes
+marked with `(o)`:
+
+```
+                      ____x____
+               ______/         \_______
+              /                        \
+          _x(o)*                     __x__
+        _/      \_                 _/     \_
+       /          \               /         \
+      x(o)        x(o)           x           \
+     / \          / \           / \           \
+    /   \        /   \         /   \           \
+ 0(o)  10(o)    20(o) 30(o)   40  50(o)       60(o)
+```
+
+Note that the signature TLV 240 is not included in the merkle tree.
+
+`proof_leaf_hashes` contains the nonce hashes for the present non-signature TLVs:
+
+1. H("LnNonce"||TLV0,40)
+
+Since four adjacent nodes (0, 10 20 and 30) are omitted, we can (and
+must) simply provide the hash of the node above them, marked with an
+asterisk.
+
+Thus, `proof_missing_hashes` contains the following hashes in order:
+
+1. Merkle of H("LnLeaf",TLV50) and H("LnNonce"||TLV0,50)
+2. Merkle of H("LnLeaf",TLV60) and H("LnNonce"||TLV0,60)
+3. Merkle of
+   (Merkle of
+      (Merkle of H("LnLeaf",TLV0)  and H("LnNonce"||TLV0,0))
+      (Merkle of H("LnLeaf",TLV10) and H("LnNonce"||TLV0,10)))
+   and
+   (Merkle of
+      (Merkle of H("LnLeaf",TLV20) and H("LnNonce"||TLV0,20))
+      (Merkle of H("LnLeaf",TLV30) and H("LnNonce"||TLV0,30)))
+
+In this example the correct proof_missing_hashes order is not ascending TLV order:
+the omitted subtree containing TLVs 0, 10, 20, and 30 is emitted after the
+omitted TLVs 50 and 60, because it is the missing sibling of their parent’s
+parent.
+
+The `proof_omitted_tlvs` array is based on the omitted tlvs: [0, 10, 20, 30, 50,
+60].  It uses the minimal values which hide the real field numbers without
+changing their order, `0` is implied (as it's always omitted), giving an array
+of [1, 2, 3, 41, 42].
+
+The algorithm for creating `proof_missing_hashes` is most easily implemented
+in a recursive fashion, traversing smallest-to-largest TLV
+(left-to-right in the above representation).  When you need to combine
+two hashes where one side is entirely omitted and the other is not,
+append that hash to `proof_missing_hashes`.
+
+Reconstruction is the exact opposite: when you need to combine a hash
+where one side is entirely omitted and the other is not, pull a hash
+from `proof_missing_hashes`.  If there are insufficient `proof_missing_hashes`, or
+it isn't empty when you have completed the merkle tree, the number of
+`proof_missing_hashes` was incorrect.
+
+See the [Payer Proof Test Vectors](bolt12/payer-proof-test.json) for more
+examples.
 
 # FIXME: Possible future extensions:
 
@@ -908,7 +1176,6 @@ with the conversion so the sender can send a new invoice.
 7. All-zero offer_id == gratuitous payment.
 8. Streaming invoices?
 9. Re-add recurrence.
-10. Re-add `invreq_refund_for` to support proofs.
 11. Re-add `invoice_replace` for requesting replacement of a (stuck-payment) 
     invoice with a new one.
 12. Allow non-offer `invoice_request` with alternate currencies?
