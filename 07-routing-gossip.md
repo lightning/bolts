@@ -431,6 +431,42 @@ engines that support SQL or other dynamically interpreted querying languages.
 
 Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
 
+### Test vectors
+
+The following test vectors are `node_announcement`s with aliases that contain
+illegal unicode characters. Implementations MUST ignore these announcements.
+
+The signature was created with the following private key:
+
+```code
+priv=0x1111111111111111111111111111111111111111111111111111111111111111
+```
+
+```json
+[
+  {
+    "name": "Alias containing a NULL (Cc) character",
+    "alias": "lightning\u0000rocks",
+    "announcement": "01013a3f3d28c538ae96c5c032e534fedea3e452261ebaea82952456c2a9f7477e7151575ce7e36f2f5b38bb27210c8fbdc72dcd92a99b3df47536ad61d8699cbb1c000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e6700726f636b7300000000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a DEL (Cc) character",
+    "alias": "lightning\u007frocks",
+    "announcement": "01011ac8fe92da793fe0b1472616b6cb4346e746fe72d68c1865f79a5bc6ad371e824ce9c91b83b23a5a65eb6c6e07cd4bd84bec6892958d969559b6059424ac2894000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e677f726f636b7300000000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a zero-width space (Cf)",
+    "alias": "lightning\u200brocks",
+    "announcement": "0101eb387795f9b453da150cd16b683595ecacc94f6b41d74e1908eef1b8782a6e606e8b9e073ba4fc7eccef5d450faa52e99582db9c620df3fa6f33598220a3b886000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67e2808b726f636b730000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a private use character (Co)",
+    "alias": "lightning\ue000rocks",
+    "announcement": "0101f3575e38f455655b2e54ea4df8b1745c13938db744d6607fc142cf5be2ce619326ffa6a3f48ac764c7d3d20055fc855f515b77b74c26451862732a8a1f39da1f000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67ee8080726f636b730000000000000000000000000000000000"
+  }
+]
+```
+
 ## The `channel_update` Message
 
 After a channel has been initially announced, each side independently
