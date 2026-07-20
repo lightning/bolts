@@ -171,7 +171,8 @@ A writer:
   that will be given in return for payment.
   - MUST include either exactly one `d` or exactly one `h` field.
     - if `d` is included:
-      - MUST set `d` to a valid UTF-8 string.
+      - MUST set `d` to a valid UTF-8 string without characters in the unicode
+      "Other" (C*) General Category.
       - SHOULD use a complete description of the purpose of the payment.
     - if `h` is included:
       - MUST make the preimage of the hashed description in `h` available
@@ -212,6 +213,8 @@ A reader:
   - MUST skip over `f` fields that use an unknown `version`.
   - MUST fail the payment if any field with fixed `data_length` (`p`, `h`, `s`, `n`) does not have the correct length (52, 52, 52, 53).
   - MUST fail the payment if neither a `d` field nor a `h` field is present, or if both are present.
+  - MUST fail the payment if the `d` field is not a valid UTF-8 string without characters in the unicode "Cc", "Cf", "Cs", or "Co" General Category.
+  - MAY fail the payment if the `d` field contains characters in the Unicode "Cn" (unassigned) General Category.
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if the `9` field contains unknown _even_ bits that are non-zero:
