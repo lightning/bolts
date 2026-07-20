@@ -249,7 +249,7 @@ A writer of an offer:
       - MUST specify `offer_amount` in the currency unit adjusted by the ISO 4217
         exponent (e.g. USD cents).
     - MUST set `offer_description` to a complete description of the purpose
-      of the payment.
+      of the payment without characters in the unicode "Other" (C*) General Category.
   - otherwise:
     - MUST NOT set `offer_amount`
     - MUST NOT set `offer_currency`
@@ -257,6 +257,7 @@ A writer of an offer:
   - MAY set `offer_metadata` for its own use.
   - if it supports bolt12 offer features:
     - MUST set `offer_features`.`features` to the bitmap of bolt12 features.
+    - MUST minimally-encode `offer_features`.`features`.
   - if the offer expires:
     - MUST set `offer_absolute_expiry` `seconds_from_epoch` to the number of seconds
       after midnight 1 January 1970, UTC that invoice_request should not be
@@ -272,6 +273,7 @@ A writer of an offer:
      - MUST set `offer_issuer_id` to the node's public key to request the invoice from.
   - if it sets `offer_issuer`:
     - SHOULD set it to identify the issuer of the invoice clearly.
+    - MUST NOT use characters in the unicode "Other" (C*) General Category.
     - if it includes a domain name:
       - SHOULD begin it with either user@domain or domain
       - MAY follow with a space and more text
@@ -292,12 +294,20 @@ A reader of an offer:
   - if `offer_features` contains unknown _even_ bits that are non-zero:
     - MUST NOT respond to the offer.
     - SHOULD indicate the unknown bit to the user.
+  - if `offer_features` is not minimally-encoded:
+    - MUST NOT respond to the offer.
   - if `offer_chains` is not set:
     - if the node does not accept bitcoin invoices:
       - MUST NOT respond to the offer
   - otherwise: (`offer_chains` is set):
     - if the node does not accept invoices for at least one of the `chains`:
       - MUST NOT respond to the offer
+  - if `offer_description` or `offer_issuer` contain characters in the unicode
+    "Cc", "Cf", "Cs", or "Co" General Category:
+    - MUST NOT respond to the offer
+  - if `offer_description` or `offer_issuer` contain characters in the unicode
+    "Cn" (unassigned) General Category:
+    - MAY NOT respond to the offer
   - if `offer_amount` is set and `offer_description` is not set:
     - MUST NOT respond to the offer.
   - if `offer_amount` is set and is not greater than zero:
@@ -383,7 +393,6 @@ Note: the `invreq_metadata` is numbered 0 (not in the
 for [Signature Calculation](#signature-calculation).  This ensures that merkle
 leaves are unguessable, allowing a future compact representation to hide fields
 while still allowing signature validation.
-
 
 ## TLV Fields for `invoice_request`
 
@@ -496,6 +505,9 @@ The writer:
         (e.g. milli-satoshis for bitcoin) for `invreq_chain` (or for bitcoin, if there is no `invreq_chain`).
   - if it supports bolt12 invoice request features:
     - MUST set `invreq_features`.`features` to the bitmap of features.
+    - MUST minimally-encode `invreq_features`.`features`.
+  - if it includes `invreq_payer_note`:
+    - MUST NOT use characters in the unicode "Other" (C*) General Category.
   - if it received the offer from which it constructed this `invoice_request` using BIP 353 resolution:
     - MUST include `invreq_bip_353_name` with,
       - `name` set to the post-₿, pre-@ part of the BIP 353 HRN,
@@ -507,6 +519,8 @@ The reader:
   - if `invreq_features` contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if `invreq_features` contains unknown _even_ bits that are non-zero:
+    - MUST reject the invoice request.
+  - if `invreq_features` is not minimally-encoded:
     - MUST reject the invoice request.
   - MUST reject the invoice request if `signature` is not correct as detailed in [Signature Calculation](#signature-calculation) using the `invreq_payer_id`.
   - if `num_hops` is 0 in any `blinded_path` in `invreq_paths`:
@@ -549,6 +563,11 @@ The reader:
     - MUST reject the invoice request if bitcoin is not a supported chain.
   - otherwise:
     - MUST reject the invoice request if `invreq_chain`.`chain` is not a supported chain.
+  - if `invreq_payer_note` is present:
+    - if it contains characters in the unicode "Cc", "Cf", "Cs", or "Co" General Category:
+      - MUST reject the invoice request.
+    - if it contains characters in the unicode "Cn" (unassigned) General Category:
+      - MAY reject the invoice request.
   - if `invreq_bip_353_name` is present:
     - MUST reject the invoice request if `name` or `domain` contain any bytes which are not
       `0`-`9`, `a`-`z`, `A`-`Z`, `-`, `_` or `.`.
@@ -735,6 +754,8 @@ A writer of an invoice:
     - MUST set `invoice_node_id` to the final `blinded_node_id` on the path it received the invoice request
   - MUST specify exactly one signature TLV element: `signature`.
     - MUST set `sig` to the signature using `invoice_node_id` as described in [Signature Calculation](#signature-calculation).
+  - if it includes `invoice_features`:
+    - MUST minimally-encode `invoice_features`.`features`.
   - if it requires multiple parts to pay the invoice:
     - MUST set `invoice_features`.`features` bit `MPP/compulsory`
   - or if it allows multiple parts to pay the invoice:
@@ -767,6 +788,8 @@ A reader of an invoice:
   - if `invoice_features` contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
   - if `invoice_features` contains unknown _even_ bits that are non-zero:
+    - MUST reject the invoice.
+  - if `invoice_features` is not minimally-encoded:
     - MUST reject the invoice.
   - if `invoice_relative_expiry` is present:
     - MUST reject the invoice if the current time since 1970-01-01 UTC is greater than `invoice_created_at` plus `seconds_from_creation`.
@@ -855,7 +878,6 @@ may define the behavior in future.  The redundant requirement to check
 a response to an invoice request, that field must have existed due
 to the invoice request requirements, and we also require it to be mirrored
 here.
-
 
 # Invoice Errors
 
