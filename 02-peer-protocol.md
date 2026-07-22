@@ -2182,9 +2182,10 @@ A receiving node:
     - MAY reply to a `shutdown` message with a `shutdown`
   - once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:
     - MUST reply to a `shutdown` message with a `shutdown`
-  - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
-    - MAY send a `warning`.
-    - MUST fail the connection.
+  - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`
+    - if not both nodes advertised `option_simple_close` and the `shutdown_scriptpubkey` is `OP_RETURN`:
+        - MAY send a `warning`.
+        - MUST fail the connection.
 
 #### Rationale
 
