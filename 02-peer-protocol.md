@@ -2160,7 +2160,11 @@ A sending node:
     - MUST NOT send any `update` message after that point.
   - SHOULD fail to route any HTLC added after it has sent `shutdown`.
   - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
-    - MUST send the same value in `scriptpubkey`.
+    - if both nodes advertised `option_simple_close`:
+      - MUST set `scriptpubkey` to either the same value or an `OP_RETURN`
+        script in one of the following forms.
+    - otherwise:
+      - MUST send the same value in `scriptpubkey`.
   - MUST set `scriptpubkey` in one of the following forms:
 
     1. `OP_0` `20` 20-bytes (version 0 pay to witness pubkey hash), OR
@@ -2182,9 +2186,17 @@ A receiving node:
     - MAY reply to a `shutdown` message with a `shutdown`
   - once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:
     - MUST reply to a `shutdown` message with a `shutdown`
-  - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
-    - MAY send a `warning`.
-    - MUST fail the connection.
+  - if both nodes advertised the `option_upfront_shutdown_script` feature,
+    and the receiving node received a non-zero-length `shutdown_scriptpubkey`
+    in `open_channel` or `accept_channel`,
+    and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
+    - if both nodes advertised `option_simple_close`:
+      - if `scriptpubkey` is not an `OP_RETURN` script in one of the above forms:
+        - MAY send a `warning`.
+        - MUST fail the connection.
+    - otherwise:
+      - MAY send a `warning`.
+      - MUST fail the connection.
 
 #### Rationale
 
@@ -2213,6 +2225,11 @@ compromised somehow.  This is a weak commitment (a malevolent
 implementation tends to ignore specifications like this one!), but it
 provides an incremental improvement in security by requiring the cooperation
 of the receiving node to change the `scriptpubkey`.
+
+When `option_simple_close` is negotiated, a node may instead use a valid
+`OP_RETURN` script if it considers its output uneconomical. The corresponding
+output amount is zero, as specified in [BOLT 3](03-transactions.md#closing-transaction),
+so this exception does not allow funds to be redirected to another address.
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
 
