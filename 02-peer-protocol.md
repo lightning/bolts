@@ -2160,7 +2160,11 @@ A sending node:
     - MUST NOT send any `update` message after that point.
   - SHOULD fail to route any HTLC added after it has sent `shutdown`.
   - if it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
-    - MUST send the same value in `scriptpubkey`.
+    - if both nodes advertised `option_simple_close`:
+      - MUST set `scriptpubkey` to either the same value or an `OP_RETURN`
+        script in one of the following forms.
+    - otherwise:
+      - MUST send the same value in `scriptpubkey`.
   - MUST set `scriptpubkey` in one of the following forms:
 
     1. `OP_0` `20` 20-bytes (version 0 pay to witness pubkey hash), OR
@@ -2182,9 +2186,17 @@ A receiving node:
     - MAY reply to a `shutdown` message with a `shutdown`
   - once there are no outstanding updates on the peer, UNLESS it has already sent a `shutdown`:
     - MUST reply to a `shutdown` message with a `shutdown`
-  - if both nodes advertised the `option_upfront_shutdown_script` feature, and the receiving node received a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
-    - MAY send a `warning`.
-    - MUST fail the connection.
+  - if both nodes advertised the `option_upfront_shutdown_script` feature,
+    and the receiving node received a non-zero-length `shutdown_scriptpubkey`
+    in `open_channel` or `accept_channel`,
+    and that `shutdown_scriptpubkey` is not equal to `scriptpubkey`:
+    - if both nodes advertised `option_simple_close`:
+      - if `scriptpubkey` is not an `OP_RETURN` script in one of the above forms:
+        - MAY send a `warning`.
+        - MUST fail the connection.
+    - otherwise:
+      - MAY send a `warning`.
+      - MUST fail the connection.
 
 #### Rationale
 
@@ -2213,6 +2225,14 @@ compromised somehow.  This is a weak commitment (a malevolent
 implementation tends to ignore specifications like this one!), but it
 provides an incremental improvement in security by requiring the cooperation
 of the receiving node to change the `scriptpubkey`.
+
+When `option_simple_close` is negotiated, a node may instead use a valid
+`OP_RETURN` script if it considers its output uneconomical. The corresponding
+output amount is zero, as specified in [BOLT 3](03-transactions.md#closing-transaction),
+so this exception cannot send funds to a new address. It does let the node
+give its whole output to fees, so `option_upfront_shutdown_script` no longer
+protects against a compromised node that can collect those fees, e.g. one
+colluding with a miner.
 
 The `shutdown` response requirement implies that the node sends `commitment_signed` to commit any outstanding changes before replying; however, it could theoretically reconnect instead, which would simply erase all outstanding uncommitted changes.
 
@@ -2295,6 +2315,8 @@ The sender of `closing_complete` (aka. "the closer"):
   - MUST set `fee_satoshis` to a fee less than or equal to its outstanding balance, rounded down to whole satoshis.
   - MUST set `fee_satoshis` so that at least one output is not dust.
   - MUST set `closer_scriptpubkey` to its desired output script.
+  - If it sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`:
+    - MUST set `closer_scriptpubkey` to either the same value or a valid `OP_RETURN` script.
   - MUST set `closee_scriptpubkey` to the last script it received from its peer (from `closing_complete` or from the initial `shutdown`).
   - MUST set `locktime` to the desired `nLockTime` of the closing transaction.
   - If the local outstanding balance (in millisatoshi) is less than the remote outstanding balance:
@@ -2331,6 +2353,11 @@ The receiver of `closing_complete` (aka. "the closee"):
     - SHOULD ignore `closing_complete`.
     - SHOULD send a `warning`.
     - SHOULD close the connection.
+  - If both nodes advertised the `option_upfront_shutdown_script` feature, AND the closer sent a non-zero-length `shutdown_scriptpubkey` in `open_channel` or `accept_channel`, AND `closer_scriptpubkey` is not equal to that `shutdown_scriptpubkey`:
+    - If `closer_scriptpubkey` is not a valid `OP_RETURN` script:
+      - SHOULD ignore `closing_complete`.
+      - SHOULD send a `warning`.
+      - SHOULD close the connection.
   - If `closer_scriptpubkey` is a valid `OP_RETURN` script:
     - MUST set the closer's output amount to zero so that all funds go to fees, as specified in [BOLT #3](03-transactions.md#closing-transaction).
   - MUST generate the remote closing transaction as specified in [BOLT #3](03-transactions.md#closing-transaction).
@@ -2387,7 +2414,8 @@ not an option, the closer can RBF its previous closing transactions by sending `
 again.
 
 Sending a new `closing_complete` message overrides previous ones, so you can negotiate again (even
-changing the output address if `upfront_shutdown_script` was not negotiated). This creates a rare
+changing the output address; if `upfront_shutdown_script` was negotiated, only to an `OP_RETURN`
+script). This creates a rare
 race condition if both nodes send `closing_complete` to change their `closer_scriptpubkey` at the
 same time: when that happens, the `closing_complete` they receive will be using their previous
 output script, so they shouldn't sign the corresponding transaction. When that happens, we simply
