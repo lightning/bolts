@@ -48,7 +48,7 @@ The Context column decodes as follows:
 | 28/29 | `option_dual_fund`                | Use v2 of channel open, enables dual funding              | IN       |                             | [BOLT #2](02-peer-protocol.md)                                        |
 | 34/35 | `option_quiesce`                  | Support for `stfu` message                                | IN       |                             | [BOLT #2][bolt02-quiescence]                                          |
 | 36/37 | `option_attribution_data`        | Can generate/relay attribution data and `fulfillment_payload` | IN9      |                             | [BOLT #4][bolt04-attribution-data], [successful payments][bolt04-successful-payments] |
-| 38/39 | `option_onion_messages`           | Can forward onion messages                                | IN       |                             | [BOLT #7](04-onion-routing.md#onion-messages)                         |
+| 38/39 | `option_onion_messages`           | Can forward onion messages                                | IN       |                             | [BOLT #4](04-onion-routing.md#onion-messages)                         |
 | 40/41 | `zero_fee_commitments`            | Zero-fee commitment and HTLC transactions                 | IN       | `option_channel_type`       | [BOLT #3][bolt03-shared-anchor]                                       |
 | 42/43 | `option_provide_storage`          | Can store other nodes' encrypted backup data              | IN       |                             | [BOLT #1](01-messaging.md#peer-storage)                               |
 | 44/45 | `option_channel_type`             | ASSUMED                                                   |          |                             |                                                                       |
@@ -57,6 +57,7 @@ The Context column decodes as follows:
 | 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | INT      | `option_scid_alias`         | [BOLT #2][bolt02-channel-ready]                                       |
 | 60/61 | `option_simple_close`             | Simplified closing negotiation                            | IN       | `option_shutdown_anysegwit` | [BOLT #2][bolt02-simple-close]                                        |
 | 62/63 | `option_splice`                   | Allows replacing the funding transaction with a new one   | IN       |                             | [BOLT #2](02-peer-protocol.md#channel-splicing)                       |
+| 66/67 | `option_onion_messages_only_channels` | Only accepts onion messages from peers with a channel | IN       | `option_onion_messages`     | [BOLT #4](04-onion-routing.md#onion-messages)                         |
 
 ## Requirements
 
