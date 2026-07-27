@@ -341,12 +341,12 @@ general bucket to provide basic DOS protections.
 ### General Bucket
 
 To protect the general bucket from trivial denial of service, each forwarding
-pair of channels is restricted to a subset of slots and liquidity.
+pair of channels is restricted to a subset of its slots.
 
 We define the following:
 - `general_bucket_slot_allocation` = `max(5, general bucket slot total*5/100)`
-- `general_bucket_liquidity_allocation` =
-  `general bucket capacity * general_bucket_slot_allocation / general bucket slot total`
+- `general_bucket_slot_liquidity` =
+  `general bucket capacity / general bucket slot total`
 
 Each `(incoming scid, outgoing scid)` is deterministically assigned slots:
 - Create a `ChaCha20` stream keyed with `salt` and using
@@ -360,10 +360,16 @@ Where `salt`:
 - MUST be randomly chosen and unique per channel.
 - SHOULD be persisted across restarts to restore slot allocations.
 
-A HTLC is eligible to use the general bucket if for its
-`(incoming scid, outgoing scid)`'s assigned resources:
-- Currently occupied slots < `general_bucket_slot_allocation`
-- Currently occupied liquidity + `amt_msat` <= `general_bucket_liquidity_allocation`
+An HTLC occupies a whole number of slots proportional to its liquidity:
+- `htlc_slots` = `max(1, ceil(amt_msat / general_bucket_slot_liquidity))`
+
+A slot holds at most one HTLC, even where pairs' assigned slots overlap, so
+the general bucket never holds more HTLCs than it has slots.
+
+A HTLC is eligible to use the general bucket if, within its
+`(incoming scid, outgoing scid)`'s assigned slots:
+- Slots occupied by any HTLC + `htlc_slots` <=
+  `general_bucket_slot_allocation`
 
 #### Rationale
 
@@ -382,7 +388,6 @@ it difficult for an attacker to crowd out honest traffic. With the defaults
 proposed in this document, an attacker would need to open, in expectation, 38
 channels to occupy all the slots in a `option_zero_fee_commitments` channel
 (assuming `max_accepted_htlcs` = 114, assigning 40% of those slots to general).
-
 
 ### Congestion Bucket
 
