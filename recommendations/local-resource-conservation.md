@@ -400,26 +400,27 @@ that do not have sufficient reputation.
 
 An outgoing channel is considered eligible to use an incoming channel's
 congestion bucket if:
-- The outgoing channel does not currently have a HTLC in flight in the
-  congestion bucket.
+- The outgoing channel does not currently have a HTLC in flight in any
+  incoming channel's congestion bucket.
 - In the last two weeks, the outgoing channel has not taken more than
   `resolution_period` to resolve a HTLC that utilized the incoming channel's
   congestion bucket.
 
 A HTLC is granted access to the congestion bucket if:
 - The outgoing channel is eligible to use the congestion bucket.
-- The general bucket's slots or liquidity are saturated.
+- All of the general bucket's slots are occupied.
 - The onion packet has `upgrade_accountability` set.
 - The incoming `update_add_htlc` does not have `accountable` set.
-- The `amount_msat` < `bucket_capacity_msat` / `bucket_slots`.
+- The `amount_msat` <= `bucket_capacity_msat` / `bucket_slots`.
 
 #### Rationale
 
 If an attacker is able to saturate the general bucket, the congestion bucket
 allows honest peers that don't have reputation some chance of having payments
-forwarded to them. This access is strictly limited per channel, so that the
-cost for an attacker to directly saturate it is high. It is also difficult for
-a downstream attacker to sabotage HTLCs that are forwarded in the congestion
+forwarded to them. This access is strictly limited, so that the cost for an
+attacker to directly saturate it is high: they will have to open one channel
+for each congestion slot they'd like to hold. It is also difficult for a
+downstream attacker to sabotage HTLCs that are forwarded in the congestion
 bucket, because they are forwarded as `accountable` so will only be forwarded
 to channels that have built up reputation.
 
