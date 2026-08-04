@@ -348,16 +348,18 @@ We define the following:
 - `general_bucket_slot_liquidity` =
   `general bucket capacity / general bucket slot total`
 
-Each `(incoming scid, outgoing scid)` is deterministically assigned slots:
+Each `(incoming channel_id, outgoing channel_id)` is deterministically
+assigned slots:
 - Create a `ChaCha20` stream keyed with `salt` and using
-  `incoming_scid[0:4]|outgoing_scid` as a nonce.
+  `SHA256(incoming_channel_id || outgoing_channel_id)[0:12]` as a nonce.
 - Read 4 bytes, interpret as a little-endian uint32 and take
   modulo `general_bucket_slot_total`.
 - Repeat until `general_bucket_slot_allocation` unique slot indexes
   have been generated.
 
 Where `salt`:
-- MUST be randomly chosen and unique per channel.
+- MUST be chosen at random.
+- MAY be reused across all of the local node's channels.
 - SHOULD be persisted across restarts to restore slot allocations.
 
 An HTLC occupies a whole number of slots proportional to its liquidity:
@@ -367,7 +369,7 @@ A slot holds at most one HTLC, even where pairs' assigned slots overlap, so
 the general bucket never holds more HTLCs than it has slots.
 
 A HTLC is eligible to use the general bucket if, within its
-`(incoming scid, outgoing scid)`'s assigned slots:
+`(incoming channel_id, outgoing channel_id)`'s assigned slots:
 - Slots occupied by any HTLC + `htlc_slots` <=
   `general_bucket_slot_allocation`
 
@@ -378,11 +380,11 @@ more expensive for an attacker to exhaust resources, as opening a channel incurs
 a cost, while still allowing reasonable usage by honest peers. Salting 
 resource assignment ensures that the attacker cannot detect which resources
 they will be assigned, and thus cannot strategically open new channels to
-manipulate assignment. To produce a 12 byte nonce, we choose to reduce the input
-from `incoming_scid` to 4 bytes because the `outgoing_scid` belongs to the
-adversary and incurs a cost to attempt to manipulate.
+manipulate assignment. The `salt` may be reused across all channels so that nodes
+only need to persist a single value. We bind the stream to both channel ids to
+make it unique per pair.
 
-The default slot allocations provided are chosen such that it it highly
+The default slot allocations provided are chosen such that it is highly
 improbable that any two channels are granted the same set of resources, making
 it difficult for an attacker to crowd out honest traffic. With the defaults
 proposed in this document, an attacker would need to open, in expectation, 38
