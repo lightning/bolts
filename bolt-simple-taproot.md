@@ -541,7 +541,10 @@ negotiated, and also the `option_simple_taproot` channel type is used.
 
 ### New TLV Types
 
-Note that these TLV types exist across different messages, but their type IDs are always the same.
+Note that these TLV types exist across different messages, but their type IDs
+are always the same. The one exception is type `22`, whose payload depends on
+the message it appears in: `next_local_nonces` in `revoke_and_ack` and
+`channel_reestablish`, and `next_closee_nonce` in `closing_sig`.
 
 #### partial_signature_with_nonce
 - type: 2
@@ -565,12 +568,17 @@ Note that these TLV types exist across different messages, but their type IDs ar
    * [`66*byte`: `public_nonce`]
 
 #### next_local_nonces
-- type: 22
+- type: 22 (in `revoke_and_ack` and `channel_reestablish`)
 - data:
    * [`...*nonce_entry`: `entries`]
 
 where `nonce_entry` is:
    * [`32*byte`: `funding_txid`]
+   * [`66*byte`: `public_nonce`]
+
+#### next_closee_nonce
+- type: 22 (in `closing_sig`)
+- data:
    * [`66*byte`: `public_nonce`]
 
 ### Channel Funding
@@ -796,8 +804,9 @@ Additional nonces are provided just-in-time (JIT) with signatures:
 - `closing_complete` uses `PartialSigWithNonce` which includes the sender's
 closer nonce
 
-- `closing_sig` uses just `PartialSig` (no nonce) since the receiver already
-knows the nonce
+- `closing_sig` uses `PartialSig` plus a separate `next_closee_nonce`: the
+signature itself carries no nonce, since the receiver already knows the closee
+nonce in use
 
 ##### Requirements
 
