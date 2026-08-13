@@ -1651,7 +1651,8 @@ derivation method described above and verify that all intermediate values
   "scripts": {
     "funding": {
       "funding_tx_hex": "02000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000018096980000000000225120d0ebb4909d563a7ae1213fddede4ae54132fba0ef0b97ee3f8469191fecd348e00000000",
-      "combined_key": "d0ebb4909d563a7ae1213fddede4ae54132fba0ef0b97ee3f8469191fecd348e",
+      "combined_funding_key": "d91205e7f976b741b1943f594b2ccd3f9d49ec45b2d44589e6c7735e55ded06f",
+      "funding_key": "d0ebb4909d563a7ae1213fddede4ae54132fba0ef0b97ee3f8469191fecd348e",
       "pkscript": "5120d0ebb4909d563a7ae1213fddede4ae54132fba0ef0b97ee3f8469191fecd348e"
     },
     "to_local": {
