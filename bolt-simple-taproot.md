@@ -1224,6 +1224,7 @@ The new output has the following form:
         ```
         <local_delayedpubkey> OP_CHECKSIGVERIFY
         <to_self_delay> OP_CHECKSEQUENCEVERIFY
+        ```
     * `revoke_script` is the revoke script:
         ```
         <local_delayedpubkey> OP_DROP
