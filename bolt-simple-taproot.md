@@ -1319,7 +1319,15 @@ An anchor output has the following form:
         OP_16 OP_CHECKSEQUENCEVERIFY
         ```
 
-This output can be swept by anyone after 16 blocks with the following witness:
+Unlike the `to_local` and `to_remote` outputs, the internal key here is a real
+key rather than a NUMS point. The owner of `anchor_internal_key` can therefore
+sweep the output immediately via the key path, with the witness:
+```
+<anchor_sig>
+```
+
+The output can also be swept by anyone after 16 blocks via the script path,
+with the following witness:
 ```
 <anchor_script> <anchor_control_block>
 ```
