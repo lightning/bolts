@@ -455,14 +455,20 @@ point that no one knows the private key to. If no one knows the private key,
 then it can't be used for key path signing, forcing the script path to always
 be taken.
 
-We refer to the `simple_taproot_nums` as the following value:
+We refer to the `simple_taproot_nums` point as the following value, in its
+33-byte compressed form:
 ```
-02dca094751109d0bd055d03565874e8276dd53e926b44e3bd1bb6bf4bc130a279
+simple_taproot_nums = 02dca094751109d0bd055d03565874e8276dd53e926b44e3bd1bb6bf4bc130a279
 ```
 
 The value was [generated using this
 tool](https://github.com/lightninglabs/lightning-node-connect/tree/master/mailbox/numsgen),
 with the seed phrase "Lightning Simple Taproot".
+
+Wherever `simple_taproot_nums` is used as an `internal_key`, whether within a
+control block or as an input to a `tagged_hash("TapTweak", ...)` computation,
+the 32-byte x-only serialization is used, meaning the leading `02` byte above
+is dropped.
 
 ## Design Overview
 
@@ -480,8 +486,9 @@ The local output of the commitment transaction uses a script-path based
 revocation scheme in order to ensure that the information needed by 3rd parties
 to sweep the anchor outputs is always revealed on chain.
 
-The remote output of the commitment transaction uses the `combined_funding_key`
-as the top-level internal key, and then commits to a normal remote script.
+The remote output of the commitment transaction uses the `simple_taproot_nums`
+point as the top-level internal key, and then commits to a normal remote
+script.
 
 Anchor outputs use the `local_delayedpubkey` and the `remotepubkey` of both
 parties as the top-level internal key committing to the script `16 CSV`. Unless
@@ -1211,7 +1218,7 @@ The new output has the following form:
 
   * `OP_1 to_local_output_key`
   * where:
-    * `to_local_output_key = taproot_nums_point + tagged_hash("TapTweak", taproot_nums_point || to_delay_script_root)*G`
+    * `to_local_output_key = simple_taproot_nums + tagged_hash("TapTweak", simple_taproot_nums || to_delay_script_root)*G`
     * `to_delay_script_root = tapscript_root([to_delay_script, revoke_script])`
     * `to_delay_script` is the delay script:
         ```
@@ -1233,7 +1240,7 @@ In the case of a commitment breach, the `to_delay_script_root` can be used
 along side `<revocationpubkey>` to derive the private key needed to sweep the
 top-level key spend path. The control block can be crafted as such:
 ```
-revoke_control_block = (output_key_y_parity | 0xc0) || taproot_nums_point || revoke_script
+revoke_control_block = (output_key_y_parity | 0xc0) || simple_taproot_nums || revoke_script
 ```
 
 A valid witness is then:
@@ -1246,7 +1253,7 @@ broadcaster can sweep their funds after a delay. The control block to spend is
 only `33` bytes, as it just includes the internal key (along with the y-parity
 bit and leaf version):
 ``` 
-delay_control_block = (output_key_y_parity | 0xc0) || taproot_nums-point || to_delay_srcipt
+delay_control_block = (output_key_y_parity | 0xc0) || simple_taproot_nums || to_delay_srcipt
 ```
 
 A valid witness is then:
@@ -1272,8 +1279,7 @@ The `to_remote` output has the following form:
 
   * `OP_1 to_remote_output_key`
   * where:
-    * `taproot_nums_point = 0245b18183a06ee58228f07d9716f0f121cd194e4d924b037522503a7160432f15`
-    * `to_remote_output_key = taproot_nums_point + tagged_hash("TapTweak", taproot_nums_point || to_remote_script_root)*G`
+    * `to_remote_output_key = simple_taproot_nums + tagged_hash("TapTweak", simple_taproot_nums || to_remote_script_root)*G`
     * `to_remote_script_root = tapscript_root([to_remote_script])`
     * `to_remote_script` is the remote script:
         ```
@@ -1288,7 +1294,7 @@ This output can be swept by the remote party with the following witness:
 
 where `to_remote_control_block` is:
 ```
-(output_key_y_parity | 0xc0) || combined_funding_key
+(output_key_y_parity | 0xc0) || simple_taproot_nums
 ```
 
 The `sequence` field of the input MUST also be set to `1`. 
