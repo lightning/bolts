@@ -1236,11 +1236,10 @@ The parity (even or odd) of the y-coordinate of the derived
 The `tapscript_root` routine constructs a valid taproot commitment according to
 BIP 341+342. Namely, a leaf version of `0xc0` MUST be used. 
 
-In the case of a commitment breach, the `to_delay_script_root` can be used
-along side `<revocationpubkey>` to derive the private key needed to sweep the
-top-level key spend path. The control block can be crafted as such:
+In the case of a commitment breach, the output is swept via the `revoke_script`
+path, using the `<revocationpubkey>`. The control block can be crafted as such:
 ```
-revoke_control_block = (output_key_y_parity | 0xc0) || simple_taproot_nums || revoke_script
+revoke_control_block = (output_key_y_parity | 0xc0) || simple_taproot_nums || tap_leaf(to_delay_script)
 ```
 
 A valid witness is then:
@@ -1249,11 +1248,12 @@ A valid witness is then:
 ```
 
 In the case of a routine force close, the script path must be revealed so the
-broadcaster can sweep their funds after a delay. The control block to spend is
-only `33` bytes, as it just includes the internal key (along with the y-parity
-bit and leaf version):
-``` 
-delay_control_block = (output_key_y_parity | 0xc0) || simple_taproot_nums || to_delay_srcipt
+broadcaster can sweep their funds after a delay. As with the breach case, the
+control block is `65` bytes: the y-parity bit and leaf version, the internal
+key, and the `inclusion_proof`, which is simply the `tap_leaf` hash of the path
+_not_ taken:
+```
+delay_control_block = (output_key_y_parity | 0xc0) || simple_taproot_nums || tap_leaf(revoke_script)
 ```
 
 A valid witness is then:
