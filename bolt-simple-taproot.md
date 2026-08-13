@@ -1477,10 +1477,12 @@ A HTLC-Timeout transaction has the following structure:
 All test vectors are derived deterministically from a single 32-byte seed:
 `000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f`. Private
 keys are produced via `SHA256(seed || label)` where `label` is a fixed ASCII
-string for each key (e.g. `"local-funding"`, `"remote-funding"`, etc.). The
-per-commitment point is derived by computing `SHA256(seed ||
-"local-per-commit-secret")` and using the result as the per-commitment secret
-scalar, then multiplying by the generator to obtain the per-commitment point.
+string for each key (e.g. `"local-funding"`, `"remote-funding"`, etc.). Each
+per-commitment point is derived the same way: `SHA256(seed ||
+"local-per-commit-secret")` for the local commitment and `SHA256(seed ||
+"remote-per-commit-secret")` for the remote one give the per-commitment secret
+scalar, which is multiplied by the generator to obtain the per-commitment
+point.
 
 The vectors cover two areas:
 
@@ -1489,6 +1491,17 @@ The vectors cover two areas:
    local and remote commits, and second-level HTLC transactions). Each entry
    includes the raw leaf scripts, leaf hashes, tapscript root, internal key,
    output key, and the resulting `pkScript`.
+
+   The `*_local_commit` and `*_remote_commit` HTLC entries use different key
+   sets, since a commitment's keys are derived from the holder's
+   per-commitment point and the _counterparty's_ revocation basepoint. The
+   `*_local_commit` entries use `local_per_commit_point` with
+   `remote_revocation_basepoint`; the `*_remote_commit` entries use
+   `remote_per_commit_point` with `local_revocation_basepoint`, and are listed
+   in `params.keys` under the `remote_commit_` prefix. The roles of the two
+   HTLC keys also swap: an HTLC we offer is an offered HTLC on our commitment
+   and an accepted HTLC on theirs, so `<local_htlcpubkey>` in the script
+   templates above refers to the commitment holder's HTLC key.
 
 2. **Transaction vectors**: full serialized commitment transactions and their
    HTLC resolution transactions for three scenarios — a simple commitment with
@@ -1512,9 +1525,11 @@ private key:
 | `remote_payment_basepoint_secret` | `"remote-payment-basepoint"` |
 | `local_delayed_payment_basepoint_secret` | `"local-delayed-payment-basepoint"` |
 | `remote_revocation_basepoint_secret` | `"remote-revocation-basepoint"` |
+| `local_revocation_basepoint_secret` | `"local-revocation-basepoint"` |
 | `local_htlc_basepoint_secret` | `"local-htlc-basepoint"` |
 | `remote_htlc_basepoint_secret` | `"remote-htlc-basepoint"` |
 | `local_per_commit_secret` | `"local-per-commit-secret"` |
+| `remote_per_commit_secret` | `"remote-per-commit-secret"` |
 
 ### MuSig2 Nonce Generation
 
@@ -1635,17 +1650,24 @@ derivation method described above and verify that all intermediate values
       "local_delayed_payment_basepoint": "02ae68d8ff4c59864c03a42bbff6c07f9ae18047e0daa9bc40d07c410f9a0f7899",
       "remote_revocation_basepoint_secret": "36c4175b91cff9731a63d1472b5b1c4cf3e7b688e87d5fb806b2e8350484e68d",
       "remote_revocation_basepoint": "02c354121ef71922b5cb32fa685c08ac0014b558f96e28f383c45eb28b7da264c3",
+      "local_revocation_basepoint_secret": "23cf84216f3544a1434f8e8aa5a29f29b8774d4149f470802914c1c2517314e8",
+      "local_revocation_basepoint": "02541f962a12e44040a1eb2366fb1351575da51e55869c277091cab73e9279cfba",
       "local_htlc_basepoint_secret": "786eb5024e4851bea3ddc6e40036c81b1efcf50eeed440eedefe5245bde6fc14",
       "local_htlc_basepoint": "033ce88bf3c8333e242996964ac91ee7cd945bfe4c49668ea10f3211f3d418fbc8",
       "remote_htlc_basepoint_secret": "51c9b6cf8279def85e3925bc8f16fc0ff100ee7b03ce7c954149ca29c834b684",
       "remote_htlc_basepoint": "02932dfbf6737001e3c516696ae3dcd323fd91a01ce7898f7f91ab98eebacc323e",
       "local_per_commit_secret": "037b507180b3985cea6396d6a70987cea11ccd05fde49e943a3ea0fe56ee33ed",
       "local_per_commit_point": "02a0f5a09017c1dec2d30dd54a25dc4037fc5a2aa3832ee3c7b58f3a88a0836287",
+      "remote_per_commit_secret": "1f1cd13beffb656c5ff58ffb8dfe551053e98dc7a6e1884c0d6db60e1c7c76ae",
+      "remote_per_commit_point": "03f261a5addb6f656859484d49bbb730b3adf36aea78eaa3844fd26c3aa251e968",
       "derived_local_delayed_pubkey": "0315ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05",
       "derived_revocation_pubkey": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
       "derived_local_htlc_pubkey": "0271e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739e",
       "derived_remote_htlc_pubkey": "032deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47d",
-      "derived_remote_payment_pubkey": "03595f2ef2a51d2250a21077dbea4a7fc3ce550f10676996bf63719e2a71d1f4c9"
+      "derived_remote_payment_pubkey": "03595f2ef2a51d2250a21077dbea4a7fc3ce550f10676996bf63719e2a71d1f4c9",
+      "remote_commit_revocation_pubkey": "03446f816a86f4515a7478db362644e3e6e24a7e3ed3d49668c9ab9666ac15cbd1",
+      "remote_commit_local_htlc_pubkey": "03aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937",
+      "remote_commit_remote_htlc_pubkey": "03080168ab7a8e4047c6a954b520fb6369b932480bb839e335ee6b63bb181d4320"
     }
   },
   "scripts": {
@@ -1721,45 +1743,45 @@ derivation method described above and verify that all intermediate values
     },
     "offered_htlc_remote_commit": {
       "scripts": {
-        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc688202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dad51b2",
-        "timeout": "2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739ead202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dac"
+        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc68820aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937ad51b2",
+        "timeout": "20080168ab7a8e4047c6a954b520fb6369b932480bb839e335ee6b63bb181d4320ad20aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937ac"
       },
       "leaf_hashes": {
-        "success": "cd4b7ba74d132998f2bcea85f76082f5018e614c86f27f2631b6569c4914320f",
-        "timeout": "dd0bd08b3df902c399f5493a682f6c50c476c89e233ba454e89a234d2d16ffe3"
+        "success": "a93d6f51723936ed96b67944056f47adcec98b6f881d398af8d60cf16057fbec",
+        "timeout": "6f2a89644ff6963c6980112b2f7c84516d50340921e00474d8ae20e31ec929ba"
       },
-      "tapscript_root": "f36c8bd45002c5264cfce9944211e7bc6ea974a6b90cf99a87812d18acf28a2a",
-      "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
-      "output_key": "033e5c3be9f4ce7ae07c28ad5e0eb0ab617c06eeb82b8d6ef10a5bf561848df5f0",
-      "pkscript": "51203e5c3be9f4ce7ae07c28ad5e0eb0ab617c06eeb82b8d6ef10a5bf561848df5f0"
+      "tapscript_root": "77b7db508fcc3381ae65c7b3e766f883a071315f0885bf8b1669194e8053d6fd",
+      "internal_key": "03446f816a86f4515a7478db362644e3e6e24a7e3ed3d49668c9ab9666ac15cbd1",
+      "output_key": "0371418129bad912c290587ac1f6ad85ba9cdb172ad6b47a7b42cba8d2fd5408b2",
+      "pkscript": "512071418129bad912c290587ac1f6ad85ba9cdb172ad6b47a7b42cba8d2fd5408b2"
     },
     "accepted_htlc_local_commit": {
       "scripts": {
-        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc688202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dad2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739eac",
-        "timeout": "2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739ead51b26902f401b1"
+        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc6882071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739ead202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dac",
+        "timeout": "202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dad51b26902f401b1"
       },
       "leaf_hashes": {
-        "success": "69192ca730d4480044ade8741b8bd0845a32880aebaf58bc6f9186f8d2be8cbf",
-        "timeout": "4da43c795365bf757ed1e9656d12ea744b4cf52b01719a3ea94e6569115623f0"
+        "success": "1acb571d56481cd7ea0fdbe601063eec88943ce6f5eb29608599e047f74fc7e9",
+        "timeout": "e5e8fd071b9ade6367122afbd8acacc1a6727ddb6d478612af30827590027e03"
       },
-      "tapscript_root": "1a990caa4bb0ed41ceb19e7466fcea5d9b31e3da968f348f6223201c5831d0a3",
+      "tapscript_root": "2a208a0ec3ff8d66e15da435e4b3f2b2921431ef97f646a2fcd5d3a941bae8d4",
       "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
-      "output_key": "029aadbdd9aff986e5ea086cf53ae062972d33d0a5c7f5fb986dafec7fa6d7e6ea",
-      "pkscript": "51209aadbdd9aff986e5ea086cf53ae062972d33d0a5c7f5fb986dafec7fa6d7e6ea"
+      "output_key": "029ce82cd1b1f6f975049d58019a7145a3ec9680079969cf929d7d2c4bc9b30637",
+      "pkscript": "51209ce82cd1b1f6f975049d58019a7145a3ec9680079969cf929d7d2c4bc9b30637"
     },
     "accepted_htlc_remote_commit": {
       "scripts": {
-        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc688202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dad2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739eac",
-        "timeout": "2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739ead51b26902f401b1"
+        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc68820080168ab7a8e4047c6a954b520fb6369b932480bb839e335ee6b63bb181d4320ad20aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937ac",
+        "timeout": "20aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937ad51b26902f401b1"
       },
       "leaf_hashes": {
-        "success": "69192ca730d4480044ade8741b8bd0845a32880aebaf58bc6f9186f8d2be8cbf",
-        "timeout": "4da43c795365bf757ed1e9656d12ea744b4cf52b01719a3ea94e6569115623f0"
+        "success": "9b14720afa876aa5e6df576307680e7aa1b29a76f30e00b68d943576dbaa35fd",
+        "timeout": "1dbd79c3546a899717323f2238074fc962236b606bd7b37b7d0d4f2fcf0d68cb"
       },
-      "tapscript_root": "1a990caa4bb0ed41ceb19e7466fcea5d9b31e3da968f348f6223201c5831d0a3",
-      "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
-      "output_key": "029aadbdd9aff986e5ea086cf53ae062972d33d0a5c7f5fb986dafec7fa6d7e6ea",
-      "pkscript": "51209aadbdd9aff986e5ea086cf53ae062972d33d0a5c7f5fb986dafec7fa6d7e6ea"
+      "tapscript_root": "fc6307ca70735f5e144425541f9fe147bd0979243c84eea631bcd9c18c233632",
+      "internal_key": "03446f816a86f4515a7478db362644e3e6e24a7e3ed3d49668c9ab9666ac15cbd1",
+      "output_key": "03d09097e7608e7df177ff1cdf507a70f4705b8c8522caa2aec42c685780720dfa",
+      "pkscript": "5120d09097e7608e7df177ff1cdf507a70f4705b8c8522caa2aec42c685780720dfa"
     },
     "second_level_htlc_success": {
       "scripts": {
