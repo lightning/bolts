@@ -363,8 +363,8 @@ reproduced:
      `shachain_root_hash = sha256(shachain_root)`.
 
   2. Derive a _new_ shachain root to be used to generate `musig2` secret nonces
-     via a `HMAC` invocation as: `musig2_shachain_root = hmac(msg,
-     shachain_root_hash)`, where `msg` is any string that can serve to uniquely
+     via a `HMAC` invocation as: `musig2_shachain_root = hmac(key = tag, msg =
+     shachain_root_hash)`, where `tag` is any string that can serve to uniquely
      bind the produced secret to this dedicated context. A recommended value is
      the ASCII string `taproot-rev-root` concatenated with the `funding_txid`
      (which allows deriving distinct deterministic shachains when splicing).
