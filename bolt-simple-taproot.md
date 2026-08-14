@@ -1437,6 +1437,14 @@ the `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` flag. These transactions always have
 _zero_ fees attached, forcing them to be aggregated with each other and a
 change input.
 
+Per BIP 341, `SIGHASH_ANYONECANPAY` commits only to the signed input, which
+includes that input's `nSequence`, and `SIGHASH_SINGLE` commits to the output
+at _the same index as the signed input_. As a result, when these transactions
+are aggregated with each other and with a change input, each HTLC input MUST
+keep the index of its own HTLC output. Any additional input, such as the fee
+bumping input, MUST therefore be placed at an index beyond the last HTLC
+output.
+
 ##### HTLC-Success Transactions
 
 A HTLC-Success transaction has the following structure:
