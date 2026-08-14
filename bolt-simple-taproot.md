@@ -1052,10 +1052,18 @@ The sender:
   
   - MUST compute each HTLC signature according to
     [BIP 342](https://github.com/bitcoin/bips/blob/master/bip-0342.mediawiki), as
-    a BIP 340 Schnorr signature (non-partial).
+    a BIP 340 Schnorr signature (non-partial) over the second level
+    transaction that spends the corresponding HTLC output, using the
+    `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` sighash type (`0x83`).
 
     - Each HTLC signature must be packed as a 64-byte byte value within the
-      existing `htlc_signature` field.
+      existing `htlc_signature` field: only the `r` and `s` components are
+      sent, and the sighash byte is omitted.
+
+    - As BIP 342 requires a 65-byte signature for any sighash type other than
+      `SIGHASH_DEFAULT`, the recipient MUST append the `0x83` sighash byte to
+      the received 64 bytes when assembling the witness of the second level
+      transaction.
 
 
 The recipient:
