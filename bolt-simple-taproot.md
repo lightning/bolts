@@ -297,7 +297,16 @@ aggregating (`KeyAgg(KeySort(p1, p2))`).
 
 #### Nonce Generation
 
-A `musig2` secret nonce is the concatenation of two random, 32-byte integers.
+A `musig2` secret nonce is the 97-byte value produced by `NonceGen`: the
+concatenation of two random, 32-byte integers, followed by the 33-byte
+compressed public key of the signer that generated it:
+
+```
+k_1 || k_2 || pubkey
+```
+
+The trailing public key is not secret, it is carried so that `Sign` can check
+that the secret nonce is being used with the key it was generated for.
 
 A `musig2` public nonce is technically the concatenation of two public keys,
 each representing the EC-point corresponding to its secret integer, thus
