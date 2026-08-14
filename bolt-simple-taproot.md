@@ -1338,7 +1338,7 @@ An anchor output has the following form:
   * `OP_1 anchor_output_key`
   * where:
     * `anchor_internal_key = remotepubkey/local_delayedpubkey`
-    * `anchor_output_key = anchor_internal_key + tagged_hash("TapTweak", anchor_internal_key || anchor_script_root)`
+    * `anchor_output_key = anchor_internal_key + tagged_hash("TapTweak", anchor_internal_key || anchor_script_root)*G`
     * `anchor_script_root = tapscript_root([anchor_script])`
     * `anchor_script`:
         ```
@@ -1377,7 +1377,7 @@ An offered HTLC has the following form:
 
   * `OP_1 offered_htlc_key`
   * where:
-    * `offered_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
+    * `offered_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)*G`
     * `htlc_script_root = tapscript_root([htlc_timeout, htlc_success])`
     * `htlc_timeout`:
         ```
@@ -1401,7 +1401,7 @@ Accepted HTLCs inherit a similar format:
 
   * `OP_1 accepted_htlc_key`
   * where:
-    * `accepted_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
+    * `accepted_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)*G`
     * `htlc_script_root = tapscript_root([htlc_timeout, htlc_success])`
     * `htlc_timeout`:
         ```
@@ -1461,7 +1461,7 @@ A HTLC-Success transaction has the following structure:
     * script:
       * OP_1 htlc_success_key
       * where:
-        * `htlc_success_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
+        * `htlc_success_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)*G`
         * `htlc_script_root = tapscript_root([to_delay_script])`
         * `to_delay_script` is the same delay script used by the `to_local`
           output:
@@ -1486,7 +1486,7 @@ A HTLC-Timeout transaction has the following structure:
     * script:
       * OP_1 htlc_timeout_key
       * where:
-        * `htlc_timeout_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
+        * `htlc_timeout_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)*G`
         * `htlc_script_root = tapscript_root([to_delay_script])`
         * `to_delay_script` is the same delay script used by the `to_local`
           output:
