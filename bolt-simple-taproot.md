@@ -126,8 +126,18 @@ digital signatures based off of the schnorr signature scheme described in [BIP
 A `taproot_output_key` commits to an internal key, and optional script root via
 the following mapping:
 ```
-taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", taproot_internal_key || script_root)*G
+taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", x_only(taproot_internal_key) || script_root)*G
 ```
+
+where `x_only(P)` denotes the 32-byte BIP 340 serialization of the point `P`,
+which is its 33-byte compressed encoding with the leading parity byte dropped.
+
+Wherever a key is used as a `taproot_internal_key` in this document, whether as
+an input to `tagged_hash("TapTweak", ...)` or within a control block, it is the
+`x_only` serialization that is used, even where that same key is written in its
+33-byte compressed form elsewhere. BIP 341 always interprets an internal key as
+the point with the even y-coordinate, so the parity of an internal key is never
+committed to.
 
 It's important to note that while `taproot_output_key` is serialized as a
 32-byte public key, in order to properly spend the script path, the parity
@@ -188,7 +198,7 @@ script path.
 defines a taproot output key derivation scheme, wherein only the internal key
 is committed to without a script root:
 ```
-taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", taproot_internal_key)*G
+taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", x_only(taproot_internal_key))*G
 ```
 
 We use BIP 86 whenever we want to ensure that a script path spend isn't
@@ -226,15 +236,17 @@ revealed, and the valid witness.
 
 A control block has the following serialization:
 ```
-(output_key_y_parity | leaf_version) || internal_key || inclusion_proof
+(output_key_y_parity | leaf_version) || x_only(internal_key) || inclusion_proof
 ```
 
 The first segment uses a spare bit of the `leaf_version` to encode the parity
 of the output key, which is checked during control block verification. The
-`internal_key` is just that. The `inclusion_proof` is the series of sibling
-hashes in the path from the revealed leaf all the way up to the root of the
-tree. In practice, if one hashes the revealed leaf, and each 32-byte hash of the
-inclusion proof together, they'll reach the script root if the proof was valid.
+`internal_key` is just that, serialized as the 32-byte x-only key that was
+committed to by the `tagged_hash("TapTweak", ...)`. The `inclusion_proof` is
+the series of sibling hashes in the path from the revealed leaf all the way up
+to the root of the tree. In practice, if one hashes the revealed leaf, and each
+32-byte hash of the inclusion proof together, they'll reach the script root if
+the proof was valid.
 
 If only a single leaf is committed to in a tree, then the `inclusion_proof`
 will be absent.
@@ -474,10 +486,13 @@ The value was [generated using this
 tool](https://github.com/lightninglabs/lightning-node-connect/tree/master/mailbox/numsgen),
 with the seed phrase "Lightning Simple Taproot".
 
-Wherever `simple_taproot_nums` is used as an `internal_key`, whether within a
-control block or as an input to a `tagged_hash("TapTweak", ...)` computation,
-the 32-byte x-only serialization is used, meaning the leading `02` byte above
-is dropped.
+The point is only ever used as a `taproot_internal_key`, so as described in
+[Pay-To-Taproot-Outputs](#pay-to-taproot-outputs) it is consumed in its x-only
+serialization, both in control blocks and in `tagged_hash("TapTweak", ...)`
+computations:
+```
+x_only(simple_taproot_nums) = dca094751109d0bd055d03565874e8276dd53e926b44e3bd1bb6bf4bc130a279
+```
 
 ## Design Overview
 
@@ -1214,7 +1229,7 @@ The resulting funding output script takes the form:
 
 where:
 
-  * `funding_key = combined_funding_key + tagged_hash("TapTweak", combined_funding_key)*G`
+  * `funding_key = combined_funding_key + tagged_hash("TapTweak", x_only(combined_funding_key))*G`
   * `combined_funding_key = musig2.KeyAgg(musig2.KeySort(pubkey1, pubkey2))`
 
 The funding key is derived via the recommendation in BIP 341 that states: "If
@@ -1244,7 +1259,7 @@ The new output has the following form:
 
   * `OP_1 to_local_output_key`
   * where:
-    * `to_local_output_key = simple_taproot_nums + tagged_hash("TapTweak", simple_taproot_nums || to_delay_script_root)*G`
+    * `to_local_output_key = simple_taproot_nums + tagged_hash("TapTweak", x_only(simple_taproot_nums) || to_delay_script_root)*G`
     * `to_delay_script_root = tapscript_root([to_delay_script, revoke_script])`
     * `to_delay_script` is the delay script:
         ```
@@ -1266,7 +1281,7 @@ BIP 341+342. Namely, a leaf version of `0xc0` MUST be used.
 In the case of a commitment breach, the output is swept via the `revoke_script`
 path, using the `<revocationpubkey>`. The control block can be crafted as such:
 ```
-revoke_control_block = (output_key_y_parity | 0xc0) || simple_taproot_nums || tap_leaf(to_delay_script)
+revoke_control_block = (output_key_y_parity | 0xc0) || x_only(simple_taproot_nums) || tap_leaf(to_delay_script)
 ```
 
 A valid witness is then:
@@ -1280,7 +1295,7 @@ control block is `65` bytes: the y-parity bit and leaf version, the internal
 key, and the `inclusion_proof`, which is simply the `tap_leaf` hash of the path
 _not_ taken:
 ```
-delay_control_block = (output_key_y_parity | 0xc0) || simple_taproot_nums || tap_leaf(revoke_script)
+delay_control_block = (output_key_y_parity | 0xc0) || x_only(simple_taproot_nums) || tap_leaf(revoke_script)
 ```
 
 A valid witness is then:
@@ -1306,7 +1321,7 @@ The `to_remote` output has the following form:
 
   * `OP_1 to_remote_output_key`
   * where:
-    * `to_remote_output_key = simple_taproot_nums + tagged_hash("TapTweak", simple_taproot_nums || to_remote_script_root)*G`
+    * `to_remote_output_key = simple_taproot_nums + tagged_hash("TapTweak", x_only(simple_taproot_nums) || to_remote_script_root)*G`
     * `to_remote_script_root = tapscript_root([to_remote_script])`
     * `to_remote_script` is the remote script:
         ```
@@ -1321,7 +1336,7 @@ This output can be swept by the remote party with the following witness:
 
 where `to_remote_control_block` is:
 ```
-(output_key_y_parity | 0xc0) || simple_taproot_nums
+(output_key_y_parity | 0xc0) || x_only(simple_taproot_nums)
 ```
 
 The `sequence` field of the input MUST also be set to `1`. 
@@ -1338,7 +1353,7 @@ An anchor output has the following form:
   * `OP_1 anchor_output_key`
   * where:
     * `anchor_internal_key = remotepubkey/local_delayedpubkey`
-    * `anchor_output_key = anchor_internal_key + tagged_hash("TapTweak", anchor_internal_key || anchor_script_root)*G`
+    * `anchor_output_key = anchor_internal_key + tagged_hash("TapTweak", x_only(anchor_internal_key) || anchor_script_root)*G`
     * `anchor_script_root = tapscript_root([anchor_script])`
     * `anchor_script`:
         ```
@@ -1360,7 +1375,7 @@ with the following witness:
 
 where `anchor_control_block` is:
 ```
-(output_key_y_parity | 0xc0) || anchor_internal_key
+(output_key_y_parity | 0xc0) || x_only(anchor_internal_key)
 ```
 
 `nSequence` needs to be set to 16.
@@ -1377,7 +1392,7 @@ An offered HTLC has the following form:
 
   * `OP_1 offered_htlc_key`
   * where:
-    * `offered_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)*G`
+    * `offered_htlc_key = revocation_pubkey + tagged_hash("TapTweak", x_only(revocation_pubkey) || htlc_script_root)*G`
     * `htlc_script_root = tapscript_root([htlc_timeout, htlc_success])`
     * `htlc_timeout`:
         ```
@@ -1401,7 +1416,7 @@ Accepted HTLCs inherit a similar format:
 
   * `OP_1 accepted_htlc_key`
   * where:
-    * `accepted_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)*G`
+    * `accepted_htlc_key = revocation_pubkey + tagged_hash("TapTweak", x_only(revocation_pubkey) || htlc_script_root)*G`
     * `htlc_script_root = tapscript_root([htlc_timeout, htlc_success])`
     * `htlc_timeout`:
         ```
@@ -1461,7 +1476,7 @@ A HTLC-Success transaction has the following structure:
     * script:
       * OP_1 htlc_success_key
       * where:
-        * `htlc_success_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)*G`
+        * `htlc_success_key = revocation_pubkey + tagged_hash("TapTweak", x_only(revocation_pubkey) || htlc_script_root)*G`
         * `htlc_script_root = tapscript_root([to_delay_script])`
         * `to_delay_script` is the same delay script used by the `to_local`
           output:
@@ -1486,7 +1501,7 @@ A HTLC-Timeout transaction has the following structure:
     * script:
       * OP_1 htlc_timeout_key
       * where:
-        * `htlc_timeout_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)*G`
+        * `htlc_timeout_key = revocation_pubkey + tagged_hash("TapTweak", x_only(revocation_pubkey) || htlc_script_root)*G`
         * `htlc_script_root = tapscript_root([to_delay_script])`
         * `to_delay_script` is the same delay script used by the `to_local`
           output:
@@ -1518,6 +1533,13 @@ The vectors cover two areas:
    local and remote commits, and second-level HTLC transactions). Each entry
    includes the raw leaf scripts, leaf hashes, tapscript root, internal key,
    output key, and the resulting `pkScript`.
+
+   Every public key in the vectors, including `internal_key`, `output_key` and
+   `params.nums_point`, is given in its 33-byte compressed form. The taproot
+   computations consume the 32-byte x-only form: strip the leading parity byte
+   before feeding an `internal_key` to `tagged_hash("TapTweak", ...)` or to a
+   control block. The leading byte of `output_key` is retained precisely
+   because that parity is what the control block encodes.
 
    The `*_local_commit` and `*_remote_commit` HTLC entries use different key
    sets, since a commitment's keys are derived from the holder's
