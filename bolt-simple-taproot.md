@@ -283,8 +283,8 @@ Steps 1&2 may be performed out of order, or concurrently. In our case only two
 parties exist, so as soon as one party knows both partial signatures, they can
 be combined into a final signature.
 
-Thought this document `musig2` refers to the finalized (v1.0.0)
-[BIP-0327](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki
+Throughout this document `musig2` refers to the finalized (v1.0.0)
+[BIP-0327](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki)
 specification.
 
 #### Key Aggregation
