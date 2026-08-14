@@ -1462,8 +1462,9 @@ A HTLC-Success transaction has the following structure:
       * OP_1 htlc_success_key
       * where:
         * `htlc_success_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
-        * `htlc_script_root = tapscript_root([htlc_success])`
-        * `htlc_success`:
+        * `htlc_script_root = tapscript_root([to_delay_script])`
+        * `to_delay_script` is the same delay script used by the `to_local`
+          output:
         ```
         <local_delayedpubkey> OP_CHECKSIGVERIFY
         <to_self_delay> OP_CHECKSEQUENCEVERIFY
@@ -1486,8 +1487,9 @@ A HTLC-Timeout transaction has the following structure:
       * OP_1 htlc_timeout_key
       * where:
         * `htlc_timeout_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
-        * `htlc_script_root = tapscript_root([htlc_timeout])`
-        * `htlc_timeout`:
+        * `htlc_script_root = tapscript_root([to_delay_script])`
+        * `to_delay_script` is the same delay script used by the `to_local`
+          output:
         ```
         <local_delayedpubkey> OP_CHECKSIGVERIFY
         <to_self_delay> OP_CHECKSEQUENCEVERIFY
@@ -1810,10 +1812,10 @@ derivation method described above and verify that all intermediate values
     },
     "second_level_htlc_success": {
       "scripts": {
-        "success": "2015ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05ad029000b2"
+        "delay": "2015ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05ad029000b2"
       },
       "leaf_hashes": {
-        "success": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62"
+        "delay": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62"
       },
       "tapscript_root": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62",
       "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
@@ -1822,10 +1824,10 @@ derivation method described above and verify that all intermediate values
     },
     "second_level_htlc_timeout": {
       "scripts": {
-        "success": "2015ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05ad029000b2"
+        "delay": "2015ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05ad029000b2"
       },
       "leaf_hashes": {
-        "success": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62"
+        "delay": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62"
       },
       "tapscript_root": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62",
       "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
