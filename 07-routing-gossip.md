@@ -340,8 +340,9 @@ The origin node:
   graphs.
     - Note: the first byte of `rgb_color` is the red value, the second byte is the
     green value, and the last byte is the blue value.
-  - MUST set `alias` to a valid UTF-8 string without characters in the unicode
-    "Other" (C*) General Category, with any `alias` trailing-bytes equal to 0.
+  - MUST set `alias` to a valid UTF-8 string as defined in
+  [Bolt #1](01-messaging.md#unicode-characters-validation), with any `alias`
+  trailing-bytes equal to 0.
   - SHOULD fill `addresses` with an address descriptor for each public network
   address that expects incoming connections.
   - MUST set `addrlen` to the number of bytes in `addresses`.
@@ -374,8 +375,8 @@ any future fields appended to the end):
     - MUST NOT route a payment _through_ the node.
   - if `features` is NOT minimally-encoded:
     - MUST ignore the message.
-  - if `alias` is NOT a valid UTF-8 string without characters in the unicode
-  "Cc", "Cf", "Cs", or "Co" General Category:
+  - if `alias` is NOT a valid UTF-8 string as defined in
+  [Bolt #1](01-messaging.md#unicode-characters-validation):
     - MUST ignore the message.
   - SHOULD ignore the first `address descriptor` that does NOT match the types
   defined above.
@@ -463,6 +464,16 @@ priv=0x1111111111111111111111111111111111111111111111111111111111111111
     "name": "Alias containing a private use character (Co)",
     "alias": "lightning\ue000rocks",
     "announcement": "0101f3575e38f455655b2e54ea4df8b1745c13938db744d6607fc142cf5be2ce619326ffa6a3f48ac764c7d3d20055fc855f515b77b74c26451862732a8a1f39da1f000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67ee8080726f636b730000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a line separator (Zl)",
+    "alias": "lightning\u2028rocks",
+    "announcement": "0101e7965f97f2e32a81eff5f58936b1d201b3c62f33c67d383ecf5b7cdba062fd0f6357d2914084953042ec18f30ae37cf3a65ac2a5839337b53004043398c7d88a000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67e280a8726f636b730000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a paragraph separator (Zp)",
+    "alias": "lightning\u2029rocks",
+    "announcement": "0101911380dd0f32972e3d4cf79973b8d857966069538517e93bf9a543ed540763037195800c1f33b45ed908dbe45b66e08941ea61c6e9247a2d03e459ea5127f761000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67e280a9726f636b730000000000000000000000000000000000"
   }
 ]
 ```

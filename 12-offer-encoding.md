@@ -249,7 +249,7 @@ A writer of an offer:
       - MUST specify `offer_amount` in the currency unit adjusted by the ISO 4217
         exponent (e.g. USD cents).
     - MUST set `offer_description` to a complete description of the purpose
-      of the payment without characters in the unicode "Other" (C*) General Category.
+      of the payment as defined in [Bolt #1](01-messaging.md#unicode-characters-validation).
   - otherwise:
     - MUST NOT set `offer_amount`
     - MUST NOT set `offer_currency`
@@ -272,8 +272,8 @@ A writer of an offer:
   - otherwise:
      - MUST set `offer_issuer_id` to the node's public key to request the invoice from.
   - if it sets `offer_issuer`:
-    - SHOULD set it to identify the issuer of the invoice clearly.
-    - MUST NOT use characters in the unicode "Other" (C*) General Category.
+    - SHOULD set it to identify the issuer of the invoice clearly, using characters
+      as defined in [Bolt #1](01-messaging.md#unicode-characters-validation).
     - if it includes a domain name:
       - SHOULD begin it with either user@domain or domain
       - MAY follow with a space and more text
@@ -302,12 +302,9 @@ A reader of an offer:
   - otherwise: (`offer_chains` is set):
     - if the node does not accept invoices for at least one of the `chains`:
       - MUST NOT respond to the offer
-  - if `offer_description` or `offer_issuer` contain characters in the unicode
-    "Cc", "Cf", "Cs", or "Co" General Category:
-    - MUST NOT respond to the offer
-  - if `offer_description` or `offer_issuer` contain characters in the unicode
-    "Cn" (unassigned) General Category:
-    - MAY NOT respond to the offer
+  - if `offer_description` or `offer_issuer` are NOT valid UTF-8 strings as defined
+    in [Bolt #1](01-messaging.md#unicode-characters-validation):
+    - MUST NOT respond to the offer.
   - if `offer_amount` is set and `offer_description` is not set:
     - MUST NOT respond to the offer.
   - if `offer_amount` is set and is not greater than zero:
@@ -507,7 +504,7 @@ The writer:
     - MUST set `invreq_features`.`features` to the bitmap of features.
     - MUST minimally-encode `invreq_features`.`features`.
   - if it includes `invreq_payer_note`:
-    - MUST NOT use characters in the unicode "Other" (C*) General Category.
+    - MUST set it to a valid UTF-8 string as defined in [Bolt #1](01-messaging.md#unicode-characters-validation).
   - if it received the offer from which it constructed this `invoice_request` using BIP 353 resolution:
     - MUST include `invreq_bip_353_name` with,
       - `name` set to the post-₿, pre-@ part of the BIP 353 HRN,
@@ -564,10 +561,8 @@ The reader:
   - otherwise:
     - MUST reject the invoice request if `invreq_chain`.`chain` is not a supported chain.
   - if `invreq_payer_note` is present:
-    - if it contains characters in the unicode "Cc", "Cf", "Cs", or "Co" General Category:
+    - if it is NOT a valid UTF-8 string as defined in [Bolt #1](01-messaging.md#unicode-characters-validation):
       - MUST reject the invoice request.
-    - if it contains characters in the unicode "Cn" (unassigned) General Category:
-      - MAY reject the invoice request.
   - if `invreq_bip_353_name` is present:
     - MUST reject the invoice request if `name` or `domain` contain any bytes which are not
       `0`-`9`, `a`-`z`, `A`-`Z`, `-`, `_` or `.`.
