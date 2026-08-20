@@ -262,7 +262,23 @@ The following convenience types are also defined:
         * 1 for the first byte indicates this refers to `node_id_2` in the `channel_announcement` for `short_channel_id` (see [BOLT #7](07-routing-gossip.md#the-channel_announcement-message))
     * if the first byte is 2 or 3, then the value is a 33-byte `point`
 * `bigsize`: a variable-length, unsigned integer similar to Bitcoin's CompactSize encoding, but big-endian.  Described in [BigSize](#appendix-a-bigsize-test-vectors).
-* `utf8`: a byte as part of a UTF-8 string. A writer MUST ensure that an array of these is a valid UTF-8 string without characters in the unicode "Other" (C*) General Category. A reader MUST reject any messages containing an array of these which is not a valid UTF-8 string without characters in the unicode "Cc", "Cf", "Cs", or "Co" General Category and MAY reject if it contains characters in the Unicode "Cn" (unassigned) General Category.
+* `utf8`: a byte as part of a UTF-8 string.
+
+### Unicode characters validation
+
+In many messages, we accept a subset of UTF-8, defined as arrays of the `utf8` fundamental type (see the section above).
+
+A writer:
+- MUST NOT include characters from the unicode "Other" (C*) General Category.
+- MUST NOT include the "Zl" (line separator) or "Zp" (paragraph separator) character.
+
+A reader:
+- MUST reject a UTF-8 string if:
+  - it is not a valid UTF-8 string.
+  - it contains characters in the unicode "Cc", "Cf", "Cs", or "Co" General Category.
+  - it contains the "Zl" (line separator) or "Zp" (paragraph separator) character.
+- MAY reject a UTF-8 string if:
+  - it contains characters in the Unicode "Cn" (unassigned) General Category.
 
 ## Setup Messages
 
