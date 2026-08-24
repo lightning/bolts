@@ -257,6 +257,8 @@ A writer of an offer:
   - MAY set `offer_metadata` for its own use.
   - if it supports bolt12 offer features:
     - MUST set `offer_features`.`features` to the bitmap of bolt12 features.
+    - if it sets `option_bolt11_request`:
+      - MUST NOT set `offer_quantity_max`
   - if the offer expires:
     - MUST set `offer_absolute_expiry` `seconds_from_epoch` to the number of seconds
       after midnight 1 January 1970, UTC that invoice_request should not be
