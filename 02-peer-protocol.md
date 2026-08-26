@@ -3005,6 +3005,8 @@ A receiving node:
   doesn't SHA256 hash to the corresponding HTLC `payment_hash`:
     - MUST send a `warning` and close the connection, or send an
       `error` and fail the channel.
+  - if the `fulfillment_payload` in `update_fulfill_htlc` is longer than 32768 bytes (32 KiB):
+    - MUST send an `error` and fail the channel.
   - if the `BADONION` bit in `failure_code` is not set for
   `update_fail_malformed_htlc`:
     - MUST send a `warning` and close the connection, or send an

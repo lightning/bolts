@@ -1047,6 +1047,10 @@ besides the origin has access to the information required for its generation.
 Note that these error messages are not reliable, as they are not placed on-chain
 due to the possibility of hop failure.
 
+Return packets are limited to 32768 bytes (32 KiB), leaving room in `update_fail_htlc` for `attribution_data` and future
+extensions. Earlier versions permitted larger return packets, so intermediate nodes truncate them to their first 32768
+bytes instead of rejecting the corresponding message.
+
 Intermediate hops store the shared secret from the forward path and reuse it to
 authenticate and obfuscate any corresponding return packet during each hop.
 In addition, each node locally stores data regarding its own sending peer in the
@@ -1132,6 +1136,7 @@ which is in turn applied to the `attribution_data` field using `XOR`.
 ### Requirements
 
 The _erring node_:
+  - MUST construct the return packet such that its total length is no more than 32768 bytes (32 KiB).
   - MUST set `pad` such that the `failure_len` plus `pad_len` is at least 256.
   - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to
     256. Deviating from this may cause older nodes to be unable to parse the
@@ -1178,14 +1183,16 @@ packet. This is then stored as the `reason` field of the `update_htlc_fail` mess
 
 ### Requirements
 
-- if `option_attribution_data` is advertised:
-  - if `path_key` is not set in the incoming `update_add_htlc`:
-    - if `attribution_data` is received from downstream:
-      - MUST transform `attribution_data` as described above
-    - otherwise:
-      - MUST instantiate an all-zeroes `attribution_data` block
-    - MUST update `attribution_data` as described above
-- all nodes:
+The _intermediate node_:
+  - if the return packet received from downstream is longer than 32768 bytes:
+    - MUST truncate it to its first 32768 bytes before transforming the return packet or updating `attribution_data`
+  - if `option_attribution_data` is advertised:
+    - if `path_key` is not set in the incoming `update_add_htlc`:
+      - if `attribution_data` is received from downstream:
+        - MUST transform `attribution_data` as described above
+      - otherwise:
+        - MUST instantiate an all-zeroes `attribution_data` block
+      - MUST update `attribution_data` as described above
   - MUST transform the return packet as described above.
   - MUST return-forward the `update_htlc_fail` message
 
@@ -1651,6 +1658,10 @@ per-hop data for scoring path nodes, which the origin cannot do for blinded hops
 would aid de-anonymization, whereas a `fulfillment_payload` is end-to-end data that reveals nothing about the
 intermediate hops.
 
+Like return packets, `fulfillment_payload` is limited to 32768 bytes (32 KiB) to leave room for `attribution_data` and
+future extensions. Because `fulfillment_payload` was introduced with this limit, receiving a larger payload is a
+protocol violation as specified in [BOLT #2](02-peer-protocol.md#removing-an-htlc-update_fulfill_htlc-update_fail_htlc-and-update_fail_malformed_htlc).
+
 ## Requirements
 
 `attribution_data` is initialized, transformed, updated and verified exactly as in the failure case.
@@ -1659,6 +1670,7 @@ The _final node_:
   - if `option_attribution_data` is advertised:
     - MAY include a `fulfillment_payload`, even when reached through a blinded path
   - if it includes a `fulfillment_payload`:
+    - MUST ensure the `fulfillment_payload` is no more than 32768 bytes (32 KiB)
     - MUST set `fulfillment_payload_tlvs` to a serialized TLV stream
     - MUST pad with `padding` such that the serialized `fulfillment_payload_tlvs` stream is at least 256 bytes and a
       multiple of 256 bytes, excluding the 16-byte Poly1305 tag. The size calculation includes the type and length
