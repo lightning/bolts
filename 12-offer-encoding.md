@@ -258,6 +258,8 @@ A writer of an offer:
   - MAY set `offer_metadata` for its own use.
   - if it supports bolt12 offer features:
     - MUST set `offer_features`.`features` to the bitmap of bolt12 features.
+    - if it sets `option_bolt11_request`:
+      - MUST NOT set `offer_quantity_max`
   - if the offer expires:
     - MUST set `offer_absolute_expiry` `seconds_from_epoch` to the number of seconds
       after midnight 1 January 1970, UTC that invoice_request should not be
@@ -453,6 +455,7 @@ while still allowing signature validation.
         * [`name_len*byte`:`name`]
         * [`u8`:`domain_len`]
         * [`domain_len*byte`:`domain`]
+    1. type: 92 (`invreq_bolt11`)
     1. type: 240 (`signature`)
     2. data:
         * [`bip340sig`:`sig`]
@@ -481,6 +484,8 @@ The writer:
         - MUST set `invreq_quantity` less than or equal to `offer_quantity_max`.
     - otherwise:
       - MUST NOT set `invreq_quantity`
+    - if `offer_features` contains `option_bolt11_request`:
+      - MAY set `invreq_bolt11` to request a bolt11 invoice rather than a bolt12.
   - otherwise (not responding to an offer):
     - MUST set `offer_description` to a complete description of the purpose of the payment.
     - MUST set (or not set) `offer_absolute_expiry` and `offer_issuer` as it would for an offer.
@@ -538,7 +543,14 @@ The reader:
         - MAY reject the invoice request if `invreq_amount`.`msat` greatly exceeds the *expected amount*.
     - otherwise (no `offer_amount`):
       - MUST reject the invoice request if it does not contain `invreq_amount`.
-    - SHOULD send an invoice in response using the `onionmsg_tlv` `reply_path`.
+    - if `invreq_bolt11` is present:
+      - if `offer_features` does not contain `option_bolt11_request`:
+        - MUST reject the invoice request.
+      - if `invreq_quantity` is present:
+        - MUST reject the invoice request.
+      - SHOULD create a BOLT 11 invoice and place it in the `bolt11_invoice` field of a response `onionmsg_tlv`, sent using the `onionmsg_tlv` `reply_path`.
+    - otherwise:
+      - SHOULD create an invoice and place it in the `invoice` field of a response `onionmsg_tlv`, sent using the `onionmsg_tlv` `reply_path`.
   - otherwise (no `offer_issuer_id` or `offer_paths`, not a response to our offer):
     - MUST reject the invoice request if any of the following are present:
       - `offer_chains`, `offer_features` or `offer_quantity_max`.
@@ -580,6 +592,8 @@ informative for the payer to know how the sender claims
 `invreq_amount` was derived).
 
 The requirement to use `offer_paths` if present, ensures a node does not reveal it is the source of an offer if it is asked directly.  Similarly, the requirement that the correct path is used for the offer ensures that cannot be made to reveal that it is the same node that created some other offer.
+
+The `option_bolt11_request` field allows a backwards-compatible mechanism for simple offers, to simplify transition.
 
 # Invoices
 
