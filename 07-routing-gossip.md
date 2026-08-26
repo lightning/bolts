@@ -216,6 +216,8 @@ The receiving node:
     - MUST ignore the message.
   - if there is an unknown even bit in the `features` field:
     - MUST NOT attempt to route messages through the channel.
+  - if the `features` field is NOT minimally-encoded:
+    - MUST ignore the message.
   - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using
     `bitcoin_key_1` and `bitcoin_key_2`, as specified in
     [BOLT #3](03-transactions.md#funding-transaction-output)) OR the output is
@@ -338,8 +340,9 @@ The origin node:
   graphs.
     - Note: the first byte of `rgb_color` is the red value, the second byte is the
     green value, and the last byte is the blue value.
-  - MUST set `alias` to a valid UTF-8 string, with any `alias` trailing-bytes
-  equal to 0.
+  - MUST set `alias` to a valid UTF-8 string as defined in
+  [Bolt #1](01-messaging.md#unicode-characters-validation), with any `alias`
+  trailing-bytes equal to 0.
   - SHOULD fill `addresses` with an address descriptor for each public network
   address that expects incoming connections.
   - MUST set `addrlen` to the number of bytes in `addresses`.
@@ -349,7 +352,7 @@ The origin node:
   - MUST NOT create an address descriptor with `port` equal to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
   - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
-  - SHOULD set `flen` to the minimum length required to hold the `features`
+  - MUST set `flen` to the minimum length required to hold the `features`
   bits it sets.
   - SHOULD not announce a Tor v2 onion service.
   - MUST NOT announce more than one `type 5` DNS hostname.
@@ -370,6 +373,11 @@ any future fields appended to the end):
     - Unless paying a [BOLT #11](11-payment-encoding.md) invoice which does not
       have the same bit(s) set, MUST NOT attempt to send payments _to_ the node.
     - MUST NOT route a payment _through_ the node.
+  - if `features` is NOT minimally-encoded:
+    - MUST ignore the message.
+  - if `alias` is NOT a valid UTF-8 string as defined in
+  [Bolt #1](01-messaging.md#unicode-characters-validation):
+    - MUST ignore the message.
   - SHOULD ignore the first `address descriptor` that does NOT match the types
   defined above.
   - if `addrlen` is insufficient to hold the address descriptors of the
@@ -423,6 +431,52 @@ engines that support SQL or other dynamically interpreted querying languages.
 * [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
 
 Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
+
+### Test vectors
+
+The following test vectors are `node_announcement`s with aliases that contain
+illegal unicode characters. Implementations MUST ignore these announcements.
+
+The signature was created with the following private key:
+
+```code
+priv=0x1111111111111111111111111111111111111111111111111111111111111111
+```
+
+```json
+[
+  {
+    "name": "Alias containing a NULL (Cc) character",
+    "alias": "lightning\u0000rocks",
+    "announcement": "01013a3f3d28c538ae96c5c032e534fedea3e452261ebaea82952456c2a9f7477e7151575ce7e36f2f5b38bb27210c8fbdc72dcd92a99b3df47536ad61d8699cbb1c000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e6700726f636b7300000000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a DEL (Cc) character",
+    "alias": "lightning\u007frocks",
+    "announcement": "01011ac8fe92da793fe0b1472616b6cb4346e746fe72d68c1865f79a5bc6ad371e824ce9c91b83b23a5a65eb6c6e07cd4bd84bec6892958d969559b6059424ac2894000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e677f726f636b7300000000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a zero-width space (Cf)",
+    "alias": "lightning\u200brocks",
+    "announcement": "0101eb387795f9b453da150cd16b683595ecacc94f6b41d74e1908eef1b8782a6e606e8b9e073ba4fc7eccef5d450faa52e99582db9c620df3fa6f33598220a3b886000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67e2808b726f636b730000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a private use character (Co)",
+    "alias": "lightning\ue000rocks",
+    "announcement": "0101f3575e38f455655b2e54ea4df8b1745c13938db744d6607fc142cf5be2ce619326ffa6a3f48ac764c7d3d20055fc855f515b77b74c26451862732a8a1f39da1f000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67ee8080726f636b730000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a line separator (Zl)",
+    "alias": "lightning\u2028rocks",
+    "announcement": "0101e7965f97f2e32a81eff5f58936b1d201b3c62f33c67d383ecf5b7cdba062fd0f6357d2914084953042ec18f30ae37cf3a65ac2a5839337b53004043398c7d88a000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67e280a8726f636b730000000000000000000000000000000000"
+  },
+  {
+    "name": "Alias containing a paragraph separator (Zp)",
+    "alias": "lightning\u2029rocks",
+    "announcement": "0101911380dd0f32972e3d4cf79973b8d857966069538517e93bf9a543ed540763037195800c1f33b45ed908dbe45b66e08941ea61c6e9247a2d03e459ea5127f761000067b64b00034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa0102036c696768746e696e67e280a9726f636b730000000000000000000000000000000000"
+  }
+]
+```
 
 ## The `channel_update` Message
 
