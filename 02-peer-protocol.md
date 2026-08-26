@@ -213,6 +213,11 @@ This message contains a transaction input.
    1. type: 0 (`shared_input_txid`)
    2. data:
      * [`sha256`:`funding_txid`]
+   1. type: 2 (`prevtx_details`)
+   2. data:
+     * [`sha256`:`prevtx_txid`]
+     * [`u64`:`amount_satoshis`]
+     * [`...*byte`:`scriptpubkey`]
 
 #### Requirements
 
@@ -221,6 +226,9 @@ The sending node:
   - MUST use a unique `serial_id` for each input currently added to the
     transaction
   - MUST set `sequence` to be less than or equal to 4294967293 (`0xFFFFFFFD`)
+  - If the transaction splices an existing taproot channel or only uses taproot inputs:
+    - MAY omit `prevtx` (and set `prevtx_len` to `0`) and provide the amount and script
+      of the output being spent in `prevtx_details` instead
   - MUST NOT re-transmit inputs it has received from the peer
   - if is the *initiator*:
     - MUST send even `serial_id`s
@@ -232,10 +240,16 @@ The receiving node:
   - MUST fail the negotiation if:
     - `sequence` is set to `0xFFFFFFFE` or `0xFFFFFFFF`
     - if `prevtx_len` is `0`:
-      - `shared_input_txid` is not set
-      - `shared_input_txid` and `prevtx_vout` don't match the previous funding output
-      - a previously added (and not removed) input already exists with `shared_input_txid` set
+      - `shared_input_txid` is not set and `prevtx_details` is not set either
+      - if `shared_input_txid` is set:
+        - `shared_input_txid` and `prevtx_vout` don't match the previous funding output
+        - a previously added (and not removed) input already exists with `shared_input_txid` set
+      - if `prevtx_details` is set:
+        - `prevtx_details` and `prevtx_vout` are identical to a previously added (and not removed) input
+        - the `scriptpubKey` in `prevtx_details` is not exactly a 1-byte push opcode (for the numeric
+          values `1` to `16`) followed by a data push between 2 and 40 bytes
     - if `prevtx_len` is not `0`:
+      - `prevtx_details` is also set
       - `prevtx` and `prevtx_vout` are identical to a previously added (and not removed) input
       - `prevtx` is not a valid transaction
       - `prevtx_vout` is greater or equal to the number of outputs on `prevtx`
@@ -256,7 +270,9 @@ Inputs in the constructed transaction MUST be sorted by `serial_id`.
 `prevtx` is the serialized transaction that contains the output this input
 spends, used to verify that the input is non-malleable. It can be ommitted
 (`prevtx_len` set to `0`) when both peers already know that the input is
-non-malleable (e.g. when it is the previous funding output).
+non-malleable (e.g. when it is the previous funding output or when both
+participants sign a taproot input). Ommitting this field allows spending
+transactions that exceed 65kB and saves bandwidth.
 
 `prevtx_vout` is the index of the output being spent.
 
@@ -373,6 +389,16 @@ contributions.
 2. data:
     * [`channel_id`:`channel_id`]
 
+1. `tlv_stream`: `tx_complete_tlvs`
+2. types:
+   1. type: 4 (`commit_nonces`)
+   2. data:
+     * [`66*byte`: `current_local_commit_nonce`]
+     * [`66*byte`: `next_local_commit_nonce`]
+   1. type: 6 (`funding_nonce`)
+   2. data:
+     * [`66*byte`: `local_funding_nonce`]
+
 #### Requirements
 
 The nodes:
@@ -390,6 +416,8 @@ The receiving node:
       - the *initiator*'s fees do not cover the `common` fields
     - there are more than 252 inputs
     - there are more than 252 outputs
+    - there are inputs that use `prevtx_details` instead of providing the
+      whole `prevtx` but some inputs are not taproot inputs
     - the estimated weight of the tx is greater than 400,000 (`MAX_STANDARD_TX_WEIGHT`)
 
 #### Rationale
@@ -404,6 +432,9 @@ For the `minimum fee` calculation see [BOLT #3](03-transactions.md#calculating-f
 
 The maximum inputs and outputs are capped at 252. This effectively fixes
 the byte size of the input and output counts on the transaction to one (1).
+
+Using `prevtx_details` instead of providing the whole `prevtx` is restricted
+to taproot inputs, otherwise the transaction can be malleated.
 
 ### The `tx_signatures` Message
 
@@ -425,6 +456,9 @@ the byte size of the input and output counts on the transaction to one (1).
    1. type: 0 (`shared_input_signature`)
    2. data:
      * [`signature`:`signature`]
+   1. type: 2 (`shared_input_partial_signature`)
+   2. data:
+     * [`98*byte`: `partial_signature || public_nonce`]
 
 #### Requirements
 
@@ -1807,6 +1841,14 @@ output to the transaction and paying the fees for its weight.
 
 ##### Requirements
 
+The sending node:
+  - When splicing a taproot channel:
+    - MUST include a random musig2 nonce that will be used for their
+      partial signature of the previous channel output in `funding_nonce`.
+    - MUST include `commit_nonces`, which contains their verification
+      nonce for the current and next commitment transactions spending
+      the interactive transaction being constructed.
+
 The receiving node:
   - MUST compute the channel balance for each side by adding their respective
     `funding_contribution_satoshis` to their previous channel balance.
@@ -1814,6 +1856,8 @@ The receiving node:
     - There is not exactly one input spending the current funding transaction.
     - There is not exactly one channel funding output using the funding public
       keys and funding contributions from `splice_init` and `splice_ack`.
+    - The transaction is splicing a taproot channel and `commit_nonces` or
+      `funding_nonce` is missing.
     - This is an RBF attempt and the transaction's total fees is less than
       the last successfully negotiated splice transaction's fees.
     - Either side has added an output other than the channel funding output
@@ -1874,16 +1918,28 @@ exchange if a disconnection happens.
 ##### Requirements
 
 The sending node:
-  - MUST set `shared_input_signature` to a valid ECDSA signature for the
-    `tx_add_input` spending the previous channel funding output using the
-    `funding_pubkey` that matches this input.
+  - When splicing a taproot channel:
+    - MUST set `shared_input_partial_signature` to a valid musig2 partial
+      signature for the `tx_add_input` spending the previous channel funding
+      output using the `funding_nonce`s exchanged in `tx_complete`.
+  - Otherwise:
+    - MUST set `shared_input_signature` to a valid ECDSA signature for the
+      `tx_add_input` spending the previous channel funding output using the
+      `funding_pubkey` that matches this input.
 
 The receiving node:
-  - If `shared_input_signature` is not set:
-    - MUST send an `error` and fail the channel.
-  - If `shared_input_signature` is not valid or non-compliant with the
-    LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
-    - MUST send an `error` and fail the channel.
+  - When splicing a taproot channel:
+    - If `shared_input_partial_signature` is not set:
+      - MUST send an `error` and fail the channel.
+    - If `shared_input_partial_signature` is not a valid partial signature
+      using the `funding_nonce`s exchanged in `tx_complete`:
+      - MUST send an `error` and fail the channel.
+  - Otherwise:
+    - If `shared_input_signature` is not set:
+      - MUST send an `error` and fail the channel.
+    - If `shared_input_signature` is not valid or non-compliant with the
+      LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+      - MUST send an `error` and fail the channel.
   - MUST consider the channel no longer quiescent.
 
 On reconnection:
@@ -3389,6 +3445,9 @@ messages are), they are independent of requirements here.
     2. data:
         * [`sha256`:`my_current_funding_locked_txid`]
         * [`byte`:`retransmit_flags`]
+    1. type: 24 (`current_commit_nonce`)
+    2. data:
+        * [`66*byte`: `current_local_commit_nonce`]
 
 `next_commitment_number`: A commitment number is a 48-bit
 incrementing counter for each commitment transaction; counters
@@ -3462,6 +3521,8 @@ The sending node:
     - MUST set `next_funding_txid` to the txid of that interactive transaction.
     - if it has not received `commitment_signed` for this `next_funding_txid`:
       - MUST set the `commitment_signed` bit in `retransmit_flags`.
+      - If this is a taproot channel:
+        - MUST include its verification nonce in `current_commit_nonce`.
   - otherwise:
     - MUST NOT include the `next_funding` TLV.
   - if `option_splice` was negotiated:
@@ -3533,6 +3594,8 @@ A receiving node:
       - if it has not received `tx_signatures` for that funding transaction:
         - if the `commitment_signed` bit is set in `retransmit_flags`:
           - MUST retransmit its `commitment_signed` for that funding transaction.
+          - If this is a taproot channel:
+            - MUST use the `current_commit_nonce` provided.
         - if it has already received `commitment_signed` and it should sign first,
           as specified in the [`tx_signatures` requirements](#the-tx_signatures-message):
           - MUST send its `tx_signatures` for that funding transaction.
