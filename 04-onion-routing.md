@@ -1138,9 +1138,6 @@ which is in turn applied to the `attribution_data` field using `XOR`.
 The _erring node_:
   - MUST construct the return packet such that its total length is no more than 32768 bytes (32 KiB).
   - MUST set `pad` such that the `failure_len` plus `pad_len` is at least 256.
-  - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to
-    256. Deviating from this may cause older nodes to be unable to parse the
-    return message.
   - if `option_attribution_data` is advertised:
     - if `path_key` is not set in the incoming `update_add_htlc`:
       - MUST initialize `attribution_data` and include it in `update_fail_htlc`
@@ -1672,7 +1669,7 @@ The _final node_:
   - if it includes a `fulfillment_payload`:
     - MUST ensure the `fulfillment_payload` is no more than 32768 bytes (32 KiB)
     - MUST set `fulfillment_payload_tlvs` to a serialized TLV stream
-    - MUST pad with `padding` such that the serialized `fulfillment_payload_tlvs` stream is at least 256 bytes and a
+    - MUST pad with `padding` if and only if needed for the serialized `fulfillment_payload_tlvs` stream to be at least 256 bytes and a
       multiple of 256 bytes, excluding the 16-byte Poly1305 tag. The size calculation includes the type and length
       bytes of the `padding` record; this can require padding to the next multiple of 256 bytes
     - SHOULD pad such that the serialized `fulfillment_payload_tlvs` stream is exactly 256 bytes if possible
