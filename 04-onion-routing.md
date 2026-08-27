@@ -337,8 +337,8 @@ The reader:
         - incoming `amount_msat` - `fee` < `amt_to_forward` (where `fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
         - `cltv_expiry` - `cltv_expiry_delta` < `outgoing_cltv_value`
   - If it is the final node:
-    - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it is not present.
     - MUST return an error if:
+      - `total_msat` is not present
       - incoming `amount_msat` < `amt_to_forward`.
       - incoming `cltv_expiry` < `outgoing_cltv_value`.
       - incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
