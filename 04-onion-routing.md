@@ -1138,9 +1138,6 @@ which is in turn applied to the `attribution_data` field using `XOR`.
 The _erring node_:
   - MUST construct the return packet such that its total length is no more than 32768 bytes (32 KiB).
   - MUST set `pad` such that the `failure_len` plus `pad_len` is at least 256.
-  - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to
-    256. Deviating from this may cause older nodes to be unable to parse the
-    return message.
   - if `option_attribution_data` is advertised:
     - if `path_key` is not set in the incoming `update_add_htlc`:
       - MUST initialize `attribution_data` and include it in `update_fail_htlc`
