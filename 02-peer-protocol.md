@@ -1852,6 +1852,9 @@ adds a massive amount to the channel, then you only have to add more reserve if
 you want to contribute to the splice (and you can use `tx_remove_output` and/or
 `tx_remove_input` part-way through if this happens).
 
+Note that if the channel reserve was set to `0` with `option_zero_reserve`, it
+stays `0` after the splice.
+
 #### The `commitment_signed` Message
 
 After exchanging `tx_complete`, both peers send `commitment_signed` to commit
