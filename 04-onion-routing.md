@@ -538,6 +538,10 @@ When processing a `trampoline_onion_packet`, a receiving node:
   - If it is not the final node:
     - If the incoming payment is a multi-part payment:
       - MUST wait to receive all the payment parts before forwarding.
+    - If the outer onion's `outgoing_cltv_value` is smaller than the trampoline onion's `outgoing_cltv_value`:
+      - MUST reject the payment.
+    - If the outer onion's `total_msat` is smaller than the trampoline onion's `amt_to_forward`:
+      - MUST reject the payment.
     - If `encrypted_recipient_data` is included:
       - If `current_path_key` is not set in the trampoline onion or the outer onion:
         - MUST reject the payment.
@@ -558,10 +562,7 @@ When processing a `trampoline_onion_packet`, a receiving node:
   - If it is the final node:
     - MUST reject the payment if:
       - The outer onion's `outgoing_cltv_value` is smaller than the trampoline onion's `outgoing_cltv_value`.
-      - If this is a multi-part payment:
-        - The outer onion's `total_msat` is smaller than the trampoline onion's `amt_to_forward`.
-      - Otherwise:
-        - The outer onion's `amt_to_forward` is smaller than the trampoline onion's `amt_to_forward`.
+      - The outer onion's `total_msat` is smaller than the trampoline onion's `amt_to_forward`.
 
 ## Route Blinding
 
