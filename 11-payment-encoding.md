@@ -211,6 +211,7 @@ A writer:
 A reader:
   - MUST skip over `f` fields that use an unknown `version`.
   - MUST fail the payment if any field with fixed `data_length` (`p`, `h`, `s`, `n`) does not have the correct length (52, 52, 52, 53).
+  - MUST fail the payment if more than one `p` field is present.
   - MUST fail the payment if neither a `d` field nor a `h` field is present, or if both are present.
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
@@ -251,6 +252,9 @@ probably be transport dependent.
 
 The `m` field allows metadata to be attached to the payment. This supports
 applications where the recipient doesn't keep any context for the payment.
+
+Rejecting invoices with multiple `p` fields prevents different components from
+selecting different payment hashes from the same signed invoice.
 
 The `n` field can be used to explicitly specify the destination node ID,
 instead of requiring public-key recovery.
@@ -352,7 +356,7 @@ A payer:
       understands for payment.
   - MAY use the sequence of channels, specified by the `r` field, to route to the payee.
   - SHOULD consider the fee amount and payment timeout before initiating payment.
-  - SHOULD use the first `p` field as the payment hash.
+  - MUST use the `p` field as the payment hash.
 
 A payee:
   - after the `timestamp` plus `expiry` has passed:
