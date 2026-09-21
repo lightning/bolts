@@ -126,8 +126,18 @@ digital signatures based off of the schnorr signature scheme described in [BIP
 A `taproot_output_key` commits to an internal key, and optional script root via
 the following mapping:
 ```
-taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", taproot_internal_key || script_root)*G
+taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", x_only(taproot_internal_key) || script_root)*G
 ```
+
+where `x_only(P)` denotes the 32-byte BIP 340 serialization of the point `P`,
+which is its 33-byte compressed encoding with the leading parity byte dropped.
+
+Wherever a key is used as a `taproot_internal_key` in this document, whether as
+an input to `tagged_hash("TapTweak", ...)` or within a control block, it is the
+`x_only` serialization that is used, even where that same key is written in its
+33-byte compressed form elsewhere. BIP 341 always interprets an internal key as
+the point with the even y-coordinate, so the parity of an internal key is never
+committed to.
 
 It's important to note that while `taproot_output_key` is serialized as a
 32-byte public key, in order to properly spend the script path, the parity
@@ -188,7 +198,7 @@ script path.
 defines a taproot output key derivation scheme, wherein only the internal key
 is committed to without a script root:
 ```
-taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", taproot_internal_key)*G
+taproot_output_key = taproot_internal_key + tagged_hash("TapTweak", x_only(taproot_internal_key))*G
 ```
 
 We use BIP 86 whenever we want to ensure that a script path spend isn't
@@ -226,15 +236,17 @@ revealed, and the valid witness.
 
 A control block has the following serialization:
 ```
-(output_key_y_parity | leaf_version) || internal_key || inclusion_proof
+(output_key_y_parity | leaf_version) || x_only(internal_key) || inclusion_proof
 ```
 
 The first segment uses a spare bit of the `leaf_version` to encode the parity
 of the output key, which is checked during control block verification. The
-`internal_key` is just that. The `inclusion_proof` is the series of sibling
-hashes in the path from the revealed leaf all the way up to the root of the
-tree. In practice, if one hashes the revealed leaf, and each 32-byte hash of the
-inclusion proof together, they'll reach the script root if the proof was valid.
+`internal_key` is just that, serialized as the 32-byte x-only key that was
+committed to by the `tagged_hash("TapTweak", ...)`. The `inclusion_proof` is
+the series of sibling hashes in the path from the revealed leaf all the way up
+to the root of the tree. In practice, if one hashes the revealed leaf, and each
+32-byte hash of the inclusion proof together, they'll reach the script root if
+the proof was valid.
 
 If only a single leaf is committed to in a tree, then the `inclusion_proof`
 will be absent.
@@ -283,8 +295,8 @@ Steps 1&2 may be performed out of order, or concurrently. In our case only two
 parties exist, so as soon as one party knows both partial signatures, they can
 be combined into a final signature.
 
-Thought this document `musig2` refers to the finalized (v1.0.0)
-[BIP-0327](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki
+Throughout this document `musig2` refers to the finalized (v1.0.0)
+[BIP-0327](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki)
 specification.
 
 #### Key Aggregation
@@ -297,7 +309,16 @@ aggregating (`KeyAgg(KeySort(p1, p2))`).
 
 #### Nonce Generation
 
-A `musig2` secret nonce is the concatenation of two random, 32-byte integers.
+A `musig2` secret nonce is the 97-byte value produced by `NonceGen`: the
+concatenation of two random, 32-byte integers, followed by the 33-byte
+compressed public key of the signer that generated it:
+
+```
+k_1 || k_2 || pubkey
+```
+
+The trailing public key is not secret, it is carried so that `Sign` can check
+that the secret nonce is being used with the key it was generated for.
 
 A `musig2` public nonce is technically the concatenation of two public keys,
 each representing the EC-point corresponding to its secret integer, thus
@@ -363,8 +384,8 @@ reproduced:
      `shachain_root_hash = sha256(shachain_root)`.
 
   2. Derive a _new_ shachain root to be used to generate `musig2` secret nonces
-     via a `HMAC` invocation as: `musig2_shachain_root = hmac(msg,
-     shachain_root_hash)`, where `msg` is any string that can serve to uniquely
+     via a `HMAC` invocation as: `musig2_shachain_root = hmac(key = tag, msg =
+     shachain_root_hash)`, where `tag` is any string that can serve to uniquely
      bind the produced secret to this dedicated context. A recommended value is
      the ASCII string `taproot-rev-root` concatenated with the `funding_txid`
      (which allows deriving distinct deterministic shachains when splicing).
@@ -455,14 +476,23 @@ point that no one knows the private key to. If no one knows the private key,
 then it can't be used for key path signing, forcing the script path to always
 be taken.
 
-We refer to the `simple_taproot_nums` as the following value:
+We refer to the `simple_taproot_nums` point as the following value, in its
+33-byte compressed form:
 ```
-02dca094751109d0bd055d03565874e8276dd53e926b44e3bd1bb6bf4bc130a279
+simple_taproot_nums = 02dca094751109d0bd055d03565874e8276dd53e926b44e3bd1bb6bf4bc130a279
 ```
 
 The value was [generated using this
 tool](https://github.com/lightninglabs/lightning-node-connect/tree/master/mailbox/numsgen),
 with the seed phrase "Lightning Simple Taproot".
+
+The point is only ever used as a `taproot_internal_key`, so as described in
+[Pay-To-Taproot-Outputs](#pay-to-taproot-outputs) it is consumed in its x-only
+serialization, both in control blocks and in `tagged_hash("TapTweak", ...)`
+computations:
+```
+x_only(simple_taproot_nums) = dca094751109d0bd055d03565874e8276dd53e926b44e3bd1bb6bf4bc130a279
+```
 
 ## Design Overview
 
@@ -480,8 +510,9 @@ The local output of the commitment transaction uses a script-path based
 revocation scheme in order to ensure that the information needed by 3rd parties
 to sweep the anchor outputs is always revealed on chain.
 
-The remote output of the commitment transaction uses the `combined_funding_key`
-as the top-level internal key, and then commits to a normal remote script.
+The remote output of the commitment transaction uses the `simple_taproot_nums`
+point as the top-level internal key, and then commits to a normal remote
+script.
 
 Anchor outputs use the `local_delayedpubkey` and the `remotepubkey` of both
 parties as the top-level internal key committing to the script `16 CSV`. Unless
@@ -534,7 +565,10 @@ negotiated, and also the `option_simple_taproot` channel type is used.
 
 ### New TLV Types
 
-Note that these TLV types exist across different messages, but their type IDs are always the same.
+Note that these TLV types exist across different messages, but their type IDs
+are always the same. The one exception is type `22`, whose payload depends on
+the message it appears in: `next_local_nonces` in `revoke_and_ack` and
+`channel_reestablish`, and `next_closee_nonce` in `closing_sig`.
 
 #### partial_signature_with_nonce
 - type: 2
@@ -558,12 +592,17 @@ Note that these TLV types exist across different messages, but their type IDs ar
    * [`66*byte`: `public_nonce`]
 
 #### next_local_nonces
-- type: 22
+- type: 22 (in `revoke_and_ack` and `channel_reestablish`)
 - data:
    * [`...*nonce_entry`: `entries`]
 
 where `nonce_entry` is:
    * [`32*byte`: `funding_txid`]
+   * [`66*byte`: `public_nonce`]
+
+#### next_closee_nonce
+- type: 22 (in `closing_sig`)
+- data:
    * [`66*byte`: `public_nonce`]
 
 ### Channel Funding
@@ -789,8 +828,9 @@ Additional nonces are provided just-in-time (JIT) with signatures:
 - `closing_complete` uses `PartialSigWithNonce` which includes the sender's
 closer nonce
 
-- `closing_sig` uses just `PartialSig` (no nonce) since the receiver already
-knows the nonce
+- `closing_sig` uses `PartialSig` plus a separate `next_closee_nonce`: the
+signature itself carries no nonce, since the receiver already knows the closee
+nonce in use
 
 ##### Requirements
 
@@ -1027,10 +1067,18 @@ The sender:
   
   - MUST compute each HTLC signature according to
     [BIP 342](https://github.com/bitcoin/bips/blob/master/bip-0342.mediawiki), as
-    a BIP 340 Schnorr signature (non-partial).
+    a BIP 340 Schnorr signature (non-partial) over the second level
+    transaction that spends the corresponding HTLC output, using the
+    `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` sighash type (`0x83`).
 
     - Each HTLC signature must be packed as a 64-byte byte value within the
-      existing `htlc_signature` field.
+      existing `htlc_signature` field: only the `r` and `s` components are
+      sent, and the sighash byte is omitted.
+
+    - As BIP 342 requires a 65-byte signature for any sighash type other than
+      `SIGHASH_DEFAULT`, the recipient MUST append the `0x83` sighash byte to
+      the received 64 bytes when assembling the witness of the second level
+      transaction.
 
 
 The recipient:
@@ -1181,7 +1229,7 @@ The resulting funding output script takes the form:
 
 where:
 
-  * `funding_key = combined_funding_key + tagged_hash("TapTweak", combined_funding_key)*G`
+  * `funding_key = combined_funding_key + tagged_hash("TapTweak", x_only(combined_funding_key))*G`
   * `combined_funding_key = musig2.KeyAgg(musig2.KeySort(pubkey1, pubkey2))`
 
 The funding key is derived via the recommendation in BIP 341 that states: "If
@@ -1211,12 +1259,13 @@ The new output has the following form:
 
   * `OP_1 to_local_output_key`
   * where:
-    * `to_local_output_key = taproot_nums_point + tagged_hash("TapTweak", taproot_nums_point || to_delay_script_root)*G`
+    * `to_local_output_key = simple_taproot_nums + tagged_hash("TapTweak", x_only(simple_taproot_nums) || to_delay_script_root)*G`
     * `to_delay_script_root = tapscript_root([to_delay_script, revoke_script])`
     * `to_delay_script` is the delay script:
         ```
         <local_delayedpubkey> OP_CHECKSIGVERIFY
         <to_self_delay> OP_CHECKSEQUENCEVERIFY
+        ```
     * `revoke_script` is the revoke script:
         ```
         <local_delayedpubkey> OP_DROP
@@ -1229,11 +1278,10 @@ The parity (even or odd) of the y-coordinate of the derived
 The `tapscript_root` routine constructs a valid taproot commitment according to
 BIP 341+342. Namely, a leaf version of `0xc0` MUST be used. 
 
-In the case of a commitment breach, the `to_delay_script_root` can be used
-along side `<revocationpubkey>` to derive the private key needed to sweep the
-top-level key spend path. The control block can be crafted as such:
+In the case of a commitment breach, the output is swept via the `revoke_script`
+path, using the `<revocationpubkey>`. The control block can be crafted as such:
 ```
-revoke_control_block = (output_key_y_parity | 0xc0) || taproot_nums_point || revoke_script
+revoke_control_block = (output_key_y_parity | 0xc0) || x_only(simple_taproot_nums) || tap_leaf(to_delay_script)
 ```
 
 A valid witness is then:
@@ -1242,11 +1290,12 @@ A valid witness is then:
 ```
 
 In the case of a routine force close, the script path must be revealed so the
-broadcaster can sweep their funds after a delay. The control block to spend is
-only `33` bytes, as it just includes the internal key (along with the y-parity
-bit and leaf version):
-``` 
-delay_control_block = (output_key_y_parity | 0xc0) || taproot_nums-point || to_delay_srcipt
+broadcaster can sweep their funds after a delay. As with the breach case, the
+control block is `65` bytes: the y-parity bit and leaf version, the internal
+key, and the `inclusion_proof`, which is simply the `tap_leaf` hash of the path
+_not_ taken:
+```
+delay_control_block = (output_key_y_parity | 0xc0) || x_only(simple_taproot_nums) || tap_leaf(revoke_script)
 ```
 
 A valid witness is then:
@@ -1272,8 +1321,7 @@ The `to_remote` output has the following form:
 
   * `OP_1 to_remote_output_key`
   * where:
-    * `taproot_nums_point = 0245b18183a06ee58228f07d9716f0f121cd194e4d924b037522503a7160432f15`
-    * `to_remote_output_key = taproot_nums_point + tagged_hash("TapTweak", taproot_nums_point || to_remote_script_root)*G`
+    * `to_remote_output_key = simple_taproot_nums + tagged_hash("TapTweak", x_only(simple_taproot_nums) || to_remote_script_root)*G`
     * `to_remote_script_root = tapscript_root([to_remote_script])`
     * `to_remote_script` is the remote script:
         ```
@@ -1288,7 +1336,7 @@ This output can be swept by the remote party with the following witness:
 
 where `to_remote_control_block` is:
 ```
-(output_key_y_parity | 0xc0) || combined_funding_key
+(output_key_y_parity | 0xc0) || x_only(simple_taproot_nums)
 ```
 
 The `sequence` field of the input MUST also be set to `1`. 
@@ -1305,21 +1353,29 @@ An anchor output has the following form:
   * `OP_1 anchor_output_key`
   * where:
     * `anchor_internal_key = remotepubkey/local_delayedpubkey`
-    * `anchor_output_key = anchor_internal_key + tagged_hash("TapTweak", anchor_internal_key || anchor_script_root)`
+    * `anchor_output_key = anchor_internal_key + tagged_hash("TapTweak", x_only(anchor_internal_key) || anchor_script_root)*G`
     * `anchor_script_root = tapscript_root([anchor_script])`
     * `anchor_script`:
         ```
         OP_16 OP_CHECKSEQUENCEVERIFY
         ```
 
-This output can be swept by anyone after 16 blocks with the following witness:
+Unlike the `to_local` and `to_remote` outputs, the internal key here is a real
+key rather than a NUMS point. The owner of `anchor_internal_key` can therefore
+sweep the output immediately via the key path, with the witness:
+```
+<anchor_sig>
+```
+
+The output can also be swept by anyone after 16 blocks via the script path,
+with the following witness:
 ```
 <anchor_script> <anchor_control_block>
 ```
 
 where `anchor_control_block` is:
 ```
-(output_key_y_parity | 0xc0) || anchor_internal_key
+(output_key_y_parity | 0xc0) || x_only(anchor_internal_key)
 ```
 
 `nSequence` needs to be set to 16.
@@ -1336,7 +1392,7 @@ An offered HTLC has the following form:
 
   * `OP_1 offered_htlc_key`
   * where:
-    * `offered_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
+    * `offered_htlc_key = revocation_pubkey + tagged_hash("TapTweak", x_only(revocation_pubkey) || htlc_script_root)*G`
     * `htlc_script_root = tapscript_root([htlc_timeout, htlc_success])`
     * `htlc_timeout`:
         ```
@@ -1360,7 +1416,7 @@ Accepted HTLCs inherit a similar format:
 
   * `OP_1 accepted_htlc_key`
   * where:
-    * `accepted_htlc_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
+    * `accepted_htlc_key = revocation_pubkey + tagged_hash("TapTweak", x_only(revocation_pubkey) || htlc_script_root)*G`
     * `htlc_script_root = tapscript_root([htlc_timeout, htlc_success])`
     * `htlc_timeout`:
         ```
@@ -1396,6 +1452,14 @@ the `SIGHASH_SINGLE|SIGHASH_ANYONECANPAY` flag. These transactions always have
 _zero_ fees attached, forcing them to be aggregated with each other and a
 change input.
 
+Per BIP 341, `SIGHASH_ANYONECANPAY` commits only to the signed input, which
+includes that input's `nSequence`, and `SIGHASH_SINGLE` commits to the output
+at _the same index as the signed input_. As a result, when these transactions
+are aggregated with each other and with a change input, each HTLC input MUST
+keep the index of its own HTLC output. Any additional input, such as the fee
+bumping input, MUST therefore be placed at an index beyond the last HTLC
+output.
+
 ##### HTLC-Success Transactions
 
 A HTLC-Success transaction has the following structure:
@@ -1412,9 +1476,10 @@ A HTLC-Success transaction has the following structure:
     * script:
       * OP_1 htlc_success_key
       * where:
-        * `htlc_success_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
-        * `htlc_script_root = tapscript_root([htlc_success])`
-        * `htlc_success`:
+        * `htlc_success_key = revocation_pubkey + tagged_hash("TapTweak", x_only(revocation_pubkey) || htlc_script_root)*G`
+        * `htlc_script_root = tapscript_root([to_delay_script])`
+        * `to_delay_script` is the same delay script used by the `to_local`
+          output:
         ```
         <local_delayedpubkey> OP_CHECKSIGVERIFY
         <to_self_delay> OP_CHECKSEQUENCEVERIFY
@@ -1436,9 +1501,10 @@ A HTLC-Timeout transaction has the following structure:
     * script:
       * OP_1 htlc_timeout_key
       * where:
-        * `htlc_timeout_key = revocation_pubkey + tagged_hash("TapTweak", revocation_pubkey || htlc_script_root)`
-        * `htlc_script_root = tapscript_root([htlc_timeout])`
-        * `htlc_timeout`:
+        * `htlc_timeout_key = revocation_pubkey + tagged_hash("TapTweak", x_only(revocation_pubkey) || htlc_script_root)*G`
+        * `htlc_script_root = tapscript_root([to_delay_script])`
+        * `to_delay_script` is the same delay script used by the `to_local`
+          output:
         ```
         <local_delayedpubkey> OP_CHECKSIGVERIFY
         <to_self_delay> OP_CHECKSEQUENCEVERIFY
@@ -1453,10 +1519,12 @@ A HTLC-Timeout transaction has the following structure:
 All test vectors are derived deterministically from a single 32-byte seed:
 `000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f`. Private
 keys are produced via `SHA256(seed || label)` where `label` is a fixed ASCII
-string for each key (e.g. `"local-funding"`, `"remote-funding"`, etc.). The
-per-commitment point is derived by computing `SHA256(seed ||
-"local-per-commit-secret")` and using the result as the per-commitment secret
-scalar, then multiplying by the generator to obtain the per-commitment point.
+string for each key (e.g. `"local-funding"`, `"remote-funding"`, etc.). Each
+per-commitment point is derived the same way: `SHA256(seed ||
+"local-per-commit-secret")` for the local commitment and `SHA256(seed ||
+"remote-per-commit-secret")` for the remote one give the per-commitment secret
+scalar, which is multiplied by the generator to obtain the per-commitment
+point.
 
 The vectors cover two areas:
 
@@ -1465,6 +1533,24 @@ The vectors cover two areas:
    local and remote commits, and second-level HTLC transactions). Each entry
    includes the raw leaf scripts, leaf hashes, tapscript root, internal key,
    output key, and the resulting `pkScript`.
+
+   Every public key in the vectors, including `internal_key`, `output_key` and
+   `params.nums_point`, is given in its 33-byte compressed form. The taproot
+   computations consume the 32-byte x-only form: strip the leading parity byte
+   before feeding an `internal_key` to `tagged_hash("TapTweak", ...)` or to a
+   control block. The leading byte of `output_key` is retained precisely
+   because that parity is what the control block encodes.
+
+   The `*_local_commit` and `*_remote_commit` HTLC entries use different key
+   sets, since a commitment's keys are derived from the holder's
+   per-commitment point and the _counterparty's_ revocation basepoint. The
+   `*_local_commit` entries use `local_per_commit_point` with
+   `remote_revocation_basepoint`; the `*_remote_commit` entries use
+   `remote_per_commit_point` with `local_revocation_basepoint`, and are listed
+   in `params.keys` under the `remote_commit_` prefix. The roles of the two
+   HTLC keys also swap: an HTLC we offer is an offered HTLC on our commitment
+   and an accepted HTLC on theirs, so `<local_htlcpubkey>` in the script
+   templates above refers to the commitment holder's HTLC key.
 
 2. **Transaction vectors**: full serialized commitment transactions and their
    HTLC resolution transactions for three scenarios — a simple commitment with
@@ -1488,9 +1574,11 @@ private key:
 | `remote_payment_basepoint_secret` | `"remote-payment-basepoint"` |
 | `local_delayed_payment_basepoint_secret` | `"local-delayed-payment-basepoint"` |
 | `remote_revocation_basepoint_secret` | `"remote-revocation-basepoint"` |
+| `local_revocation_basepoint_secret` | `"local-revocation-basepoint"` |
 | `local_htlc_basepoint_secret` | `"local-htlc-basepoint"` |
 | `remote_htlc_basepoint_secret` | `"remote-htlc-basepoint"` |
 | `local_per_commit_secret` | `"local-per-commit-secret"` |
+| `remote_per_commit_secret` | `"remote-per-commit-secret"` |
 
 ### MuSig2 Nonce Generation
 
@@ -1611,23 +1699,31 @@ derivation method described above and verify that all intermediate values
       "local_delayed_payment_basepoint": "02ae68d8ff4c59864c03a42bbff6c07f9ae18047e0daa9bc40d07c410f9a0f7899",
       "remote_revocation_basepoint_secret": "36c4175b91cff9731a63d1472b5b1c4cf3e7b688e87d5fb806b2e8350484e68d",
       "remote_revocation_basepoint": "02c354121ef71922b5cb32fa685c08ac0014b558f96e28f383c45eb28b7da264c3",
+      "local_revocation_basepoint_secret": "23cf84216f3544a1434f8e8aa5a29f29b8774d4149f470802914c1c2517314e8",
+      "local_revocation_basepoint": "02541f962a12e44040a1eb2366fb1351575da51e55869c277091cab73e9279cfba",
       "local_htlc_basepoint_secret": "786eb5024e4851bea3ddc6e40036c81b1efcf50eeed440eedefe5245bde6fc14",
       "local_htlc_basepoint": "033ce88bf3c8333e242996964ac91ee7cd945bfe4c49668ea10f3211f3d418fbc8",
       "remote_htlc_basepoint_secret": "51c9b6cf8279def85e3925bc8f16fc0ff100ee7b03ce7c954149ca29c834b684",
       "remote_htlc_basepoint": "02932dfbf6737001e3c516696ae3dcd323fd91a01ce7898f7f91ab98eebacc323e",
       "local_per_commit_secret": "037b507180b3985cea6396d6a70987cea11ccd05fde49e943a3ea0fe56ee33ed",
       "local_per_commit_point": "02a0f5a09017c1dec2d30dd54a25dc4037fc5a2aa3832ee3c7b58f3a88a0836287",
+      "remote_per_commit_secret": "1f1cd13beffb656c5ff58ffb8dfe551053e98dc7a6e1884c0d6db60e1c7c76ae",
+      "remote_per_commit_point": "03f261a5addb6f656859484d49bbb730b3adf36aea78eaa3844fd26c3aa251e968",
       "derived_local_delayed_pubkey": "0315ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05",
       "derived_revocation_pubkey": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
       "derived_local_htlc_pubkey": "0271e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739e",
       "derived_remote_htlc_pubkey": "032deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47d",
-      "derived_remote_payment_pubkey": "03595f2ef2a51d2250a21077dbea4a7fc3ce550f10676996bf63719e2a71d1f4c9"
+      "derived_remote_payment_pubkey": "03595f2ef2a51d2250a21077dbea4a7fc3ce550f10676996bf63719e2a71d1f4c9",
+      "remote_commit_revocation_pubkey": "03446f816a86f4515a7478db362644e3e6e24a7e3ed3d49668c9ab9666ac15cbd1",
+      "remote_commit_local_htlc_pubkey": "03aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937",
+      "remote_commit_remote_htlc_pubkey": "03080168ab7a8e4047c6a954b520fb6369b932480bb839e335ee6b63bb181d4320"
     }
   },
   "scripts": {
     "funding": {
       "funding_tx_hex": "02000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000018096980000000000225120d0ebb4909d563a7ae1213fddede4ae54132fba0ef0b97ee3f8469191fecd348e00000000",
-      "combined_key": "d0ebb4909d563a7ae1213fddede4ae54132fba0ef0b97ee3f8469191fecd348e",
+      "combined_funding_key": "d91205e7f976b741b1943f594b2ccd3f9d49ec45b2d44589e6c7735e55ded06f",
+      "funding_key": "d0ebb4909d563a7ae1213fddede4ae54132fba0ef0b97ee3f8469191fecd348e",
       "pkscript": "5120d0ebb4909d563a7ae1213fddede4ae54132fba0ef0b97ee3f8469191fecd348e"
     },
     "to_local": {
@@ -1696,52 +1792,52 @@ derivation method described above and verify that all intermediate values
     },
     "offered_htlc_remote_commit": {
       "scripts": {
-        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc688202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dad51b2",
-        "timeout": "2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739ead202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dac"
+        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc68820aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937ad51b2",
+        "timeout": "20080168ab7a8e4047c6a954b520fb6369b932480bb839e335ee6b63bb181d4320ad20aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937ac"
       },
       "leaf_hashes": {
-        "success": "cd4b7ba74d132998f2bcea85f76082f5018e614c86f27f2631b6569c4914320f",
-        "timeout": "dd0bd08b3df902c399f5493a682f6c50c476c89e233ba454e89a234d2d16ffe3"
+        "success": "a93d6f51723936ed96b67944056f47adcec98b6f881d398af8d60cf16057fbec",
+        "timeout": "6f2a89644ff6963c6980112b2f7c84516d50340921e00474d8ae20e31ec929ba"
       },
-      "tapscript_root": "f36c8bd45002c5264cfce9944211e7bc6ea974a6b90cf99a87812d18acf28a2a",
-      "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
-      "output_key": "033e5c3be9f4ce7ae07c28ad5e0eb0ab617c06eeb82b8d6ef10a5bf561848df5f0",
-      "pkscript": "51203e5c3be9f4ce7ae07c28ad5e0eb0ab617c06eeb82b8d6ef10a5bf561848df5f0"
+      "tapscript_root": "77b7db508fcc3381ae65c7b3e766f883a071315f0885bf8b1669194e8053d6fd",
+      "internal_key": "03446f816a86f4515a7478db362644e3e6e24a7e3ed3d49668c9ab9666ac15cbd1",
+      "output_key": "0371418129bad912c290587ac1f6ad85ba9cdb172ad6b47a7b42cba8d2fd5408b2",
+      "pkscript": "512071418129bad912c290587ac1f6ad85ba9cdb172ad6b47a7b42cba8d2fd5408b2"
     },
     "accepted_htlc_local_commit": {
       "scripts": {
-        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc688202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dad2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739eac",
-        "timeout": "2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739ead51b26902f401b1"
+        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc6882071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739ead202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dac",
+        "timeout": "202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dad51b26902f401b1"
       },
       "leaf_hashes": {
-        "success": "69192ca730d4480044ade8741b8bd0845a32880aebaf58bc6f9186f8d2be8cbf",
-        "timeout": "4da43c795365bf757ed1e9656d12ea744b4cf52b01719a3ea94e6569115623f0"
+        "success": "1acb571d56481cd7ea0fdbe601063eec88943ce6f5eb29608599e047f74fc7e9",
+        "timeout": "e5e8fd071b9ade6367122afbd8acacc1a6727ddb6d478612af30827590027e03"
       },
-      "tapscript_root": "1a990caa4bb0ed41ceb19e7466fcea5d9b31e3da968f348f6223201c5831d0a3",
+      "tapscript_root": "2a208a0ec3ff8d66e15da435e4b3f2b2921431ef97f646a2fcd5d3a941bae8d4",
       "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
-      "output_key": "029aadbdd9aff986e5ea086cf53ae062972d33d0a5c7f5fb986dafec7fa6d7e6ea",
-      "pkscript": "51209aadbdd9aff986e5ea086cf53ae062972d33d0a5c7f5fb986dafec7fa6d7e6ea"
+      "output_key": "029ce82cd1b1f6f975049d58019a7145a3ec9680079969cf929d7d2c4bc9b30637",
+      "pkscript": "51209ce82cd1b1f6f975049d58019a7145a3ec9680079969cf929d7d2c4bc9b30637"
     },
     "accepted_htlc_remote_commit": {
       "scripts": {
-        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc688202deba21cf03c42362c9f912094f62ba045a040a2060882ba1ed3abf1f664a47dad2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739eac",
-        "timeout": "2071e82ef65d5c667159036bfcf662cac2f6c41e38323d148bbbd00fdcd923739ead51b26902f401b1"
+        "success": "82012088a914b8bcb07f6344b42ab04250c86a6e8b75d3fdbbc68820080168ab7a8e4047c6a954b520fb6369b932480bb839e335ee6b63bb181d4320ad20aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937ac",
+        "timeout": "20aa94a753869f14bda931f656eb6f8c034fe9793cb51a1e237e9492482d411937ad51b26902f401b1"
       },
       "leaf_hashes": {
-        "success": "69192ca730d4480044ade8741b8bd0845a32880aebaf58bc6f9186f8d2be8cbf",
-        "timeout": "4da43c795365bf757ed1e9656d12ea744b4cf52b01719a3ea94e6569115623f0"
+        "success": "9b14720afa876aa5e6df576307680e7aa1b29a76f30e00b68d943576dbaa35fd",
+        "timeout": "1dbd79c3546a899717323f2238074fc962236b606bd7b37b7d0d4f2fcf0d68cb"
       },
-      "tapscript_root": "1a990caa4bb0ed41ceb19e7466fcea5d9b31e3da968f348f6223201c5831d0a3",
-      "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
-      "output_key": "029aadbdd9aff986e5ea086cf53ae062972d33d0a5c7f5fb986dafec7fa6d7e6ea",
-      "pkscript": "51209aadbdd9aff986e5ea086cf53ae062972d33d0a5c7f5fb986dafec7fa6d7e6ea"
+      "tapscript_root": "fc6307ca70735f5e144425541f9fe147bd0979243c84eea631bcd9c18c233632",
+      "internal_key": "03446f816a86f4515a7478db362644e3e6e24a7e3ed3d49668c9ab9666ac15cbd1",
+      "output_key": "03d09097e7608e7df177ff1cdf507a70f4705b8c8522caa2aec42c685780720dfa",
+      "pkscript": "5120d09097e7608e7df177ff1cdf507a70f4705b8c8522caa2aec42c685780720dfa"
     },
     "second_level_htlc_success": {
       "scripts": {
-        "success": "2015ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05ad029000b2"
+        "delay": "2015ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05ad029000b2"
       },
       "leaf_hashes": {
-        "success": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62"
+        "delay": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62"
       },
       "tapscript_root": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62",
       "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
@@ -1750,10 +1846,10 @@ derivation method described above and verify that all intermediate values
     },
     "second_level_htlc_timeout": {
       "scripts": {
-        "success": "2015ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05ad029000b2"
+        "delay": "2015ec0138eb42f1ab4603042123988d53c854e89d1d87aa4dbb97a57482029c05ad029000b2"
       },
       "leaf_hashes": {
-        "success": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62"
+        "delay": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62"
       },
       "tapscript_root": "dbf0400e9c7c57f30b6ad0b0677e396b5a002cbf050d873c8925b966048e6a62",
       "internal_key": "03d4c77088d346bce67c13bbbf82ca112588f4b1c9595a1f8af3be9b2f95a109a0",
