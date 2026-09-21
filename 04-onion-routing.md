@@ -1765,6 +1765,9 @@ hop.
     1. type: 68 (`invoice_error`)
     2. data:
         * [`tlv_invoice_error`:`inverr`]
+    1. type: 72 (`bolt11_invoice`)
+    2. data:
+        * [`...*utf8`:`bolt11`]
 
 #### Requirements
 
