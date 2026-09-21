@@ -872,6 +872,7 @@ are not valid secp256k1 pubkeys in compressed format.
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
   - `funding_satoshis` is greater than or equal to 2^24 and the receiver does not support `option_support_large_channel`.
   - the `channel_type` is not suitable.
+  - the `channel_type` includes `option_scid_alias` and `announce_channel` is `true` (not `0`).
   - the `channel_type` includes `option_zeroconf` and it does not trust the sender to open an unconfirmed channel.
 
 The receiving node MUST NOT:
@@ -901,6 +902,12 @@ of dust htlcs, which effectively become miner fees. But it must allow values
 higher than the standard Bitcoin Core dust limits, since HTLC outputs need to
 be spent by a second-stage transaction at a feerate matching the current
 on-chain feerate.
+
+If `announce_channel` is set for this channel and the `channel_type` includes
+`option_scid_alias`, the real `short_channel_id` is presented in the
+`channel_announcement`, but incoming HTLCs to this channel using the real
+`short_channel_id` are not allowed. This would make payments routed through the
+channel using the real `short_channel_id` fail.
 
 Details for how to handle a channel failure can be found in [BOLT 5:Failing a Channel](05-onchain.md#failing-a-channel).
 
