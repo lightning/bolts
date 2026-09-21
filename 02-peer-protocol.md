@@ -808,7 +808,10 @@ The sending node:
   - MUST set `push_msat` to equal or less than 1000 * `funding_satoshis`.
   - MUST set `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, and `delayed_payment_basepoint` to valid secp256k1 pubkeys in compressed format.
   - MUST set `first_per_commitment_point` to the per-commitment point to be used for the initial commitment transaction, derived as specified in [BOLT #3](03-transactions.md#per-commitment-secret-requirements).
-  - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
+  - If the receiver supports `option_zero_reserve`:
+    - MAY set `channel_reserve_satoshis` to `0`.
+  - Otherwise (`option_zero_reserve` cannot be used):
+    - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
   - MUST set undefined bits in `channel_flags` to 0.
   - if both nodes advertised the `option_upfront_shutdown_script` feature:
     - MUST include `upfront_shutdown_script` with either a valid `shutdown_scriptpubkey` as required by `shutdown` `scriptpubkey`, or a zero-length `shutdown_scriptpubkey` (ie. `0x0000`).
@@ -866,10 +869,10 @@ The receiving node MUST fail the channel if:
     - it considers `feerate_per_kw` too small for timely processing or unreasonably large.
   - `funding_pubkey`, `revocation_basepoint`, `htlc_basepoint`, `payment_basepoint`, or `delayed_payment_basepoint`
 are not valid secp256k1 pubkeys in compressed format.
-  - `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
+  - it doesn't support `option_zero_reserve` and `dust_limit_satoshis` is greater than `channel_reserve_satoshis`.
   - `dust_limit_satoshis` is smaller than `354 satoshis` (see [BOLT 3](03-transactions.md#dust-limits)).
   - the funder's amount for the initial commitment transaction is not sufficient for full [fee payment](03-transactions.md#fee-payment).
-  - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
+  - it doesn't support `option_zero_reserve` and both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
   - `funding_satoshis` is greater than or equal to 2^24 and the receiver does not support `option_support_large_channel`.
   - the `channel_type` is not suitable.
   - the `channel_type` includes `option_zeroconf` and it does not trust the sender to open an unconfirmed channel.
@@ -893,7 +896,7 @@ The requirement that `channel_reserve_satoshis` is not considered dust
 according to `dust_limit_satoshis` eliminates cases where all outputs
 would be eliminated as dust.  The similar requirements in
 `accept_channel` ensure that both sides' `channel_reserve_satoshis`
-are above both `dust_limit_satoshis`.
+are above both `dust_limit_satoshis`, unless `option_zero_reserve` is used.
 
 The receiver should not accept large `dust_limit_satoshis`, as this could be
 used in griefing attacks, where the peer publishes its commitment with a lot
@@ -947,16 +950,21 @@ The sender:
     - MUST set `minimum_depth` to zero.
   - otherwise:
     - SHOULD set `minimum_depth` to a number of blocks it considers reasonable to avoid double-spending of the funding transaction.
-  - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
-  - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
-  - MUST set `channel_type` to the `channel_type` from `open_channel`.
+  - If the receiver supports `option_zero_reserve` and `channel_reserve_satoshis` from the `open_channel` message is `0`:
+    - MAY set `channel_reserve_satoshis` to `0`.
+  - If the receiver supports `option_zero_reserve`:
+    - MAY set `channel_reserve_satoshis` to `0`.
+  - Otherwise (`option_zero_reserve` cannot be used):
+    - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis` from the `open_channel` message.
+    - MUST set `dust_limit_satoshis` less than or equal to `channel_reserve_satoshis` from the `open_channel` message.
+    - MUST set `channel_type` to the `channel_type` from `open_channel`.
 
 The receiver:
   - if `minimum_depth` is unreasonably large:
     - MAY fail the channel.
-  - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
+  - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message and `option_zero_reserve` is not set:
     - MUST fail the channel.
-  - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis`:
+  - if `channel_reserve_satoshis` from the `open_channel` message is less than `dust_limit_satoshis` and `option_zero_reserve` is not set:
     - MUST fail the channel.
   - if the message doesn't include a `channel_type`:
     - MUST fail the channel.
@@ -1207,6 +1215,7 @@ This message initiates the v2 channel establishment workflow.
    2. data:
         * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
+   1. type: 4 (`disable_channel_reserve`)
 
 Rationale and Requirements are the same as for [`open_channel`](#the-open_channel-message),
 with the following additions.
@@ -1224,6 +1233,8 @@ The sending node:
     - MUST set `commitment_feerate_perkw` to `0`.
   - If it requires the receiving node to only use confirmed inputs:
     - MUST set `require_confirmed_inputs`
+  - If the receiving node supports `option_zero_reserve`:
+    - MAY set `disable_channel_reserve`.
 
 The receiving node:
   - MAY fail the negotiation if:
@@ -1255,7 +1266,8 @@ Note that `open_channel`'s `channel_reserve_satoshi` has been omitted.
 Instead, the channel reserve is fixed at 1% of the total channel balance
 (`open_channel2`.`funding_satoshis` + `accept_channel2`.`funding_satoshis`)
 rounded down to the nearest whole satoshi or the `dust_limit_satoshis`,
-whichever is greater.
+whichever is greater, unless `disable_channel_reserve` is set, in which
+case there will be no channel reserve on the receiver side.
 
 Note that `push_msat` has been omitted.
 
@@ -1299,6 +1311,7 @@ acceptance of the new channel.
    2. data:
         * [`...*byte`:`type`]
    1. type: 2 (`require_confirmed_inputs`)
+   1. type: 4 (`disable_channel_reserve`)
 
 Rationale and Requirements are the same as listed above,
 for [`accept_channel`](#the-accept_channel-message) with the following
@@ -1311,7 +1324,15 @@ The accepting node:
   - MUST set `channel_type` to the `channel_type` from `open_channel2`.
   - MAY respond with a `funding_satoshis` value of zero.
   - If it requires the opening node to only use confirmed inputs:
-    - MUST set `require_confirmed_inputs`.
+    - MUST set `require_confirmed_inputs`
+  - If the receiving node supports `option_zero_reserve` and the `open_channel2`
+    message contains `disable_channel_reserve`:
+    - If the opening node is purchasing liquidity:
+      - SHOULD set `disable_channel_reserve`.
+    - Otherwise:
+      - MAY set `disable_channel_reserve`.
+  - If the receiving node supports `option_zero_reserve`:
+    - MAY set `disable_channel_reserve`.
 
 The receiving node:
   - MUST fail the negotiation if:
@@ -1327,7 +1348,8 @@ Note that `accept_channel`'s `channel_reserve_satoshi` has been omitted.
 Instead, the channel reserve is fixed at 1% of the total channel balance
 (`open_channel2`.`funding_satoshis` + `accept_channel2`.`funding_satoshis`)
 rounded down to the nearest whole satoshi or the `dust_limit_satoshis`,
-whichever is greater.
+whichever is greater, unless `disable_channel_reserve` is set, in which
+case there will be no channel reserve on the receiver side.
 
 ### Funding Composition
 
@@ -1819,6 +1841,8 @@ The receiving node:
     - Either side has added an output other than the channel funding output
       and the balance for that side is less than the channel reserve that
       matches the new channel capacity.
+    - Either side has added an output other than the channel funding output
+      and any resulting commitment transactions would have no outputs.
 
 ##### Rationale
 
@@ -1827,6 +1851,9 @@ funds out of the channel, they must ensure that they do meet them. If your peer
 adds a massive amount to the channel, then you only have to add more reserve if
 you want to contribute to the splice (and you can use `tx_remove_output` and/or
 `tx_remove_input` part-way through if this happens).
+
+Note that if the channel reserve was set to `0` with `option_zero_reserve`, it
+stays `0` after the splice.
 
 #### The `commitment_signed` Message
 
@@ -2811,7 +2838,8 @@ A sending node:
       - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
       transaction, its remaining balance doesn't allow it to pay the commitment
       transaction fee when receiving or sending a future additional non-dust HTLC
-      while maintaining its channel reserve. It is recommended that this "fee spike
+      while maintaining its channel reserve, or if the resulting commitment
+      transaction would have no outputs. It is recommended that this "fee spike
       buffer" can handle twice the current `feerate_per_kw` to ensure predictability
       between implementations.
     - if it is _not responsible_ for paying the Bitcoin fee:
@@ -2844,6 +2872,9 @@ A receiving node:
     - SHOULD send a `warning` and close the connection, or send an
       `error` and fail the channel.
   - receiving an `amount_msat` that the sending node cannot afford at the current `feerate_per_kw` (while maintaining its channel reserve and any `to_local_anchor` and `to_remote_anchor` costs):
+    - SHOULD send a `warning` and close the connection, or send an
+      `error` and fail the channel.
+  - receiving an `amount_msat` that results in a commitment transaction without any output:
     - SHOULD send a `warning` and close the connection, or send an
       `error` and fail the channel.
   - if a sending node adds more than receiver `max_accepted_htlcs` HTLCs to
