@@ -1138,9 +1138,6 @@ which is in turn applied to the `attribution_data` field using `XOR`.
 The _erring node_:
   - MUST construct the return packet such that its total length is no more than 32768 bytes (32 KiB).
   - MUST set `pad` such that the `failure_len` plus `pad_len` is at least 256.
-  - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to
-    256. Deviating from this may cause older nodes to be unable to parse the
-    return message.
   - if `option_attribution_data` is advertised:
     - if `path_key` is not set in the incoming `update_add_htlc`:
       - MUST initialize `attribution_data` and include it in `update_fail_htlc`
@@ -1672,7 +1669,7 @@ The _final node_:
   - if it includes a `fulfillment_payload`:
     - MUST ensure the `fulfillment_payload` is no more than 32768 bytes (32 KiB)
     - MUST set `fulfillment_payload_tlvs` to a serialized TLV stream
-    - MUST pad with `padding` such that the serialized `fulfillment_payload_tlvs` stream is at least 256 bytes and a
+    - MUST pad with `padding` if and only if needed for the serialized `fulfillment_payload_tlvs` stream to be at least 256 bytes and a
       multiple of 256 bytes, excluding the 16-byte Poly1305 tag. The size calculation includes the type and length
       bytes of the `padding` record; this can require padding to the next multiple of 256 bytes
     - SHOULD pad such that the serialized `fulfillment_payload_tlvs` stream is exactly 256 bytes if possible
@@ -1964,6 +1961,8 @@ The following is an in-depth trace of an example of error message creation:
     attribution data for node 0: 84986c936d26bfd3bb2d34d3ec62cfdb63e0032fdb3d9d75f3e5d456f73dffa7e35aab1db4f1bd3b98ff585caf004f656c51037a3f4e810d275f3f6aea0c8e3a125ebee5f374b6440bcb9bb2955ebf706f42be9999a62ed49c7a81fc73c0b4a16419fd6d334532f40bf179dd19afec21bd8519d5e6ebc3802501ef373bc378eee1f14a6fc5fab5b697c91ce31d5922199d1b0ad5ee12176aacafc7c81d54bc5b8fb7e63f3bfd40a3b6e21f985340cbd1c124c7f85f0369d1aa86ebc66def417107a7861131c8bcd73e8946f4fb54bfac87a2dc15bd7af642f32ae583646141e8875ef81ec9083d7e32d5f135131eab7a43803360434100ff67087762bbe3d6afe2034f5746b8c50e0c3c20dd62a4c174c38b1df7365dccebc7f24f19406649fbf48981448abe5c858bbd4bef6eb983ae7a23e9309fb33b5e7c0522554e88ca04b1d65fc190947dead8c0ccd32932976537d869b5ca53ed4945bccafab2a014ea4cbdc6b0250b25be66ba0afff2ff19c0058c68344fd1b9c472567147525b13b1bc27563e61310110935cf89fda0e34d0575e2389d57bdf2869398ca2965f64a6f04e1d1c2edf2082b97054264a47824dd1a9691c27902b39d57ae4a94dd6481954a9bd1b5cff4ab29ca221fa2bf9b28a362c9661206f896fc7cec563fb80aa5eaccb26c09fa4ef7a981e63028a9c4dac12f82ccb5bea090d56bbb1a4c431e315d9a169299224a8dbd099fb67ea61dfc604edf8a18ee742550b636836bb552dabb28820221bf8546331f32b0c143c1c89310c4fa2e1e0e895ce1a1eb0f43278fdb528131a3e32bfffe0c6de9006418f5309cba773ca38b6ad8507cc59445ccc0257506ebc16a4c01d4cd97e03fcf7a2049fea0db28447858f73b8e9fe98b391b136c9dc510288630a1f0af93b26a8891b857bfe4b818af99a1e011e6dbaa53982d29cf74ae7dffef45545279f19931708ed3eede5e82280eab908e8eb80abff3f1f023ab66869297b40da8496861dc455ac3abe1efa8a6f9e2c4eda48025d43a486a3f26f269743eaa30d6f0e1f48db6287751358a41f5b07aee0f098862e3493731fe2697acce734f004907c6f11eef189424fee52cd30ad708707eaf2e441f52bcf3d0c5440c1742458653c0c8a27b5ade784d9e09c8b47f1671901a29360e7e5e94946b9c75752a1a8d599d2a3e14ac81b84d42115cd688c8383a64fc6e7e1dc5568bb4837358ebe63207a4067af66b2027ad2ce8fb7ae3a452d40723a51fdf9f9c9913e8029a222cf81d12ad41e58860d75deb6de30ad
 
 ## Returning success
+
+Standalone test vectors for padding `fulfillment_payload_tlvs` are available in [fulfillment-payload-padding-test.json](bolt04/fulfillment-payload-padding-test.json).
 
 A successful payment without a `fulfillment_payload` using the parameters above would result in the following
 attribution data values:
