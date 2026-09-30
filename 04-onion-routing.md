@@ -1962,6 +1962,8 @@ The following is an in-depth trace of an example of error message creation:
 
 ## Returning success
 
+Standalone test vectors for padding `fulfillment_payload_tlvs` are available in [fulfillment-payload-padding-test.json](bolt04/fulfillment-payload-padding-test.json).
+
 A successful payment without a `fulfillment_payload` using the parameters above would result in the following
 attribution data values:
 
