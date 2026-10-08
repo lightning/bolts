@@ -539,13 +539,17 @@ This can be implemented as follows:
   * Calculate `periods_elapsed = (now - start_time) / revenue_window`.
   * Take the value of the `decaying_average` at `now`
   * Calculate `warmup_factor = window_total * (1 - e^(-periods_elapsed / window_total))`
-  * Take the value of the `decaying_average` at `now` divided by `warmup_factor`
-    to get the averaged value. 
+  * Take the value of the `decaying_average` at `now` divided by
+    `max(warmup_factor, 1)` to get the averaged value.
 
 Tracking revenue this way allows tracking averages without needing to store
 multiple data points. A warmup factor is required because a single longer
 `decaying_average` underestimates average values in the first few windows
 tracked. This factor approaches `window_total` as the `periods_elapsed` grows.
+Clamping the divisor to a minimum of 1 means that until roughly one
+`revenue_window` has elapsed, the reported value is the revenue actually
+accumulated rather than an extrapolation of early traffic so that a short
+burst on a new channel, cannot inflate the estimate.
 
 ### Multiple Channels
 
