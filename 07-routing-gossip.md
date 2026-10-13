@@ -201,7 +201,7 @@ The origin node:
   - MUST set `bitcoin_signature_1` and `bitcoin_signature_2` to valid
   signatures of the hash `h` (using `bitcoin_key_1` and `bitcoin_key_2`'s
   respective secrets).
-  - MUST set `features` based on what features were negotiated for this channel, according to [BOLT #9](09-features.md#assigned-features-flags)
+  - MUST set `features` based on what features were negotiated for this channel, according to [BOLT #9](09-features.md)
   - MUST set `len` to the minimum length required to hold the `features` bits
   it sets.
   - If the funding transaction has less than 6 confirmations:
@@ -348,7 +348,7 @@ The origin node:
   - SHOULD use placement only for aligning fields that follow `addresses`.
   - MUST NOT create an address descriptor with `port` equal to 0.
   - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
-  - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
+  - MUST set `features` according to [BOLT #9](09-features.md)
   - SHOULD set `flen` to the minimum length required to hold the `features`
   bits it sets.
   - SHOULD not announce a Tor v2 onion service.

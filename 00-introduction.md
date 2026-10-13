@@ -42,7 +42,7 @@ transaction that splits these funds differently, e.g. 0.09 bitcoin to one
 party, 0.01 bitcoin to the other, and invalidate the previous bitcoin
 transaction so it won't be spent.
 
-See [BOLT #2: Channel Establishment](02-peer-protocol.md#channel-establishment) for more on
+See [BOLT #2: Channel Establishment](02-peer-protocol.md#channel-establishment-v1) for more on
 channel establishment and [BOLT #3: Funding Transaction Output](03-transactions.md#funding-transaction-output) for the format of the bitcoin transaction that creates the channel.  See [BOLT #5: Recommendations for On-chain Transaction Handling](05-onchain.md) for the requirements when participants disagree or fail, and the cross-signed bitcoin transaction must be spent.
 
 ### Conditional Payments
