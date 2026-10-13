@@ -400,7 +400,7 @@ Upon successful exchange of `tx_complete` messages, both nodes
 should construct the transaction and proceed to the next portion of the
 protocol. For channel establishment v2, exchanging commitment transactions.
 
-For the `minimum fee` calculation see [BOLT #3](03-transactions.md#calculating-fees-for-collaborative-transaction-construction).
+For the `minimum fee` calculation see [BOLT #3](03-transactions.md#calculating-fees-for-collaborative-transactions).
 
 The maximum inputs and outputs are capped at 252. This effectively fixes
 the byte size of the input and output counts on the transaction to one (1).
@@ -1242,7 +1242,7 @@ errors before the *accepter*'s revocation basepoint is known.
 
 `funding_feerate_perkw` indicates the fee rate that the opening node will
 pay for the funding transaction in satoshi per 1000-weight, as described
-in [BOLT-3, Appendix F](03-transactions.md#appendix-f-dual-funded-transaction-test-vectors).
+in [BOLT-3, Appendix G](03-transactions.md#appendix-g-dual-funded-transaction-test-vectors).
 
 `locktime` is the locktime for the funding transaction.
 
@@ -2890,7 +2890,7 @@ recipient code (though strict checking may help debugging).
 sides send the maximum number of HTLCs, the `commitment_signed` message will
 still be under the maximum message size. It also ensures that
 a single penalty transaction can spend the entire commitment transaction,
-as calculated in [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
+as calculated in [BOLT #5](05-onchain.md#penalty-transactions-weight-calculation).
 When using `zero_fee_commitments`, we further limit `max_accepted_htlcs` to
 114 because v3 transactions are limited to 10kvB, which decreases the number
 of outputs the commitment transaction can have.
@@ -3126,7 +3126,7 @@ change the commitment transaction aside from the new revocation number
 (due to dust, identical HTLC replacement, or insignificant or multiple
 fee changes).
   - MUST include one `htlc_signature` for every HTLC transaction corresponding
-    to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-input-and-output-ordering)).
+    to the ordering of the commitment transaction (see [BOLT #3](03-transactions.md#transaction-output-ordering)).
   - MUST set `funding_txid` to the funding transaction spent by this commitment
     transaction.
   - if it has not recently received a message from the remote node:

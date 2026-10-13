@@ -32,7 +32,6 @@ To support channel and node discovery, three *gossip messages* are supported:
   * [HTLC Fees](#htlc-fees)
   * [Pruning the Network View](#pruning-the-network-view)
   * [Recommendations for Routing](#recommendations-for-routing)
-  * [References](#references)
 
 ## Definition of `short_channel_id`
 

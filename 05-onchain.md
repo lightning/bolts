@@ -43,9 +43,9 @@ encounters any of the above situations, on-chain.
   * [General Requirements](#general-requirements)
     * [Limitations of v3 transactions](#limitations-of-v3-transactions)
   * [Appendix A: Expected Weights](#appendix-a-expected-weights)
-	* [Expected Weight of the `to_local` Penalty Transaction Witness](#expected-weight-of-the-to-local-penalty-transaction-witness)
-	* [Expected Weight of the `offered_htlc` Penalty Transaction Witness](#expected-weight-of-the-offered-htlc-penalty-transaction-witness)
-	* [Expected Weight of the `accepted_htlc` Penalty Transaction Witness](#expected-weight-of-the-accepted-htlc-penalty-transaction-witness)
+	* [Expected Weight of the `to_local` Penalty Transaction Witness](#expected-weight-of-the-to_local-penalty-transaction-witness)
+	* [Expected Weight of the `offered_htlc` Penalty Transaction Witness](#expected-weight-of-the-offered_htlc-penalty-transaction-witness)
+	* [Expected Weight of the `accepted_htlc` Penalty Transaction Witness](#expected-weight-of-the-accepted_htlc-penalty-transaction-witness)
   * [Authors](#authors)
 
 # General Nomenclature
@@ -126,7 +126,7 @@ efficient is preferred.
 
 Various error cases involve closing a channel. The requirements for sending
 error messages to peers are specified in
-[BOLT #1: The `error` Message](01-messaging.md#the-error-message).
+[BOLT #1: The `error` Message](01-messaging.md#the-error-and-warning-messages).
 
 ## Requirements
 

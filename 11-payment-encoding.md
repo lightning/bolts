@@ -228,11 +228,11 @@ A reader:
   - if a valid `s` field is not provided:
     - MUST fail the payment.
   - otherwise:
-    - MUST use the `s` field as [`payment_secret`](04-onion-routing.md#tlv_payload-payload-format)
+    - MUST use the `s` field as [`payment_secret`](04-onion-routing.md#payload-format)
   - if the `c` field (`min_final_cltv_expiry_delta`) is not provided:
     - MUST use an expiry delta of at least 18 when making the payment
   - if an `m` field is provided:
-    - MUST use that as [`payment_metadata`](04-onion-routing.md#tlv_payload-payload-format)
+    - MUST use that as [`payment_metadata`](04-onion-routing.md#payload-format)
   - if a `c`, `x`, or `9` field is provided which has a non-minimal `data_length`
     (i.e. begins with 0 field elements):
     - SHOULD treat the invoice as invalid.
