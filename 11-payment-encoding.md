@@ -211,6 +211,7 @@ A writer:
 A reader:
   - MUST skip over `f` fields that use an unknown `version`.
   - MUST fail the payment if any field with fixed `data_length` (`p`, `h`, `s`, `n`) does not have the correct length (52, 52, 52, 53).
+  - MUST fail the payment unless exactly one `p` field and exactly one `s` field are present.
   - MUST fail the payment if neither a `d` field nor a `h` field is present, or if both are present.
   - if the `9` field contains unknown _odd_ bits that are non-zero:
     - MUST ignore the bit.
@@ -251,6 +252,11 @@ probably be transport dependent.
 
 The `m` field allows metadata to be attached to the payment. This supports
 applications where the recipient doesn't keep any context for the payment.
+
+Requiring exactly one `p` and exactly one `s` field prevents different
+components from selecting different payment hashes or payment secrets from the
+same signed invoice. A missing `p` field leaves nothing to pay to, so it is
+rejected outright rather than left to each implementation.
 
 The `n` field can be used to explicitly specify the destination node ID,
 instead of requiring public-key recovery.
@@ -352,7 +358,7 @@ A payer:
       understands for payment.
   - MAY use the sequence of channels, specified by the `r` field, to route to the payee.
   - SHOULD consider the fee amount and payment timeout before initiating payment.
-  - SHOULD use the first `p` field as the payment hash.
+  - MUST use the `p` field as the payment hash.
 
 A payee:
   - after the `timestamp` plus `expiry` has passed:
@@ -363,6 +369,9 @@ A payee:
 https://github.com/rustyrussell/lightning-payencode
 
 # Examples
+
+Machine-readable invoice test vectors for all examples below are provided in
+[invoice-test.json](bolt11/invoice-test.json).
 
 NB: all the following examples are signed with `priv_key`=`e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734`.
 All invoices contain a `payment_secret`=`1111111111111111111111111111111111111111111111111111111111111111` unless otherwise noted.
@@ -612,8 +621,7 @@ Breakdown:
   * `865a2cc6730e1eeeacd30e6da8e9ab0e9115828d27953ec0c0f985db05da5027` hex of SHA256 of the preimage
 
 > ### On mainnet, with fallback (P2TR) address bc1pptdvg0d2nj99568qn6ssdy4cygnwuxgw2ukmnwgwz7jpqjz2kszse2s3lm
-> 
-lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsfp4pptdvg0d2nj99568qn6ssdy4cygnwuxgw2ukmnwgwz7jpqjz2kszs9qrsgqy606dznq28exnydt2r4c29y56xjtn3sk4mhgjtl4pg2y4ar3249rq4ajlmj9jy8zvlzw7cr8mggqzm842xfr0v72rswzq9xvr4hknfsqwmn6xd
+> lnbc20m1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqsfp4pptdvg0d2nj99568qn6ssdy4cygnwuxgw2ukmnwgwz7jpqjz2kszs9qrsgqy606dznq28exnydt2r4c29y56xjtn3sk4mhgjtl4pg2y4ar3249rq4ajlmj9jy8zvlzw7cr8mggqzm842xfr0v72rswzq9xvr4hknfsqwmn6xd
 
 * `lnbc`: prefix, Lightning on Bitcoin mainnet
 * `20m`: amount (20 milli-bitcoin)
@@ -695,7 +703,7 @@ Breakdown:
 > LNBC25M1PVJLUEZPP5QQQSYQCYQ5RQWZQFQQQSYQCYQ5RQWZQFQQQSYQCYQ5RQWZQFQYPQDQ5VDHKVEN9V5SXYETPDEESSP5ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYGS9Q5SQQQQQQQQQQQQQQQQSGQ2A25DXL5HRNTDTN6ZVYDT7D66HYZSYHQS4WDYNAVYS42XGL6SGX9C4G7ME86A27T07MDTFRY458RTJR0V92CNMSWPSJSCGT2VCSE3SGPZ3UAPA
 
 > ### Same, but including fields which must be ignored.
-> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqqsgq2qrqqqfppnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqppnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpp4qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhpnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhp4qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqspnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsp4qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqnp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqnpkqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz599y53s3ujmcfjp5xrdap68qxymkqphwsexhmhr8wdz5usdzkzrse33chw6dlp3jhuhge9ley7j2ayx36kawe7kmgg8sv5ugdyusdcqzn8z9x
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqqsgq2qrqqqfppnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqcsenjd934c02h7v9deyju0t43ye2y38nd2h2wr0ykzlqs7v873jkvvg36kfwwmp9lftrn8a3gp4ax52zpvyc7quffgjjj7avx7we9zcp3dce9d
 
 Breakdown:
 
@@ -719,32 +727,8 @@ Breakdown:
 * `f`: tagged field: fallback address
   * `pp`: `data_length` (`p` = 1, `p` = 1; 1 * 32 + 1 == 33)
   * `nqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`: fallback address type 19 (ignored)
-* `p`: payment hash
-  * `pn`: `data_length` (`p` = 1, `n` = 19; 1 * 32 + 19 == 51) (ignored)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `p`: payment hash
-  * `p4`: `data_length` (`p` = 1, `4` = 21; 1 * 32 + 21 == 53) (ignored)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `h`: hash of description
-  * `pn`: `data_length` (`p` = 1, `n` = 19; 1 * 32 + 19 == 51) (ignored)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `h`: hash of description
-  * `p4`: `data_length` (`p` = 1, `4` = 21; 1 * 32 + 21 == 53) (ignored)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `s`: payment secret
-  * `pn`: `data_length` (`p` = 1, `n` = 19; 1 * 32 + 19 == 51) (ignored)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `s`: payment secret
-  * `p4`: `data_length` (`p` = 1, `4` = 21; 1 * 32 + 21 == 53) (ignored)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `n`: node id
-  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52) (ignored)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `n`: node id
-  * `pk`: `data_length` (`p` = 1, `k` = 22; 1 * 32 + 22 == 54) (ignored)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `z599y53s3ujmcfjp5xrdap68qxymkqphwsexhmhr8wdz5usdzkzrse33chw6dlp3jhuhge9ley7j2ayx36kawe7kmgg8sv5ugdyusdcq`: signature
-* `zn8z9x`: Bech32 checksum
+* `csenjd934c02h7v9deyju0t43ye2y38nd2h2wr0ykzlqs7v873jkvvg36kfwwmp9lftrn8a3gp4ax52zpvyc7quffgjjj7avx7we9zcp`: signature
+* `3dce9d`: Bech32 checksum
 
 > ### Please send 0.01 BTC with payment metadata 0x01fafaf0
 > lnbc10m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdp9wpshjmt9de6zqmt9w3skgct5vysxjmnnd9jx2mq8q8a04uqsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q2gqqqqqqsgq7hf8he7ecf7n4ffphs6awl9t6676rrclv9ckg3d3ncn7fct63p6s365duk5wrk202cfy3aj5xnnp5gs3vrdvruverwwq7yzhkf5a3xqpd05wjc
@@ -824,6 +808,25 @@ Breakdown:
   * `psqqqqqqqqqqqqqqqqsgq`: b000011000....00000100000100000000
 * `tqyx5vggfcsll4wu246hz02kp85x4katwsk9639we5n5yngc3yhqkm35jnjw4len8vrnqnf5ejh0mzj9n3vz2px97evektfm2l6wqccp`: signature
 * `3y7372`: Bech32 checksum
+
+> ### Same, but with an `n` field of invalid length.
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqqsgqnp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqf9dt6rzhc3ynq3u7axf4xc3zaw3fy2kyqal6n86nh5j3lhgcutdjzhvswudd5l8ay9acgrrpd2e6vw9sdqxq6dzq983sgt7dpxk5wacqacdc2y
+
+This invoice is invalid because its `n` field has a `data_length` of 52
+rather than 53. It is otherwise valid, so a reader that skips the field
+instead of failing would accept it.
+
+> ### Missing required `p` field.
+> lnbc25m1pvjluezdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqqsgqjy08jd52dtj25pefkh0enc54lxtjtr8wnum2msrq2d8uztp9vhhpccq93ljpff0kkjgzkzcp2czlyenjphf6upazjlc8uxw7za0ynusqrfhg8u
+
+> ### Two distinct p fields in an otherwise valid invoice.
+> lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqpp5lllllllllllllllllllllllllllllllllllllllllllllllllllsdpyv36hqmrfvdshgefqwpshjmt9de6zq6rpwd5qsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9g3f93cqturay6zk2fyfcmeflphlzew9wfq0n5nf9hqnlwxthtzqcljcuurljyd2vngkya5hndakf33ghly97qm5nc3umj7jep22nfsq3nr0w8
+
+> ### The same p field twice in an otherwise valid invoice.
+> lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpyv36hqmrfvdshgefqwpshjmt9de6zq6rpwd5qsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs29wywgsx0wpv9t045f683nj97nnjk55wt0exe3eassl6smx60nk9hlaae8vhe0hwv25s6fthcwqkxsw2hpjeptxz7xujtexa3l8jrkcqyn037r
+
+> ### Two distinct s fields in an otherwise valid invoice.
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygssp5yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3q9q5sqqqqqqqqqqqqqqqqsgqy23f0q2mhf0mnhfesz2lt3j9n8negrgr2a7wd554fppeqnvwz9749j2zmp2jd2sfvn3lzlajhalyxlv2h6ccs6p3yg7wg43y22cazccp5vkkte
 
 > ### Bech32 checksum is invalid.
 > lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuyk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esqchsrnt
