@@ -1455,10 +1455,10 @@ change input.
 Per BIP 341, `SIGHASH_ANYONECANPAY` commits only to the signed input, which
 includes that input's `nSequence`, and `SIGHASH_SINGLE` commits to the output
 at _the same index as the signed input_. As a result, when these transactions
-are aggregated with each other and with a change input, each HTLC input MUST
-keep the index of its own HTLC output. Any additional input, such as the fee
-bumping input, MUST therefore be placed at an index beyond the last HTLC
-output.
+are aggregated with each other and with a fee bumping input, each HTLC input
+MUST be placed at the same index as the second level output it was signed
+with. Any other inputs and outputs, such as the fee bumping input and its
+change output, can occupy the remaining indices.
 
 ##### HTLC-Success Transactions
 
