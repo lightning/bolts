@@ -939,7 +939,7 @@ A reader:
   - If the computed HMAC and `hmac` differ:
     - MUST abort processing the packet and fail.
   - Derive `rho` as $`HMAC256(\text{"rho"}, ss)`$ (see [Key Generation](#key-generation)).
-  - Derive `bytestream` of twice the length of `hop_payloads` using `rho` (see [Pseudo Random Byte Stream](pseudo-random-byte-stream)).
+  - Derive `bytestream` of twice the length of `hop_payloads` using `rho` (see [Pseudo Random Byte Stream](#pseudo-random-byte-stream)).
   - Set `unwrapped_payloads` to the XOR of `hop_payloads` and `bytestream`.
   - Remove a `bigsize` from the front of `unwrapped_payloads` as `payload_length`.  If that is malformed:
     - MUST abort processing the packet and fail.
