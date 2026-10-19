@@ -824,6 +824,8 @@ The sending node:
         - MUST set `feerate_per_kw` to `0`.
       - if `announce_channel` is `true` (not `0`):
         - MUST NOT send `channel_type` with the `option_scid_alias` bit set.
+      - otherwise, if both nodes advertised `option_scid_alias`:
+        - MUST send `channel_type` with the `option_scid_alias` bit set.
 
 The sending node SHOULD:
   - set `to_self_delay` sufficient to ensure the sender can irreversibly spend a commitment transaction output, in case of misbehavior by the receiver.
@@ -872,6 +874,7 @@ are not valid secp256k1 pubkeys in compressed format.
   - both `to_local` and `to_remote` amounts for the initial commitment transaction are less than or equal to `channel_reserve_satoshis` (see [BOLT 3](03-transactions.md#commitment-transaction-outputs)).
   - `funding_satoshis` is greater than or equal to 2^24 and the receiver does not support `option_support_large_channel`.
   - the `channel_type` is not suitable.
+  - `announce_channel` is `false` (`0`), both nodes advertised `option_scid_alias`, and `channel_type` does not include `option_scid_alias`.
   - the `channel_type` includes `option_zeroconf` and it does not trust the sender to open an unconfirmed channel.
 
 The receiving node MUST NOT:
@@ -880,6 +883,11 @@ The receiving node MUST NOT:
 #### Rationale
 
 The requirement for `funding_satoshis` to be less than 2^24 satoshi was a temporary self-imposed limit while implementations were not yet considered stable, it can be lifted by advertising `option_support_large_channel`.
+
+Requiring `option_scid_alias` for unannounced channels when both nodes support it
+ensures alias-only forwarding, reducing exposure to probes using candidate real
+SCIDs derived from P2WSH outputs observed on chain. Checking advertised support
+allows channels with legacy peers during the transition.
 
 The *channel reserve* is specified by the peer's `channel_reserve_satoshis`: 1% of the channel total is suggested. Each side of a channel maintains this reserve so it always has something to lose if it were to try to broadcast an old, revoked commitment transaction. Initially, this reserve may not be met, as only one side has funds; but the protocol ensures that there is always progress toward meeting this reserve, and once met, it is maintained.
 

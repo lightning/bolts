@@ -52,7 +52,7 @@ The Context column decodes as follows:
 | 40/41 | `zero_fee_commitments`            | Zero-fee commitment and HTLC transactions                 | IN       | `option_channel_type`       | [BOLT #3][bolt03-shared-anchor]                                       |
 | 42/43 | `option_provide_storage`          | Can store other nodes' encrypted backup data              | IN       |                             | [BOLT #1](01-messaging.md#peer-storage)                               |
 | 44/45 | `option_channel_type`             | ASSUMED                                                   |          |                             |                                                                       |
-| 46/47 | `option_scid_alias`               | Supply channel aliases for routing                        | INT      |                             | [BOLT #2][bolt02-channel-ready]                                       |
+| 46/47 | `option_scid_alias`               | ASSUMED                                                   | INT      |                             | [BOLT #2][bolt02-channel-ready]                                       |
 | 48/49 | `option_payment_metadata`         | Payment metadata in tlv record                            | 9        |                             | [BOLT #11](11-payment-encoding.md#tagged-fields)                      |
 | 50/51 | `option_zeroconf`                 | Understands zeroconf channel types                        | INT      | `option_scid_alias`         | [BOLT #2][bolt02-channel-ready]                                       |
 | 60/61 | `option_simple_close`             | Simplified closing negotiation                            | IN       | `option_shutdown_anysegwit` | [BOLT #2][bolt02-simple-close]                                        |
@@ -74,6 +74,7 @@ The origin node:
   * MUST set all transitive feature dependencies.
   * MUST support:
     * `var_onion_optin`
+    * `option_scid_alias`
 
 The receiving node:
   * if both the optional and the mandatory feature bits in a pair are set,
