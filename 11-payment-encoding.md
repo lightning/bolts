@@ -702,6 +702,34 @@ Breakdown:
 > ### Same, but all upper case.
 > LNBC25M1PVJLUEZPP5QQQSYQCYQ5RQWZQFQQQSYQCYQ5RQWZQFQQQSYQCYQ5RQWZQFQYPQDQ5VDHKVEN9V5SXYETPDEESSP5ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYG3ZYGS9Q5SQQQQQQQQQQQQQQQQSGQ2A25DXL5HRNTDTN6ZVYDT7D66HYZSYHQS4WDYNAVYS42XGL6SGX9C4G7ME86A27T07MDTFRY458RTJR0V92CNMSWPSJSCGT2VCSE3SGPZ3UAPA
 
+> ### Same, but including fields which must be ignored.
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqqsgq2qrqqqfppnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqcsenjd934c02h7v9deyju0t43ye2y38nd2h2wr0ykzlqs7v873jkvvg36kfwwmp9lftrn8a3gp4ax52zpvyc7quffgjjj7avx7we9zcp3dce9d
+
+Breakdown:
+
+* `lnbc`: prefix, Lightning on Bitcoin mainnet
+* `25m`: amount (25 milli-bitcoin)
+* `1`: Bech32 separator
+* `pvjluez`: timestamp (1496314658)
+* `p`: payment hash...
+* `d`: short description
+  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
+  * `vdhkven9v5sxyetpdees`: 'coffee beans'
+* `s`: payment secret
+  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
+  * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: 0x1111111111111111111111111111111111111111111111111111111111111111
+* `9`: features
+  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
+  * `sqqqqqqqqqqqqqqqqsgq`: b1000....00000100000100000000
+* `2`: unknown field
+  * `qr`: `data_length` (`q` = 0, `r` = 3; 0 * 32 + 3 == 3)
+  * `qqq`: zeroes
+* `f`: tagged field: fallback address
+  * `pp`: `data_length` (`p` = 1, `p` = 1; 1 * 32 + 1 == 33)
+  * `nqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`: fallback address type 19 (ignored)
+* `csenjd934c02h7v9deyju0t43ye2y38nd2h2wr0ykzlqs7v873jkvvg36kfwwmp9lftrn8a3gp4ax52zpvyc7quffgjjj7avx7we9zcp`: signature
+* `3dce9d`: Bech32 checksum
+
 > ### Please send 0.01 BTC with payment metadata 0x01fafaf0
 > lnbc10m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdp9wpshjmt9de6zqmt9w3skgct5vysxjmnnd9jx2mq8q8a04uqsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q2gqqqqqqsgq7hf8he7ecf7n4ffphs6awl9t6676rrclv9ckg3d3ncn7fct63p6s365duk5wrk202cfy3aj5xnnp5gs3vrdvruverwwq7yzhkf5a3xqpd05wjc
 
@@ -781,66 +809,24 @@ Breakdown:
 * `tqyx5vggfcsll4wu246hz02kp85x4katwsk9639we5n5yngc3yhqkm35jnjw4len8vrnqnf5ejh0mzj9n3vz2px97evektfm2l6wqccp`: signature
 * `3y7372`: Bech32 checksum
 
-> ### Unknown fields and invalid fixed-length fields.
-> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqqsgq2qrqqqfppnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqppnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpp4qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhpnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhp4qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqspnqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsp4qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqnp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqnpkqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz599y53s3ujmcfjp5xrdap68qxymkqphwsexhmhr8wdz5usdzkzrse33chw6dlp3jhuhge9ley7j2ayx36kawe7kmgg8sv5ugdyusdcqzn8z9x
+> ### Same, but with an `n` field of invalid length.
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqqsgqnp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqf9dt6rzhc3ynq3u7axf4xc3zaw3fy2kyqal6n86nh5j3lhgcutdjzhvswudd5l8ay9acgrrpd2e6vw9sdqxq6dzq983sgt7dpxk5wacqacdc2y
 
-This invoice is invalid because several fixed-length fields have incorrect
-`data_length` values.
+This invoice is invalid because its `n` field has a `data_length` of 52
+rather than 53. It is otherwise valid, so a reader that skips the field
+instead of failing would accept it.
 
-Breakdown:
-
-* `lnbc`: prefix, Lightning on Bitcoin mainnet
-* `25m`: amount (25 milli-bitcoin)
-* `1`: Bech32 separator
-* `pvjluez`: timestamp (1496314658)
-* `p`: payment hash...
-* `d`: short description
-  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
-  * `vdhkven9v5sxyetpdees`: 'coffee beans'
-* `s`: payment secret
-  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52)
-  * `zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs`: 0x1111111111111111111111111111111111111111111111111111111111111111
-* `9`: features
-  * `q5`: `data_length` (`q` = 0, `5` = 20; 0 * 32 + 20 == 20)
-  * `sqqqqqqqqqqqqqqqqsgq`: b1000....00000100000100000000
-* `2`: unknown field
-  * `qr`: `data_length` (`q` = 0, `r` = 3; 0 * 32 + 3 == 3)
-  * `qqq`: zeroes
-* `f`: tagged field: fallback address
-  * `pp`: `data_length` (`p` = 1, `p` = 1; 1 * 32 + 1 == 33)
-  * `nqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`: fallback address type 19 (ignored)
-* `p`: payment hash
-  * `pn`: `data_length` (`p` = 1, `n` = 19; 1 * 32 + 19 == 51) (invalid)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `p`: payment hash
-  * `p4`: `data_length` (`p` = 1, `4` = 21; 1 * 32 + 21 == 53) (invalid)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `h`: hash of description
-  * `pn`: `data_length` (`p` = 1, `n` = 19; 1 * 32 + 19 == 51) (invalid)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `h`: hash of description
-  * `p4`: `data_length` (`p` = 1, `4` = 21; 1 * 32 + 21 == 53) (invalid)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `s`: payment secret
-  * `pn`: `data_length` (`p` = 1, `n` = 19; 1 * 32 + 19 == 51) (invalid)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `s`: payment secret
-  * `p4`: `data_length` (`p` = 1, `4` = 21; 1 * 32 + 21 == 53) (invalid)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `n`: node id
-  * `p5`: `data_length` (`p` = 1, `5` = 20; 1 * 32 + 20 == 52) (invalid)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `n`: node id
-  * `pk`: `data_length` (`p` = 1, `k` = 22; 1 * 32 + 22 == 54) (invalid)
-  * `qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq`
-* `z599y53s3ujmcfjp5xrdap68qxymkqphwsexhmhr8wdz5usdzkzrse33chw6dlp3jhuhge9ley7j2ayx36kawe7kmgg8sv5ugdyusdcq`: signature
-* `zn8z9x`: Bech32 checksum
+> ### Missing required `p` field.
+> lnbc25m1pvjluezdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqqsgqjy08jd52dtj25pefkh0enc54lxtjtr8wnum2msrq2d8uztp9vhhpccq93ljpff0kkjgzkzcp2czlyenjphf6upazjlc8uxw7za0ynusqrfhg8u
 
 > ### Two distinct p fields in an otherwise valid invoice.
 > lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqpp5lllllllllllllllllllllllllllllllllllllllllllllllllllsdpyv36hqmrfvdshgefqwpshjmt9de6zq6rpwd5qsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9g3f93cqturay6zk2fyfcmeflphlzew9wfq0n5nf9hqnlwxthtzqcljcuurljyd2vngkya5hndakf33ghly97qm5nc3umj7jep22nfsq3nr0w8
 
 > ### The same p field twice in an otherwise valid invoice.
 > lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpyv36hqmrfvdshgefqwpshjmt9de6zq6rpwd5qsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs29wywgsx0wpv9t045f683nj97nnjk55wt0exe3eassl6smx60nk9hlaae8vhe0hwv25s6fthcwqkxsw2hpjeptxz7xujtexa3l8jrkcqyn037r
+
+> ### Two distinct s fields in an otherwise valid invoice.
+> lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygssp5yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3q9q5sqqqqqqqqqqqqqqqqsgqy23f0q2mhf0mnhfesz2lt3j9n8negrgr2a7wd554fppeqnvwz9749j2zmp2jd2sfvn3lzlajhalyxlv2h6ccs6p3yg7wg43y22cazccp5vkkte
 
 > ### Bech32 checksum is invalid.
 > lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpquwpc4curk03c9wlrswe78q4eyqc7d8d0xqzpuyk0sg5g70me25alkluzd2x62aysf2pyy8edtjeevuv4p2d5p76r4zkmneet7uvyakky2zr4cusd45tftc9c5fh0nnqpnl2jfll544esqchsrnt
