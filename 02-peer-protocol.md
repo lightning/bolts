@@ -1360,7 +1360,9 @@ The channel funding output must be added by the *opener*, who pays its fees.
 #### The `tx_complete` Message
 
 Upon receipt of consecutive `tx_complete`s, the receiving node:
-  - if is the *accepter*:
+  - if it is not the node that added the channel's funding output (the
+    *accepter*, or in an RBF attempt where the *accepter* became the
+    *initiator*, the original *opener*):
     - MUST fail the negotiation if:
       - no funding output was received
       - the value of the funding output is not equal to the sum of
