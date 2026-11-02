@@ -952,6 +952,11 @@ The sender:
   - MUST set `channel_type` to the `channel_type` from `open_channel`.
 
 The receiver:
+  - if `channel_type` does not include `option_zeroconf` and `minimum_depth` is zero:
+    - MUST NOT treat the channel as usable before the funding transaction is
+      confirmed to a depth it considers reasonable (i.e. MUST wait for
+      confirmation, as if the sender had set a reasonable non-zero
+      `minimum_depth`).
   - if `minimum_depth` is unreasonably large:
     - MAY fail the channel.
   - if `channel_reserve_satoshis` is less than `dust_limit_satoshis` within the `open_channel` message:
