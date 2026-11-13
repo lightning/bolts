@@ -774,7 +774,7 @@ If the `permanant` bit is set, then the channel can be considered closed.
 
 #### TLV Defaults
 
-For types 0, 6, 10, 12, 14, 16 and 18, the following defaults apply if the
+For types 0, 6, 10, 12, 16 and 18, the following defaults apply if the
 TLV is not present in the message:
 
 | `channel_update_2` TLV Type        | Default Value                                                      | Comment                                                                                     |
@@ -783,7 +783,6 @@ TLV is not present in the message:
 | 6  (`disable`)                     | empty                                                              |                                                                                             | 
 | 10 (`cltv_expiry_delta`)           | 80                                                                 |                                                                                             | 
 | 12 (`htlc_minimum_msat`)           | 1                                                                  |                                                                                             | 
-| 14 (`htlc_maximum_msat`)           | floor(channel capacity / 2)                                        | // TODO: remove this since makes encoding/decoding dependent on things outside the message? | 
 | 16 (`fee_base_msat`)               | 1000                                                               |                                                                                             | 
 | 18 (`fee_proportional_millionths`) | 1                                                                  |                                                                                             |
 
@@ -794,6 +793,7 @@ The origin node:
 - For all fields with defined defaults:
     - SHOULD not include the field in the TLV stream if the default value is
       desired.
+- MUST set `htlc_maximum_msat`.
 - MUST use the `channel_update_2` message to communicate channel parameters of a
   Taproot channel.
 - MAY use the `channel_update_2` message to communicate channel parameters of a
@@ -823,6 +823,10 @@ The origin node:
 
 The receiving node:
 
+- If `htlc_maximum_msat` is missing:
+    - SHOULD send a `warning`.
+    - MAY close the connection.
+    - MUST ignore the message.
 - If the `short_channel_id` does NOT match a previous `channel_announcement_2`
   or `channel_announcement`, OR if the channel has been closed in the meantime:
     - MUST ignore `channel_update_2`s that do NOT correspond to one of its own
