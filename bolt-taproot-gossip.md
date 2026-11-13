@@ -1028,8 +1028,7 @@ The receiving node:
 - Let `signing_node_id` be `node_id_1` if the `short_channel_id` direction
   byte is `0`, and `node_id_2` otherwise.
 - If the channel-id portion of `short_channel_id` does NOT match a previous
-  `channel_announcement_2` or `channel_announcement`, OR if the channel has
-  been closed in the meantime:
+  `channel_announcement_2`, OR if the channel has been closed in the meantime:
     - MUST ignore `channel_update_2`s that do NOT correspond to one of its own
       channels.
 - SHOULD accept `channel_update_2`s for its own channels (even if non-public),
