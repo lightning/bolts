@@ -252,16 +252,13 @@ While the network is in the upgrade phase, the following suggestions apply:
 
 ### Type Definitions
 
-The following convenient types are defined:
+In addition to the fundamental types defined in
+[BOLT #1](01-messaging.md#fundamental-types) (such as `bip340sig` and `utf8`),
+the following convenient types are defined:
 
-* `bip340sig`: a 64-byte bitcoin Elliptic Curve Schnorr signature as
-  per [BIP-340][bip-340].
 * `partial_signature`: a 32-byte partial MuSig2 signature as defined
   in [BIP-MuSig2][bip-musig2].
 * `public_nonce`: a 66-byte public nonce as defined in [BIP-MuSig2][bip-musig2].
-* `utf8`: a byte as part of a UTF-8 string. A writer MUST ensure an array of
-  these is a valid UTF-8 string, a reader MAY reject any messages containing an
-  array of these which is not a valid UTF-8 string.
 
 ### Feature Bits
 
