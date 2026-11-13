@@ -1005,7 +1005,7 @@ they will each have the following information:
 - `node_1` will know:
     - `bitcoin_priv_key_1`, `node_ID_priv_key_1`,
     - `bitcoin_key_2`,
-    - `node_ID_1`,
+    - `node_ID_2`,
     - `announcement_node_secnonce_1` and `announcement_node_pubnonce_1`,
     - `announcement_bitcoin_secnonce_1` and `announcement_bitcoin_pubnonce_1`,
     - `announcement_node_pubnonce_2`,
@@ -1014,7 +1014,7 @@ they will each have the following information:
 - `node_2` will know:
     - `bitcoin_priv_key_2`, `node_ID_priv_key_2`,
     - `bitcoin_key_1`,
-    - `node_ID_2`,
+    - `node_ID_1`,
     - `announcement_node_secnonce_2` and `announcement_node_pubnonce_2`,
     - `announcement_bitcoin_secnonce_2` and `announcement_bitcoin_pubnonce_2`,
     - `announcement_node_pubnonce_1`,
