@@ -607,6 +607,13 @@ The receiver:
     - SHOULD send a `warning`.
     - MAY close the connection.
     - MUST ignore the message.
+- if `node_id_1` is not lexicographically less than `node_id_2`:
+    - SHOULD send a `warning`.
+    - MAY close the connection.
+    - MUST ignore the message.
+- if the `chain_hash` (or its default value, if not present) is unknown to
+  the receiver:
+    - MUST ignore the message.
 - MUST use either the `short_channel_id` or the `outpoint` to retrieve the channel's claimed funding output:
   - if no such unspent output is found:
     - MAY send a `warning`.
