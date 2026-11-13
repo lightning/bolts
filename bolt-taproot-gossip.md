@@ -565,8 +565,7 @@ The following subtypes are defined:
   `node_announcement_2` messages.
 - `node_id` is the public key associated with this node. It must match a node ID
   that has previously been announced in the `node_id_1` or `node_id_2` fields of
-  a `channel_announcement` or `channel_announcement_2` message for a channel
-  that is still open.
+  a `channel_announcement_2` message for a channel that is still open.
 - `rgb_color` is an optional field that a node may use to assign itself a color.
 - `alias` is an optional field that a node may use to assign itself an alias
   that can then be used for a nicer UX on intelligence services. If this field
@@ -642,8 +641,8 @@ The receiver:
     - MUST NOT route a payment _through_ the node.
 - if `port` is equal to 0 for any `ipv6_addr` OR `ipv4_addr` OR `hostname`:
     - SHOULD ignore that address.
-- if `node_id` is NOT previously known from a `channel_announcement` OR
-  `channel_announcement_2` message, OR if `blockheight` is NOT greater than the
+- if `node_id` is NOT previously known from a `channel_announcement_2`
+  message, OR if `blockheight` is NOT greater than the
   last-received `node_announcement_2` from this `node_id`:
     - SHOULD ignore the message.
 - otherwise:
