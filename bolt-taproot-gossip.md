@@ -673,6 +673,8 @@ Channel announcement validation:
 - otherwise (not both bitcoin_key fields):
     - if either `bitcoin_key_1` or `bitcoin_key_2` are present:
         - validation fails
+    - if the scriptpubkey is P2WSH:
+        - validation fails
     - Let P_agg = MuSig2.KeyAgg(MuSig2.KeySort(`node_id_1`, `node_id_2`, taproot_key))
 - if `signature` is not a valid signature using P_agg over MsgHash("channel_announcement_2", "signature", message)`:
     - validation fails
