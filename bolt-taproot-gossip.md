@@ -544,7 +544,7 @@ The following subtypes are defined:
 
 1. subtype: `tor_v3_addr`
 2. data:
-    * [`35*utf8`:`onion_addr`]
+    * [`35*byte`:`onion_addr`]
     * [`u16`:`port`]
 
 1. subtype: `dns_hostname`
