@@ -321,8 +321,8 @@ The sender:
     - SHOULD send `channel_ready` with the `announcement_node_pubnonce` and
       `announcement_bitcoin_pubnonce` fields set. The `announcement_node_pubnonce`
       must be set to the public nonce to be used for signing with the node's
-      bitcoin key and the `announcement_bitcoin_pubnonce` must be set to the
-      public nonce to be used for signing with the node's node ID key.
+      node ID key and the `announcement_bitcoin_pubnonce` must be set to the
+      public nonce to be used for signing with the node's bitcoin key.
     - Upon reconnection, if a fully signed `channel_announcement_2` has not yet
       been constructed:
         - SHOULD re-send `channel_ready` with the nonce fields set.
