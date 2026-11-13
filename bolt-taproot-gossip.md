@@ -570,7 +570,7 @@ The following subtypes are defined:
 - `rgb_color` is an optional field that a node may use to assign itself a color.
 - `alias` is an optional field that a node may use to assign itself an alias
   that can then be used for a nicer UX on intelligence services. If this field
-  is set, then it MUST be 32 utf8 characters or less.
+  is set, then it MUST be 32 bytes or less.
 - `ipv4_addr` is an ipv4 address and port.
 - `ipv6_addr` is an ipv6 address and port.
 - `tor_v3_addr` is a Tor version 3 ([prop224]) onion service address;
@@ -597,7 +597,7 @@ The sender:
   [`MsgHash`](#signature-message-construction) definition).
 - MAY set `color` and `alias` to customise appearance in maps and graphs.
 - If the node sets the `alias`:
-    - MUST use 32 utf8 characters or less.
+    - MUST use 32 bytes or less.
 - MUST set `block_height` to be greater than that of any previous
   `node_announcement_2` it has previously created.
 - TODO: how to determine a lower bound for the block_height of the node_ann?
@@ -622,7 +622,7 @@ The receiver:
     - SHOULD send a `warning`.
     - MAY close the connection.
     - MUST ignore the message.
-- if `alias` is set and is larger than 32 utf8 characters:
+- if `alias` is set and is longer than 32 bytes:
     - SHOULD send a `warning`.
     - MAY close the connection.
     - MUST ignore the message.
