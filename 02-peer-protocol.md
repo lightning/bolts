@@ -1361,7 +1361,8 @@ The channel funding output must be added by the *opener*, who pays its fees.
 
 Upon receipt of consecutive `tx_complete`s, the receiving node:
   - MUST fail the negotiation if:
-    - there is not exactly one channel funding output
+    - there is not exactly one output whose `scriptPubKey` is the channel's
+      funding script
   - if is the *accepter*:
     - MUST fail the negotiation if:
       - the value of the funding output is not equal to the sum of
