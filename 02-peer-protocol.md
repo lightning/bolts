@@ -1360,9 +1360,10 @@ The channel funding output must be added by the *opener*, who pays its fees.
 #### The `tx_complete` Message
 
 Upon receipt of consecutive `tx_complete`s, the receiving node:
+  - MUST fail the negotiation if:
+    - there is not exactly one channel funding output
   - if is the *accepter*:
     - MUST fail the negotiation if:
-      - no funding output was received
       - the value of the funding output is not equal to the sum of
         `open_channel2`.`funding_satoshis` and `accept_channel2`.
         `funding_satoshis`
