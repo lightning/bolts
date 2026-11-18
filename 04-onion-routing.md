@@ -192,6 +192,9 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
 
 1. `tlv_stream`: `payload`
 2. types:
+    1. type: 1 (`invoice_request`)
+    2. data:
+        * [`...*byte`:`invoice_request_tlv_stream`]
     1. type: 2 (`amt_to_forward`)
     2. data:
         * [`tu64`:`amt_to_forward`]
@@ -217,6 +220,9 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
     1. type: 18 (`total_amount_msat`)
     2. data:
         * [`tu64`:`total_msat`]
+    1. type: 5482373484 (`sender_provided_payment_preimage`)
+    2. data:
+        * [`32*byte`:`payment_preimage`]
 
 `short_channel_id` is the ID of the outgoing channel used to route the
 message; the receiving peer should operate the other end of this channel.
@@ -242,6 +248,11 @@ origin node has an obsolete `cltv_expiry_delta` value.
 The requirements ensure consistency in responding to an unexpected
 `outgoing_cltv_value`, whether it is the final node or not, to avoid
 leaking its position in the route.
+
+`sender_provided_payment_preimage` and `invoice_request` are set in the case 
+that the recipient is often-offline and another node provided a static BOLT 12 
+invoice on their behalf, where `invoice_request` is the sender's originl 
+invoice request corresponding to this HTLC.
 
 ### Requirements
 
@@ -276,6 +287,14 @@ The writer of the TLV `payload`:
         - MUST use the current block height as a baseline value. 
         - if a [random offset](07-routing-gossip.md#recommendations-for-routing) was added to improve privacy:
           - SHOULD add the offset to the baseline value.
+      - if paying to a static BOLT 12 invoice:
+        - MUST set `sender_provided_payment_preimage` to randomly generated unique bytes.
+        - MUST set `update_add_htlc.payment_hash` to match the SHA256 hash of
+          `sender_provided_payment_preimage`.
+        - MUST set `invoice_request` to the BOLT 12 invoice request
+          corresponding to this HTLC.
+      - otherwise:
+        - MUST NOT set `sender_provided_payment_preimage`.
     - MUST NOT include any other tlv field.
   - For every node outside of a blinded route:
     - MUST include `amt_to_forward` and `outgoing_cltv_value`.
@@ -327,6 +346,7 @@ The reader:
       - MUST return an error if `amt_to_forward` is below what it expects for the payment.
       - MUST return an error if incoming `cltv_expiry` < `outgoing_cltv_value`.
       - MUST return an error if incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
+      - MUST use `sender_provided_payment_preimage` when claiming the HTLC, if present
   - Otherwise (it is not part of a blinded route):
     - MUST return an error if `path_key` is set in the incoming `update_add_htlc` or `current_path_key` is present.
     - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
@@ -1756,6 +1776,8 @@ hop.
     1. type: 4 (`encrypted_recipient_data`)
     2. data:
         * [`...*byte`:`encrypted_recipient_data`]
+    1. type: 5 (`forwarded_message`)
+    2. data:
     1. type: 64 (`invoice_request`)
     2. data:
         * [`tlv_invoice_request`:`invreq`]
@@ -1765,6 +1787,9 @@ hop.
     1. type: 68 (`invoice_error`)
     2. data:
         * [`tlv_invoice_error`:`inverr`]
+    1. type: 70 (`static_invoice`)
+    2. data:
+    * [`tlv_static_invoice`:`static_inv`]
 
 #### Requirements
 
@@ -1793,6 +1818,11 @@ The writer:
       - MAY use `path_id` to contain a secret so it can recognize use of this `reply_path`.
   - otherwise:
     - MUST NOT set `reply_path`.
+  - if it is sending a payload field and `reply_path` which it received from another node, on
+    behalf of that node:
+    - MUST set `forwarded_message`.
+  - otherwise:
+    - MUST NOT set `forwarded_message`.
 
 
 The reader:
@@ -1872,6 +1902,11 @@ the onion).  This blinding allows nodes to use a path provided by
 others without knowing its contents.  Using it universally simplifies
 implementations a little, and makes it more difficult to distinguish
 onion messages.
+
+`forwarded_message` allows a node which sends a message on behalf of
+another node over a path it cannot inspect to recognize that message,
+should the path lead back to itself (see
+[BOLT #12](12-offer-encoding.md#invoice-requests)).
 
 `len` allows larger messages to be sent than the standard 1300 bytes
 allowed for an HTLC onion, but this should be used sparingly as it
