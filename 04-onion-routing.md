@@ -1776,6 +1776,8 @@ hop.
     1. type: 4 (`encrypted_recipient_data`)
     2. data:
         * [`...*byte`:`encrypted_recipient_data`]
+    1. type: 5 (`forwarded_message`)
+    2. data:
     1. type: 64 (`invoice_request`)
     2. data:
         * [`tlv_invoice_request`:`invreq`]
@@ -1816,6 +1818,11 @@ The writer:
       - MAY use `path_id` to contain a secret so it can recognize use of this `reply_path`.
   - otherwise:
     - MUST NOT set `reply_path`.
+  - if it is sending a payload field and `reply_path` which it received from another node, on
+    behalf of that node:
+    - MUST set `forwarded_message`.
+  - otherwise:
+    - MUST NOT set `forwarded_message`.
 
 
 The reader:
@@ -1895,6 +1902,11 @@ the onion).  This blinding allows nodes to use a path provided by
 others without knowing its contents.  Using it universally simplifies
 implementations a little, and makes it more difficult to distinguish
 onion messages.
+
+`forwarded_message` allows a node which sends a message on behalf of
+another node over a path it cannot inspect to recognize that message,
+should the path lead back to itself (see
+[BOLT #12](12-offer-encoding.md#invoice-requests)).
 
 `len` allows larger messages to be sent than the standard 1300 bytes
 allowed for an HTLC onion, but this should be used sparingly as it

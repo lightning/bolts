@@ -586,8 +586,11 @@ The reader:
     - MUST reject the invoice request if `name` or `domain` contain any bytes which are not
       `0`-`9`, `a`-`z`, `A`-`Z`, `-`, `_` or `.`.
   - if receiving the `invoice_request` on behalf of an often-offline payee:
-    - SHOULD forward the `invoice_request` to the payee
-    - SHOULD reply with the static invoice previously provided by the payee
+    - if the `onionmsg_tlv` contains `forwarded_message`:
+      - MUST ignore the invoice request.
+    - otherwise:
+      - SHOULD forward the `invoice_request` to the payee, setting `forwarded_message`.
+      - SHOULD reply with the static invoice previously provided by the payee.
 
 ## Rationale
 
@@ -615,6 +618,16 @@ informative for the payer to know how the sender claims
 `invreq_amount` was derived).
 
 The requirement to use `offer_paths` if present, ensures a node does not reveal it is the source of an offer if it is asked directly.  Similarly, the requirement that the correct path is used for the offer ensures that cannot be made to reveal that it is the same node that created some other offer.
+
+The path an always-online node forwards an `invoice_request` over is
+provided by the often-offline payee and is blinded, so the always-online
+node cannot tell where it ends. If it ends at one of the always-online
+node's own offer paths, the forwarded `invoice_request` arrives back as a
+new one and would be forwarded again, indefinitely. Ignoring an
+`invoice_request` with `forwarded_message` set breaks such a loop without
+the always-online node having to remember what it forwarded. Payers never
+set `forwarded_message`, and it does not affect the payee, which does not
+receive the `invoice_request` on behalf of another node.
 
 # Invoices
 
