@@ -380,6 +380,7 @@ The nodes:
 
 The receiving node:
   - MUST use the negotiated inputs and outputs to construct a transaction
+  - MUST set the transaction's `nVersion` to 2
   - MUST fail the negotiation if:
     - the peer's total input satoshis is less than their outputs. One MUST
       account for the peer's portion of the funding output when verifying
